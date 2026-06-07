@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Sostituisci il link qui sotto con il tuo logo -->
-<img src="https://drive.google.com/file/d/1iOR3yjEsapSYa4BQd2JCcLxW-3z2QP_o/view?usp=sharing" alt="MammoDiffusion Logo" width="180"/>
+<img src="assets/logo_MammoDiffusion.png" alt="MammoDiffusion Logo" width="180"/>
 
 # 🩻 MammoDiffusion
 

@@ -1,0 +1,56 @@
+# ================================
+# DATASET E DATI
+# ================================
+data/
+data/original/
+data/processed/
+
+# Formati file dati comuni
+*.csv
+*.tsv
+*.json
+*.jsonl
+*.xml
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.npy
+*.npz
+*.pkl
+*.pickle
+
+# ================================
+# AMBIENTE PYTHON
+# ================================
+venv/
+.env/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# ================================
+# CONFIGURAZIONI LOCALI
+# ================================
+.env
+config_local.py
+*.local.py
+
+# ================================
+# SISTEMA OPERATIVO
+# ================================
+.DS_Store           # Mac
+Thumbs.db           # Windows
+desktop.ini         # Windows
+
+# ================================
+# VS CODE
+# ================================
+.vscode/
+*.code-workspace

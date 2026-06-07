@@ -196,7 +196,7 @@ I risultati (grafici, metriche, modelli) vengono salvati su **Google Drive** nel
 |---|---|
 | Enzo Fumagalli | [@EnzoFumagalli](https://github.com/EnzoFumagalli) |
 | Federico Marras | [@FedericoMarras](https://github.com/FedericoMarras) |
-| Alexandro Sanna | [@username](https://github.com/AlexandroSanna) |
+| Alexandro Sanna | [@AlexandroSanna](https://github.com/AlexandroSanna) |
 | Samuele Nonni | [@SamueleNonnis](https://github.com/SamueleNonnis) |
 
 ---

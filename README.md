@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Sostituisci il link qui sotto con il tuo logo -->
-<img src="https://drive.google.com/file/d/1iOR3yjEsapSYa4BQd2JCcLxW-3z2QP_o/view?usp=drive_link" alt="MammoDiffusion Logo" width="180"/>
+<img src="https://drive.google.com/file/d/1iOR3yjEsapSYa4BQd2JCcLxW-3z2QP_o/view?usp=sharing" alt="MammoDiffusion Logo" width="180"/>
 
 # 🩻 MammoDiffusion
 
@@ -9,7 +9,8 @@
 per il miglioramento della classificazione del cancro al seno.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
+![Keras](https://img.shields.io/badge/Keras-3.x-D00000?style=flat-square&logo=keras&logoColor=white)
 ![Dataset](https://img.shields.io/badge/Dataset-RSNA%20Breast%20Cancer-pink?style=flat-square)
 ![License](https://img.shields.io/badge/License-Academic-lightgrey?style=flat-square)
 
@@ -77,31 +78,50 @@ Il progetto utilizza il dataset **RSNA Breast Cancer Detection**, filtrato sulla
 ```
 MammoDiffusion/
 │
-├── 📓 notebooks/
-│   ├── 01_data_exploration.ipynb       # Analisi esplorativa del dataset
-│   ├── 02_preprocessing.ipynb          # Preprocessing delle immagini
-│   ├── 03_diffusion_scratch.ipynb      # Modello diffusivo from scratch
-│   ├── 04_diffusion_finetuning.ipynb   # Fine-tuning modello pre-addestrato
-│   └── 05_classification.ipynb         # Training e valutazione classificatori
+├── 🖼️  assets/                                         # Materiali di supporto e documentazione
+│   ├── logo.png                                        # Logo del progetto
+│   ├── slides.pdf                                      # Slide della presentazione
+│   └── video_presentazione.mp4                         # Video della presentazione
 │
-├── 🐍 src/
-│   ├── models/                         # Architetture dei modelli
-│   ├── data/                           # Dataloader e preprocessing
-│   ├── training/                       # Loop di training
-│   └── evaluation/                     # Metriche e valutazione
+├── 🗂️  data/                                           # Dataset (NON incluso nella repo → su Drive)
+│   ├── original/                                       # Dati originali RSNA non modificati
+│   │   └── ISTRUZIONI.md                               # Link e istruzioni per scaricare il dataset
+│   └── processed/                                      # Immagini preprocessate (vista MLO)
 │
-├── 📊 results/                         # Grafici, metriche, output (su Drive)
+├── 🧪 experiments/                                     # Un esperimento = una sottocartella
+│   ├── exp_202606041430_diffusion_scratch/              # Modello diffusivo from scratch
+│   │   ├── config.json                                 # Configurazione dell'esperimento
+│   │   ├── model_weights/                              # Pesi del modello salvati
+│   │   └── training_curves/                            # Curve di loss e metriche
+│   ├── exp_202606051015_diffusion_finetuned/           # Fine-tuning modello pre-addestrato
+│   │   ├── config.json
+│   │   ├── model_weights/
+│   │   └── training_curves/
+│   └── exp_202606061700_classifier_augmented/          # Classificatore con dati sintetici
+│       ├── config.json
+│       ├── model_weights/
+│       └── training_curves/
 │
-├── 🗂️ data/                            # Dataset (NON incluso nella repo → su Drive)
-│   ├── raw/                            # Immagini originali RSNA
-│   └── processed/                      # Immagini preprocessate (MLO)
+├── 📓 notebooks/                                       # Notebook del flusso di lavoro
+│   ├── 01_data_exploration.ipynb                       # Analisi esplorativa del dataset
+│   ├── 02_preprocessing.ipynb                          # Preprocessing immagini MLO
+│   ├── 03_diffusion_scratch.ipynb                      # Training modello diffusivo from scratch
+│   ├── 04_diffusion_finetuning.ipynb                   # Fine-tuning modello pre-addestrato
+│   └── 05_classification.ipynb                         # Training e valutazione classificatori
 │
-├── 📄 README.md                        # Questo file
-├── 📦 requirements.txt                 # Dipendenze Python
-└── 🚫 .gitignore                       # File esclusi dalla repo
+├── 📊 results/                                         # Risultati finali del progetto
+│   ├── figures/                                        # Grafici e visualizzazioni
+│   ├── tables/                                         # Tabelle metriche (FID, AUC, F1...)
+│   └── predictions/                                    # Output e predizioni finali
+│
+├── 📄 README.md                                        # Questo file
+├── 📦 requirements.txt                                 # Dipendenze Python
+└── 🚫 .gitignore                                       # File esclusi dalla repo
 ```
 
-> ⚠️ **Nota:** La cartella `data/` **non è inclusa** nella repository per via delle dimensioni. Il dataset è disponibile su Google Drive condiviso del team.
+> ⚠️ **Nota:** La cartella `data/` **non è inclusa** nella repository per via delle dimensioni. Il dataset è disponibile su Google Drive condiviso del team. Seguire le istruzioni in `data/original/ISTRUZIONI.md` per scaricarlo.
+>
+> 💡 **Convenzione esperimenti:** il nome di ogni sottocartella in `experiments/` segue il formato `exp_YYYYMMDDHHММ_descrizione` per facilitare il tracciamento cronologico.
 
 ---
 

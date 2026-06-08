@@ -4,6 +4,7 @@
 data/
 data/original/
 data/processed/
+experiments 
 
 # Formati file dati comuni
 *.csv

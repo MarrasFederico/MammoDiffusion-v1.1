@@ -180,6 +180,20 @@ Apri ed esegui i notebook nella cartella `notebooks/` nell'ordine numerico indic
 
 Ogni notebook è indipendente e include commenti esplicativi sui passaggi principali.
 
+### Demo Gradio
+
+L'interfaccia locale **MammoDiffusion Studio** permette di scegliere
+l'etichetta positiva o negativa e generare immagini con il checkpoint
+fine-tuned selezionato sulla validation.
+
+```bash
+python -m pip install -r assets/mammodiffusion_gradio/requirements.txt
+python assets/mammodiffusion_gradio/app.py --open-browser
+```
+
+Codice, istruzioni ed esempi sono disponibili in
+[`assets/mammodiffusion_gradio`](assets/mammodiffusion_gradio/).
+
 ---
 
 ## 📈 Risultati

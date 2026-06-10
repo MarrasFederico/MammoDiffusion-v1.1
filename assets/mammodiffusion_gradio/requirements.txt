@@ -1,0 +1,7 @@
+accelerate
+diffusers
+gradio>=6,<7
+pillow
+safetensors
+torch
+transformers

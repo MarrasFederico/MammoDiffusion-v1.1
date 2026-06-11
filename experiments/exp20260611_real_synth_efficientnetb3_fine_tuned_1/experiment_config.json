@@ -1,5 +1,5 @@
 {
-  "experiment_name": "exp20260611_real_synth_efficientnetb3_fine_tuned_0",
+  "experiment_name": "exp20260611_real_synth_efficientnetb3_fine_tuned_1",
   "date": "2026-06-11",
   "backbone": {
     "name": "EfficientNetB3",

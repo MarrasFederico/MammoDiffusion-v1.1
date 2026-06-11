@@ -2,24 +2,33 @@
 # DATASET E DATI
 # ================================
 data/
-data/original/
-data/processed/
 
-
-# Formati file dati comuni
-*.csv
-*.tsv
-*.json
-*.jsonl
-*.xml
-*.parquet
-*.feather
+# ================================
+# MODELLI E CHECKPOINTS
+# ================================
+*.keras
 *.h5
 *.hdf5
 *.npy
 *.npz
 *.pkl
 *.pickle
+*.parquet
+*.feather
+
+# ================================
+# ESPERIMENTI - solo pesi, non i risultati
+# ================================
+# I file val_metrics.json vengono tracciati (risultati utili)
+# I pesi (.keras) sono già coperti dalla regola sopra
+
+# ================================
+# FORMATI DATI TABELLARI
+# ================================
+*.csv
+*.tsv
+*.jsonl
+*.xml
 
 # ================================
 # AMBIENTE PYTHON
@@ -37,6 +46,19 @@ dist/
 build/
 
 # ================================
+# JUPYTER
+# ================================
+.ipynb_checkpoints/
+
+# ================================
+# LOGGING E MONITORING
+# ================================
+wandb/
+*.log
+mlruns/
+lightning_logs/
+
+# ================================
 # CONFIGURAZIONI LOCALI
 # ================================
 .env
@@ -46,9 +68,9 @@ config_local.py
 # ================================
 # SISTEMA OPERATIVO
 # ================================
-.DS_Store           # Mac
-Thumbs.db           # Windows
-desktop.ini         # Windows
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # ================================
 # VS CODE

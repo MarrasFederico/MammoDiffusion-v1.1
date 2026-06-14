@@ -1,19 +1,44 @@
-#pipeline che raccoglie i risultati su WandB per MammoDiffusion
-#-valuta_configurazione(...) -> valuta una configurazione e logga 1 run WandB
-#-valuta_tutte_configurazioni(...) -> valuta una o piu' configurazioni sulle stesse immagini generate
+#pipeline_valutazione.py
+"""
+Orchestrazione lato Samuele (ex pipeline + integrazione).
+
+Contiene due blocchi:
+  1) PIPELINE: valuta_configurazione (1 config -> 1 run) e
+     valuta_tutte_configurazioni (N config sulle stesse immagini, FID calcolato UNA volta)
+  2) INTEGRAZIONE (ex integrazione): valuta_da_consegne legge la cartella consegne/
+     prodotta dai colleghi e lancia la pipeline senza assemblare niente a mano.
+
+Lo strato di logging WandB e' stato estratto in wandb_logger.py (responsabilita' a se':
+presentazione/sink). Questo file lo importa, non viceversa.
+
+I tool dei colleghi restano file separati: contratto.py (misura+IO), generative_evaluator.py,
+classifier_evaluator.py. Questo file li importa, non viceversa.
+"""
 from __future__ import annotations
 import os, sys, json
 from datetime import datetime
 from pathlib import Path
-from classifier_evaluator  import ClassifierEvaluator
-from eco_tracker           import SustainabilityMetrics
-from wandb_logger          import log_experiment_to_wandb
+
+import matplotlib
+matplotlib.use("Agg")  #headless: niente display richiesto
+
+from classifier_evaluator import ClassifierEvaluator
+from contratto import (
+    SustainabilityMetrics, CARTELLA_CONSEGNE,
+    carica_predizioni, carica_e_aggrega_eco, elenca_consegne,
+)
+from wandb_logger import log_experiment_to_wandb, log_riepilogo_progetto
 try:
     from generative_evaluator import GenerativeEvaluator
 except ImportError:
     GenerativeEvaluator = None  #type: ignore[assignment]
+
 DEFAULT_OUTPUT_DIR = "risultati_finali"
 
+
+# ============================================================================
+#  1) PIPELINE
+# ============================================================================
 
 #duplica uno stream su console + file log.txt
 class _Tee:
@@ -54,11 +79,14 @@ aggiunge al summary i blocchi con metriche necessarie alle domande D1/D2/D3
 """
 def aggiungi_aggregati(summary: dict, configurazioni: dict, eco_diff_train, eco_diff_gen) -> None:
 
-    #somma sicura del co2 di un eco (0 se non fornito)
-    def co2(eco):
-        return eco.co2_kg if eco is not None else 0.0
+    #letture sicure da un eco (0 se non fornito)
+    def _get(eco, attr):
+        return getattr(eco, attr) if eco is not None else 0.0
+    def co2(eco): return _get(eco, "co2_kg")
+    def kwh(eco): return _get(eco, "energy_kwh")
+    def sec(eco): return _get(eco, "elapsed_seconds")
 
-    summary["D1"] = dict(summary["generative"])#D1 - copia valori di FID e IS 
+    summary["D1"] = dict(summary["generative"])#D1 - copia valori di FID e IS
 
     runs = summary["runs"]#i risultati per ogni configurazione
     baseline = "real_only" if "real_only" in runs else next(iter(runs))#config di riferimento per i delta
@@ -86,11 +114,22 @@ def aggiungi_aggregati(summary: dict, configurazioni: dict, eco_diff_train, eco_
         "baseline": baseline, "ranking_per_F1": ranking, "per_config": per_config,
     }
 
-    #D3 - costo CO2 (generatore totale + classificatore per config)
+    #D3 - costo per componente: CO2 + energia (kWh) + tempo (s).
+    #generatore = training + generation ; classificatore = training + inference (per config)
     summary["D3"] = {
-        "generatore_co2_totale_kg": co2(eco_diff_train) + co2(eco_diff_gen),
+        "generatore_co2_totale_kg":      co2(eco_diff_train) + co2(eco_diff_gen),
+        "generatore_energia_totale_kwh": kwh(eco_diff_train) + kwh(eco_diff_gen),
+        "generatore_tempo_totale_s":     sec(eco_diff_train) + sec(eco_diff_gen),
         "classificatore_co2_per_config_kg": {
             nome: co2(c.get("eco_classifier_training")) + co2(c.get("eco_inference"))
+            for nome, c in configurazioni.items()
+        },
+        "classificatore_energia_per_config_kwh": {
+            nome: kwh(c.get("eco_classifier_training")) + kwh(c.get("eco_inference"))
+            for nome, c in configurazioni.items()
+        },
+        "classificatore_tempo_per_config_s": {
+            nome: sec(c.get("eco_classifier_training")) + sec(c.get("eco_inference"))
             for nome, c in configurazioni.items()
         },
     }
@@ -101,7 +140,7 @@ esegue D1+D2+D3 per UNA configurazione e logga 1 run WandB; ritorna un dict
 -output_dir: cartella su cui ClassifierEvaluator salva le figure (CM)
 -pos_label: etichetta della classe "malato"
 -config_params: voci extra del config WandB
--gen_metrics: se fornito il FID/IS non viene ricalcolato e si riusano questi valori 
+-gen_metrics: se fornito il FID/IS non viene ricalcolato e si riusano questi valori
 -project/entity: destinazione WandB
 """
 def valuta_configurazione(
@@ -183,7 +222,7 @@ def valuta_configurazione(
         "run_name":       run_name,
         "generative":     gen_results,
         "classifier":     class_results.to_dict(),
-        #confusion matrix come numeri 
+        #confusion matrix come numeri
         "confusion_matrix":        cm.tolist() if cm is not None else None,
         "confusion_matrix_classi": list(class_names) if class_names else None,
         #metriche per ogni classe
@@ -191,6 +230,56 @@ def valuta_configurazione(
         "sustainability": sustainability,
         "figure_paths":   [str(p) for p in class_results.figure_paths],
     }
+
+
+#genera i plot di riepilogo (D2: F1 per config; D3: CO2 per componente) e li salva come PNG; ritorna i path
+def genera_plot_riepilogo(summary: dict, figures_dir: str | Path) -> list[Path]:
+    import matplotlib.pyplot as plt
+    figures_dir = Path(figures_dir)
+    paths: list[Path] = []
+
+    #D2 - F1 per configurazione del classificatore
+    per = summary.get("D2", {}).get("per_config", {})
+    if per:
+        nomi = list(per)
+        f1 = [per[n]["F1"] for n in nomi]
+        fig, ax = plt.subplots(figsize=(max(6, len(nomi) * 1.6), 5))
+        ax.bar(nomi, f1, color="steelblue")
+        ax.set_ylim(0, 1); ax.set_ylabel("F1")
+        ax.set_title("D2 - F1 per configurazione del classificatore")
+        for i, v in enumerate(f1):
+            ax.text(i, v + 0.01, f"{v:.3f}", ha="center", fontsize=9)
+        plt.xticks(rotation=20, ha="right"); plt.tight_layout()
+        p = figures_dir / "riepilogo_D2_F1.png"
+        fig.savefig(p, dpi=150, bbox_inches="tight"); plt.close(fig); paths.append(p)
+
+    #D3 - barre "per componente" (classificatore per config + generatore) per piu' metriche eco.
+    #helper interno: una barra per ogni componente, salva un PNG se c'e' almeno un valore non nullo.
+    d3 = summary.get("D3", {})
+
+    def _plot_per_componente(per_config: dict, gen_tot: float, ylabel: str,
+                             titolo: str, colore: str, filename: str) -> None:
+        nomi = list(per_config) + ["generatore"]
+        vals = [per_config[n] for n in per_config] + [gen_tot]
+        if not any(vals):
+            return
+        fig, ax = plt.subplots(figsize=(max(6, len(nomi) * 1.6), 5))
+        ax.bar(nomi, vals, color=colore)
+        ax.set_ylabel(ylabel); ax.set_title(titolo)
+        plt.xticks(rotation=20, ha="right"); plt.tight_layout()
+        p = figures_dir / filename
+        fig.savefig(p, dpi=150, bbox_inches="tight"); plt.close(fig); paths.append(p)
+
+    _plot_per_componente(
+        d3.get("classificatore_co2_per_config_kg", {}),
+        d3.get("generatore_co2_totale_kg", 0.0),
+        "CO2 (kg)", "D3 - CO2 per componente", "seagreen", "riepilogo_D3_co2.png")
+    _plot_per_componente(
+        d3.get("classificatore_energia_per_config_kwh", {}),
+        d3.get("generatore_energia_totale_kwh", 0.0),
+        "Energia (kWh)", "D3 - Energia per componente", "darkorange", "riepilogo_D3_energia.png")
+
+    return paths
 
 
 """
@@ -267,6 +356,12 @@ def valuta_tutte_configurazioni(
         with open(out / "summary.json", "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2, ensure_ascii=False)
 
+        #plot di riepilogo come PNG (per il prof) + UN solo run WandB "riepilogo progetto"
+        plot_riepilogo = genera_plot_riepilogo(summary, out / "figures")
+        tutte_le_figure = [f for r in summary["runs"].values() for f in r["figure_paths"]]
+        tutte_le_figure += [str(p) for p in plot_riepilogo]
+        log_riepilogo_progetto(summary, tutte_le_figure, project=project, entity=entity)
+
         #riepilogo D2 a video ordinato per F1
         print("\n[D2] confronto configurazioni (ordinate per F1):")
         base = summary["D2"]["baseline"]
@@ -284,7 +379,97 @@ def valuta_tutte_configurazioni(
         logfile.close()
 
 
-#test con mock data (no torch no WandB online)
+# ============================================================================
+#  2) INTEGRAZIONE  (ex integrazione)  -  dalle consegne/ alla pipeline
+# ============================================================================
+#
+# convenzione dei nomi file in CARTELLA_CONSEGNE:
+#   generatore  : eco_finetuning.jsonl, eco_checkpoint.jsonl (opz.), eco_generation.jsonl
+#   classificat.: per ogni config <C> -> pred_<C>.npz, eco_training_<C>.jsonl, eco_inference_<C>.jsonl
+#                 (<C> es: real_only, real_plus_synthetic, synthetic_only, trad_aug)
+# i file mancanti vengono saltati con un avviso (eco assente -> la pipeline mette zeri).
+
+
+#ritorna solo i path che esistono davvero (come stringhe)
+def _esistenti(*paths) -> list[str]:
+    return [str(p) for p in paths if Path(p).exists()]
+
+
+"""
+costruisce le configurazioni dalle consegne e lancia valuta_tutte_configurazioni
+-real_images_dir/fake_images_dir : per FID/IS (dal team generatore)
+-config_names    : nomi delle config classificatore da cercare in consegne/ (es. ["real_only", ...])
+-cartella        : dove leggere le consegne (default CARTELLA_CONSEGNE)
+-pos_label       : etichetta "Malato" (per Sensitivity/Specificity/ROC-AUC)
+-file_gen_*      : nomi file eco del generatore (training = finetuning + scelta checkpoint)
+"""
+def valuta_da_consegne(
+    real_images_dir: str,
+    fake_images_dir: str,
+    config_names: list[str],
+    cartella: str | Path | None = None,
+    pos_label: int = 1,
+    output_dir: str | Path = "risultati_finali",
+    project: str | None = "mammodiffusion",
+    entity: str | None = None,
+    device: str = "auto",
+    #accetta sia i nomi "contratto" sia quelli realmente prodotti dal collega gen2
+    #(sustainability_finetuning = finetuning, sustainability_eval = scelta checkpoint).
+    #Vengono presi solo i file che esistono davvero (_esistenti) e poi sommati.
+    file_gen_training=("eco_finetuning.jsonl", "eco_checkpoint.jsonl",
+                       "sustainability_finetuning.jsonl", "sustainability_eval.jsonl"),
+    file_gen_generation=("eco_generation.jsonl", "sustainability_generation.jsonl"),
+) -> dict:
+    base = Path(cartella) if cartella is not None else Path(CARTELLA_CONSEGNE)
+    print(f"[integrazione] leggo le consegne da: {base}")
+    if base.is_dir():
+        print(f"[integrazione] file presenti: {[p.name for p in elenca_consegne(base)]}")
+
+    #--- eco del generatore (training = finetuning + scelta checkpoint; generation a parte) ---
+    f_train = _esistenti(*[base / f for f in file_gen_training])
+    f_gen   = _esistenti(*[base / f for f in file_gen_generation])
+    eco_diffusion_training   = carica_e_aggrega_eco(f_train, label="eco_diffusion_training") if f_train else None
+    eco_diffusion_generation = carica_e_aggrega_eco(f_gen,   label="eco_diffusion_generation") if f_gen else None
+    if not f_train:
+        print("[integrazione] WARN eco training generatore non trovato -> zeri")
+    if not f_gen:
+        print("[integrazione] WARN eco generazione non ancora consegnato -> zeri")
+
+    #--- una configurazione classificatore per ciascun config_name ---
+    configurazioni: dict = {}
+    for c in config_names:
+        pred_path = base / f"pred_{c}.npz"
+        if not pred_path.exists():
+            print(f"[integrazione] WARN '{c}': manca {pred_path.name}, config saltata")
+            continue
+        pred = carica_predizioni(pred_path)
+        et = _esistenti(base / f"eco_training_{c}.jsonl")
+        ei = _esistenti(base / f"eco_inference_{c}.jsonl")
+        configurazioni[c] = dict(
+            y_true=pred["y_true"], y_pred=pred["y_pred"], y_prob=pred["y_prob"],
+            class_names=pred["class_names"] or ["Sano", "Malato"],
+            eco_classifier_training=carica_e_aggrega_eco(et, label=f"train_{c}") if et else None,
+            eco_inference=carica_e_aggrega_eco(ei, label=f"infer_{c}") if ei else None,
+            pos_label=pos_label,
+            config_params={"augmentation": c != "real_only"},
+        )
+
+    if not configurazioni:
+        raise FileNotFoundError(f"nessuna predizione 'pred_<config>.npz' trovata in {base}")
+
+    print(f"[integrazione] configurazioni caricate: {list(configurazioni)}")
+    return valuta_tutte_configurazioni(
+        real_images_dir=real_images_dir, fake_images_dir=fake_images_dir,
+        configurazioni=configurazioni,
+        eco_diffusion_training=eco_diffusion_training,
+        eco_diffusion_generation=eco_diffusion_generation,
+        output_dir=output_dir, project=project, entity=entity, device=device,
+    )
+
+
+# ============================================================================
+#  self-test con mock data (no torch, no WandB online)
+# ============================================================================
 if __name__ == "__main__":
     import tempfile
 
@@ -295,7 +480,7 @@ if __name__ == "__main__":
         def compute(self) -> dict:
             return {"FID": 37.5, "IS_mean": 1.92, "IS_std": 0.11}
 
-    GenerativeEvaluator = _StubGenerativeEvaluator 
+    GenerativeEvaluator = _StubGenerativeEvaluator
 
     def mock_eco(label, t=1.0, ram=512.0, kwh=0.001, co2=0.0004):
         return SustainabilityMetrics(elapsed_seconds=t, peak_ram_mb=ram,

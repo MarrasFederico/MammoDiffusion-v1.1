@@ -71,11 +71,42 @@ class EvaluationResult:
         return d
 
 
+#raccoglie l'esito della valutazione bilanciata a bootstrap (media +/- dev std su piu' round)
+@dataclass
+class BalancedBootstrapResult:
+    n_rounds: int = 0
+    n_positives: int = 0            #positivi usati ogni round (tutti)
+    n_negatives_per_round: int = 0  #negativi campionati ogni round (= n_positives)
+    replace: bool = False           #campionamento negativi con reimmissione (se ne mancano)
+    means: dict = field(default_factory=dict)      #media per metrica
+    stds: dict = field(default_factory=dict)       #deviazione standard per metrica
+    per_round: list = field(default_factory=list)  #lista di dict (una riga per round)
+    figure_paths: list = field(default_factory=list)
+
+    def __str__(self) -> str:
+        righe = [
+            f"Bootstrap bilanciato: {self.n_rounds} round, "
+            f"{self.n_positives} pos + {self.n_negatives_per_round} neg per round"
+            + (" (neg con reimmissione)" if self.replace else "")
+        ]
+        for k in self.means:
+            righe.append(f"  {k:14s}: {self.means[k]:.4f} +/- {self.stds[k]:.4f}")
+        return "\n".join(righe)
+
+    #chiavi piatte tipo "F1_mean"/"F1_std" comode per il logging
+    def to_dict(self) -> dict:
+        d = {}
+        for k in self.means:
+            d[f"{k}_mean"] = self.means[k]
+            d[f"{k}_std"]  = self.stds[k]
+        return d
+
+
 """
 -calcola le metriche per valutare i classificatori, salvando la confusion matrix come PNG
 -il parametro average controlla l'aggregazione delle metriche tra classi
 -funziona per classificatori binari e multiclasse ma nel caso binario
- aggiunge sensitivity e specificity rispetto alla classe "positiva" (malata) 
+ aggiunge sensitivity e specificity rispetto alla classe "positiva" (malata)
  inoltre la metrica ROC-AUC viene calcolata solo se si ricevono le y_prob
 """
 class ClassifierEvaluator:
@@ -214,6 +245,107 @@ class ClassifierEvaluator:
 
         safe = label.replace(" ", "_").replace("/", "-")
         path = self.figures_dir / f"confusion_matrix_{safe}.png"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        return path.resolve()
+
+
+    """
+    -valutazione BILANCIATA a bootstrap per test set sbilanciato (nel nostro caso ~5:1).
+    -idea (dagli appunti del gruppo): si tengono TUTTI i positivi e ad ogni round si
+     campionano n=positivi negativi a caso, si calcolano le metriche e si ripete
+     n_rounds volte, poi si media (media +/- dev std). Cosi' accuracy & co. non sono
+     gonfiate dalla maggioranza dei negativi.
+    -binario: usa pos_label come classe "malata"; metriche per-round su sottoinsieme 50/50.
+    -y_prob opzionale (matrice (N,2) o vettore P(positivo)) -> aggiunge ROC_AUC per round.
+    -NON sostituisce evaluate_predictions (single-pass): e' complementare.
+    """
+    def evaluate_balanced_bootstrap(self, y_true, y_pred, y_prob=None,
+                                    pos_label: int = 1, n_rounds: int = 10,
+                                    random_state: int = 42, label: str = "bootstrap",
+                                    make_plot: bool = True) -> BalancedBootstrapResult:
+
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        if y_true.shape[0] != y_pred.shape[0]:
+            raise ValueError("y_true e y_pred devono avere la stessa lunghezza.")
+
+        labels = np.unique(y_true)
+        if labels.shape[0] != 2 or pos_label not in labels:
+            raise ValueError("il bootstrap bilanciato vale solo per il caso binario con pos_label valido.")
+        neg_label = int(labels[labels != pos_label][0])
+
+        pos_idx = np.where(y_true == pos_label)[0]
+        neg_idx = np.where(y_true == neg_label)[0]
+        n_pos = int(pos_idx.shape[0])
+        if n_pos == 0 or neg_idx.shape[0] == 0:
+            raise ValueError("servono almeno un positivo e un negativo per il bootstrap bilanciato.")
+        replace = neg_idx.shape[0] < n_pos  #se i negativi non bastano, reimmissione
+
+        #colonna delle probabilita' della classe positiva (per ROC-AUC), se disponibile
+        score_pos = None
+        if y_prob is not None:
+            yp = np.asarray(y_prob, dtype=float)
+            if yp.ndim == 2:
+                idx_pos = int(np.where(labels == pos_label)[0][0])  #colonna allineata a labels ordinate
+                score_pos = yp[:, idx_pos]
+            else:
+                score_pos = yp
+
+        rng = np.random.default_rng(random_state)
+        metric_keys = ["Accuracy", "Precision", "Sensitivity", "Specificity", "F1"]
+        if score_pos is not None:
+            metric_keys.append("ROC_AUC")
+
+        per_round: list[dict] = []
+        for _ in range(n_rounds):
+            sampled_neg = rng.choice(neg_idx, size=n_pos, replace=replace)
+            idx = np.concatenate([pos_idx, sampled_neg])
+            yt, yp_pred = y_true[idx], y_pred[idx]
+            row = {
+                "Accuracy":    float(accuracy_score(yt, yp_pred)),
+                "Precision":   float(precision_score(yt, yp_pred, pos_label=pos_label, average="binary", zero_division=0)),
+                "Sensitivity": float(recall_score(yt, yp_pred, pos_label=pos_label, average="binary", zero_division=0)),
+                "Specificity": float(recall_score(yt, yp_pred, pos_label=neg_label, average="binary", zero_division=0)),
+                "F1":          float(f1_score(yt, yp_pred, pos_label=pos_label, average="binary", zero_division=0)),
+            }
+            if score_pos is not None:
+                y_bin = (yt == pos_label).astype(int)
+                try:
+                    row["ROC_AUC"] = float(roc_auc_score(y_bin, score_pos[idx]))
+                except ValueError:
+                    row["ROC_AUC"] = float("nan")  #round degenere (una sola classe nel sample)
+            per_round.append(row)
+
+        means, stds = {}, {}
+        for k in metric_keys:
+            vals = np.array([r[k] for r in per_round], dtype=float)
+            means[k] = float(np.nanmean(vals))
+            stds[k]  = float(np.nanstd(vals))
+
+        res = BalancedBootstrapResult(
+            n_rounds=n_rounds, n_positives=n_pos, n_negatives_per_round=n_pos,
+            replace=replace, means=means, stds=stds, per_round=per_round,
+        )
+        if make_plot:
+            res.figure_paths = [str(self.plot_bootstrap(per_round, metric_keys, label))]
+        return res
+
+
+    #boxplot della distribuzione delle metriche sui round del bootstrap, salvato come PNG
+    def plot_bootstrap(self, per_round: list, metric_keys: list, label: str) -> Path:
+        data = [[r[k] for r in per_round] for k in metric_keys]
+        fig, ax = plt.subplots(figsize=(max(6, len(metric_keys) * 1.2), 5))
+        ax.boxplot(data, showmeans=True)
+        ax.set_xticks(range(1, len(metric_keys) + 1))
+        ax.set_xticklabels(metric_keys, rotation=20, ha="right")
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("valore")
+        ax.set_title(f"Bootstrap bilanciato - {label} ({len(per_round)} round)")
+        plt.tight_layout()
+
+        safe = label.replace(" ", "_").replace("/", "-")
+        path = self.figures_dir / f"bootstrap_{safe}.png"
         fig.savefig(path, dpi=150, bbox_inches="tight")
         plt.close(fig)
         return path.resolve()

@@ -1,0 +1,10 @@
+{
+  "split": "validation",
+  "auc": 0.6379,
+  "optimal_threshold_youden": 0.5684,
+  "accuracy": 0.7346,
+  "precision_cancer": 0.3063,
+  "recall_cancer": 0.4658,
+  "f1_cancer": 0.3696,
+  "classification_report": "              precision    recall  f1-score   support\n\n   No cancro       0.88      0.79      0.83       364\n      Cancro       0.31      0.47      0.37        73\n\n    accuracy                           0.73       437\n   macro avg       0.59      0.63      0.60       437\nweighted avg       0.78      0.73      0.75       437\n"
+}

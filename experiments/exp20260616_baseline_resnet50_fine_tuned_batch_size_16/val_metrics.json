@@ -1,0 +1,12 @@
+{
+  "split": "validation",
+  "backbone": "ResNet-50",
+  "experiment_name": "exp20260616_baseline_resnet50_fine_tuned_batch_size_16",
+  "auc": 0.6724,
+  "optimal_threshold_youden": 0.2968,
+  "accuracy": 0.5606,
+  "precision_cancer": 0.2468,
+  "recall_cancer": 0.7945,
+  "f1_cancer": 0.3766,
+  "classification_report": "              precision    recall  f1-score   support\n\n   No cancro       0.93      0.51      0.66       364\n      Cancro       0.25      0.79      0.38        73\n\n    accuracy                           0.56       437\n   macro avg       0.59      0.65      0.52       437\nweighted avg       0.81      0.56      0.61       437\n"
+}

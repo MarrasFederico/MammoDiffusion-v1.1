@@ -1,0 +1,12 @@
+{
+  "split": "validation",
+  "backbone": "EfficientNetB3",
+  "experiment_name": "exp20260616_baseline_efficientnetb3_fine_tuned",
+  "auc": 0.6588,
+  "optimal_threshold_youden": 0.3881,
+  "accuracy": 0.5744,
+  "precision_cancer": 0.2443,
+  "recall_cancer": 0.7397,
+  "f1_cancer": 0.3673,
+  "classification_report": "              precision    recall  f1-score   support\n\n   No cancro       0.91      0.54      0.68       364\n      Cancro       0.24      0.74      0.37        73\n\n    accuracy                           0.57       437\n   macro avg       0.58      0.64      0.52       437\nweighted avg       0.80      0.57      0.63       437\n"
+}

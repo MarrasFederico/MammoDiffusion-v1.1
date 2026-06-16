@@ -4,6 +4,7 @@ import logging
 import warnings
 from pathlib import Path
 from typing import Tuple
+import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
@@ -109,6 +110,8 @@ class GenerativeEvaluator:
         self.image_size = image_size
         self.num_workers = num_workers
         self.feature_dim = feature_dim
+        self.real_features_: np.ndarray | None = None
+        self.generated_features_: np.ndarray | None = None
 
         self.device = torch.device(
             device if device else ("cuda" if torch.cuda.is_available() else "cpu")
@@ -157,15 +160,36 @@ class GenerativeEvaluator:
         )
 
 
-    #estrae le feature inception dai batch e le accumula nella metrica FID (reali/generate)
-    def update_fid(self, loader: DataLoader, real: bool) -> None:
+    #estrae una sola volta le feature Inception e aggiorna gli stessi accumulatori usati dal FID
+    def update_fid(self, loader: DataLoader, real: bool) -> np.ndarray:
         tag = "real" if real else "generated"
         logger.info("estraendo inception features per immagini %s", tag)
-        #un batch alla volta per non saturare la RAM
-        for batch in loader:
-            batch = batch.to(self.device, non_blocking=True)#sposta il batch sul device
-            self._fid.update(batch, real=real)#accumula le feature (reale o generata)
-        logger.info("-> %s", tag)#fine estrazione
+        extracted_features = []
+        #replica FrechetInceptionDistance.update, conservando le stesse feature per PRDC
+        with torch.inference_mode():
+            for batch in loader:
+                batch = batch.to(self.device, non_blocking=True)
+                if self._fid.normalize and not self._fid.used_custom_model:
+                    batch = (batch * 255).byte()
+
+                features = self._fid.inception(batch)
+                self._fid.orig_dtype = features.dtype
+                if features.dim() == 1:
+                    features = features.unsqueeze(0)
+                extracted_features.append(features.detach().cpu().float())
+
+                features_double = features.double()
+                if real:
+                    self._fid.real_features_sum += features_double.sum(dim=0)
+                    self._fid.real_features_cov_sum += features_double.t().mm(features_double)
+                    self._fid.real_features_num_samples += batch.shape[0]
+                else:
+                    self._fid.fake_features_sum += features_double.sum(dim=0)
+                    self._fid.fake_features_cov_sum += features_double.t().mm(features_double)
+                    self._fid.fake_features_num_samples += batch.shape[0]
+
+        logger.info("-> %s", tag)
+        return torch.cat(extracted_features, dim=0).numpy()
 
 
     #accumula logit inception delle immagini generate nella Inception Score
@@ -186,13 +210,14 @@ class GenerativeEvaluator:
     -"IS_mean" - mean Inception Score
     -"IS_std" - std Inception Score
     """
-    def compute(self) -> dict[str, float]:
+    def compute_with_features(self) -> tuple[dict[str, float], np.ndarray, np.ndarray]:
+        """Calcola FID/IS e restituisce le stesse feature Inception usate dal FID."""
         self._fid.reset()
         self._inception_score.reset()
 
         #FID richiede feature da entrambe le distribuzioni
-        self.update_fid(self._real_loader, real=True)
-        self.update_fid(self._gen_loader,  real=False)
+        self.real_features_ = self.update_fid(self._real_loader, real=True)
+        self.generated_features_ = self.update_fid(self._gen_loader, real=False)
         #IS calcolata solo sulle immagini generate
         self.update_is(self._gen_loader)
 
@@ -206,32 +231,10 @@ class GenerativeEvaluator:
             "IS_std":  round(is_std.item(), 4),
         }
         logger.info("risultati: %s", results)
+        return results, self.real_features_, self.generated_features_
+
+
+    def compute(self) -> dict[str, float]:
+        """Calcola FID e Inception Score mantenendo l'API storica."""
+        results, _, _ = self.compute_with_features()
         return results
-
-
-#entry point per richiamare la funzione di valutazione da CLI
-if __name__ == "__main__":
-    import argparse, json, sys
-
-    parser = argparse.ArgumentParser(description="valuta un modello generativo con FID ed Inception Score.")
-    parser.add_argument("real_dir",      type=str, help="percorso immagini reali")
-    parser.add_argument("generated_dir", type=str, help="percorso immagini generate")
-    parser.add_argument("--batch-size",  type=int, default=32)
-    parser.add_argument("--image-size",  type=int, default=299)
-    parser.add_argument("--num-workers", type=int, default=4)
-    parser.add_argument("--device",      type=str, default=None, help="'cuda', 'cpu', vuoto=auto")
-    parser.add_argument("--feature-dim", type=int, default=2048, choices=[64, 192, 768, 2048])
-    args = parser.parse_args()
-
-    evaluator = GenerativeEvaluator(
-        real_dir=args.real_dir,
-        generated_dir=args.generated_dir,
-        batch_size=args.batch_size,
-        image_size=args.image_size,
-        num_workers=args.num_workers,
-        device=args.device,
-        feature_dim=args.feature_dim,
-    )
-    results = evaluator.compute()
-    print(json.dumps(results, indent=2))
-    sys.exit(0)

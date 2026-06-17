@@ -1,0 +1,18 @@
+{
+  "arch": "ResNet-50",
+  "config": "trad_aug",
+  "training": {
+    "label": "training_trad_aug_resnet50",
+    "elapsed_seconds": 664.262803742,
+    "peak_ram_mb": 2992.515625,
+    "energy_kwh": 0.011230016924663588,
+    "co2_kg": 0.002363648273287036
+  },
+  "inference": {
+    "label": "inference_trad_aug_resnet50",
+    "elapsed_seconds": 27.468479110000317,
+    "peak_ram_mb": 2957.2734375,
+    "energy_kwh": 0.00024177883008492623,
+    "co2_kg": 5.088862448572981e-05
+  }
+}

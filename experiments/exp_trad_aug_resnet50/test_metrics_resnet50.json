@@ -1,0 +1,12 @@
+{
+  "arch": "ResNet-50",
+  "config": "trad_aug",
+  "split": "test",
+  "threshold_youden_from_val": 0.2899,
+  "roc_auc": 0.6047,
+  "accuracy": 0.4475,
+  "precision_malato": 0.1971,
+  "recall_malato": 0.7534,
+  "f1_malato": 0.3125,
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.89      0.39      0.54       365\n      Malato       0.20      0.75      0.31        73\n\n    accuracy                           0.45       438\n   macro avg       0.54      0.57      0.43       438\nweighted avg       0.77      0.45      0.50       438\n"
+}

@@ -2,11 +2,11 @@
   "arch": "ResNet-50",
   "config": "trad_aug",
   "split": "test",
-  "threshold_youden_from_val": 0.2899,
-  "roc_auc": 0.6047,
-  "accuracy": 0.4475,
-  "precision_malato": 0.1971,
-  "recall_malato": 0.7534,
-  "f1_malato": 0.3125,
-  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.89      0.39      0.54       365\n      Malato       0.20      0.75      0.31        73\n\n    accuracy                           0.45       438\n   macro avg       0.54      0.57      0.43       438\nweighted avg       0.77      0.45      0.50       438\n"
+  "threshold_youden_from_val": 0.5337,
+  "roc_auc": 0.5022,
+  "accuracy": 0.5936,
+  "precision_malato": 0.1569,
+  "recall_malato": 0.3288,
+  "f1_malato": 0.2124,
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.83      0.65      0.73       365\n      Malato       0.16      0.33      0.21        73\n\n    accuracy                           0.59       438\n   macro avg       0.49      0.49      0.47       438\nweighted avg       0.72      0.59      0.64       438\n"
 }

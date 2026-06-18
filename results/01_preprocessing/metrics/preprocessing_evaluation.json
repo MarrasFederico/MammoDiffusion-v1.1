@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-06-18T14:59:11",
+  "notebook": "01_Preprocessing_RSNA_512_gray_MLO",
+  "dataset_dir": "/home/fede/Documenti/MammoDiffusion/data/original/dataset",
+  "output_dir": "/home/fede/Documenti/MammoDiffusion/data/processed",
+  "plots_dir": "/home/fede/Documenti/MammoDiffusion/results/01_preprocessing/plots",
+  "ecotracker_json": "/home/fede/Documenti/MammoDiffusion/results/01_preprocessing/ecotracker/preprocessing_ecotracker.json",
+  "img_size": 512,
+  "view_filter": "MLO",
+  "n_rows": 2916,
+  "n_patients": 2916,
+  "label_counts": {
+    "0": 2430,
+    "1": 486
+  },
+  "split_label_counts": {
+    "train": {
+      "0": 1701,
+      "1": 340
+    },
+    "val": {
+      "0": 364,
+      "1": 73
+    },
+    "test": {
+      "0": 365,
+      "1": 73
+    }
+  },
+  "visual_normalization": {
+    "target_tissue_side": "left",
+    "flipped_count": 1462,
+    "kept_count": 1454,
+    "unknown_count": 0,
+    "after_counts": {
+      "left": 2916
+    }
+  }
+}

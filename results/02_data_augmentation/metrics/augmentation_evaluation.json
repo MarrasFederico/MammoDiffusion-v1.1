@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-06-18T15:00:36",
+  "notebook": "02_Data_Augmentation_Trad",
+  "source_metadata": "/home/fede/Documenti/MammoDiffusion/data/processed/metadata/train.csv",
+  "output_metadata": "/home/fede/Documenti/MammoDiffusion/data/real_augmented/metadata.csv",
+  "output_dir": "/home/fede/Documenti/MammoDiffusion/data/real_augmented",
+  "positive_augment_copies": 3,
+  "pre_label_counts": {
+    "0": 1701,
+    "1": 340
+  },
+  "post_label_counts": {
+    "0": 1701,
+    "1": 1360
+  },
+  "source_counts": {
+    "real": 2041,
+    "positive_augmentation": 1020
+  },
+  "ratio_negative_positive_pre": 5.0029,
+  "ratio_negative_positive_post": 1.2507,
+  "n_augmented_images": 1020,
+  "ecotracker_json": "/home/fede/Documenti/MammoDiffusion/results/02_data_augmentation/ecotracker/augmentation_ecotracker.json"
+}

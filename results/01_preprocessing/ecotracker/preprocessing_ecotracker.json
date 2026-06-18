@@ -1,0 +1,14 @@
+{
+  "label": "preprocessing_images",
+  "elapsed_seconds": 24.089116118000675,
+  "peak_ram_mb": 432.26953125,
+  "energy_kwh": 2.2601916718524603e-05,
+  "co2_kg": 7.47486069331702e-06,
+  "timestamp": "2026-06-18T14:58:45",
+  "record_type": "preprocessing_images",
+  "notebook": "01_Preprocessing_RSNA_512_gray_MLO",
+  "output_dir": "/home/fede/Documenti/MammoDiffusion/data/processed",
+  "n_input_rows": 2916,
+  "n_processed_rows": 2916,
+  "status": "completed"
+}

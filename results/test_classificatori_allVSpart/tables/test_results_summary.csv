@@ -1,0 +1,3 @@
+Configurazione,AUC,Accuracy,Precision,Recall,F1,Soglia
+Real+Synth_Part,0.6122,0.5274,0.2035,0.6301,0.3077,0.269
+Real+Synth_All_Layers,0.6050,0.5959,0.2174,0.5479,0.3113,0.161

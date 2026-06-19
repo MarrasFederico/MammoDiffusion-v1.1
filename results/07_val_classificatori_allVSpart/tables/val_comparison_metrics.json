@@ -1,0 +1,18 @@
+{
+  "Real+Synth_Part": {
+    "auc": 0.6846,
+    "threshold": 0.2689,
+    "accuracy": 0.5835,
+    "precision": 0.2465,
+    "recall": 0.726,
+    "f1": 0.3681
+  },
+  "Real+Synth_All_Layers": {
+    "auc": 0.631,
+    "threshold": 0.1609,
+    "accuracy": 0.6293,
+    "precision": 0.2541,
+    "recall": 0.6301,
+    "f1": 0.3622
+  }
+}

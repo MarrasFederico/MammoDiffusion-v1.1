@@ -1,0 +1,6 @@
+inference_steps,artifact,stadio,class,comparabile_50_vs_100,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated
+50,final_test_metrics,filtrato,positive,True,118.9844,2.7079,0.1171,,,,,1361
+100,final_test_metrics,filtrato,positive,True,113.0254,2.4159,0.1138,0.612,0.274,0.3456,0.9726,1361
+100,final_test_metrics,filtrato,negative,False,114.1593,2.3891,0.1175,0.4717,0.2055,0.2178,0.8767,1361
+100,final_test_metrics_raw_2722,raw,positive,False,119.7851,2.7657,0.0802,,,,,2722
+100,final_test_metrics_raw_2722,raw,negative,False,127.0889,2.7124,0.089,,,,,2722

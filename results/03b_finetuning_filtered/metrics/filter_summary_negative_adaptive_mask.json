@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-06-14T11:12:16",
+  "experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
+  "class": "negative",
+  "label": 0,
+  "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative_filtered_1361_adaptive_mask",
+  "n_raw": 2722,
+  "n_accepted": 2124,
+  "n_rejected": 598,
+  "n_selected": 1361,
+  "thresholds": {
+    "min_nonblack_ratio": 0.11003990173339843,
+    "max_nonblack_ratio": 0.9325748443603515,
+    "min_std_nonblack": 7.653020130329478,
+    "min_largest_component_frac": 0.75,
+    "max_top_border": 0.65,
+    "max_bottom_border": 0.65
+  },
+  "reference_medians": {
+    "nonblack_ratio": 0.38591766357421875,
+    "mean_nonblack": 87.0449901615288,
+    "std_nonblack": 39.20778759458155,
+    "entropy": 3.758545965554059,
+    "lap_var": 692.666748046875,
+    "largest_component_frac": 0.99877224559856
+  },
+  "reference_iqrs": {
+    "nonblack_ratio": 0.148101806640625,
+    "mean_nonblack": 56.888699374539826,
+    "std_nonblack": 18.586548122085716,
+    "entropy": 1.1811808836873583,
+    "lap_var": 753.1515808105469,
+    "largest_component_frac": 0.00263542837800268
+  },
+  "n_real_train_reference": 1701,
+  "reject_reason_counts": {
+    "too_empty": 469,
+    "fragmented_mask": 76,
+    "low_contrast": 48,
+    "too_full": 5
+  },
+  "status": "completed"
+}

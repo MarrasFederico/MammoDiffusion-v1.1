@@ -1,0 +1,29 @@
+{
+  "label": "final_gen_checkpoint-3000",
+  "elapsed_seconds": 0.006764047000615392,
+  "peak_ram_mb": 1498.734375,
+  "energy_kwh": 2.7091077883263432e-05,
+  "co2_kg": 8.959507095397117e-06,
+  "timestamp": "2026-06-19T13:18:26",
+  "record_type": "final_generation",
+  "generation_log_schema": 2,
+  "best_checkpoint": "checkpoint-3000",
+  "selection_reference": "validation",
+  "selection_metrics_path": "/mnt/MammoDiffusion/MammoDiffusion/results/03b_finetuning_filtered/metrics/checkpoint_validation_metrics.json",
+  "avg_FID": 129.3478,
+  "avg_IS_mean": 2.0942,
+  "n_per_class": 2722,
+  "n_eval_reused": 100,
+  "removed_overlaps": {},
+  "n_negative_final": 2722,
+  "n_positive_final": 2722,
+  "inference_steps": 100,
+  "guidance_scale": 7.5,
+  "generated_classes": [
+    "positive",
+    "negative"
+  ],
+  "generated_negative": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative",
+  "generated_positive": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive",
+  "status": "completed"
+}

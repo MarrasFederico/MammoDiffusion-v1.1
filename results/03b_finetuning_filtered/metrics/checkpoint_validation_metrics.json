@@ -1,0 +1,466 @@
+[
+  {
+    "step": 500,
+    "ckpt_name": "checkpoint-500",
+    "negative": {
+      "FID": 174.4631,
+      "IS_mean": 1.746,
+      "IS_std": 0.2134,
+      "precision": 0.38,
+      "recall": 0.2877,
+      "density": 0.128,
+      "coverage": 0.274
+    },
+    "positive": {
+      "FID": 163.5894,
+      "IS_mean": 1.9029,
+      "IS_std": 0.2911,
+      "precision": 0.19,
+      "recall": 0.2466,
+      "density": 0.062,
+      "coverage": 0.1918
+    },
+    "avg_FID": 169.0263,
+    "avg_IS_mean": 1.8245,
+    "avg_IS_std": 0.2523,
+    "avg_precision": 0.285,
+    "avg_recall": 0.2671,
+    "avg_density": 0.095,
+    "avg_coverage": 0.2329
+  },
+  {
+    "step": 1000,
+    "ckpt_name": "checkpoint-1000",
+    "negative": {
+      "FID": 168.784,
+      "IS_mean": 1.965,
+      "IS_std": 0.1438,
+      "precision": 0.24,
+      "recall": 0.4521,
+      "density": 0.094,
+      "coverage": 0.2055
+    },
+    "positive": {
+      "FID": 155.0226,
+      "IS_mean": 1.9238,
+      "IS_std": 0.1164,
+      "precision": 0.25,
+      "recall": 0.274,
+      "density": 0.146,
+      "coverage": 0.4384
+    },
+    "avg_FID": 161.9033,
+    "avg_IS_mean": 1.9444,
+    "avg_IS_std": 0.1301,
+    "avg_precision": 0.245,
+    "avg_recall": 0.363,
+    "avg_density": 0.12,
+    "avg_coverage": 0.322
+  },
+  {
+    "step": 1500,
+    "ckpt_name": "checkpoint-1500",
+    "negative": {
+      "FID": 174.5638,
+      "IS_mean": 2.1286,
+      "IS_std": 0.1786,
+      "precision": 0.19,
+      "recall": 0.8219,
+      "density": 0.052,
+      "coverage": 0.2192
+    },
+    "positive": {
+      "FID": 157.2927,
+      "IS_mean": 2.0198,
+      "IS_std": 0.2198,
+      "precision": 0.2,
+      "recall": 0.5753,
+      "density": 0.074,
+      "coverage": 0.2603
+    },
+    "avg_FID": 165.9282,
+    "avg_IS_mean": 2.0742,
+    "avg_IS_std": 0.1992,
+    "avg_precision": 0.195,
+    "avg_recall": 0.6986,
+    "avg_density": 0.063,
+    "avg_coverage": 0.2397
+  },
+  {
+    "step": 2000,
+    "ckpt_name": "checkpoint-2000",
+    "negative": {
+      "FID": 201.177,
+      "IS_mean": 2.0298,
+      "IS_std": 0.3508,
+      "precision": 0.19,
+      "recall": 0.3562,
+      "density": 0.06,
+      "coverage": 0.1233
+    },
+    "positive": {
+      "FID": 184.1408,
+      "IS_mean": 1.9438,
+      "IS_std": 0.2001,
+      "precision": 0.16,
+      "recall": 0.2329,
+      "density": 0.138,
+      "coverage": 0.3973
+    },
+    "avg_FID": 192.6589,
+    "avg_IS_mean": 1.9868,
+    "avg_IS_std": 0.2754,
+    "avg_precision": 0.175,
+    "avg_recall": 0.2945,
+    "avg_density": 0.099,
+    "avg_coverage": 0.2603
+  },
+  {
+    "step": 2500,
+    "ckpt_name": "checkpoint-2500",
+    "negative": {
+      "FID": 146.9507,
+      "IS_mean": 2.0435,
+      "IS_std": 0.254,
+      "precision": 0.28,
+      "recall": 0.7123,
+      "density": 0.122,
+      "coverage": 0.3425
+    },
+    "positive": {
+      "FID": 128.9658,
+      "IS_mean": 2.054,
+      "IS_std": 0.1999,
+      "precision": 0.41,
+      "recall": 0.5753,
+      "density": 0.274,
+      "coverage": 0.6575
+    },
+    "avg_FID": 137.9583,
+    "avg_IS_mean": 2.0488,
+    "avg_IS_std": 0.2269,
+    "avg_precision": 0.345,
+    "avg_recall": 0.6438,
+    "avg_density": 0.198,
+    "avg_coverage": 0.5
+  },
+  {
+    "step": 3000,
+    "ckpt_name": "checkpoint-3000",
+    "negative": {
+      "FID": 137.2759,
+      "IS_mean": 2.0934,
+      "IS_std": 0.2704,
+      "precision": 0.3,
+      "recall": 0.5205,
+      "density": 0.154,
+      "coverage": 0.4658
+    },
+    "positive": {
+      "FID": 121.4196,
+      "IS_mean": 2.095,
+      "IS_std": 0.2602,
+      "precision": 0.43,
+      "recall": 0.6438,
+      "density": 0.302,
+      "coverage": 0.5479
+    },
+    "avg_FID": 129.3478,
+    "avg_IS_mean": 2.0942,
+    "avg_IS_std": 0.2653,
+    "avg_precision": 0.365,
+    "avg_recall": 0.5821,
+    "avg_density": 0.228,
+    "avg_coverage": 0.5069
+  },
+  {
+    "step": 3500,
+    "ckpt_name": "checkpoint-3500",
+    "negative": {
+      "FID": 156.7807,
+      "IS_mean": 2.0068,
+      "IS_std": 0.1374,
+      "precision": 0.19,
+      "recall": 0.4795,
+      "density": 0.098,
+      "coverage": 0.4521
+    },
+    "positive": {
+      "FID": 140.8561,
+      "IS_mean": 2.056,
+      "IS_std": 0.2649,
+      "precision": 0.42,
+      "recall": 0.5205,
+      "density": 0.188,
+      "coverage": 0.411
+    },
+    "avg_FID": 148.8184,
+    "avg_IS_mean": 2.0314,
+    "avg_IS_std": 0.2011,
+    "avg_precision": 0.305,
+    "avg_recall": 0.5,
+    "avg_density": 0.143,
+    "avg_coverage": 0.4315
+  },
+  {
+    "step": 4000,
+    "ckpt_name": "checkpoint-4000",
+    "negative": {
+      "FID": 151.8967,
+      "IS_mean": 1.9635,
+      "IS_std": 0.2431,
+      "precision": 0.2,
+      "recall": 0.4932,
+      "density": 0.098,
+      "coverage": 0.2877
+    },
+    "positive": {
+      "FID": 132.934,
+      "IS_mean": 2.0309,
+      "IS_std": 0.2114,
+      "precision": 0.56,
+      "recall": 0.589,
+      "density": 0.37,
+      "coverage": 0.5616
+    },
+    "avg_FID": 142.4153,
+    "avg_IS_mean": 1.9972,
+    "avg_IS_std": 0.2273,
+    "avg_precision": 0.38,
+    "avg_recall": 0.5411,
+    "avg_density": 0.234,
+    "avg_coverage": 0.4246
+  },
+  {
+    "step": 4500,
+    "ckpt_name": "checkpoint-4500",
+    "negative": {
+      "FID": 201.2113,
+      "IS_mean": 2.2575,
+      "IS_std": 0.2829,
+      "precision": 0.06,
+      "recall": 0.6301,
+      "density": 0.034,
+      "coverage": 0.1781
+    },
+    "positive": {
+      "FID": 149.9557,
+      "IS_mean": 2.0809,
+      "IS_std": 0.2004,
+      "precision": 0.25,
+      "recall": 0.6986,
+      "density": 0.154,
+      "coverage": 0.4521
+    },
+    "avg_FID": 175.5835,
+    "avg_IS_mean": 2.1692,
+    "avg_IS_std": 0.2416,
+    "avg_precision": 0.155,
+    "avg_recall": 0.6643,
+    "avg_density": 0.094,
+    "avg_coverage": 0.3151
+  },
+  {
+    "step": 5000,
+    "ckpt_name": "checkpoint-5000",
+    "negative": {
+      "FID": 158.605,
+      "IS_mean": 2.4425,
+      "IS_std": 0.2366,
+      "precision": 0.2,
+      "recall": 0.7808,
+      "density": 0.11,
+      "coverage": 0.2466
+    },
+    "positive": {
+      "FID": 133.2587,
+      "IS_mean": 2.0814,
+      "IS_std": 0.1848,
+      "precision": 0.59,
+      "recall": 0.6712,
+      "density": 0.44,
+      "coverage": 0.3973
+    },
+    "avg_FID": 145.9318,
+    "avg_IS_mean": 2.2619,
+    "avg_IS_std": 0.2107,
+    "avg_precision": 0.395,
+    "avg_recall": 0.726,
+    "avg_density": 0.275,
+    "avg_coverage": 0.322
+  },
+  {
+    "step": 5500,
+    "ckpt_name": "checkpoint-5500",
+    "negative": {
+      "FID": 182.7221,
+      "IS_mean": 2.235,
+      "IS_std": 0.2741,
+      "precision": 0.05,
+      "recall": 0.6986,
+      "density": 0.018,
+      "coverage": 0.0959
+    },
+    "positive": {
+      "FID": 145.2879,
+      "IS_mean": 2.2511,
+      "IS_std": 0.3229,
+      "precision": 0.39,
+      "recall": 0.6438,
+      "density": 0.188,
+      "coverage": 0.3562
+    },
+    "avg_FID": 164.005,
+    "avg_IS_mean": 2.2431,
+    "avg_IS_std": 0.2985,
+    "avg_precision": 0.22,
+    "avg_recall": 0.6712,
+    "avg_density": 0.103,
+    "avg_coverage": 0.2261
+  },
+  {
+    "step": 6000,
+    "ckpt_name": "checkpoint-6000",
+    "negative": {
+      "FID": 222.0856,
+      "IS_mean": 2.3495,
+      "IS_std": 0.2251,
+      "precision": 0.01,
+      "recall": 0.6575,
+      "density": 0.006,
+      "coverage": 0.0411
+    },
+    "positive": {
+      "FID": 155.0004,
+      "IS_mean": 2.1644,
+      "IS_std": 0.1839,
+      "precision": 0.32,
+      "recall": 0.6986,
+      "density": 0.132,
+      "coverage": 0.3425
+    },
+    "avg_FID": 188.543,
+    "avg_IS_mean": 2.2569,
+    "avg_IS_std": 0.2045,
+    "avg_precision": 0.165,
+    "avg_recall": 0.6781,
+    "avg_density": 0.069,
+    "avg_coverage": 0.1918
+  },
+  {
+    "step": 6500,
+    "ckpt_name": "checkpoint-6500",
+    "negative": {
+      "FID": 187.7954,
+      "IS_mean": 2.2435,
+      "IS_std": 0.251,
+      "precision": 0.09,
+      "recall": 0.4932,
+      "density": 0.032,
+      "coverage": 0.1096
+    },
+    "positive": {
+      "FID": 140.7754,
+      "IS_mean": 2.059,
+      "IS_std": 0.2595,
+      "precision": 0.62,
+      "recall": 0.4795,
+      "density": 0.37,
+      "coverage": 0.3562
+    },
+    "avg_FID": 164.2854,
+    "avg_IS_mean": 2.1513,
+    "avg_IS_std": 0.2552,
+    "avg_precision": 0.355,
+    "avg_recall": 0.4864,
+    "avg_density": 0.201,
+    "avg_coverage": 0.2329
+  },
+  {
+    "step": 7000,
+    "ckpt_name": "checkpoint-7000",
+    "negative": {
+      "FID": 201.6838,
+      "IS_mean": 2.1343,
+      "IS_std": 0.1963,
+      "precision": 0.04,
+      "recall": 0.5068,
+      "density": 0.008,
+      "coverage": 0.0411
+    },
+    "positive": {
+      "FID": 160.8814,
+      "IS_mean": 2.0782,
+      "IS_std": 0.2933,
+      "precision": 0.12,
+      "recall": 0.6575,
+      "density": 0.074,
+      "coverage": 0.3288
+    },
+    "avg_FID": 181.2826,
+    "avg_IS_mean": 2.1063,
+    "avg_IS_std": 0.2448,
+    "avg_precision": 0.08,
+    "avg_recall": 0.5821,
+    "avg_density": 0.041,
+    "avg_coverage": 0.185
+  },
+  {
+    "step": 7500,
+    "ckpt_name": "checkpoint-7500",
+    "negative": {
+      "FID": 212.2547,
+      "IS_mean": 2.2851,
+      "IS_std": 0.1508,
+      "precision": 0.02,
+      "recall": 0.6027,
+      "density": 0.006,
+      "coverage": 0.0411
+    },
+    "positive": {
+      "FID": 137.5557,
+      "IS_mean": 1.9443,
+      "IS_std": 0.2589,
+      "precision": 0.35,
+      "recall": 0.4658,
+      "density": 0.234,
+      "coverage": 0.3973
+    },
+    "avg_FID": 174.9052,
+    "avg_IS_mean": 2.1147,
+    "avg_IS_std": 0.2049,
+    "avg_precision": 0.185,
+    "avg_recall": 0.5343,
+    "avg_density": 0.12,
+    "avg_coverage": 0.2192
+  },
+  {
+    "step": 8000,
+    "ckpt_name": "checkpoint-8000",
+    "negative": {
+      "FID": 205.8953,
+      "IS_mean": 2.2439,
+      "IS_std": 0.2778,
+      "precision": 0.06,
+      "recall": 0.4384,
+      "density": 0.018,
+      "coverage": 0.0685
+    },
+    "positive": {
+      "FID": 129.5897,
+      "IS_mean": 2.0824,
+      "IS_std": 0.209,
+      "precision": 0.47,
+      "recall": 0.5753,
+      "density": 0.33,
+      "coverage": 0.6027
+    },
+    "avg_FID": 167.7425,
+    "avg_IS_mean": 2.1631,
+    "avg_IS_std": 0.2434,
+    "avg_precision": 0.265,
+    "avg_recall": 0.5069,
+    "avg_density": 0.174,
+    "avg_coverage": 0.3356
+  }
+]

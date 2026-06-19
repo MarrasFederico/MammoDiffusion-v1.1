@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-06-13T20:54:49",
+  "source_experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
+  "best_checkpoint": "checkpoint-3000",
+  "inference_steps": 100,
+  "guidance_scale": 7.5,
+  "evaluation_reference": "validation",
+  "validation_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/val.csv",
+  "real_label": 1,
+  "n_real_reference": 73,
+  "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive_filtered_1361_adaptive_mask",
+  "n_generated": 1361,
+  "FID": 108.5154,
+  "IS_mean": 2.4158,
+  "IS_std": 0.0865,
+  "filter_report_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/filter_report_positive_adaptive_mask.csv",
+  "filter_summary_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/filter_summary_positive_adaptive_mask.json",
+  "thresholds": {
+    "min_nonblack_ratio": 0.1308173599243164,
+    "max_nonblack_ratio": 0.9401134300231935,
+    "min_std_nonblack": 8.0108599903395,
+    "min_largest_component_frac": 0.75,
+    "max_top_border": 0.65,
+    "max_bottom_border": 0.65
+  },
+  "mask_type": "adaptive_mask",
+  "selection_note": "Filtered positive-conditioned images selected using non-supervised adaptive-mask pixel/statistical quality rules. No classifier was used."
+}

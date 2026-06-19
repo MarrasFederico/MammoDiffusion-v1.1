@@ -1,0 +1,16 @@
+Modello,Metrica,Val,Test,Delta
+Baseline,auc,0.6562,0.5493,-0.1069
+Baseline,accuracy,0.6201,0.5297,-0.0904
+Baseline,recall_cancer,0.6986,0.5342,-0.1644
+Baseline,precision_cancer,0.2615,0.1848,-0.0767
+Baseline,f1_cancer,0.3806,0.2746,-0.106
+Real+Synth,auc,0.6843,0.6121,-0.0722
+Real+Synth,accuracy,0.5858,0.5274,-0.0584
+Real+Synth,recall_cancer,0.7397,0.6301,-0.1096
+Real+Synth,precision_cancer,0.25,0.2035,-0.0465
+Real+Synth,f1_cancer,0.3737,0.3077,-0.066
+Full_Synth,auc,0.5907,0.5562,-0.0345
+Full_Synth,accuracy,0.4119,0.3744,-0.0375
+Full_Synth,recall_cancer,0.8767,0.7945,-0.0822
+Full_Synth,precision_cancer,0.2051,0.183,-0.0221
+Full_Synth,f1_cancer,0.3325,0.2974,-0.0351

@@ -1,0 +1,7 @@
+Modello,Classe_reale,N_campioni,Media_prob,Std_prob,Pct_fascia_centrale,Pct_overconfidence_errata
+Baseline,Cancro (1),73,0.4484,0.1487,68.5,1.4
+Baseline,No cancro (0),365,0.4198,0.1511,66.6,0.3
+Real+Synth,Cancro (1),73,0.3701,0.2053,54.8,8.2
+Real+Synth,No cancro (0),365,0.293,0.1894,54.5,0.3
+Full_Synth,Cancro (1),73,0.6415,0.1551,52.1,0.0
+Full_Synth,No cancro (0),365,0.6145,0.1436,61.9,3.0

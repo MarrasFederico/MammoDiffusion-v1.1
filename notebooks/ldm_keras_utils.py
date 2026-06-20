@@ -304,6 +304,14 @@ def get_learned_log_variance(v, t, schedule: DiffusionSchedule):
     return tf.clip_by_value(log_var, -20.0, 2.0)
 
 
+def get_learned_log_variance_eff(v, beta_eff, posterior_variance_eff):
+    log_beta_eff = tf.math.log(beta_eff)
+    log_beta_tilde_eff = tf.math.log(posterior_variance_eff + 1e-8)
+    v_sigmoid = tf.sigmoid(tf.clip_by_value(v, -8.0, 8.0))
+    log_var = v_sigmoid * log_beta_eff + (1.0 - v_sigmoid) * log_beta_tilde_eff
+    return tf.clip_by_value(log_var, -20.0, 2.0)
+
+
 def p_sample_ldm(
     ldm_model,
     schedule: DiffusionSchedule,
@@ -345,7 +353,8 @@ def p_sample_ldm(
     if t_prev_int == 0:
         return mean
 
-    log_var = get_learned_log_variance(v_pred, t_batch, schedule)
+    post_var_eff = b_eff * (1.0 - ab_prev) / (1.0 - ab_t)
+    log_var = get_learned_log_variance_eff(v_pred, b_eff, post_var_eff)
     std = tf.exp(0.5 * log_var)
     return mean + std * tf.random.normal(tf.shape(z_t))
 
@@ -421,6 +430,7 @@ def make_compiled_sampler(
 
             z0_pred = (z_t - sqrt_omab * eps_pred) / tf.sqrt(ab_t)
             b_eff = 1.0 - ab_t / ab_prev
+            post_var_eff = b_eff * (1.0 - ab_prev) / (1.0 - ab_t)
             mean = (
                 tf.sqrt(ab_prev) * b_eff / (1.0 - ab_t) * z0_pred
                 + tf.sqrt(ab_t / ab_prev) * (1.0 - ab_prev) / (1.0 - ab_t) * z_t
@@ -430,7 +440,7 @@ def make_compiled_sampler(
                 return mean
 
             def with_noise():
-                log_var = get_learned_log_variance(v_pred, t_batch, schedule)
+                log_var = get_learned_log_variance_eff(v_pred, b_eff, post_var_eff)
                 std = tf.exp(0.5 * log_var)
                 noise_seed = tf.random.experimental.stateless_fold_in(seed, index + 1)
                 return mean + std * tf.random.stateless_normal(

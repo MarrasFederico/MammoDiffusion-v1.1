@@ -171,8 +171,6 @@ I seguenti file non sono inclusi nella repository per dimensioni o per policy di
 | Pesi dei modelli (`.keras`) | Troppo grandi, in `.gitignore` | Google Drive del team — scaricati automaticamente dai notebook di valutazione |
 | Modello base SD2.1 | ~5 GB, licenza HuggingFace | `stabilityai/stable-diffusion-2-1` su HuggingFace Hub |
 
-Tutti i notebook classificatori integrano un meccanismo di **download automatico** da Google Drive tramite `gdown`: se il file è già presente localmente, il download viene saltato.
-
 ---
 
 ## Installazione

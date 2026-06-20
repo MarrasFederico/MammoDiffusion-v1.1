@@ -3,15 +3,12 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 
-
-PROJECT_NAME = "MammoDiffusion"
-DEFAULT_EXPERIMENT_NAME = "20260617_ldm_basic"
+from ldm_project_paths import ExperimentPaths, find_project_root, get_experiment_paths
 
 IMG_SIZE = 512
 CHANNELS = 1
@@ -27,21 +24,6 @@ CLASS_NAMES = {0: "Negativo (sano)", 1: "Positivo (cancro)"}
 
 
 @dataclass(frozen=True)
-class ExperimentPaths:
-    project_root: Path
-    experiment_dir: Path
-    data_processed_dir: Path
-    metadata_dir: Path
-    checkpoints_dir: Path
-    models_dir: Path
-    latents_dir: Path
-    logs_dir: Path
-    evaluation_dir: Path
-    synthetic_raw_dir: Path
-    synthetic_filtered_dir: Path
-
-
-@dataclass(frozen=True)
 class DiffusionSchedule:
     betas: tf.Tensor
     alphas: tf.Tensor
@@ -51,74 +33,6 @@ class DiffusionSchedule:
     alpha_bars_prev: tf.Tensor
     posterior_variance: tf.Tensor
     posterior_log_variance: tf.Tensor
-
-
-def find_project_root(
-    project_name: str = PROJECT_NAME,
-    override: Optional[Path] = None,
-) -> Path:
-    if override is not None:
-        root = Path(override).expanduser().resolve()
-        if not root.exists():
-            raise FileNotFoundError(f"PROJECT_ROOT non esiste: {root}")
-        return root
-
-    cwd = Path.cwd().resolve()
-    for candidate in [cwd, *cwd.parents]:
-        if candidate.name == project_name:
-            return candidate
-        if (candidate / "data").exists() and (candidate / "notebooks").exists():
-            return candidate
-
-    for candidate in [
-        cwd / project_name,
-        Path("/content") / project_name,
-        Path("/content/drive/MyDrive") / project_name,
-        Path.home() / project_name,
-    ]:
-        if candidate.exists():
-            return candidate.resolve()
-
-    raise FileNotFoundError(
-        "Non riesco a trovare la root MammoDiffusion. "
-        "Passa --project-root oppure esegui dalla repo."
-    )
-
-
-def get_experiment_paths(
-    project_root: Optional[Path] = None,
-    experiment_dir: Optional[Path] = None,
-) -> ExperimentPaths:
-    root = find_project_root(override=project_root)
-    exp = (
-        Path(experiment_dir).expanduser().resolve()
-        if experiment_dir is not None
-        else root / "experiments" / DEFAULT_EXPERIMENT_NAME
-    )
-    paths = ExperimentPaths(
-        project_root=root,
-        experiment_dir=exp,
-        data_processed_dir=root / "data" / "processed",
-        metadata_dir=root / "data" / "processed" / "metadata",
-        checkpoints_dir=exp / "checkpoints_ldm",
-        models_dir=exp / "models",
-        latents_dir=exp / "latents",
-        logs_dir=exp / "logs",
-        evaluation_dir=exp / "evaluation",
-        synthetic_raw_dir=exp / "synthetic_raw",
-        synthetic_filtered_dir=root / "data" / "synthetic" / "fromscratch" / "positive",
-    )
-    for directory in [
-        paths.checkpoints_dir,
-        paths.models_dir,
-        paths.latents_dir,
-        paths.logs_dir,
-        paths.evaluation_dir,
-        paths.synthetic_raw_dir,
-        paths.synthetic_filtered_dir,
-    ]:
-        directory.mkdir(parents=True, exist_ok=True)
-    return paths
 
 
 def configure_tensorflow(seed: int = 42) -> None:
@@ -530,11 +444,3 @@ def sample_ldm(
     z_denorm = z * latent_std + latent_mean
     images = vae_decoder(z_denorm, training=False)
     return tf.clip_by_value((images + 1.0) / 2.0, 0.0, 1.0)
-
-
-def normalize_processed_path(row, dataset_root: Path) -> Path:
-    processed_path = Path(str(row["processed_path"]).replace("\\", "/"))
-    filename = processed_path.name
-    split = str(row["split"])
-    label = str(int(row["label"]))
-    return dataset_root / split / label / filename

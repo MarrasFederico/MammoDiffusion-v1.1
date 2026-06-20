@@ -1,0 +1,3 @@
+pipeline,class,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated,n_real_reference
+Fine-tuned (03b),positive,113.0254,2.4159,0.1138,0.612,0.274,0.3456,0.9726,1361,73
+From scratch (04b),positive,154.5194,2.2751,0.1003,0.1132,0.0137,0.0531,0.4932,1361,73

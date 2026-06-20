@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -10,6 +11,16 @@ from typing import Iterable
 import numpy as np
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+
+# Garantisce che la cartella notebooks/ sia in sys.path anche se questo modulo
+# viene importato in un contesto dove lo script invocato direttamente non e'
+# nella stessa cartella (es. mount di rete, simlink, kernel diversi): senza
+# questo, l'import del modulo fratello sotto puo' fallire con
+# "ModuleNotFoundError: No module named 'generative_evaluator'" anche quando
+# il file esiste, perche' sys.path[0] non e' quello che ci si aspetta.
+_THIS_DIR = str(Path(__file__).resolve().parent)
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
 
 from generative_evaluator import GenerativeEvaluator
 from ldm_project_paths import normalize_processed_path

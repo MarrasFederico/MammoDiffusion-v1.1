@@ -32,6 +32,7 @@
 from __future__ import annotations
 import argparse
 import gc
+import hashlib
 import math
 import os
 import shutil
@@ -44,6 +45,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+from ldm_project_paths import find_project_root
 
 import numpy as np
 import pandas as pd
@@ -58,7 +61,6 @@ from tensorflow.keras import layers
 
 
 DEFAULT_EXPERIMENT_NAME = "20260617_ldm_basic"
-PROJECT_NAME = "MammoDiffusion"
 
 
 def parse_args() -> argparse.Namespace:
@@ -109,35 +111,6 @@ def parse_args() -> argparse.Namespace:
         help="Sottocartella di results dove salvare il log EcoTracker LDM.",
     )
     return parser.parse_args()
-
-
-def find_project_root(project_name: str = PROJECT_NAME, override: Optional[Path] = None) -> Path:
-    if override is not None:
-        root = override.expanduser().resolve()
-        if not root.exists():
-            raise FileNotFoundError(f"PROJECT_ROOT non esiste: {root}")
-        return root
-
-    cwd = Path.cwd().resolve()
-    for candidate in [cwd, *cwd.parents]:
-        if candidate.name == project_name:
-            return candidate
-        if (candidate / "data").exists() and (candidate / "notebooks").exists():
-            return candidate
-
-    for candidate in [
-        cwd / project_name,
-        Path("/content") / project_name,
-        Path("/content/drive/MyDrive") / project_name,
-        Path.home() / project_name,
-    ]:
-        if candidate.exists():
-            return candidate.resolve()
-
-    raise FileNotFoundError(
-        "Non riesco a trovare la root MammoDiffusion. "
-        "Passa --project-root oppure esegui dalla repo."
-    )
 
 
 ARGS = parse_args()
@@ -231,9 +204,10 @@ def sync_existing_training_plots_to_results() -> None:
         print(f"Plot training LDM non trovato nei results: {destination_path}")
 
 
-LATENTS_TRAIN_PATH = LATENTS_DIR / "latents_train.npz"
-LATENTS_VAL_PATH   = LATENTS_DIR / "latents_val.npz"
-LATENT_STATS_PATH  = LATENTS_DIR / "latent_stats.npz"
+LATENTS_TRAIN_PATH    = LATENTS_DIR / "latents_train.npz"
+LATENTS_VAL_PATH      = LATENTS_DIR / "latents_val.npz"
+LATENT_STATS_PATH     = LATENTS_DIR / "latent_stats.npz"
+LATENTS_MANIFEST_PATH = LATENTS_DIR / "latents_manifest.json"
 
 METADATA_DIR   = DATA_PROCESSED_DIR / "metadata"
 ALL_CSV_PATH   = METADATA_DIR / "all_processed.csv"
@@ -654,14 +628,53 @@ def encode_dataset_to_latents(images, labels, batch_size=32, desc=""):
     return latents
 
 
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as file:
+        for chunk in iter(lambda: file.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def build_latents_signature() -> dict:
+    # Tutto cio' che, se cambia, rende i latenti in cache non piu' validi:
+    # pesi del VAE encoder, contenuto del dataset augmentato, dimensione val.
+    return {
+        "schema_version": 1,
+        "vae_encoder_sha256": file_sha256(VAE_ENCODER_PATH),
+        "augmented_metadata_sha256": file_sha256(AUGMENTED_METADATA_PATH),
+        "val_csv_sha256": file_sha256(VAL_CSV_PATH),
+        "n_train": int(len(augmented_df)),
+        "n_val": int(len(val_df)),
+        "img_size": IMG_SIZE,
+        "latent_size": LATENT_SIZE,
+        "latent_channels": LATENT_CHANNELS,
+        "positive_augment_copies": POSITIVE_AUGMENT_COPIES,
+    }
+
+
+def load_latents_manifest() -> Optional[dict]:
+    if not LATENTS_MANIFEST_PATH.exists():
+        return None
+    try:
+        with open(LATENTS_MANIFEST_PATH, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except Exception:
+        return None
+
+
 print("\n── Codifica latenti ──")
-# Usa cache se già presente
-if (
+current_latents_signature = build_latents_signature()
+cached_latents_signature = load_latents_manifest()
+latents_cache_valid = (
     LATENTS_TRAIN_PATH.exists()
     and LATENTS_VAL_PATH.exists()
     and LATENT_STATS_PATH.exists()
-):
-    print("Latenti già presenti su disco — caricamento...")
+    and cached_latents_signature == current_latents_signature
+)
+
+if latents_cache_valid:
+    print("Latenti già presenti su disco e coerenti con VAE/dataset attuali — caricamento...")
     _d = np.load(str(LATENTS_TRAIN_PATH))
     z_train, y_train = _d["latents"], _d["labels"]
     _d = np.load(str(LATENTS_VAL_PATH))
@@ -672,6 +685,8 @@ if (
     z_val_norm   = (z_val   - LATENT_MEAN) / LATENT_STD
     print(f"z_train_norm: mean={z_train_norm.mean():.4f}, std={z_train_norm.std():.4f}")
 else:
+    if LATENTS_TRAIN_PATH.exists() and cached_latents_signature != current_latents_signature:
+        print("Cache latenti presente ma non coerente con VAE/dataset attuali (hash diverso): ricalcolo.")
     print("Codifica train in latenti...")
     z_train = encode_dataset_to_latents(
         x_train,
@@ -698,6 +713,10 @@ else:
     z_val_norm   = (z_val   - LATENT_MEAN) / LATENT_STD
     np.savez(str(LATENT_STATS_PATH), latent_mean=LATENT_MEAN, latent_std=LATENT_STD)
     print(f"  Stats salvate in {LATENT_STATS_PATH}")
+
+    with open(LATENTS_MANIFEST_PATH, "w", encoding="utf-8") as file:
+        json.dump(current_latents_signature, file, indent=2)
+    print(f"  Manifest latenti salvato in {LATENTS_MANIFEST_PATH}")
 
 # Libera memoria: x_train/x_val e VAE non servono più
 del x_train, x_val
@@ -1161,12 +1180,11 @@ with measure_sustainability(label="ldm_training", sample_interval=0.5) as eco_ld
             ldm_history["loss_simple"].append(ls_val)
             ldm_history["loss_vlb"].append(lv_val)
 
-        if loss_val < best_ldm_loss:
-            best_ldm_loss = loss_val
-            best_path     = CKPT_DIR / "ldm_unet_best.keras"
-            ldm_model.save(str(best_path))
-            print(f"  [BEST] step={global_step} loss={best_ldm_loss:.4f}")
-            sys.stdout.flush()
+        # best_ldm_loss resta solo una statistica informativa (loss minima vista su un
+        # singolo batch, rumorosa): la selezione del checkpoint migliore si fa dopo, sul
+        # validation set, con lo sweep FID/PRDC di evaluate_ldm_v2.py — non qui salvando
+        # un modello ogni volta che un batch fortunato abbassa la loss.
+        best_ldm_loss = min(best_ldm_loss, loss_val)
 
         if global_step % CKPT_EVERY == 0:
             ckpt_path = CKPT_DIR / f"ldm_step{global_step:06d}.keras"

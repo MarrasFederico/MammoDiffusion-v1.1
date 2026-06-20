@@ -23,6 +23,9 @@ KL_WEIGHT = 1e-3
 SSIM_WEIGHT = 0.3
 VAE_ES_PATIENCE = 6
 VAE_ES_MIN_DELTA = 1e-4
+# Peso basso: l'MSE di validation su una singola epoca puo' essere rumoroso/instabile,
+# quindi resta solo un correttivo secondario rispetto alla SSIM nella scelta del best.
+MSE_SELECTION_WEIGHT = 0.05
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
 
@@ -395,6 +398,7 @@ def main() -> None:
     from tensorflow.keras import layers
 
     from ldm_keras_utils import configure_tensorflow, get_experiment_paths, vram_gb
+    from eco_tracker import measure_sustainability
 
     configure_tensorflow()
 
@@ -465,16 +469,9 @@ def main() -> None:
         vae_optimizer.apply_gradients(zip(grads, all_vars))
         return loss_total, loss_recon, loss_ssim, loss_kl
 
-    def augment_vae(image, label):
-        image = tf.image.random_contrast(image, lower=0.90, upper=1.10)
-        image = tf.image.random_brightness(image, max_delta=0.05)
-        image = tf.clip_by_value(image, -1.0, 1.0)
-        return image, label
-
     vae_train_ds = (
         tf.data.Dataset.from_tensor_slices((x_train, y_train))
         .shuffle(len(x_train), reshuffle_each_iteration=True)
-        .map(augment_vae, num_parallel_calls=tf.data.AUTOTUNE)
         .batch(args.batch_size)
         .prefetch(tf.data.AUTOTUNE)
     )
@@ -487,6 +484,8 @@ def main() -> None:
     print(f"VAE val batches:   {len(vae_val_ds)}")
 
     best_vae_ssim = 0.0
+    best_vae_mse = float("inf")
+    best_vae_score = -float("inf")
     es_counter = 0
     stopped_early = False
     history = {
@@ -495,11 +494,11 @@ def main() -> None:
         "loss_ssim": [],
         "loss_kl": [],
         "val_ssim": [],
+        "val_mse": [],
     }
 
     final_encoder_path = paths.models_dir / "vae_encoder_final.keras"
     final_decoder_path = paths.models_dir / "vae_decoder_final.keras"
-    start_time = time.perf_counter()
 
     print("=" * 70)
     print("FASE 1 -- TRAINING VAE")
@@ -507,72 +506,81 @@ def main() -> None:
     print("=" * 70)
     sys.stdout.flush()
 
-    for epoch in range(args.epochs):
-        losses_t, losses_r, losses_s, losses_k = [], [], [], []
-        epoch_t0 = time.perf_counter()
-        for step, (batch_x, _) in enumerate(vae_train_ds):
-            lt, lr, ls, lk = vae_train_step(batch_x)
-            losses_t.append(float(lt.numpy()))
-            losses_r.append(float(lr.numpy()))
-            losses_s.append(float(ls.numpy()))
-            losses_k.append(float(lk.numpy()))
-            if step % 20 == 0:
-                print(
-                    f"  VAE Ep {epoch + 1:03d} | Step {step:03d} | "
-                    f"total={losses_t[-1]:.4f} | recon={losses_r[-1]:.4f} | "
-                    f"ssim_l={losses_s[-1]:.4f} | kl={losses_k[-1]:.4f}"
-                )
-                sys.stdout.flush()
+    with measure_sustainability(label="vae_training", sample_interval=0.5) as eco_vae:
+        for epoch in range(args.epochs):
+            losses_t, losses_r, losses_s, losses_k = [], [], [], []
+            epoch_t0 = time.perf_counter()
+            for step, (batch_x, _) in enumerate(vae_train_ds):
+                lt, lr, ls, lk = vae_train_step(batch_x)
+                losses_t.append(float(lt.numpy()))
+                losses_r.append(float(lr.numpy()))
+                losses_s.append(float(ls.numpy()))
+                losses_k.append(float(lk.numpy()))
+                if step % 20 == 0:
+                    print(
+                        f"  VAE Ep {epoch + 1:03d} | Step {step:03d} | "
+                        f"total={losses_t[-1]:.4f} | recon={losses_r[-1]:.4f} | "
+                        f"ssim_l={losses_s[-1]:.4f} | kl={losses_k[-1]:.4f}"
+                    )
+                    sys.stdout.flush()
 
-        ssim_vals = []
-        for val_x, _ in vae_val_ds:
-            params = vae_encoder(val_x, training=False)
-            mu, _ = tf.split(params, 2, axis=-1)
-            x_recon = vae_decoder(mu, training=False)
-            val_x_01 = (val_x + 1.0) / 2.0
-            recon_01 = (x_recon + 1.0) / 2.0
-            ssim_vals.append(tf.reduce_mean(tf.image.ssim(val_x_01, recon_01, max_val=1.0)).numpy())
+            ssim_vals, mse_vals = [], []
+            for val_x, _ in vae_val_ds:
+                params = vae_encoder(val_x, training=False)
+                mu, _ = tf.split(params, 2, axis=-1)
+                x_recon = vae_decoder(mu, training=False)
+                val_x_01 = (val_x + 1.0) / 2.0
+                recon_01 = (x_recon + 1.0) / 2.0
+                ssim_vals.append(tf.reduce_mean(tf.image.ssim(val_x_01, recon_01, max_val=1.0)).numpy())
+                mse_vals.append(tf.reduce_mean(tf.square(val_x - x_recon)).numpy())
 
-        val_ssim = float(np.mean(ssim_vals))
-        mean_t = float(np.mean(losses_t))
-        mean_r = float(np.mean(losses_r))
-        mean_s = float(np.mean(losses_s))
-        mean_k = float(np.mean(losses_k))
-        elapsed = time.perf_counter() - epoch_t0
+            val_ssim = float(np.mean(ssim_vals))
+            val_mse = float(np.mean(mse_vals))
+            mean_t = float(np.mean(losses_t))
+            mean_r = float(np.mean(losses_r))
+            mean_s = float(np.mean(losses_s))
+            mean_k = float(np.mean(losses_k))
+            elapsed = time.perf_counter() - epoch_t0
 
-        history["loss_total"].append(mean_t)
-        history["loss_recon"].append(mean_r)
-        history["loss_ssim"].append(mean_s)
-        history["loss_kl"].append(mean_k)
-        history["val_ssim"].append(val_ssim)
+            history["loss_total"].append(mean_t)
+            history["loss_recon"].append(mean_r)
+            history["loss_ssim"].append(mean_s)
+            history["loss_kl"].append(mean_k)
+            history["val_ssim"].append(val_ssim)
+            history["val_mse"].append(val_mse)
 
-        print(
-            f"--- VAE EPOCA {epoch + 1:03d}/{args.epochs} | "
-            f"total={mean_t:.4f} | recon={mean_r:.4f} | ssim_l={mean_s:.4f} | "
-            f"kl={mean_k:.4f} | val_ssim={val_ssim:.4f} | "
-            f"tempo={elapsed:.0f}s | ES={es_counter}/{VAE_ES_PATIENCE} ---"
-        )
+            print(
+                f"--- VAE EPOCA {epoch + 1:03d}/{args.epochs} | "
+                f"total={mean_t:.4f} | recon={mean_r:.4f} | ssim_l={mean_s:.4f} | "
+                f"kl={mean_k:.4f} | val_ssim={val_ssim:.4f} | val_mse={val_mse:.4f} | "
+                f"tempo={elapsed:.0f}s | ES={es_counter}/{VAE_ES_PATIENCE} ---"
+            )
 
-        if val_ssim > best_vae_ssim + VAE_ES_MIN_DELTA:
-            best_vae_ssim = val_ssim
-            es_counter = 0
-            vae_encoder.save(str(best_encoder_path))
-            vae_decoder.save(str(best_decoder_path))
-            print(f"  [BEST] val_ssim={best_vae_ssim:.4f}")
-        else:
-            es_counter += 1
-            print(f"  [ES] nessun miglioramento ({es_counter}/{VAE_ES_PATIENCE})")
+            # Criterio di selezione: SSIM resta la metrica dominante, l'MSE di
+            # validation entra solo come correttivo a basso peso (vedi MSE_SELECTION_WEIGHT).
+            val_score = val_ssim - MSE_SELECTION_WEIGHT * val_mse
+            if val_score > best_vae_score + VAE_ES_MIN_DELTA:
+                best_vae_score = val_score
+                best_vae_ssim = val_ssim
+                best_vae_mse = val_mse
+                es_counter = 0
+                vae_encoder.save(str(best_encoder_path))
+                vae_decoder.save(str(best_decoder_path))
+                print(f"  [BEST] val_ssim={val_ssim:.4f} val_mse={val_mse:.4f} score={best_vae_score:.4f}")
+            else:
+                es_counter += 1
+                print(f"  [ES] nessun miglioramento ({es_counter}/{VAE_ES_PATIENCE})")
 
-        if (epoch + 1) % 25 == 0:
-            vae_encoder.save(str(paths.models_dir / f"vae_encoder_ep{epoch + 1:03d}.keras"))
-            vae_decoder.save(str(paths.models_dir / f"vae_decoder_ep{epoch + 1:03d}.keras"))
-            print(f"  [CKPT] ep{epoch + 1}")
+            if (epoch + 1) % 25 == 0:
+                vae_encoder.save(str(paths.models_dir / f"vae_encoder_ep{epoch + 1:03d}.keras"))
+                vae_decoder.save(str(paths.models_dir / f"vae_decoder_ep{epoch + 1:03d}.keras"))
+                print(f"  [CKPT] ep{epoch + 1}")
 
-        sys.stdout.flush()
-        if es_counter >= VAE_ES_PATIENCE:
-            stopped_early = True
-            print(f"Early stopping all'epoca {epoch + 1}.")
-            break
+            sys.stdout.flush()
+            if es_counter >= VAE_ES_PATIENCE:
+                stopped_early = True
+                print(f"Early stopping all'epoca {epoch + 1}.")
+                break
 
     vae_encoder.save(str(final_encoder_path))
     vae_decoder.save(str(final_decoder_path))
@@ -613,20 +621,22 @@ def main() -> None:
     print(f"Plot salvato nei results: {vae_metrics_path}")
     print(f"Plot salvato nei results: {vae_reconstruction_path}")
 
-    elapsed_total = time.perf_counter() - start_time
     summary = {
         "phase": "vae_training",
         "epochs_run": len(history["val_ssim"]),
         "epochs_max": args.epochs,
         "stopped_early": stopped_early,
         "best_val_ssim": best_vae_ssim,
+        "best_val_mse": best_vae_mse,
+        "best_selection_score": best_vae_score,
+        "mse_selection_weight": MSE_SELECTION_WEIGHT,
         "batch_size": args.batch_size,
         "learning_rate": args.learning_rate,
         "kl_weight": KL_WEIGHT,
         "ssim_weight": SSIM_WEIGHT,
         "encoder_best": str(best_encoder_path),
         "decoder_best": str(best_decoder_path),
-        "elapsed_seconds": elapsed_total,
+        **eco_vae.metrics.to_dict(),
     }
     with open(paths.logs_dir / "vae_history.json", "w", encoding="utf-8") as file:
         json.dump(history, file, indent=2)
@@ -639,9 +649,10 @@ def main() -> None:
     ) as file:
         file.write(json.dumps(summary, ensure_ascii=False) + "\n")
 
-    print(f"VAE completato. Best val_ssim={best_vae_ssim:.4f}")
+    print(f"VAE completato. Best val_ssim={best_vae_ssim:.4f} val_mse={best_vae_mse:.4f}")
     print("Best encoder:", best_encoder_path)
     print("Best decoder:", best_decoder_path)
+    print(eco_vae.metrics)
 
     del x_train, y_train, x_val, y_val, vae_train_ds, vae_val_ds
     gc.collect()

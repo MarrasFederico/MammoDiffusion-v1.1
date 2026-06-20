@@ -600,9 +600,12 @@ def run_generation_worker(
         next_index = next_fake_image_index(existing_paths)
         while generated < missing:
             output_index = next_index + generated
+            # Seed identico per ogni checkpoint a parita' di (classe, indice immagine):
+            # la variabile confrontata nello sweep deve essere solo il checkpoint, non
+            # anche il rumore iniziale da cui si parte.
             sample_seed = tf.constant(
                 [
-                    int(args.seed) + int(candidate["order"]) * 10_000 + int(cls) * 1_000,
+                    int(args.seed) + int(cls) * 1_000,
                     int(output_index),
                 ],
                 dtype=tf.int32,

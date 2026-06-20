@@ -1,14 +1,14 @@
 {
   "Baseline": {
-    "auc": 0.5493,
+    "auc": 0.5494,
     "threshold": 0.4456,
-    "accuracy": 0.5297,
-    "precision": 0.1848,
+    "accuracy": 0.532,
+    "precision": 0.1857,
     "recall": 0.5342,
-    "f1": 0.2746
+    "f1": 0.2756
   },
   "Real+Synth": {
-    "auc": 0.6121,
+    "auc": 0.612,
     "threshold": 0.2689,
     "accuracy": 0.5274,
     "precision": 0.2035,
@@ -16,7 +16,7 @@
     "f1": 0.3077
   },
   "Full_Synth": {
-    "auc": 0.5562,
+    "auc": 0.556,
     "threshold": 0.5373,
     "accuracy": 0.3744,
     "precision": 0.183,

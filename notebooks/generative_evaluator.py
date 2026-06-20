@@ -104,12 +104,13 @@ class GenerativeEvaluator:
 
     #costruisce DataLoader per immagini reali/generate e inizializza metriche FID e IS
     def __init__(self, real_dir: str | Path, generated_dir: str | Path, batch_size: int = 32, image_size: int = 299,
-                num_workers: int = 0, device: str | None = None, feature_dim: int = 2048) -> None:
+                num_workers: int = 0, device: str | None = None, feature_dim: int = 2048, is_splits: int = 10) -> None:
         
         self.batch_size = batch_size
         self.image_size = image_size
         self.num_workers = num_workers
         self.feature_dim = feature_dim
+        self.is_splits = is_splits
         self.real_features_: np.ndarray | None = None
         self.generated_features_: np.ndarray | None = None
 
@@ -142,7 +143,7 @@ class GenerativeEvaluator:
             )
             self._inception_score = InceptionScore(
                 feature="logits_unbiased",
-                splits=10,
+                splits=self.is_splits,
                 normalize=False,
             ).to(self.device)
 

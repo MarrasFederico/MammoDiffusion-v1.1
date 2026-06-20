@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "stages": {
+    "generate": {
+      "stage": "generate",
+      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/synthetic_raw",
+      "n_raw": 2722,
+      "target_label": 1,
+      "sample_steps": 100,
+      "guidance_scale": 1.5,
+      "model_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "state_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/logs/generation_raw_state.json",
+      "sampler_randomness": "stateless_seed_per_image_v1",
+      "canonical_run": true
+    },
+    "filter": {
+      "stage": "filter",
+      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/synthetic_raw",
+      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/synthetic_filtered",
+      "n_raw": 2722,
+      "n_selected": 1361,
+      "target_label": 1,
+      "summary_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/outputs/synthetic_filter_summary.json",
+      "report_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/outputs/synthetic_filter_report.csv",
+      "canonical_run": true,
+      "cached": false
+    }
+  }
+}

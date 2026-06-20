@@ -1,0 +1,134 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+
+PROJECT_NAME = "MammoDiffusion"
+DEFAULT_EXPERIMENT_NAME = "20260617_ldm_basic"
+RESULTS_STAGE_NAME = "04_ldm_keras_v2"
+
+
+@dataclass(frozen=True)
+class ExperimentPaths:
+    project_root: Path
+    experiment_dir: Path
+    data_processed_dir: Path
+    metadata_dir: Path
+    checkpoints_dir: Path
+    models_dir: Path
+    latents_dir: Path
+    logs_dir: Path
+    evaluation_dir: Path
+    synthetic_raw_dir: Path
+    synthetic_filtered_dir: Path
+
+
+@dataclass(frozen=True)
+class ResultsPaths:
+    stage_dir: Path
+    plots_dir: Path
+    metrics_dir: Path
+    ecotracker_dir: Path
+
+
+def find_project_root(
+    project_name: str = PROJECT_NAME,
+    override: Path | None = None,
+) -> Path:
+    if override is not None:
+        root = Path(override).expanduser().resolve()
+        if not root.exists():
+            raise FileNotFoundError(f"PROJECT_ROOT non esiste: {root}")
+        return root
+
+    cwd = Path.cwd().resolve()
+    for candidate in [cwd, *cwd.parents]:
+        if candidate.name == project_name:
+            return candidate
+        if (candidate / "data").exists() and (candidate / "notebooks").exists():
+            return candidate
+
+    for candidate in [
+        cwd / project_name,
+        Path("/content") / project_name,
+        Path("/content/drive/MyDrive") / project_name,
+        Path.home() / project_name,
+    ]:
+        if candidate.exists():
+            return candidate.resolve()
+
+    raise FileNotFoundError(
+        "Non riesco a trovare la root MammoDiffusion. "
+        "Passa --project-root oppure esegui dalla repo."
+    )
+
+
+def get_experiment_paths(
+    project_root: Path | None = None,
+    experiment_dir: Path | None = None,
+    create: bool = True,
+) -> ExperimentPaths:
+    root = find_project_root(override=project_root)
+    exp = (
+        Path(experiment_dir).expanduser().resolve()
+        if experiment_dir is not None
+        else root / "experiments" / DEFAULT_EXPERIMENT_NAME
+    )
+    paths = ExperimentPaths(
+        project_root=root,
+        experiment_dir=exp,
+        data_processed_dir=root / "data" / "processed",
+        metadata_dir=root / "data" / "processed" / "metadata",
+        checkpoints_dir=exp / "checkpoints_ldm",
+        models_dir=exp / "models",
+        latents_dir=exp / "latents",
+        logs_dir=exp / "logs",
+        evaluation_dir=exp / "evaluation",
+        synthetic_raw_dir=exp / "synthetic_raw",
+        synthetic_filtered_dir=root / "data" / "synthetic" / "fromscratch" / "positive",
+    )
+    if create:
+        for directory in [
+            paths.checkpoints_dir,
+            paths.models_dir,
+            paths.latents_dir,
+            paths.logs_dir,
+            paths.evaluation_dir,
+            paths.synthetic_raw_dir,
+            paths.synthetic_filtered_dir,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+    return paths
+
+
+def get_results_paths(
+    project_root: Path | None = None,
+    stage_name: str = RESULTS_STAGE_NAME,
+    create: bool = True,
+) -> ResultsPaths:
+    root = find_project_root(override=project_root)
+    stage_dir = root / "results" / stage_name
+    paths = ResultsPaths(
+        stage_dir=stage_dir,
+        plots_dir=stage_dir / "plots",
+        metrics_dir=stage_dir / "metrics",
+        ecotracker_dir=stage_dir / "ecotracker",
+    )
+    if create:
+        for directory in [
+            paths.stage_dir,
+            paths.plots_dir,
+            paths.metrics_dir,
+            paths.ecotracker_dir,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
+    return paths
+
+
+def normalize_processed_path(row, dataset_root: Path) -> Path:
+    processed_path = Path(str(row["processed_path"]).replace("\\", "/"))
+    filename = processed_path.name
+    split = str(row["split"])
+    label = str(int(row["label"]))
+    return Path(dataset_root) / split / label / filename

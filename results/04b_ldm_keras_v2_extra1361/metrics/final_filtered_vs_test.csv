@@ -1,0 +1,2 @@
+metric_backend,reference_split,target_label,n_real_test,n_synthetic_filtered,synthetic_dir,inception_batch,is_splits,knn_k,FID,IS_mean,IS_std,precision,recall,density,coverage
+generative_evaluator.py,test,1,73,1361,/mnt/MammoDiffusion/MammoDiffusion/experiments/20260619_ldm_keras_v2_alex_long_training_extra1361/synthetic_filtered,8,10,3,154.5194,2.2751,0.1003,0.1132,0.0137,0.0531,0.4932

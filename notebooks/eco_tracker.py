@@ -1,26 +1,10 @@
-#eco_tracker.py
-"""
-Tool COMUNE del gruppo (usato da generatore + classificatori) per la misura della
-sostenibilita' (domanda D3): tempo, RAM, energia (kWh) e CO2 di un blocco di codice.
-
-Ricostruito dalla PARTE 1 di _archivio/contratto.py (l'implementazione storica del
-gruppo). Differenza: qui restano SOLO le tre API di sostenibilita', senza l'I/O su
-file/.npz della vecchia pipeline centralizzata (abbandonata).
-
-API pubblica:
-  - SustainabilityMetrics  : dataclass coi consumi (tempo, RAM, energia, CO2)
-  - measure_sustainability : context manager per misurare un blocco di codice
-  - compare_sustainability : confronto fra due misurazioni
-
-Dipendenze volutamente LEGGERE: psutil + codecarbon.
-"""
+#classi e procedure per misurare sostenibilità di qualsiasi blocco di codice (training, inferenza, generazione)
 from __future__ import annotations
 import contextlib, os, threading, time
 from dataclasses import dataclass
 from typing import Optional
 import psutil
 from codecarbon import EmissionsTracker
-
 
 #contiene i consumi misurati per un blocco di codice (tempo, RAM, energia, CO2)
 @dataclass
@@ -83,7 +67,7 @@ class _RamMonitor:
         except psutil.NoSuchProcess:
             return 0.0 #se il processo non esiste piu'
 
-    #procedura del thread che aggiorna il picco finche _running e' True
+    #procedura del thread che aggiorna il picco finche _running è True
     def sample(self) -> None:
         while self._running:
             current = self.current_mb()
@@ -119,7 +103,7 @@ class _EcoTracker:
         elapsed   = time.perf_counter() - self._t0 #tempo trascorso in secondi
         peak_ram  = self._monitor.stop()
         co2_kg    = self._carbon_tracker.stop()
-        #energia consumata in kWh
+        #energia consumata in kWh 
         energy_kwh = (
             self._carbon_tracker.final_emissions_data.energy_consumed
             if self._carbon_tracker.final_emissions_data else 0.0
@@ -137,7 +121,7 @@ class _EcoTracker:
 
 """
 -context manager da utilizzare per monitorare l'operazione
--sample_interval(s) regola campionamento RAM e la misura di potenza di codecarbon.
+-sample_interval(s) regola campionamento RAM e la misura di potenza di codecarbon. 
 -di default sample_interval=0.5s per training lunghi per evitare overhead
 -per operazioni brevi sample_interval=0.05 per non perdere il picco
 """

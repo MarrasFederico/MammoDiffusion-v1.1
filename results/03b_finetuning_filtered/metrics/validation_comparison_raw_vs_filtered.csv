@@ -1,5 +1,0 @@
-class,set_name,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated
-positive,positive_raw_2722,116.7833,2.772,0.1041,0.4555,0.3014,0.2391,0.9863,2722
-positive,positive_filtered_1361_adaptive_mask,108.5154,2.4172,0.0961,0.6745,0.2466,0.3815,0.9178,1361
-negative,negative_raw_2722,131.6881,2.7123,0.0793,0.2818,0.2192,0.1253,0.9041,2722
-negative,negative_filtered_1361_adaptive_mask,123.0615,2.3766,0.039,0.3791,0.2603,0.185,0.8767,1361

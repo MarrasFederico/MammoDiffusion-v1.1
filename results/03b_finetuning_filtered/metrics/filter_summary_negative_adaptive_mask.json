@@ -1,10 +1,14 @@
 {
-  "timestamp": "2026-06-14T11:12:16",
+  "schema_version": 2,
+  "filter_schema_version": "adaptive_mask_v2",
+  "timestamp": "2026-06-21T12:05:39",
+  "experiment_name": "20260611_sd21_rsna_mlo_512_inference_100_steps",
+  "class_name": "negative",
   "experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
   "class": "negative",
   "label": 0,
   "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative",
-  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative_filtered_1361_adaptive_mask",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned/negative",
   "n_raw": 2722,
   "n_accepted": 2124,
   "n_rejected": 598,
@@ -39,6 +43,17 @@
     "fragmented_mask": 76,
     "low_contrast": 48,
     "too_full": 5
+  },
+  "ranking_config": {
+    "schema_version": 2,
+    "filter_schema_version": "adaptive_mask_v2",
+    "selection_score": "robust_distance_from_train_reference",
+    "sort_order": "descending_selection_score",
+    "n_selected": 1361,
+    "eval_seed": 42,
+    "reference_seed": 42,
+    "nonblack_threshold": 10,
+    "output_naming": "selected_output_name_v1"
   },
   "status": "completed"
 }

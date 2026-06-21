@@ -224,8 +224,8 @@ PIPELINE 1 — Preparazione dei dati
         └── 02_Data_Augmentation_Trad
 
 PIPELINE 2 — Generazione con Stable Diffusion 2.1  (D1, input per D2 e D3)
-    03a_Finetuning_StableDiffusion2.1_baseline      (variante: solo reali)
-    03b_Finetuning_StableDiffusion2.1_filtered      (variante principale: reali + augmentati, filtro qualità)
+    03a_Finetuning_StableDiffusion2.1_baseline      (variante: generazione positivi e negativi senza filtro)
+    03b_Finetuning_StableDiffusion2.1_filtered      (variante principale: 2x1361 raw, filtro qualità sceglie 1361 migliori)
 
 PIPELINE 3 — LDM from scratch  (D1)
     04a_LDM_basic                                   (variante: genera solo classe positiva)

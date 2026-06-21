@@ -241,7 +241,8 @@ PIPELINE 4 — Classificatori  (D2)
 
 PIPELINE 5 — Sostenibilità  (D3)
     10_Classificatore_Real_Augmented_ResNet-50_FineTuned
-        └── 11_Valutazione_Sostenibilità
+    11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned
+        └── 12_Valutazione_Sostenibilità
 ```
 
 ---

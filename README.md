@@ -6,13 +6,13 @@
 
 **Generazione condizionata di immagini mammografiche sintetiche tramite modelli diffusivi**
 per il miglioramento della classificazione del cancro al seno.
-
+<!--
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
 ![Dataset](https://img.shields.io/badge/Dataset-RSNA%20Breast%20Cancer-pink?style=flat-square)
 ![License](https://img.shields.io/badge/License-Academic-lightgrey?style=flat-square)
-
+-->
 </div>
 
 ---
@@ -37,8 +37,8 @@ per il miglioramento della classificazione del cancro al seno.
 
 Il progetto segue un flusso in tre fasi:
 
-1. **Preprocessing e augmentation** dei dati originali del dataset RSNA
-2. **Generazione di immagini sintetiche** tramite due approcci distinti: fine-tuning di *Stable Diffusion 2.1* e addestramento di un modello LDM (Latent Diffusion Model) from scratch
+1. **Preprocessing e augmentation** dei dati originali del dataset RSNA Breast Cancer Detection
+2. **Generazione di immagini sintetiche** tramite due approcci distinti: fine-tuning di *Stable Diffusion 2.1* e addestramento di un modello LDM (Latent Diffusion Model) *from scratch*
 3. **Training e valutazione** di classificatori ResNet-50 in tre configurazioni differenti, confrontate anche in termini di sostenibilità computazionale
 
 ---
@@ -49,7 +49,7 @@ Il progetto segue un flusso in tre fasi:
 
 > *Un'architettura diffusiva costruita from Scratch e anche una fine tunata sono in grado di generare campioni realistici e sufficientemente vari?*
 
-- **Approcci:** fine-tuning di `stabilityai/stable-diffusion-2-1` su HuggingFace; LDM Keras addestrato from scratch
+- **Approcci:** fine-tuning di *Stable Diffusion 2.1*; LDM Keras addestrato from scratch
 - **Metriche di valutazione:** FID (Fréchet Inception Distance), Inception Score (IS), Precision, Recall, Density, Coverage
 
 ### D2 — Impatto sulla classificazione
@@ -356,7 +356,8 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `05_Classificatore_Baseline_ResNet-50_FineTuned.ipynb`
 
-**Scopo:** Classificatore binario di riferimento, addestrato sui soli dati reali preprocessati.
+**Scopo:** Implementazione di un classificatore binario di riferimento (baseline), addestrato sui soli dati reali preprocessati. I risultati saranno fondamentali per comprendere la reale efficacia delle immagini sintetiche generate. 
+Nel notebook sono presenti celle relative alla valutazione in Validation Set del classificatore, per consentire una comprensione iniziale delle capacità di generalizzazione e predittive del modello sviluppato.
 
 **Input:** `data/processed/` (train + val)
 
@@ -373,11 +374,12 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `06_Classificatore_RealSynthetic_ResNet-50_FineTuned.ipynb`
 
-**Scopo:** Classificatore addestrato su dati reali + sintetici (1361 positivi + 1361 negativi da SD2.1), con fine-tuning parziale del backbone (31% degli strati).
+**Scopo:** Classificatore addestrato su dati reali + dati sintetici, con fine-tuning parziale del backbone. Il dataset utilizzato per il training rimane comunque sbilanciato, ma con le seguenti percentuali: 55% casi negativi, 45% casi positivi. 
+Nel notebook sono presenti celle relative alla valutazione in Validation Set del classificatore, per consentire una comprensione iniziale delle capacità di generalizzazione e predittive del modello sviluppato.
 
 **Input:**
 - `data/processed/` — immagini reali
-- `data/synthetic/fine_tuned/` — immagini sintetiche (scaricate automaticamente da Drive se assenti)
+- `data/synthetic/fine_tuned/` — immagini sintetiche
 
 **Stessa architettura di** `05`, diverso insieme di training.
 
@@ -388,7 +390,8 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `06b_Classificatore_RealSynthetic_ResNet-50_FineTuned_Full.ipynb`
 
-**Scopo:** Variante di `06` con fine-tuning completo di tutti gli strati del backbone ResNet-50.
+**Scopo:** Variante di `06` con fine-tuning completo di tutti gli strati del backbone ResNet-50. La realizzazione di questa variante nasce dalla volontà di comprendere se le prestazioni non eccellenti ottenute nel notebook precedente fossero dovute ad uno scongelamento errato dei livelli della backbone. 
+Nel notebook sono presenti celle relative alla valutazione in Validation Set del classificatore, per consentire una comprensione iniziale delle capacità di generalizzazione e predittive del modello sviluppato.
 
 **Input:** stesso di `06`
 
@@ -399,7 +402,7 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `07_Val_Classificatori_RS_AllVSPart.ipynb`
 
-**Scopo:** Confronto delle due configurazioni Real+Synth sul validation set — fine-tuning parziale (`06`) vs fine-tuning completo (`06b`) — per scegliere la configurazione finale da portare al test set.
+**Scopo:** Confronto delle due configurazioni Real+Synth sul validation set — fine-tuning parziale (`06`) vs fine-tuning completo (`06b`) — per scegliere la configurazione finale da portare al test set. Vengono confrontate le prestazioni in Validation Set, ai fini della Model Selection. Questo attraverso grafici e tabelle. L'obiettivo era distinguere tra due scenari principali: modello sistematicamente incerto, con probabilità vicine alla soglia decisionale; modello apparentemente sicuro, ma spesso orientato verso la classe sbagliata;
 
 **Input:**
 - Modelli da `exp20260617_real_synth_...` e `exp20260618_real_synth_...`
@@ -412,7 +415,7 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `08_Classificatore_Synthetic_ResNet-50_FineTuned.ipynb`
 
-**Scopo:** Classificatore addestrato esclusivamente su immagini sintetiche generate da SD2.1 (nessun dato reale nel training set), per valutare se il modello diffusivo produce immagini sufficientemente informative.
+**Scopo:** Classificatore addestrato esclusivamente su immagini sintetiche generate da SD2.1 (nessun dato reale nel training set), per valutare se il modello diffusivo produce immagini sufficientemente informative. In questo caso il dataset risulta bilanciato. Applicando la medesima metodologia, nel notebook sono presenti celle relative alla valutazione in Validation Set del classificatore, per consentire una comprensione iniziale delle capacità di generalizzazione e predittive del modello sviluppato.
 
 **Input:** `data/synthetic/fine_tuned/` (train sintetico) + `data/processed/` (val e test reali)
 
@@ -423,24 +426,24 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `09_Test_Classificatori.ipynb`
 
-**Scopo:** Valutazione finale delle tre configurazioni principali di classificatore sul test set reale (438 immagini: 365 sani, 73 malati). Notebook di riferimento per la risposta alla D2.
+**Scopo:** Valutazione finale delle tre configurazioni principali di classificatore sul test set reale (438 immagini: 365 sani, 73 malati). Notebook di riferimento per la risposta alla Seconda Domanda di Ricerca.
 
 **Input:**
 - Modelli `.keras` dai tre esperimenti: `baseline`, `real_synth`, `full_synth`
 - `data/processed/metadata/test.csv`
 
-**Metriche calcolate:** AUC, Accuracy, Precision, Recall, F1-score, soglia ottimale (Youden), distribuzione delle probabilità previste, analisi dei casi difficili (errati da tutti i modelli)
+**Metriche calcolate:** AUC, Accuracy, Precision, Recall, F1-score, soglia ottimale (Youden), distribuzione delle probabilità previste, analisi dei casi difficili (errati da tutti i modelli), ROC-Curve, PrecisionRecall-Curve
 
 **Output:**
-- `results/09_test_classificatori/tables/test_metrics.json`
-- `results/09_test_classificatori/predictions/test_predictions.csv`
-- `results/09_test_classificatori/tables/casi_difficili_tutti_modelli.csv`
+- `results/09_test_classificatori/tables/...`
+- `results/09_test_classificatori/predictions/...`
+- `results/09_test_classificatori/figures/...`
 
 ---
 
 ### `10_Classificatore_Real_Augmented_ResNet-50_FineTuned.ipynb`
 
-**Scopo:** Classificatore addestrato con dati reali + augmentation tradizionale (dal notebook `02`). Serve come termine di paragone per la D3 (sostenibilità).
+**Scopo:** Classificatore addestrato con dati reali + augmentation tradizionale (dati provenienti dal notebook `02`). Utilizzato come termine di paragone rispetto al classificatore *Real + Synthetic* per la Domanda di Ricerca D3 (sostenibilità).
 
 **Input:**
 - `data/processed/` — immagini reali
@@ -466,19 +469,6 @@ PIPELINE 5 — Sostenibilità  (D3)
 **Output:**
 - `results/test_trad_aug_vs_real_synth/` — metriche comparative, predizioni
 - Grafici: confronto AUC/F1, CO₂ per fase, trade-off prestazioni/costo ambientale
-
----
-
-## Demo Gradio
-
-L'interfaccia locale **MammoDiffusion Studio** permette di scegliere la classe (positivo/negativo) e generare immagini con il checkpoint fine-tuned selezionato sul validation set.
-
-```bash
-pip install -r assets/mammodiffusion_gradio/requirements.txt
-python assets/mammodiffusion_gradio/app.py --open-browser
-```
-
-Esempi di output e istruzioni dettagliate in [`assets/mammodiffusion_gradio/`](assets/mammodiffusion_gradio/).
 
 ---
 

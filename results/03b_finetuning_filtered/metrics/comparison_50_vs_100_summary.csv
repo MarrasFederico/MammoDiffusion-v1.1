@@ -1,11 +1,6 @@
-inference_steps,stage,class_name,n_generated,FID,IS mean,IS std,precision,recall,density,coverage,comparison_role,label,artifact
-50,raw,positive,1361,118.9844,2.7105,0.1203,,,,,inference_steps_baseline,1,baseline_final_test_metrics
-50,raw,negative,1361,123.9415,2.7935,0.204,,,,,inference_steps_baseline,0,baseline_final_test_metrics
-100,raw_matched,positive,1361,119.8019,2.731,0.1287,0.4093,0.3151,0.2254,0.9589,inference_steps_comparison,1,final_test_metrics_raw_matched_100_steps
-100,raw_matched,positive,1361,119.8019,2.731,0.1287,0.4093,0.3151,0.2254,0.9589,filter_comparison,1,final_test_metrics_raw_matched_100_steps
-100,raw_matched,negative,1361,126.7982,2.6854,0.1567,0.338,0.3288,0.1464,0.863,inference_steps_comparison,0,final_test_metrics_raw_matched_100_steps
-100,raw_matched,negative,1361,126.7982,2.6854,0.1567,0.338,0.3288,0.1464,0.863,filter_comparison,0,final_test_metrics_raw_matched_100_steps
-100,filtered,positive,1361,113.0254,2.417,0.0738,0.612,0.274,0.3456,0.9726,filter_comparison,1,final_test_metrics
-100,filtered,positive,1361,113.0254,2.417,0.0738,0.612,0.274,0.3456,0.9726,pipeline_final,1,final_test_metrics
-100,filtered,negative,1361,114.1593,2.3843,0.0803,0.4717,0.2055,0.2178,0.8767,filter_comparison,0,final_test_metrics
-100,filtered,negative,1361,114.1593,2.3843,0.0803,0.4717,0.2055,0.2178,0.8767,pipeline_final,0,final_test_metrics
+inference_steps,artifact,stadio,class,comparabile_50_vs_100,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated
+50,final_test_metrics,filtrato,positive,True,118.9844,2.7079,0.1171,,,,,1361
+100,final_test_metrics,filtrato,positive,True,113.0254,2.4159,0.1138,0.612,0.274,0.3456,0.9726,1361
+100,final_test_metrics,filtrato,negative,False,114.1593,2.3891,0.1175,0.4717,0.2055,0.2178,0.8767,1361
+100,final_test_metrics_raw_2722,raw,positive,False,119.7851,2.7657,0.0802,,,,,2722
+100,final_test_metrics_raw_2722,raw,negative,False,127.0889,2.7124,0.089,,,,,2722

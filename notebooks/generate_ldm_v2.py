@@ -529,8 +529,10 @@ def copy_if_exists(source: Path, destination: Path) -> None:
 
 
 def run_filter(args: argparse.Namespace, paths) -> None:
-    """Applica il filtro adattivo alle immagini RAW per selezionare le n_selected migliori (confrontate con le reali della classe target) e salva il relativo report/manifest."""
+    """Applica il filtro adattivo alle immagini RAW per selezionare le n_selected migliori (confrontate con le reali della classe target) e salva il relativo report/manifest. Genera prima le RAW mancanti se la cartella non ne contiene ancora a sufficienza."""
     from adaptive_mammography_filter import filter_generated_directory
+
+    run_generate(args, paths)
 
     raw_dir, filtered_dir = resolve_image_dirs(paths, args)
     results_paths = get_results_paths(paths.project_root, args.results_stage_name)

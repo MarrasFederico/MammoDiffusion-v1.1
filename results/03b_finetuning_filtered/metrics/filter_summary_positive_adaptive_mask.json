@@ -1,18 +1,17 @@
 {
-  "schema_version": 2,
-  "filter_schema_version": "adaptive_mask_v2",
-  "timestamp": "2026-06-21T12:04:10",
-  "experiment_name": "20260611_sd21_rsna_mlo_512_inference_100_steps",
-  "class_name": "positive",
+  "timestamp": "2026-06-13T20:53:53",
+  "source_experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
   "experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
-  "class": "positive",
-  "label": 1,
+  "best_checkpoint": "checkpoint-3000",
+  "inference_steps": 100,
+  "mask_type": "adaptive_mask",
   "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive",
-  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned/positive",
-  "n_raw": 2722,
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive_filtered_1361_adaptive_mask",
+  "n_raw_candidates": 2722,
   "n_accepted": 2247,
   "n_rejected": 475,
   "n_selected": 1361,
+  "status": "completed",
   "thresholds": {
     "min_nonblack_ratio": 0.1308173599243164,
     "max_nonblack_ratio": 0.9401134300231935,
@@ -37,22 +36,33 @@
     "lap_var": 811.8924560546875,
     "largest_component_frac": 0.0018010371645313938
   },
-  "n_real_train_reference": 340,
+  "n_real_train_positive_reference": 340,
   "reject_reason_counts": {
-    "too_empty": 400,
-    "fragmented_mask": 49,
+    "too_empty_low_nonblack_ratio": 400,
+    "fragmented_nonblack_mask": 49,
     "low_contrast": 26
   },
-  "ranking_config": {
-    "schema_version": 2,
-    "filter_schema_version": "adaptive_mask_v2",
-    "selection_score": "robust_distance_from_train_reference",
-    "sort_order": "descending_selection_score",
-    "n_selected": 1361,
-    "eval_seed": 42,
-    "reference_seed": 43,
-    "nonblack_threshold": 10,
-    "output_naming": "selected_output_name_v1"
+  "dominant_reject_reason": "too_empty_low_nonblack_ratio",
+  "suggested_review": "Rivedere min_nonblack_ratio o la stima adaptive dello sfondo.",
+  "adaptive_diagnostics": {
+    "mask_type": "adaptive_mask",
+    "adaptive_threshold": {
+      "min": 10.0,
+      "mean": 96.56455371050697,
+      "max": 220.0
+    },
+    "nonblack_ratio": {
+      "min": 0.00086212158203125,
+      "mean": 0.4345831916579247,
+      "max": 0.9270706176757812
+    },
+    "n_accepted": 2247,
+    "n_rejected": 475,
+    "reject_reason_counts": {
+      "too_empty_low_nonblack_ratio": 400,
+      "fragmented_nonblack_mask": 49,
+      "low_contrast": 26
+    }
   },
-  "status": "completed"
+  "selection_note": "Adaptive-mask non-supervised filtering; no classifier was used."
 }

@@ -21,7 +21,7 @@ VAE_EPOCHS = 100
 VAE_LR = 1e-4
 KL_WEIGHT = 1e-3
 SSIM_WEIGHT = 0.3
-VAE_ES_PATIENCE = 10
+VAE_ES_PATIENCE = 6
 VAE_ES_MIN_DELTA = 1e-4
 # Peso basso: l'MSE di validation su una singola epoca puo' essere rumoroso/instabile,
 # quindi resta solo un correttivo secondario rispetto alla SSIM nella scelta del best.

@@ -226,20 +226,6 @@ def _existing_filtered_complete(filtered_dir: Path, n_selected: int) -> bool:
     return True
 
 
-def _signature_matches(summary_path: Path, signature: dict) -> bool:
-    if not summary_path.exists():
-        return False
-    try:
-        with open(summary_path, "r", encoding="utf-8") as file:
-            payload = json.load(file)
-    except Exception:
-        return False
-    return (
-        payload.get("schema_version") == FILTER_SCHEMA_VERSION
-        and payload.get("input_signature") == signature
-    )
-
-
 def _clear_filtered_outputs(filtered_dir: Path) -> None:
     filtered_dir.mkdir(parents=True, exist_ok=True)
     for path in filtered_dir.glob("synth_filtered_*.png"):
@@ -341,14 +327,12 @@ def filter_generated_directory(
         "reference_files": _image_signature(reference_paths),
     }
 
-    if (
-        not force_recompute
-        and _signature_matches(summary_path, input_signature)
-        and report_path.exists()
-        and _existing_filtered_complete(filtered_dir, n_selected)
-    ):
+    if not force_recompute and _existing_filtered_complete(filtered_dir, n_selected):
         if verbose:
-            print(f"Filtro gia' completo: {summary_path}")
+            print(
+                f"Filtro gia' completo: {n_selected} PNG presenti in {filtered_dir} "
+                "(selezione precedente mantenuta, skip)."
+            )
         return {
             "schema_version": FILTER_SCHEMA_VERSION,
             "cached": True,
@@ -356,14 +340,6 @@ def filter_generated_directory(
             "summary_path": str(summary_path),
             "filtered_dir": str(filtered_dir),
         }
-
-    existing_filtered = sorted(filtered_dir.glob("*.png"))
-    if existing_filtered and not force_recompute:
-        raise RuntimeError(
-            f"{filtered_dir} contiene gia' {len(existing_filtered)} PNG ma la cache "
-            "non e' compatibile. Rilancia con --force-recompute per rigenerare "
-            "solo la cartella filtrata."
-        )
 
     if force_recompute:
         _clear_filtered_outputs(filtered_dir)

@@ -1,4 +1,4 @@
-class,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated,inference_steps,stage,class_name,label,real_label,n_real_reference,real_reference_metadata,generated_dir
-positive,113.0254,2.417,0.0738,0.612,0.274,0.3456,0.9726,1361,100,filtered,positive,1,1,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned/positive
-negative,114.1593,2.3843,0.0803,0.4717,0.2055,0.2178,0.8767,1361,100,filtered,negative,0,0,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned/negative
-average,113.5924,2.4006,0.0771,0.5418,0.2398,0.2817,0.9246,2722,100,filtered,average,,,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,
+class,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated,real_label,n_real_reference,real_reference_metadata,generated_dir
+positive,113.0254,2.4159,0.1138,0.612,0.274,0.3456,0.9726,1361,1,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive_filtered_1361_adaptive_mask
+negative,114.1593,2.3891,0.1175,0.4717,0.2055,0.2178,0.8767,1361,0,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative_filtered_1361_adaptive_mask
+average,113.5924,2.4025,0.1157,0.5418,0.2398,0.2817,0.9246,2722,,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,

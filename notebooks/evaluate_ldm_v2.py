@@ -46,6 +46,7 @@ BEST_ROW_METRIC_COLUMNS = [
 
 
 def parse_args() -> argparse.Namespace:
+    """Definisce e legge gli argomenti CLI dello sweep (checkpoint, sampling, metriche, eco-tracking)."""
     parser = argparse.ArgumentParser(
         description="Generate and evaluate MammoDiffusion LDM checkpoint sweeps."
     )
@@ -114,6 +115,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def configure_environment(args: argparse.Namespace) -> None:
+    """Imposta le variabili d'ambiente necessarie prima di importare TensorFlow (GPU visibili, percorso CUDA per XLA)."""
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
     if args.gpu_visible_devices is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_visible_devices
@@ -124,6 +126,7 @@ def configure_environment(args: argparse.Namespace) -> None:
 
 
 def parse_classes(classes_value: str) -> list[int]:
+    """Converte la stringa --classes (es. "0,1") in una lista di interi validi (0 o 1), senza duplicati."""
     classes = []
     for part in str(classes_value).split(","):
         part = part.strip()
@@ -140,15 +143,18 @@ def parse_classes(classes_value: str) -> list[int]:
 
 
 def format_cfg_label(guidance_scale: float, sample_steps: int) -> str:
+    """Costruisce l'etichetta della configurazione di sampling (guidance scale + step) usata per nominare le cartelle delle immagini generate."""
     gs_label = f"{guidance_scale:g}".replace(".", "p")
     return f"cfg_gs{gs_label}_st{sample_steps}"
 
 
 def step_from_checkpoint(path: Path) -> int:
+    """Estrae il numero di step di training dal nome file del checkpoint (es. ldm_step20000.keras)."""
     return int(path.stem.replace("ldm_step", ""))
 
 
 def collect_checkpoint_candidates(paths: ExperimentPaths, args: argparse.Namespace) -> list[dict]:
+    """Elenca i checkpoint da valutare nello sweep: il best-train-loss (se presente) piu' tutti gli step-checkpoint con step >= min_step, filtrati per max_checkpoints o checkpoint_id se richiesto."""
     step_ckpt_paths = sorted(
         paths.checkpoints_dir.glob("ldm_step*.keras"),
         key=step_from_checkpoint,
@@ -200,6 +206,7 @@ def collect_checkpoint_candidates(paths: ExperimentPaths, args: argparse.Namespa
 
 
 def build_eval_config(args: argparse.Namespace) -> dict:
+    """Riassume in un dizionario i parametri di valutazione che identificano univocamente una run dello sweep, usato per decidere se la cache delle metriche e' ancora valida."""
     return {
         "metric_backend": "generative_evaluator.py",
         "min_step": args.min_step,
@@ -220,6 +227,7 @@ def build_eval_config(args: argparse.Namespace) -> dict:
 
 
 def normalize_eval_config(config: dict | None) -> dict:
+    """Riempie i campi opzionali assenti in una config salvata in cache con i default correnti, per confrontarla in modo equo con build_eval_config."""
     normalized = dict(config or {})
     normalized.setdefault("seed", 42)
     normalized.setdefault("best_selection_metric", BEST_SELECTION_METRIC)
@@ -229,6 +237,7 @@ def normalize_eval_config(config: dict | None) -> dict:
 
 
 def selection_policy() -> dict:
+    """Descrive il criterio di selezione del best checkpoint (metrica, direzione, tie-breaker e motivazione) da salvare insieme ai risultati."""
     return {
         "selection_metric": BEST_SELECTION_METRIC,
         "selection_direction": SELECTION_DIRECTION,
@@ -240,6 +249,7 @@ def selection_policy() -> dict:
 
 
 def selection_policy_is_compatible(selection: dict) -> bool:
+    """Verifica che il criterio di selezione salvato in una cache precedente coincida con quello attuale, altrimenti la cache va invalidata."""
     if selection.get("selection_metric") != BEST_SELECTION_METRIC:
         return False
     explicit_tie_breaker = selection.get("tie_breaker")
@@ -258,6 +268,7 @@ def selection_policy_is_compatible(selection: dict) -> bool:
 
 
 def results_stage_dirs(paths: ExperimentPaths, stage_name: str) -> dict[str, Path]:
+    """Crea (se mancanti) e restituisce le cartelle di output dello stage results (plot, metriche, ecotracker)."""
     results_paths = get_results_paths(paths.project_root, stage_name)
     dirs = {
         "stage": results_paths.stage_dir,
@@ -272,6 +283,7 @@ def results_stage_dirs(paths: ExperimentPaths, stage_name: str) -> dict[str, Pat
 
 
 def append_jsonl(path: Path, payload: dict) -> None:
+    """Aggiunge una riga JSON al file di log dell'EcoTracker, forzando il flush su disco per non perdere dati se il processo viene interrotto."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as file:
         file.write(json.dumps(payload, ensure_ascii=False) + "\n")
@@ -281,6 +293,7 @@ def append_jsonl(path: Path, payload: dict) -> None:
 
 @contextmanager
 def maybe_measure(args: argparse.Namespace, paths: ExperimentPaths, label: str):
+    """Avvolge uno stage con EcoTracker se --eco-track e' attivo, salvando le metriche di sostenibilita' in JSONL; altrimenti e' un no-op trasparente."""
     if not getattr(args, "eco_track", False):
         yield None
         return
@@ -326,6 +339,7 @@ def maybe_measure(args: argparse.Namespace, paths: ExperimentPaths, label: str):
 
 
 def build_candidate_signature(checkpoint_candidates: list[dict]) -> list[dict]:
+    """Estrae dai candidati solo i campi rilevanti per il confronto con la cache, ignorando l'ordine di iterazione interno."""
     return [
         {
             "checkpoint_id": candidate["checkpoint_id"],
@@ -342,6 +356,7 @@ def use_cached_metrics_if_valid(
     paths: ExperimentPaths,
     checkpoint_candidates: list[dict],
 ) -> bool:
+    """Riusa checkpoint_metrics.json se config, candidati e criterio di selezione non sono cambiati, evitando di rigenerare immagini e ricalcolare FID/IS/PRDC senza motivo; in caso di cache valida sincronizza anche il best model su disco."""
     metrics_json_path = paths.evaluation_dir / "checkpoint_metrics.json"
     best_eval_model_path = paths.checkpoints_dir / "ldm_unet_best_eval.keras"
     eval_config = build_eval_config(args)
@@ -399,6 +414,7 @@ def use_cached_metrics_if_valid(
 
 
 def evaluation_generated_dir(paths: ExperimentPaths) -> Path:
+    """Restituisce (creandola se serve) la cartella radice dove vengono salvate le immagini generate durante lo sweep."""
     out_dir = paths.evaluation_dir / "sweep_generated"
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir
@@ -410,6 +426,7 @@ def fake_output_dir(
     checkpoint_id: str,
     cls: int,
 ) -> Path:
+    """Calcola la cartella delle immagini sintetiche per uno specifico checkpoint/configurazione CFG/classe."""
     cfg_label = format_cfg_label(args.guidance_scale, args.sample_steps)
     return evaluation_generated_dir(paths) / checkpoint_id / cfg_label / f"class_{cls}"
 
@@ -420,6 +437,7 @@ def list_fake_image_paths(
     checkpoint_id: str,
     cls: int,
 ) -> list[Path]:
+    """Elenca, in ordine di indice, le immagini sintetiche gia' generate per un checkpoint/classe, ignorando file con nome non numerico."""
     indexed_paths = []
     for path in fake_output_dir(paths, args, checkpoint_id, cls).glob("*.png"):
         try:
@@ -430,6 +448,7 @@ def list_fake_image_paths(
 
 
 def next_fake_image_index(paths_for_class: list[Path]) -> int:
+    """Determina il prossimo indice libero per nominare una nuova immagine generata, in modo da riprendere il sampling senza sovrascrivere quelle esistenti."""
     indices = []
     for path in paths_for_class:
         try:
@@ -444,6 +463,7 @@ def child_generate_command(
     paths: ExperimentPaths,
     checkpoint_id: str,
 ) -> list[str]:
+    """Costruisce la riga di comando per rilanciare questo stesso script in un sottoprocesso, in modalita' generate, su un singolo checkpoint."""
     command = [
         sys.executable,
         str(Path(__file__).resolve()),
@@ -474,6 +494,7 @@ def orchestrate_generation(
     paths: ExperimentPaths,
     checkpoint_candidates: list[dict],
 ) -> None:
+    """Lancia un sottoprocesso TensorFlow per ciascun checkpoint dello sweep, cosi' la sessione/memoria GPU viene azzerata tra un checkpoint e l'altro; si interrompe e propaga l'errore se un sottoprocesso fallisce, lasciando su disco le immagini gia' generate per poter riprendere."""
     print("Modalita generate orchestrata: un subprocess TensorFlow per checkpoint.")
     print("CFG_LABEL:", format_cfg_label(args.guidance_scale, args.sample_steps))
     for candidate in checkpoint_candidates:
@@ -493,6 +514,7 @@ def orchestrate_generation(
 
 
 def save_single_fake_image(image_np, output_path: Path) -> None:
+    """Salva un'immagine generata su disco come PNG, riportando i valori da [-1, 1] a [0, 255] se necessario."""
     import numpy as np
     from PIL import Image
 
@@ -506,6 +528,7 @@ def save_single_fake_image(image_np, output_path: Path) -> None:
 
 
 def sampler_trace_count(compiled_sampler) -> int | None:
+    """Legge quante volte la funzione tf.function del sampler e' stata ritracciata, per accorgersi di retrace indesiderati durante lo sweep."""
     getter = getattr(compiled_sampler, "experimental_get_tracing_count", None)
     if getter is None:
         return None
@@ -517,6 +540,7 @@ def run_generation_worker(
     paths: ExperimentPaths,
     candidate: dict,
 ) -> None:
+    """Genera le immagini sintetiche mancanti per un singolo checkpoint: carica LDM/VAE solo se serve, compila il sampler una volta e lo riusa per tutte le classi, usando un seed deterministico per (classe, indice) cosi' il confronto tra checkpoint varia solo per i pesi del modello."""
     checkpoint_id = candidate["checkpoint_id"]
     ckpt_path = Path(candidate["path"])
     classes = parse_classes(args.classes)
@@ -657,6 +681,7 @@ def run_generation_worker(
 
 
 def ensure_metrics_classes(args: argparse.Namespace) -> None:
+    """Blocca l'esecuzione in --mode metrics se --classes non e' esattamente 0,1, perche' checkpoint_metrics.json assume sempre entrambe le classi."""
     classes = sorted(parse_classes(args.classes))
     if classes != [0, 1]:
         raise ValueError(
@@ -666,6 +691,7 @@ def ensure_metrics_classes(args: argparse.Namespace) -> None:
 
 
 def json_scalar(value):
+    """Converte uno scalare numpy/pandas in un valore Python serializzabile in JSON, mappando i NaN su None."""
     if value is None:
         return None
     if isinstance(value, float) and math.isnan(value):
@@ -679,6 +705,7 @@ def json_scalar(value):
 
 
 def select_best_row(results_df):
+    """Seleziona la riga del checkpoint migliore: ordina per fid_1 crescente, poi per is_mean_1 decrescente come tie-breaker, poi per ordine di checkpoint per rendere la scelta deterministica."""
     required = [BEST_SELECTION_METRIC, BEST_SELECTION_TIE_BREAKER, "checkpoint_order"]
     missing = [column for column in required if column not in results_df.columns]
     if missing:
@@ -695,6 +722,7 @@ def select_best_row(results_df):
 
 
 def build_selection(best_row, best_eval_model_path: Path) -> dict:
+    """Costruisce il dizionario di selezione del best checkpoint, combinando la policy di selezione con i metadati e le metriche della riga vincente."""
     import pandas as pd
 
     step_value = best_row.get("step")
@@ -713,12 +741,14 @@ def build_selection(best_row, best_eval_model_path: Path) -> dict:
 
 
 def copy_artifact(source: Path, destination: Path) -> Path:
+    """Copia un artefatto (CSV/JSON/plot) nella cartella results, creando le directory mancanti."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
     return destination
 
 
 def plot_checkpoint_metric_comparisons(results_df, selection: dict, plots_dir: Path) -> dict:
+    """Genera i grafici di confronto FID e Inception Score tra tutti i checkpoint dello sweep, evidenziando con una linea verticale il checkpoint selezionato come best."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -786,6 +816,7 @@ def plot_checkpoint_metric_comparisons(results_df, selection: dict, plots_dir: P
 
 
 def plot_best_checkpoint_summary(results_df, selection: dict, plots_dir: Path) -> Path:
+    """Compone un'unica figura di riepilogo (testo, FID, IS, PRDC) sul checkpoint risultato vincitore, da allegare ai risultati finali."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -848,6 +879,7 @@ def write_manifest(
     artifact_paths: dict[str, Path],
     stage_name: str,
 ) -> dict:
+    """Salva il manifest JSON dello stage (selezione + policy + elenco artefatti) sia nella cartella di evaluation che in quella results, per tracciabilita'."""
     dirs = results_stage_dirs(paths, stage_name)
     manifest = {
         "schema_version": 1,
@@ -874,6 +906,7 @@ def persist_sweep_artifacts(
     results_df,
     copy_best_model: bool,
 ) -> dict:
+    """Finalizza lo sweep: seleziona il best checkpoint, copia il suo file .keras come modello di valutazione, scrive CSV/JSON/plot/manifest sia nella cartella di evaluation che nella cartella results, e restituisce i percorsi di tutti gli artefatti prodotti."""
     dirs = results_stage_dirs(paths, args.results_stage_name)
     results_path = paths.evaluation_dir / "sweep_results.csv"
     summary_path = paths.evaluation_dir / "sweep_summary.json"
@@ -979,6 +1012,7 @@ def refresh_artifacts_from_cache(
     checkpoint_candidates: list[dict],
     payload: dict,
 ) -> bool:
+    """Rigenera CSV/JSON/plot/manifest a partire dalle metriche gia' presenti in cache (--mode artifacts), verificando prima che il best checkpoint ricalcolato coincida con quello salvato."""
     import pandas as pd
 
     try:
@@ -1013,6 +1047,7 @@ def run_metrics(
     paths: ExperimentPaths,
     checkpoint_candidates: list[dict],
 ) -> None:
+    """Calcola FID/IS/PRDC di ogni checkpoint contro il validation set reale (classi 0 e 1), aggrega i risultati in una tabella e delega a persist_sweep_artifacts la selezione del best e il salvataggio degli artefatti."""
     ensure_metrics_classes(args)
 
     import pandas as pd
@@ -1129,6 +1164,7 @@ def run_metrics(
 
 
 def main() -> None:
+    """Punto di ingresso CLI: prepara l'ambiente e i checkpoint candidati, poi smista l'esecuzione tra generate/metrics/artifacts/both in base a --mode, riusando la cache delle metriche quando possibile."""
     args = parse_args()
     configure_environment(args)
     if args.mini_batch != 1:

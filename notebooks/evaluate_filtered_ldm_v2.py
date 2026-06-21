@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
+    """Definisce gli argomenti CLI dello script: percorsi dell'esperimento, cartella delle sintetiche filtrate e parametri delle metriche generative."""
     parser = argparse.ArgumentParser(
         description="Evaluate selected filtered LDM images against the held-out test set."
     )
@@ -51,6 +52,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def configure_environment(args: argparse.Namespace) -> None:
+    """Imposta le variabili d'ambiente per GPU e XLA prima di importare TensorFlow/PyTorch, così la configurazione hardware è quella richiesta da CLI e non quella di default del sistema."""
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
     if args.gpu_visible_devices is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_visible_devices
@@ -61,6 +63,7 @@ def configure_environment(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    """Valuta le sintetiche filtrate selezionate per l'augmentation contro il test set reale (FID, IS, PRDC): è la valutazione finale, congelata, del modello LDM."""
     args = parse_args()
     configure_environment(args)
 
@@ -134,6 +137,7 @@ def main() -> None:
     }
 
     def use_cached_metrics_if_valid() -> bool:
+        """Riusa le metriche già calcolate se config e input (file sintetici + test.csv) non sono cambiati, evitando di ripetere un calcolo costoso (FID/IS su GPU) senza motivo."""
         if args.force_recompute or not json_path.exists():
             return False
         try:

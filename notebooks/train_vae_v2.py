@@ -21,7 +21,7 @@ VAE_EPOCHS = 100
 VAE_LR = 1e-4
 KL_WEIGHT = 1e-3
 SSIM_WEIGHT = 0.3
-VAE_ES_PATIENCE = 6
+VAE_ES_PATIENCE = 10
 VAE_ES_MIN_DELTA = 1e-4
 # Peso basso: l'MSE di validation su una singola epoca puo' essere rumoroso/instabile,
 # quindi resta solo un correttivo secondario rispetto alla SSIM nella scelta del best.
@@ -30,6 +30,7 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
 
 def parse_args() -> argparse.Namespace:
+    """Definisce e legge gli argomenti da riga di comando con cui il notebook lancia lo script in sottoprocesso."""
     parser = argparse.ArgumentParser(
         description="Train MammoDiffusion VAE in the selected experiment folder."
     )
@@ -55,6 +56,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def configure_environment(args: argparse.Namespace) -> None:
+    """Imposta le variabili d'ambiente (GPU visibili, path CUDA per XLA) prima di importare TensorFlow."""
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
     if args.gpu_visible_devices is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_visible_devices
@@ -65,6 +67,7 @@ def configure_environment(args: argparse.Namespace) -> None:
 
 
 def sustainability_log_path(project_root: Path, stage_name: str = "04_ldm_keras_v2") -> Path:
+    """Restituisce il path del log jsonl dei consumi energetici, creando le cartelle se mancanti."""
     path = (
         project_root
         / "results"
@@ -77,12 +80,14 @@ def sustainability_log_path(project_root: Path, stage_name: str = "04_ldm_keras_
 
 
 def results_plot_path(project_root: Path, stage_name: str, plot_name: str) -> Path:
+    """Restituisce il path di un plot nella cartella results dello stage, creandola se non esiste."""
     path = project_root / "results" / stage_name / "plots" / plot_name
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def sync_existing_vae_plots_to_results(paths, stage_name: str) -> None:
+    """Segnala se i plot del training VAE gia' eseguito sono presenti o assenti nella cartella results, nel caso lo step venga skippato perche' il VAE esiste gia'."""
     for plot_name in ["vae_metrics.png", "vae_reconstruction.png"]:
         destination_path = results_plot_path(paths.project_root, stage_name, plot_name)
         if destination_path.exists():
@@ -92,6 +97,7 @@ def sync_existing_vae_plots_to_results(paths, stage_name: str) -> None:
 
 
 def load_metadata(csv_path: Path, dataset_root: Path) -> pd.DataFrame:
+    """Carica il CSV di split (train/val), ricostruisce i path assoluti delle immagini preprocessate e verifica che esistano tutte."""
     df = pd.read_csv(csv_path).copy()
     required_cols = ["patient_id", "image_id", "label", "split", "processed_path"]
     missing_cols = [col for col in required_cols if col not in df.columns]
@@ -118,6 +124,7 @@ def load_metadata(csv_path: Path, dataset_root: Path) -> pd.DataFrame:
 
 
 def mild_positive_augmentation(img: Image.Image, aug_idx: int) -> Image.Image:
+    """Applica una leggera perturbazione di contrasto, luminosita' e rumore per generare copie aumentate delle mammografie positive, usando un seed deterministico legato all'indice per riproducibilita'."""
     arr = np.array(img).astype(np.float32)
     rng = np.random.default_rng(42 + aug_idx)
     contrast = rng.uniform(0.90, 1.10)
@@ -131,9 +138,11 @@ def mild_positive_augmentation(img: Image.Image, aug_idx: int) -> Image.Image:
 
 
 def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path, data_aug: Path) -> pd.DataFrame:
+    """Costruisce (o riusa se valido) il dataset di train aumentato: copia i path delle immagini reali e aggiunge le copie aumentate dei soli positivi, scrivendo tutto in data/real_augmented condiviso tra esperimenti."""
     metadata_path = data_aug / "metadata.csv"
 
     def resolve_project_path(path_value: str | Path) -> Path:
+        """Converte un path relativo del metadata in path assoluto rispetto alla project root."""
         path = Path(path_value)
         return path if path.is_absolute() else project_root / path
 
@@ -218,6 +227,7 @@ def load_images_from_df(
     img_size: int = IMG_SIZE,
     desc: str = "",
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Carica in RAM tutte le immagini di un dataframe, ridimensionandole se serve e normalizzandole in [-1, 1] per l'input del VAE."""
     images_list, labels_list = [], []
     for index, (_, row) in enumerate(df.iterrows()):
         path = Path(row[path_col])
@@ -238,6 +248,7 @@ def load_images_from_df(
 
 
 def build_vae_encoder() -> tf.keras.Model:
+    """Costruisce l'encoder convoluzionale che comprime la mammografia 512x512 nei parametri (media, log-varianza) della distribuzione latente 64x64."""
     x = inp = layers.Input(shape=(IMG_SIZE, IMG_SIZE, CHANNELS), name="enc_input")
     x = layers.Conv2D(64, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -265,6 +276,7 @@ def build_vae_encoder() -> tf.keras.Model:
 
 
 def build_vae_decoder() -> tf.keras.Model:
+    """Costruisce il decoder convoluzionale che ricostruisce la mammografia 512x512 a partire da un campione latente 64x64."""
     x = inp = layers.Input(
         shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS),
         name="dec_input",
@@ -295,6 +307,7 @@ def build_vae_decoder() -> tf.keras.Model:
 
 
 def reset_downstream_artifacts(paths) -> None:
+    """Elimina latents, checkpoint e log della LDM e della generazione, perche' diventano incoerenti quando il VAE viene riallenato da zero."""
     # synthetic_filtered_dir non viene azzerata: e' la cartella condivisa
     # data/synthetic/fromscratch/positive usata anche dal classificatore (notebook 06),
     # non un artefatto locale all'esperimento.
@@ -323,6 +336,7 @@ def reset_downstream_artifacts(paths) -> None:
 
 
 def reset_vae_artifacts(paths) -> None:
+    """Rimuove i checkpoint e i log del VAE precedente prima di un nuovo training, per evitare di mischiare risultati di run diverse."""
     for pattern in [
         "vae_encoder*.keras",
         "vae_decoder*.keras",
@@ -338,6 +352,7 @@ def reset_vae_artifacts(paths) -> None:
 
 
 def plot_history(history: dict, output_path: Path) -> None:
+    """Salva un'unica figura con l'andamento per epoca delle componenti della loss (recon, SSIM, KL) e della SSIM di validation."""
     fig, axes = plt.subplots(1, 4, figsize=(18, 4))
     axes[0].plot(history["loss_recon"], label="train recon", color="blue")
     axes[0].set_title("VAE recon loss")
@@ -362,6 +377,7 @@ def save_reconstruction_preview(
     output_path: Path,
     n_images: int = 6,
 ) -> None:
+    """Salva un confronto visuale tra alcune immagini di validation originali e la loro ricostruzione tramite il VAE (usando la media mu, senza campionamento)."""
     sample = tf.constant(x_val[:n_images], dtype=tf.float32)
     params = vae_encoder(sample, training=False)
     mu, _ = tf.split(params, 2, axis=-1)
@@ -382,6 +398,7 @@ def save_reconstruction_preview(
 
 
 def main() -> None:
+    """Entry point dello script: carica i dati, allena il VAE con early stopping su SSIM/MSE di validation, salva i checkpoint migliori e produce plot e log riassuntivi del training."""
     global np, pd, tf, Image, layers, plt
     global configure_tensorflow, get_experiment_paths, vram_gb
 
@@ -442,11 +459,13 @@ def main() -> None:
     vram_gb("dopo build VAE")
 
     def reparameterize(mu, log_var):
+        """Applica il reparameterization trick per campionare dal latente in modo differenziabile rispetto a mu e log_var."""
         eps = tf.random.normal(tf.shape(mu))
         return mu + tf.exp(0.5 * log_var) * eps
 
     @tf.function
     def vae_train_step(x):
+        """Esegue un singolo step di training: forward encoder/decoder, calcolo della loss combinata (ricostruzione + SSIM + KL) e aggiornamento dei pesi."""
         with tf.GradientTape() as tape:
             params = vae_encoder(x, training=True)
             mu, log_var = tf.split(params, 2, axis=-1)

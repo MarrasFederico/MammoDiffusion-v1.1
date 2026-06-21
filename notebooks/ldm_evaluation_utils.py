@@ -28,6 +28,7 @@ from prdc import compute_prdc
 
 
 def _link_or_copy(source: Path, destination: Path) -> None:
+    """Crea un symlink verso l'immagine originale (evita di duplicare i dati); se il filesystem non lo permette, ricade su una copia."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
         os.symlink(source, destination)
@@ -37,6 +38,7 @@ def _link_or_copy(source: Path, destination: Path) -> None:
 
 @contextmanager
 def temporary_image_dir(image_paths: Iterable[Path], prefix: str):
+    """Raccoglie un set di immagini sparse in un'unica cartella temporanea con nomi numerati, formato richiesto da GenerativeEvaluator; la cartella viene rimossa automaticamente all'uscita dal context manager."""
     paths = [Path(path) for path in image_paths]
     if not paths:
         raise ValueError(f"Nessuna immagine per {prefix}")
@@ -52,6 +54,7 @@ def temporary_image_dir(image_paths: Iterable[Path], prefix: str):
 
 
 def real_paths_from_metadata(metadata_df, data_processed_dir: Path, label: int) -> list[Path]:
+    """Filtra il CSV di metadata su una singola classe e ne ricostruisce i path reali, da usare come riferimento per FID/PRDC."""
     label_df = metadata_df[metadata_df["label"].astype(int) == int(label)].copy()
     if label_df.empty:
         raise RuntimeError(f"Nessuna immagine reale per label {label}")
@@ -62,6 +65,7 @@ def real_paths_from_metadata(metadata_df, data_processed_dir: Path, label: int) 
 
 
 def compute_prdc_metrics(real_features, fake_features, nearest_k: int = 3) -> dict[str, float]:
+    """Calcola Precision/Recall/Density/Coverage tra due insiemi di feature, riducendo k se il batch è troppo piccolo per supportare quello richiesto."""
     # prdc internally queries k + 1 neighbours, so tiny smoke runs need at least
     # k + 2 samples per side.
     k = min(int(nearest_k), len(real_features) - 2, len(fake_features) - 2)
@@ -94,6 +98,7 @@ def evaluate_generated_paths_against_real_paths(
     nearest_k: int = 3,
     is_splits: int = 10,
 ) -> dict[str, float]:
+    """Calcola FID/IS/PRDC tra due liste di immagini già note, materializzandole in cartelle temporanee per GenerativeEvaluator."""
     real_paths = [Path(path) for path in real_paths]
     generated_paths = [Path(path) for path in generated_paths]
 
@@ -130,6 +135,7 @@ def evaluate_generated_paths_against_metadata(
     nearest_k: int = 3,
     is_splits: int = 10,
 ) -> dict[str, float]:
+    """Stessa valutazione di evaluate_generated_paths_against_real_paths, ma usando come riferimento reale una classe del CSV di metadata invece di un elenco di path già pronto."""
     real_paths = real_paths_from_metadata(metadata_df, data_processed_dir, label)
     return evaluate_generated_paths_against_real_paths(
         real_paths=real_paths,

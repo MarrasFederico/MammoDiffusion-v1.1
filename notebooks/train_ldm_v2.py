@@ -64,6 +64,7 @@ DEFAULT_EXPERIMENT_NAME = "20260617_ldm_basic"
 
 
 def parse_args() -> argparse.Namespace:
+    """Definisce e legge gli argomenti CLI con cui il notebook lancia questo script in sottoprocesso."""
     parser = argparse.ArgumentParser(
         description="Train MammoDiffusion LDM v2 using shared project data and experiment-scoped artifacts."
     )
@@ -196,6 +197,7 @@ for _d in [
 
 
 def sync_existing_training_plots_to_results() -> None:
+    """Segnala se il plot del training LDM e' gia' presente nei results, senza rigenerarlo (usata quando il training viene skippato)."""
     for plot_name in ["ldm_metrics.png"]:
         destination_path = RESULTS_PLOTS_DIR / plot_name
         if destination_path.exists():
@@ -222,6 +224,7 @@ print("CKPT_DIR:", CKPT_DIR)
 
 
 def step_from_model_path(path: Path, prefix: str) -> Optional[int]:
+    """Estrae il numero di step dal nome file di un checkpoint, dato il suo prefisso (es. 'ldm_step000100.keras' -> 100)."""
     if not path.stem.startswith(prefix):
         return None
     try:
@@ -231,6 +234,7 @@ def step_from_model_path(path: Path, prefix: str) -> Optional[int]:
 
 
 def latest_step_checkpoint_path() -> tuple[Optional[int], Optional[Path]]:
+    """Cerca tra i checkpoint periodici in CKPT_DIR e restituisce quello con lo step piu' alto, per capire se/da dove riprendere."""
     candidates = []
     for path in CKPT_DIR.glob("ldm_step*.keras"):
         step = step_from_model_path(path, "ldm_step")
@@ -262,6 +266,7 @@ elif existing_final_models:
 
 
 def copy_if_missing(source: Path, destination: Path) -> Path:
+    """Copia un file solo se la destinazione non esiste ancora, per non risovrascrivere asset gia' presenti nell'esperimento."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists():
         return destination
@@ -272,6 +277,7 @@ def copy_if_missing(source: Path, destination: Path) -> Path:
 
 
 def ensure_model_asset(filename: str) -> Path:
+    """Garantisce che un asset del VAE (encoder/decoder gia' addestrato) sia disponibile nella cartella models dell'esperimento, copiandolo dalle posizioni note se manca."""
     destination = MODELS_DIR / filename
     if destination.exists():
         return destination
@@ -308,6 +314,7 @@ except ImportError:
     except Exception:
         @dataclass
         class SustainabilityMetrics:
+            """Fallback minimale delle metriche di sostenibilita', usato quando psutil/codecarbon non sono installabili."""
             elapsed_seconds: float = 0.0
             peak_ram_mb: float = 0.0
             energy_kwh: float = 0.0
@@ -315,12 +322,14 @@ except ImportError:
             label: str = "run"
 
             def __str__(self) -> str:
+                """Riassume in una riga il tempo di esecuzione, segnalando che RAM/energia/CO2 non sono disponibili in questo fallback."""
                 return (
                     f"[{self.label}] Tempo: {self.elapsed_seconds:.2f}s | "
                     "RAM/energia/CO2 non disponibili (psutil/codecarbon non installabili)"
                 )
 
             def to_dict(self) -> dict:
+                """Serializza le metriche in un dict, per poterle scrivere nel log JSONL di sostenibilita'."""
                 return {
                     "label": self.label,
                     "elapsed_seconds": self.elapsed_seconds,
@@ -331,6 +340,7 @@ except ImportError:
 
         @contextlib.contextmanager
         def measure_sustainability(label: str = "run", sample_interval: float = 0.5):
+            """Context manager fallback che misura solo il tempo trascorso, senza tracciare RAM/energia/CO2 (nessuna dipendenza esterna richiesta)."""
             t0 = time.perf_counter()
             tracker = type("_NoOpEcoTracker", (), {"metrics": None})()
             try:
@@ -353,6 +363,7 @@ DATASET_ROOT      = DATA_PROCESSED_DIR.resolve()
 
 
 def load_metadata(csv_path, dataset_root):
+    """Carica un CSV di metadata, ricostruisce il path assoluto di ogni immagine sotto dataset_root e verifica che tutti i file esistano davvero su disco."""
     df = pd.read_csv(csv_path).copy()
     required_cols = ["patient_id", "image_id", "label", "split", "processed_path"]
     missing_cols  = [col for col in required_cols if col not in df.columns]
@@ -399,11 +410,13 @@ AUGMENTED_METADATA_PATH = DATA_AUG / "metadata.csv"
 
 
 def resolve_project_path(path_value: str | Path) -> Path:
+    """Risolve un path relativo rispetto alla root del progetto, lasciando invariati i path già assoluti."""
     path = Path(path_value)
     return path if path.is_absolute() else PROJECT_ROOT / path
 
 
 def load_existing_augmented_metadata() -> Optional[pd.DataFrame]:
+    """Riusa il dataset augmentato (reali + copie positive) già scritto su disco se ha le colonne giuste e i file referenziati esistono ancora, evitando di rigenerarlo ad ogni run."""
     if RESET_DATASET or not AUGMENTED_METADATA_PATH.exists():
         return None
     df = pd.read_csv(AUGMENTED_METADATA_PATH).copy()
@@ -446,6 +459,7 @@ else:
 
 
 def mild_positive_augmentation(img, aug_idx):
+    """Applica una perturbazione leggera (contrasto, luminosità, rumore gaussiano) a un'immagine positiva, per generare copie augmentate riproducibili (seed legato ad aug_idx) e bilanciare le classi nel train set."""
     arr = np.array(img).astype(np.float32)
     rng = np.random.default_rng(42 + aug_idx)
     contrast   = rng.uniform(0.90, 1.10)
@@ -506,6 +520,7 @@ if augmented_df is None:
 # ── CELLA 6 — Caricamento immagini in-memory ─────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def load_images_from_df(df, path_col, img_size=IMG_SIZE, desc="", base_dir=PROJECT_ROOT):
+    """Carica in RAM tutte le immagini elencate nel dataframe, normalizzandole in scala di grigi su [-1, 1] (range atteso dal VAE) e impacchettandole con le rispettive label."""
     images_list, labels_list = [], []
     for i, (_, row) in enumerate(df.iterrows()):
         path = Path(row[path_col])
@@ -538,6 +553,7 @@ x_val, y_val = load_images_from_df(val_df, "processed_path", desc="val")
 # ── ARCHITETTURA VAE (per encoding) ──────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def build_vae_encoder():
+    """Ricostruisce l'architettura dell'encoder VAE (stessa di train_vae_v2.py) usata solo per definire la struttura prima di caricare i pesi già addestrati."""
     x = inp = layers.Input(shape=(IMG_SIZE, IMG_SIZE, CHANNELS), name="enc_input")
     x = layers.Conv2D(64, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -565,6 +581,7 @@ def build_vae_encoder():
 
 
 def build_vae_decoder():
+    """Ricostruisce l'architettura del decoder VAE (stessa di train_vae_v2.py), usata in questo script solo per riportare i latenti generati nello spazio immagine durante eventuali controlli visivi."""
     x = inp = layers.Input(shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS), name="dec_input")
     x = layers.Conv2D(128, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -614,6 +631,7 @@ print(f"VAE decoder: {vae_decoder.count_params():,} params (frozen)")
 # ── CODIFICA LATENTI + CLEANUP VRAM (Fix 1 & 2) ──────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def encode_dataset_to_latents(images, labels, batch_size=32, desc=""):
+    """Passa le immagini nel VAE encoder a batch e tiene solo la media mu della distribuzione latente (niente sampling), così la LDM si addestra su latenti deterministici invece che rumorosi."""
     all_latents = []
     n = len(images)
     for i in range(0, n, batch_size):
@@ -629,6 +647,7 @@ def encode_dataset_to_latents(images, labels, batch_size=32, desc=""):
 
 
 def file_sha256(path: Path) -> str:
+    """Calcola l'hash SHA-256 di un file leggendolo a blocchi, usato per rilevare se un asset (VAE, metadata) è cambiato rispetto alla cache dei latenti."""
     digest = hashlib.sha256()
     with open(path, "rb") as file:
         for chunk in iter(lambda: file.read(1 << 20), b""):
@@ -637,6 +656,7 @@ def file_sha256(path: Path) -> str:
 
 
 def build_latents_signature() -> dict:
+    """Costruisce la firma di invalidazione della cache dei latenti."""
     # Tutto cio' che, se cambia, rende i latenti in cache non piu' validi:
     # pesi del VAE encoder, contenuto del dataset augmentato, dimensione val.
     return {
@@ -654,6 +674,7 @@ def build_latents_signature() -> dict:
 
 
 def load_latents_manifest() -> Optional[dict]:
+    """Legge la firma salvata insieme ai latenti in cache, restituendo None se il file manca o è corrotto (forza il ricalcolo)."""
     if not LATENTS_MANIFEST_PATH.exists():
         return None
     try:
@@ -734,6 +755,7 @@ print("Cleanup post-encoding OK. Da qui: solo latenti numpy.")
 # ── COSINE SCHEDULE ───────────────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def normal_kl(mean1, logvar1, mean2, logvar2):
+    """Calcola la divergenza KL in forma chiusa tra due gaussiane diagonali, usata nel termine VLB per confrontare la posterior vera con quella predetta dalla U-Net."""
     return 0.5 * (
         logvar2 - logvar1
         + tf.exp(logvar1 - logvar2)
@@ -743,6 +765,7 @@ def normal_kl(mean1, logvar1, mean2, logvar2):
 
 
 def cosine_schedule(num_steps, s=0.008):
+    """Genera i beta della diffusione secondo lo schedule coseno (Nichol & Dhariwal): rispetto al linear schedule degrada il segnale più lentamente all'inizio e più dolcemente verso la fine, evitando che il rumore saturi troppo in fretta."""
     t          = tf.linspace(0.0, float(num_steps), num_steps + 1)
     f          = tf.cos((t / float(num_steps) + s) / (1.0 + s) * (math.pi / 2.0)) ** 2
     alpha_bars = f / f[0]
@@ -765,12 +788,14 @@ print(f"\nSchedule OK. alpha_bar finale: {alpha_bars[-1].numpy():.6f}")
 
 
 def extract(values, t, x_shape):
+    """Seleziona dal vettore di coefficienti dello schedule (es. beta, alpha_bar) il valore corrispondente al timestep t di ciascun elemento del batch, e lo riporta a shape broadcastabile con i latenti."""
     batch_size = tf.shape(t)[0]
     out        = tf.gather(values, t)
     return tf.reshape(out, [batch_size, 1, 1, 1])
 
 
 def q_sample(x0, t, noise):
+    """Forward diffusion: applica direttamente la formula chiusa per ottenere il latente rumoroso al timestep t a partire da x0 e dal rumore campionato, senza dover iterare passo-passo."""
     sqrt_ab   = extract(sqrt_alpha_bars,           t, tf.shape(x0))
     sqrt_omab = extract(sqrt_one_minus_alpha_bars, t, tf.shape(x0))
     return sqrt_ab * x0 + sqrt_omab * noise
@@ -781,13 +806,16 @@ def q_sample(x0, t, noise):
 # ══════════════════════════════════════════════════════════════════════════════
 @tf.keras.utils.register_keras_serializable()
 class SinusoidalTimeEmbedding(layers.Layer):
+    """Trasforma lo scalare timestep t in un embedding continuo (encoding sinusoidale + MLP), così la U-Net può condizionare l'output sul livello di rumore corrente."""
     def __init__(self, embed_dim, **kwargs):
+        """Istanzia le due Dense che proiettano l'encoding sinusoidale nello spazio di embedding finale."""
         super().__init__(**kwargs)
         self.embed_dim = embed_dim
         self.dense1 = layers.Dense(embed_dim * 4, activation="relu")
         self.dense2 = layers.Dense(embed_dim * 4)
 
     def call(self, t):
+        """Calcola le frequenze sinusoidali (stile positional encoding dei Transformer) per ogni t del batch e le passa nell'MLP a due livelli."""
         t    = tf.cast(t, tf.float32)
         half = self.embed_dim // 2
         freqs = tf.exp(
@@ -798,6 +826,7 @@ class SinusoidalTimeEmbedding(layers.Layer):
         return self.dense2(self.dense1(emb))
 
     def get_config(self):
+        """Aggiunge embed_dim alla config, necessario per ricostruire il layer al caricamento del checkpoint .keras."""
         cfg = super().get_config()
         cfg.update({"embed_dim": self.embed_dim})
         return cfg
@@ -805,16 +834,20 @@ class SinusoidalTimeEmbedding(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class LabelEmbedding(layers.Layer):
+    """Mappa la classe (0=sano, 1=cancro, più una classe extra per il condizionamento nullo della CFG) in un vettore di embedding da sommare al time embedding."""
     def __init__(self, num_classes, embed_dim, **kwargs):
+        """Crea la tabella di embedding con num_classes+1 voci: la voce in più rappresenta la label 'nulla' usata dal classifier-free guidance dropout."""
         super().__init__(**kwargs)
         self.num_classes = num_classes
         self.embed_dim   = embed_dim
         self.embedding   = layers.Embedding(num_classes + 1, embed_dim * 4)
 
     def call(self, y):
+        """Restituisce l'embedding corrispondente alla label y."""
         return self.embedding(y)
 
     def get_config(self):
+        """Aggiunge num_classes ed embed_dim alla config per la serializzazione del layer nel checkpoint .keras."""
         cfg = super().get_config()
         cfg.update({"num_classes": self.num_classes, "embed_dim": self.embed_dim})
         return cfg
@@ -822,7 +855,9 @@ class LabelEmbedding(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class ResBlock(layers.Layer):
+    """Blocco residuo della U-Net: due convoluzioni con GroupNorm che iniettano l'embedding (tempo+label) a metà, più uno skip 1x1 per cambiare il numero di canali senza perdere il segnale originale."""
     def __init__(self, channels, embed_dim, **kwargs):
+        """Crea i sotto-layer del blocco (norm/conv per il ramo principale, proiezione dell'embedding, conv 1x1 di skip)."""
         super().__init__(**kwargs)
         self.channels  = channels
         self.embed_dim = embed_dim
@@ -835,12 +870,14 @@ class ResBlock(layers.Layer):
         self.act      = layers.LeakyReLU(alpha=0.2)
 
     def call(self, x, emb):
+        """Applica le due convoluzioni del ramo principale, somma l'embedding (tempo+label) proiettato sui canali a metà del blocco, poi aggiunge la connessione residua."""
         h       = self.conv1(self.act(self.norm1(x)))
         emb_out = tf.reshape(self.emb_proj(self.act(emb)), [-1, 1, 1, self.channels])
         h       = self.conv2(self.act(self.norm2(h + emb_out)))
         return h + self.skip(x)
 
     def get_config(self):
+        """Aggiunge channels ed embed_dim alla config per la serializzazione del layer nel checkpoint .keras."""
         cfg = super().get_config()
         cfg.update({"channels": self.channels, "embed_dim": self.embed_dim})
         return cfg
@@ -848,7 +885,9 @@ class ResBlock(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class SelfAttentionBlock(layers.Layer):
+    """Blocco di self-attention sulle feature map a bassa risoluzione della U-Net, per catturare dipendenze spaziali a lungo raggio che le convoluzioni locali non vedono."""
     def __init__(self, channels, num_heads=4, **kwargs):
+        """Crea normalizzazione, multi-head attention e proiezione finale del blocco."""
         super().__init__(**kwargs)
         self.channels  = channels
         self.num_heads = num_heads
@@ -861,6 +900,7 @@ class SelfAttentionBlock(layers.Layer):
         self.proj = layers.Dense(channels)
 
     def call(self, x):
+        """Appiattisce la feature map spaziale (H×W) in una sequenza di token, applica self-attention tra tutte le posizioni e riporta il risultato alla shape originale con connessione residua."""
         B = tf.shape(x)[0]
         H = tf.shape(x)[1]
         W = tf.shape(x)[2]
@@ -873,12 +913,14 @@ class SelfAttentionBlock(layers.Layer):
         return x + h
 
     def get_config(self):
+        """Aggiunge channels e num_heads alla config per la serializzazione del layer nel checkpoint .keras."""
         cfg = super().get_config()
         cfg.update({"channels": self.channels, "num_heads": self.num_heads})
         return cfg
 
 
 def build_ldm_unet():
+    """Costruisce la U-Net di diffusione: encoder-decoder simmetrico con skip connection in stile U-Net, ResBlock condizionati su tempo+label e self-attention nei livelli più profondi (dove le feature map sono piccole e l'attention costa poco)."""
     C = MODEL_CHANNELS * 2  # 128
 
     lat_input = layers.Input(shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS), name="lat_input")
@@ -940,6 +982,7 @@ print(f"LDM U-Net params: {ldm_model.count_params():,}")
 # ── LOSS + TRAINING STEP ─────────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def get_learned_log_variance(v, t):
+    """Interpola tra la varianza minima e massima ammesse per il timestep t (log_beta e log_beta_tilde) usando v come peso appreso dalla rete, così la varianza della reverse diffusion non è fissa ma viene predetta dal modello (come in 'Improved DDPM')."""
     shape            = tf.shape(v)
     log_beta_t       = tf.math.log(extract(betas, t, shape))
     log_beta_tilde_t = tf.math.log(extract(posterior_variance + 1e-8, t, shape))
@@ -949,6 +992,7 @@ def get_learned_log_variance(v, t):
 
 
 def vb_term_ldm(x0, x_t, t, eps_pred, v_pred):
+    """Calcola il termine variational lower bound (KL tra posterior vera e posterior predetta dalla rete) che, pesato da LAMBDA_VLB, affianca la loss semplice sul rumore per far apprendere anche la varianza della reverse diffusion."""
     shape     = tf.shape(x0)
     ab        = extract(alpha_bars,       t, shape)
     ab_prev   = extract(alpha_bars_prev,  t, shape)
@@ -977,6 +1021,7 @@ ldm_optimizer = tf.keras.optimizers.Adam(LDM_LR)
 
 @tf.function
 def ldm_train_step(z0, y):
+    """Singolo step di training: campiona un timestep e un rumore casuali, applica la forward diffusion al latente, droppa la label con probabilità CFG_DROPOUT (per insegnare alla rete anche il caso non condizionato), e aggiorna i pesi sulla loss combinata (rumore + VLB)."""
     batch_size = tf.shape(z0)[0]
     t         = tf.random.uniform((batch_size,), 0, NUM_DIFF_STEPS, dtype=tf.int32)
     noise     = tf.random.normal(tf.shape(z0))
@@ -1041,6 +1086,7 @@ sys.stdout.flush()
 
 # Controlla se esiste già un final model o un checkpoint da cui riprendere
 def step_from_final_model(path: Path) -> Optional[int]:
+    """Estrae il numero di step dal nome file di un modello finale (es. 'ldm_unet_final_step080000.keras' -> 80000)."""
     prefix = "ldm_unet_final_step"
     if not path.stem.startswith(prefix):
         return None
@@ -1051,6 +1097,7 @@ def step_from_final_model(path: Path) -> Optional[int]:
 
 
 def step_from_checkpoint(path: Path) -> Optional[int]:
+    """Estrae il numero di step dal nome file di un checkpoint periodico (es. 'ldm_step007000.keras' -> 7000)."""
     prefix = "ldm_step"
     if not path.stem.startswith(prefix):
         return None
@@ -1061,6 +1108,7 @@ def step_from_checkpoint(path: Path) -> Optional[int]:
 
 
 def latest_step_checkpoint() -> tuple[Optional[int], Optional[Path]]:
+    """Cerca tra i checkpoint periodici quello con lo step piu' alto, per decidere da dove riprendere il training (duplica latest_step_checkpoint_path definita sopra, qui usata dopo il backfill del layout)."""
     candidates = []
     for path in CKPT_DIR.glob("ldm_step*.keras"):
         step = step_from_checkpoint(path)
@@ -1070,6 +1118,7 @@ def latest_step_checkpoint() -> tuple[Optional[int], Optional[Path]]:
 
 
 def load_existing_history() -> dict:
+    """Ricarica la history delle loss da un training precedente (se presente e leggibile), per continuare i grafici e il calcolo della best loss dopo un resume."""
     if not _history_path.exists():
         return {"step": [], "loss_total": [], "loss_simple": [], "loss_vlb": []}
     try:
@@ -1087,6 +1136,7 @@ def load_existing_history() -> dict:
 
 
 def backfill_checkpoint_layout_from_existing_models() -> None:
+    """Migra i modelli LDM salvati nella vecchia struttura (cartella models/) verso checkpoints_ldm/, ricostruendo anche il checkpoint 'latest' a partire dal final model se manca, per restare compatibili con esperimenti lanciati prima di questa riorganizzazione."""
     legacy_best_path = MODELS_DIR / "ldm_unet_best.keras"
     best_ckpt_path = CKPT_DIR / "ldm_unet_best.keras"
     if legacy_best_path.exists() and not best_ckpt_path.exists():

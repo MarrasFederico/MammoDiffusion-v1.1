@@ -11,6 +11,8 @@ RESULTS_STAGE_NAME = "04_ldm_keras_v2"
 
 @dataclass(frozen=True)
 class ExperimentPaths:
+    """Raggruppa tutti i path di un esperimento LDM (checkpoint, modelli, latenti, sintetiche), così gli script non li ricostruiscono ognuno per conto proprio."""
+
     project_root: Path
     experiment_dir: Path
     data_processed_dir: Path
@@ -26,6 +28,8 @@ class ExperimentPaths:
 
 @dataclass(frozen=True)
 class ResultsPaths:
+    """Raggruppa i path di una stage di results (plot, metriche, ecotracker) condivisi tra notebook e script di valutazione."""
+
     stage_dir: Path
     plots_dir: Path
     metrics_dir: Path
@@ -36,6 +40,7 @@ def find_project_root(
     project_name: str = PROJECT_NAME,
     override: Path | None = None,
 ) -> Path:
+    """Risale dalla cwd cercando la cartella del progetto, con fallback per ambienti Colab/Drive."""
     if override is not None:
         root = Path(override).expanduser().resolve()
         if not root.exists():
@@ -69,6 +74,7 @@ def get_experiment_paths(
     experiment_dir: Path | None = None,
     create: bool = True,
 ) -> ExperimentPaths:
+    """Centralizza i path dell'esperimento LDM (checkpoint, latents, sintetiche) usati da tutti gli script helper."""
     root = find_project_root(override=project_root)
     exp = (
         Path(experiment_dir).expanduser().resolve()
@@ -107,6 +113,7 @@ def get_results_paths(
     stage_name: str = RESULTS_STAGE_NAME,
     create: bool = True,
 ) -> ResultsPaths:
+    """Centralizza i path dei risultati (plot, metriche, ecotracker) usati dagli script di valutazione e dai notebook."""
     root = find_project_root(override=project_root)
     stage_dir = root / "results" / stage_name
     paths = ResultsPaths(
@@ -127,6 +134,7 @@ def get_results_paths(
 
 
 def normalize_processed_path(row, dataset_root: Path) -> Path:
+    """Ricalcola il path dell'immagine a partire da split/label/filename, per non dipendere dal path assoluto salvato nel CSV (cambia da macchina a macchina)."""
     processed_path = Path(str(row["processed_path"]).replace("\\", "/"))
     filename = processed_path.name
     split = str(row["split"])

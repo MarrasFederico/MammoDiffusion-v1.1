@@ -14,10 +14,12 @@ FILTER_SCHEMA_VERSION = "adaptive_mask_v2"
 
 
 def count_pngs(directory: Path) -> int:
+    """Conta i PNG presenti in una cartella, 0 se la cartella non esiste."""
     return len(list(Path(directory).glob("*.png"))) if Path(directory).exists() else 0
 
 
 def file_sha256(path: Path) -> str:
+    """Calcola l'hash SHA256 di un file per individuare duplicati esatti."""
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
@@ -26,6 +28,7 @@ def file_sha256(path: Path) -> str:
 
 
 def duplicate_png_groups(directory: Path) -> dict[str, list[str]]:
+    """Raggruppa i PNG per hash del contenuto e restituisce solo i gruppi con più di un file."""
     by_hash: dict[str, list[str]] = {}
     for path in sorted(Path(directory).glob("*.png")):
         by_hash.setdefault(file_sha256(path), []).append(path.name)
@@ -38,6 +41,7 @@ def real_train_paths(
     label: int,
     seed: int,
 ) -> list[Path]:
+    """Recupera, in ordine casuale riproducibile, i path delle immagini reali di training con la label richiesta, da usare come riferimento per il filtro adattivo."""
     import pandas as pd
 
     from ldm_project_paths import normalize_processed_path
@@ -67,12 +71,14 @@ def real_train_paths(
 
 
 def selected_output_name(class_name: str, rank: int) -> str:
+    """Costruisce il nome file dell'immagine accettata in base alla classe e alla posizione in classifica."""
     # Mantiene la convenzione storica gia' presente nel 03b.
     prefix = "selected_pos" if class_name == "positive" else f"selected_{class_name}"
     return f"{prefix}_{rank:04d}.png"
 
 
 def filter_ranking_config(args: argparse.Namespace) -> dict[str, object]:
+    """Raccoglie i parametri che determinano la classifica e la selezione, usati anche per verificare che un summary salvato sia ancora compatibile con la configurazione corrente."""
     return {
         "schema_version": FILTER_SUMMARY_SCHEMA_VERSION,
         "filter_schema_version": FILTER_SCHEMA_VERSION,
@@ -87,6 +93,7 @@ def filter_ranking_config(args: argparse.Namespace) -> dict[str, object]:
 
 
 def paths_match(left: object, right: Path) -> bool:
+    """Confronta due path risolvendoli a percorso assoluto, per non farsi ingannare da differenze di formattazione (relativo vs assoluto, slash finali, ecc.)."""
     if left is None:
         return False
     left_path = Path(str(left)).expanduser()
@@ -98,6 +105,7 @@ def paths_match(left: object, right: Path) -> bool:
 
 
 def summary_is_complete_and_compatible(args: argparse.Namespace) -> bool:
+    """Verifica se il summary_json salvato in precedenza è ancora valido per la run corrente (stesso schema, stessi parametri, directory e conteggi coerenti), per evitare di ripetere il filtro se non serve."""
     summary_path = Path(args.summary_json)
     raw_dir = Path(args.raw_dir)
     filtered_dir = Path(args.filtered_dir)
@@ -161,6 +169,7 @@ def summary_is_complete_and_compatible(args: argparse.Namespace) -> bool:
 
 
 def run_filter(args: argparse.Namespace) -> None:
+    """Esegue l'intera pipeline del filtro adattivo per una classe: valuta ogni immagine RAW contro le statistiche di riferimento, seleziona le n_selected migliori, copia gli accettati in filtered_dir e scrive report CSV e summary JSON. Salta il lavoro se trova già un risultato completo e compatibile."""
     raw_dir = Path(args.raw_dir)
     filtered_dir = Path(args.filtered_dir)
     report_csv = Path(args.report_csv)
@@ -301,6 +310,7 @@ def run_filter(args: argparse.Namespace) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Definisce e legge gli argomenti da riga di comando dello script di filtro."""
     parser = argparse.ArgumentParser(description="Filtro adattivo mammografico per il notebook 03b.")
     parser.add_argument("--class-name", required=True)
     parser.add_argument("--label", required=True, type=int)
@@ -318,6 +328,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Entry point dello script: lancia il filtro e stampa eventuali errori su stderr prima di propagarli."""
     try:
         run_filter(parse_args())
     except Exception as exc:

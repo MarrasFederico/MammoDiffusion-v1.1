@@ -23,6 +23,7 @@ from ldm_project_paths import (
 
 
 def parse_args() -> argparse.Namespace:
+    """Definisce e legge gli argomenti CLI condivisi da tutte le modalita' dello script (generate/filter/validate/test/all/reverse/both)."""
     parser = argparse.ArgumentParser(
         description="Generate, filter and evaluate MammoDiffusion LDM final images."
     )
@@ -86,6 +87,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def configure_environment(args: argparse.Namespace) -> None:
+    """Imposta le variabili d'ambiente necessarie prima di importare TensorFlow (cartella matplotlib, GPU visibili, percorso libdevice per XLA)."""
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
     if args.gpu_visible_devices is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_visible_devices
@@ -95,10 +97,12 @@ def configure_environment(args: argparse.Namespace) -> None:
 
 
 def is_valid_keras_file(path: Path) -> bool:
+    """Verifica che il file checkpoint esista, non sia vuoto e sia un archivio .keras leggibile (evita di caricare pesi troncati)."""
     return path.exists() and path.stat().st_size > 0 and zipfile.is_zipfile(path)
 
 
 def resolve_model_path(exp: Path, requested: Path | None = None) -> Path:
+    """Seleziona il checkpoint U-Net da usare per la generazione: usa quello passato esplicitamente se valido, altrimenti cerca tra i candidati noti (best_eval, best, ultimo step) nella cartella dell'esperimento."""
     if requested is not None:
         requested = Path(requested).expanduser().resolve()
         if is_valid_keras_file(requested):
@@ -122,6 +126,7 @@ def resolve_model_path(exp: Path, requested: Path | None = None) -> Path:
 
 
 def resolve_image_dirs(paths, args: argparse.Namespace) -> tuple[Path, Path]:
+    """Determina le cartelle raw e filtered da usare (override da CLI per smoke test, altrimenti i percorsi canonici dell'esperimento) e le crea se mancanti."""
     raw_dir = (
         args.raw_dir.expanduser().resolve()
         if args.raw_dir is not None
@@ -138,10 +143,12 @@ def resolve_image_dirs(paths, args: argparse.Namespace) -> tuple[Path, Path]:
 
 
 def expected_raw_path(raw_dir: Path, index: int) -> Path:
+    """Costruisce il path attesso per l'immagine raw di indice dato, con padding a 5 cifre (convenzione synth_NNNNN.png)."""
     return raw_dir / f"synth_{index:05d}.png"
 
 
 def raw_index_from_name(path: Path) -> int | None:
+    """Estrae l'indice numerico dal nome file synth_NNNNN.png, restituendo None se il nome non rispetta la convenzione."""
     stem = path.stem
     if not stem.startswith("synth_"):
         return None
@@ -152,6 +159,7 @@ def raw_index_from_name(path: Path) -> int | None:
 
 
 def is_readable_png(path: Path) -> bool:
+    """Verifica che il PNG esista e sia decodificabile (verify + conversione in scala di grigi), per scartare file troncati da run interrotte."""
     if not path.exists() or path.stat().st_size == 0:
         return False
     try:
@@ -167,6 +175,7 @@ def is_readable_png(path: Path) -> bool:
 
 
 def scan_raw_generation_state(raw_dir: Path, n_raw: int, force_recompute: bool = False) -> dict:
+    """Classifica gli indici da 0 a n_raw in validi/mancanti/corrotti scandendo la cartella raw, per riprendere la generazione senza ripartire da zero; con force_recompute considera tutto da rigenerare."""
     valid_indices: list[int] = []
     missing_indices: list[int] = []
     corrupt_indices: list[int] = []
@@ -212,12 +221,14 @@ def scan_raw_generation_state(raw_dir: Path, n_raw: int, force_recompute: bool =
 
 
 def write_json(path: Path, payload: dict) -> None:
+    """Scrive un dizionario su file JSON indentato, creando le cartelle intermedie se necessario."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as file:
         json.dump(payload, file, indent=2, ensure_ascii=False)
 
 
 def sampler_trace_count(compiled_sampler) -> int | None:
+    """Legge quante volte la funzione tf.function del sampler e' stata ritracciata, utile per verificare che la compilazione sia avvenuta una sola volta."""
     getter = getattr(compiled_sampler, "experimental_get_tracing_count", None)
     if getter is None:
         return None
@@ -225,6 +236,7 @@ def sampler_trace_count(compiled_sampler) -> int | None:
 
 
 def save_single_image(image_np, output_path: Path) -> None:
+    """Salva su disco l'immagine decodificata dal VAE come PNG in scala di grigi, scrivendo prima su file temporaneo e poi rinominando per evitare file parziali in caso di interruzione."""
     import numpy as np
     from PIL import Image
 
@@ -242,6 +254,7 @@ def save_single_image(image_np, output_path: Path) -> None:
 
 
 def append_jsonl(path: Path, payload: dict) -> None:
+    """Accoda una riga JSON al file di log (jsonl), forzando flush e fsync per non perdere righe se il processo viene interrotto bruscamente."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as file:
         file.write(json.dumps(payload, ensure_ascii=False) + "\n")
@@ -250,6 +263,7 @@ def append_jsonl(path: Path, payload: dict) -> None:
 
 
 def write_pipeline_manifest(paths, payload: dict, results_stage_name: str) -> None:
+    """Aggiorna il manifest cumulativo della pipeline (uno per stage: generate/filter/validate/test) sia nella cartella dell'esperimento che in quella dei risultati, senza sovrascrivere gli altri stage gia' registrati."""
     results_paths = get_results_paths(paths.project_root, results_stage_name)
     manifest_paths = [
         paths.evaluation_dir / "ldm_pipeline_manifest.json",
@@ -271,6 +285,7 @@ def write_pipeline_manifest(paths, payload: dict, results_stage_name: str) -> No
 
 @contextmanager
 def maybe_measure(args: argparse.Namespace, paths, label: str):
+    """Context manager che avvolge una fase della pipeline con EcoTracker se --eco-track e' attivo, degradando silenziosamente a no-op se il tracker non e' disponibile o non si avvia."""
     if not args.eco_track:
         yield None
         return
@@ -314,6 +329,7 @@ def maybe_measure(args: argparse.Namespace, paths, label: str):
 
 
 def run_generate(args: argparse.Namespace, paths) -> None:
+    """Esegue la generazione RAW: carica VAE decoder e U-Net LDM, compila il sampler una sola volta e genera via reverse diffusion solo le immagini mancanti o corrotte rispetto allo stato gia' su disco, salvando log/manifest a fine corsa."""
     if args.batch_size != 1:
         print(f"Nota: --batch-size={args.batch_size} ignorato; uso batch fisso 1.")
         args.batch_size = 1
@@ -492,6 +508,7 @@ def run_generate(args: argparse.Namespace, paths) -> None:
 
 
 def train_reference_paths(paths, target_label: int) -> list[Path]:
+    """Recupera dal train.csv i path normalizzati delle immagini reali della classe target, usate come riferimento dal filtro adattivo."""
     import pandas as pd
 
     train_df = pd.read_csv(paths.metadata_dir / "train.csv")
@@ -505,12 +522,14 @@ def train_reference_paths(paths, target_label: int) -> list[Path]:
 
 
 def copy_if_exists(source: Path, destination: Path) -> None:
+    """Copia il file sorgente verso la destinazione solo se esiste, senza generare errore altrimenti (usato per duplicare gli output nei percorsi canonici)."""
     if source.exists():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
 
 
 def run_filter(args: argparse.Namespace, paths) -> None:
+    """Applica il filtro adattivo alle immagini RAW per selezionare le n_selected migliori (confrontate con le reali della classe target) e salva il relativo report/manifest."""
     from adaptive_mammography_filter import filter_generated_directory
 
     raw_dir, filtered_dir = resolve_image_dirs(paths, args)
@@ -554,15 +573,18 @@ def run_filter(args: argparse.Namespace, paths) -> None:
 
 
 def readable_png_paths(directory: Path, limit: int | None = None) -> list[Path]:
+    """Elenca in ordine i PNG leggibili in una cartella, scartando quelli corrotti, con limite opzionale."""
     paths = [path for path in sorted(directory.glob("*.png")) if is_readable_png(path)]
     return paths[:limit] if limit is not None else paths
 
 
 def select_metric_paths(paths: list[Path], limit: int | None) -> list[Path]:
+    """Applica il limite di smoke test (max_eval_images) alla lista di path da passare al calcolo delle metriche."""
     return paths[:limit] if limit is not None else paths
 
 
 def file_signature(paths: list[Path]) -> list[dict]:
+    """Costruisce una firma leggera (nome, dimensione, mtime) dei file di input, usata per invalidare la cache delle metriche se i file cambiano."""
     return [
         {
             "name": path.name,
@@ -574,6 +596,7 @@ def file_signature(paths: list[Path]) -> list[dict]:
 
 
 def use_metrics_cache(json_path: Path, csv_path: Path, config: dict, input_signature: dict) -> bool:
+    """Riusa le metriche già calcolate se config e input (file sintetici + test.csv) non sono cambiati, evitando di ripetere un calcolo costoso (FID/IS su GPU) senza motivo."""
     if not json_path.exists():
         return False
     try:
@@ -595,6 +618,7 @@ def use_metrics_cache(json_path: Path, csv_path: Path, config: dict, input_signa
 
 
 def run_validate(args: argparse.Namespace, paths) -> None:
+    """Confronta su tre dataset (RAW completo, RAW bilanciato allo stesso numero di immagini, FILTERED) le metriche generative rispetto al validation set reale, per quantificare il guadagno introdotto dal filtro adattivo; usa la cache se input e config non sono cambiati."""
     import pandas as pd
 
     from ldm_evaluation_utils import evaluate_generated_paths_against_metadata
@@ -707,6 +731,7 @@ def run_validate(args: argparse.Namespace, paths) -> None:
 
 
 def evaluate_filtered_command(args: argparse.Namespace, paths, filtered_dir: Path) -> list[str]:
+    """Costruisce la riga di comando per lanciare in sottoprocesso evaluate_filtered_ldm_v2.py (confronto FILTERED vs test set), propagando gli argomenti coerenti con questa run."""
     command = [
         sys.executable,
         str(Path(__file__).resolve().parent / "evaluate_filtered_ldm_v2.py"),
@@ -734,6 +759,7 @@ def evaluate_filtered_command(args: argparse.Namespace, paths, filtered_dir: Pat
 
 
 def run_test(args: argparse.Namespace, paths) -> None:
+    """Lancia in sottoprocesso la valutazione finale FILTERED vs test set e registra l'esito nel manifest della pipeline, propagando l'eventuale errore del sottoprocesso."""
     _, filtered_dir = resolve_image_dirs(paths, args)
     canonical_run = filtered_dir == paths.synthetic_filtered_dir
     command = evaluate_filtered_command(args, paths, filtered_dir)
@@ -762,6 +788,7 @@ def run_test(args: argparse.Namespace, paths) -> None:
 
 
 def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
+    """Costruisce la riga di comando per rilanciare questo stesso script in un sottoprocesso isolato con una singola modalita', usata dall'orchestrazione 'all'/'both'."""
     command = [
         sys.executable,
         str(Path(__file__).resolve()),
@@ -805,6 +832,7 @@ def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
 
 
 def orchestrate_modes(args: argparse.Namespace, paths, modes: list[str]) -> None:
+    """Esegue in sequenza le modalita' richieste, ognuna in un sottoprocesso separato, cosi' che la memoria GPU venga liberata completamente tra una fase e l'altra; interrompe tutto al primo fallimento."""
     print("Orchestrazione in subprocess separati:", ", ".join(modes))
     for mode in modes:
         command = child_command(args, paths, mode)
@@ -815,6 +843,7 @@ def orchestrate_modes(args: argparse.Namespace, paths, modes: list[str]) -> None
 
 
 def run_reverse(args: argparse.Namespace, paths) -> None:
+    """Genera per ciascuna label richiesta una figura con gli step intermedi della reverse diffusion (rumore -> immagine), decodificando con il VAE solo i timestep scelti per il plot e salvando il risultato in plots_dir."""
     configure_environment(args)
 
     import matplotlib
@@ -892,6 +921,7 @@ def run_reverse(args: argparse.Namespace, paths) -> None:
 
 
 def main() -> None:
+    """Punto di ingresso CLI: parsa gli argomenti e smista l'esecuzione verso la modalita' richiesta (singola fase o orchestrazione di piu' fasi)."""
     args = parse_args()
     configure_environment(args)
     paths = get_experiment_paths(args.project_root, args.experiment_dir)

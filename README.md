@@ -77,22 +77,10 @@ MammoDiffusion/
 ├── assets/                                         # Materiali di supporto
 │   ├── logo_MammoDiffusion.png
 │
-├── data/                                           # Dataset (NON in git, su Google Drive)
-│   ├── original/
-│   │   └── dataset/                               # Immagini originali RSNA 512×512 PNG
-│   ├── processed/                                  # Dataset preprocessato (MLO, 1 img/paziente)
-│   │   └── metadata/                              # CSV di split (train/val/test)
-│   ├── real_augmented/                             # Immagini positive con augmentation tradizionale
-│   └── synthetic/
-│       └── fine_tuned/                            # Immagini sintetiche generate da SD2.1
-│           ├── positive/                           # 1361 immagini positive filtrate
-│           └── negative/                           # 1361 immagini negative filtrate
-│
 ├── experiments/                                    # Pesi dei modelli (NON in git, .keras in .gitignore)
 │   ├── exp20260618_baseline_resnet50_fine_tuned_batch_size_16/
 │   ├── exp20260617_real_synth_resnet50_fine_tuned_batch_size_16/
 │   ├── exp20260619_full_synth_resnet50_fine_tuned_batch_size_16/
-│   ├── exp_trad_aug_resnet50/
 │   └── ...                                        # Esperimenti intermedi
 │
 ├── notebooks/                                      # Notebook del flusso di lavoro
@@ -102,6 +90,7 @@ MammoDiffusion/
 │   ├── 03b_Finetuning_StableDiffusion2.1_filtered.ipynb
 │   ├── 04a_LDM_basic.ipynb
 │   ├── 04b_LDM_extra1361.ipynb
+│   ├── 04c_Confronto_FromScratch_vs_FineTuned.ipynb
 │   ├── 05_Classificatore_Baseline_ResNet-50_FineTuned.ipynb
 │   ├── 06_Classificatore_RealSynthetic_ResNet-50_FineTuned.ipynb
 │   ├── 06b_Classificatore_RealSynthetic_ResNet-50_FineTuned_Full.ipynb
@@ -129,8 +118,7 @@ MammoDiffusion/
 └── .gitignore
 ```
 
-> **Nota:** La cartella `data/` è esclusa dalla repository (dimensioni > GB). Tutti i dataset (originale, preprocessato, sintetico) sono disponibili su **Google Drive** condiviso del team. I file `.keras` con i pesi dei modelli sono anch'essi esclusi da git.
-
+> **Nota:** La cartella `data/` è esclusa dalla repository (dimensioni > GB). Tutti i dataset (originale, preprocessato, sintetico) sono disponibili su **Google Drive** condiviso del team.
 ---
 
 ## Dataset
@@ -150,10 +138,10 @@ MammoDiffusion/
 | Cartella | Descrizione | Posizione |
 |---|---|---|
 | `data/original/dataset/` | Immagini originali RSNA (512×512 PNG) | Google Drive del team |
-| `data/processed/` | Immagini preprocessate + CSV split | Google Drive del team |
+| `data/processed/{train, val, test, metadata}` | Immagini preprocessate + CSV split | Google Drive del team |
 | `data/real_augmented/` | Immagini positive con augmentation tradizionale | Prodotto dal notebook `02` |
-| `data/synthetic/fine_tuned/` | Immagini sintetiche generate da SD2.1 (filtrate) | Prodotto dal notebook `03b` |
-| `data/synthetic/fromscratch/` | Immagini sintetiche generate dal diffusore from scratch (filtrate) | Prodotto dal notebook `04b` |
+| `data/synthetic/fine_tuned/{negative, positive}` | Immagini sintetiche generate da SD2.1 (filtrate) | Prodotto dal notebook `03b` |
+| `data/synthetic/fromscratch/{negative, positive}` | Immagini sintetiche generate dal diffusore from scratch (filtrate) | Prodotto dal notebook `04b` |
 
 
 ---
@@ -166,9 +154,10 @@ I seguenti file non sono inclusi nella repository per dimensioni o per policy di
 |---|---|---|
 | Dataset RSNA originale | Troppo grande (> 20 GB) | Scaricare da Kaggle o da Google Drive del team |
 | Dataset preprocessato (`data/processed/`) | Troppo grande | Google Drive del team — scaricato automaticamente dai notebook |
+| Dati aumentati (`data/real_augmented/`) | Troppo grande | Google Drive del team — scaricato automaticamente dai notebook |
 | Immagini sintetiche (`data/synthetic/`) | Troppo grande | Google Drive del team — scaricate automaticamente dai notebook classificatori |
 | Pesi dei modelli (`.keras`) | Troppo grandi, in `.gitignore` | Google Drive del team — scaricati automaticamente dai notebook di valutazione |
-| Modello base SD2.1 | ~5 GB, licenza HuggingFace | `stabilityai/stable-diffusion-2-1` su HuggingFace Hub |
+| Modello base SD2.1 | ~5 GB, troppo grande | Google Drive del team — scaricati automaticamente dai notebook 03 |
 
 ---
 
@@ -177,7 +166,7 @@ I seguenti file non sono inclusi nella repository per dimensioni o per policy di
 ### 1. Clona la repository
 
 ```bash
-git clone https://github.com/team/MammoDiffusion.git
+git clone https://github.com/EnzoFumagalli/MammoDiffusion/tree/main.git
 cd MammoDiffusion
 ```
 
@@ -201,7 +190,7 @@ Le dipendenze principali includono:
 |---|---|
 | Data science | `numpy`, `pandas`, `scipy`, `scikit-learn`, `scikit-image`, `pillow` |
 | Visualizzazione | `matplotlib`, `seaborn` |
-| Deep learning (classificatori) | `tensorflow >= 2.10` |
+| Deep learning (classificatori) | `tensorflow >= 2.15` |
 | Deep learning (diffusione) | `torch >= 2.0`, `torchvision`, `torchmetrics` |
 | Stable Diffusion | `diffusers`, `transformers`, `accelerate`, `safetensors`, `huggingface_hub` |
 | Metriche generative | `torch-fidelity`, `prdc` |
@@ -216,7 +205,7 @@ I notebook gestiscono automaticamente il download da Google Drive. In alternativ
 
 ## Ordine di esecuzione dei notebook
 
-Il flusso è organizzato in tre pipeline distinte. I notebook numerati con lo stesso prefisso (es. `03a` e `03b`, oppure `06` e `06b`) rappresentano varianti alternative dello stesso step, non passi sequenziali.
+Il flusso è organizzato in cinque pipeline operative. I notebook numerati con lo stesso prefisso (es. `03a` e `03b`, oppure `06` e `06b`) rappresentano varianti dello stesso step sperimentale; nel caso di `03b`, la variante riusa i checkpoint di `03a` in una directory separata e aggiunge generazione a 100 inference step, filtro e valutazioni dedicate.
 
 ```
 PIPELINE 1 — Preparazione dei dati
@@ -224,8 +213,8 @@ PIPELINE 1 — Preparazione dei dati
         └── 02_Data_Augmentation_Trad
 
 PIPELINE 2 — Generazione con Stable Diffusion 2.1  (D1, input per D2 e D3)
-    03a_Finetuning_StableDiffusion2.1_baseline      (variante: generazione positivi e negativi senza filtro)
-    03b_Finetuning_StableDiffusion2.1_filtered      (variante principale: 2x1361 raw, filtro qualità sceglie 1361 migliori)
+    03a_Finetuning_StableDiffusion2.1_baseline      (baseline: fine-tuning SD2.1 e generazione RAW a 50 inference step, senza filtro)
+    03b_Finetuning_StableDiffusion2.1_filtered      (variante principale: 2722 RAW/classe a 100 step, RAW matched 1361/classe e filtro adattivo)
 
 PIPELINE 3 — LDM from scratch  (D1)
     04a_LDM_basic                                   (variante: genera solo classe positiva)
@@ -240,7 +229,7 @@ PIPELINE 4 — Classificatori  (D2)
         └── 09_Test_Classificatori                  (valutazione finale delle 3 configurazioni)
 
 PIPELINE 5 — Sostenibilità  (D3)
-    10_Classificatore_Real_Augmented_ResNet-50_FineTuned
+    10_Classificatore_Real_Augmented_ResNet-50_FineTuned        
     11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned
         └── 12_Valutazione_Sostenibilità
 ```
@@ -262,8 +251,14 @@ PIPELINE 5 — Sostenibilità  (D3)
 **Trasformazioni applicate:**
 - Filtro sulla vista `MLO`
 - Selezione di 1 sola immagine per paziente (per i positivi: il seno canceroso; per i negativi: selezione casuale)
-- Normalizzazione e padding a 512×512 grayscale
+- Normalizzazione, padding a 512×512 grayscale e orientamento visivo del tessuto verso sinistra
 - Divisione in train / val / test con stratificazione per label
+
+**Dataset prodotto:**
+- Totale: 2916 immagini/pazienti
+- Classi: 486 positive, 2430 negative
+- Split: train 2041 immagini (340 positive, 1701 negative), val 437 (73 positive, 364 negative), test 438 (73 positive, 365 negative)
+- Normalizzazione visiva: 1462 immagini ribaltate, 1454 mantenute, tutte finali con tessuto a sinistra
 
 **Output:**
 - `data/processed/` — immagini preprocessate organizzate per split e label
@@ -279,50 +274,62 @@ PIPELINE 5 — Sostenibilità  (D3)
 **Input:** `data/processed/` (dataset preprocessato)
 
 **Trasformazioni applicate** (solo sulle immagini positive del train set):
-- Variazioni di contrasto e luminosità
-- Aggiunta di rumore gaussiano
-- Flip orizzontale
+- Variazioni leggere di contrasto (`0.90–1.10`) e luminosità (`-8/+8`)
+- Aggiunta di rumore gaussiano leggero (`σ = 2.0`)
+- Nessun flip: il preprocessing ha già normalizzato il tessuto verso sinistra
 
 **Output:**
-- `data/real_augmented/` — immagini originali + campioni positivi aumentati, con CSV aggiornato
+- `data/real_augmented/metadata.csv` — 3061 record di training: 2041 reali referenziati da `data/processed/` + 1020 immagini positive augmentate salvate in `data/real_augmented/`
+- Bilanciamento train: da 1701 negative / 340 positive a 1701 negative / 1360 positive; rapporto negative:positive da 5.00:1 a 1.25:1
 - `results/02_data_augmentation/` — statistiche augmentation e CO₂
 
 ---
 
 ### `03a_Finetuning_StableDiffusion2.1_baseline.ipynb`
 
-**Scopo:** Fine-tuning baseline di Stable Diffusion 2.1 su immagini mammografiche MLO, addestrato sull'intero dataset reale preprocessato.
+**Scopo:** Fine-tuning baseline di Stable Diffusion 2.1 su mammografie MLO, con generazione RAW a 50 inference step e senza filtro qualitativo.
 
 **Input:**
-- `data/processed/` — immagini reali
-- Modello base `stabilityai/stable-diffusion-2-1` (scaricato da HuggingFace)
+- `data/processed/` — immagini reali preprocessate per train/val/test
+- `data/real_augmented/metadata.csv` — training set con reali + positive augmentation tradizionale
+- Modello base `stable-diffusion-2-1` (scaricato dalla cartella Google Drive del team)
 
-**Training:** fine-tuning DreamBooth-style con `diffusers` + `accelerate`; le immagini di staging vengono create temporaneamente e rimosse al termine
+**Training:** fine-tuning text-to-image con `diffusers` + `accelerate`; U-Net addestrata, VAE e text encoder congelati. Le mammografie grayscale vengono copiate in uno staging temporaneo compatibile con Hugging Face `imagefolder` e convertite in RGB dallo script Diffusers. Parametri principali: 8000 step, checkpoint ogni 500 step, batch 2 con gradient accumulation 4 (batch effettivo 8), learning rate `1e-5`, FP16, gradient checkpointing e 8-bit Adam.
+
+**Valutazione/generazione:** i checkpoint vengono selezionati sul validation set; nella run baseline il migliore è `checkpoint-3000` (FID medio validation circa 129.63 a 50 inference step). Il notebook genera 1361 immagini RAW positive e 1361 negative, senza filtro.
 
 **Output:**
-- `experiments/20260607_sd21_rsna_mlo_512/` — checkpoint del modello (su Google Drive)
+- `experiments/20260607_sd21_rsna_mlo_512/generated_images/final/` — immagini sintetiche RAW a 50 inference step
+- Metriche di validazione e test salvate nella cartella dell'esperimento
 
 ---
 
 ### `03b_Finetuning_StableDiffusion2.1_filtered.ipynb`
 
-**Scopo:** Variante principale dell'esperimento SD2.1 — fine-tuning con 100 inference step, selezione del checkpoint migliore su validation set, generazione e filtraggio qualitativo delle immagini sintetiche.
+**Scopo:** Variante principale dell'esperimento SD2.1 — generazione a 100 inference step, selezione del checkpoint su validation set, filtro adattivo e valutazione finale delle immagini sintetiche filtrate.
 
 **Input:**
 - `data/processed/` + `data/real_augmented/` — dati di training
-- Modello base `stabilityai/stable-diffusion-2-1`
+- Modello base `stable-diffusion-2-1`
+- Checkpoint SD2.1 prodotti da `03a`, copiati nella directory dell'esperimento a 100 inference step senza modificarne i pesi
 
 **Pipeline:**
-1. Fine-tuning del modello con dati reali + augmentati
-2. Valutazione dei checkpoint su validation set (FID, IS, Precision, Recall)
-3. Generazione di 2722 immagini (1361 positive + 1361 negative) con il checkpoint migliore (`checkpoint-3000`)
-4. Filtro qualità con maschera adattiva: vengono scartate le immagini con artefatti; rimangono 1361 positive e 1361 negative
-5. Calcolo metriche finali su test set
+1. Verifica/download di `data/processed/`, `data/real_augmented/` e modello base SD2.1
+2. Fine-tuning opzionale con gli stessi parametri di `03a`; nella run documentata vengono riutilizzati i checkpoint già addestrati
+3. Valutazione dei checkpoint su validation set con 100 immagini per classe e 100 inference step, usando FID, IS, Precision, Recall, Density e Coverage
+4. Selezione di `checkpoint-3000`, con FID medio validation circa 129.35
+5. Generazione RAW finale: 2722 immagini positive + 2722 immagini negative a 100 inference step
+6. Creazione di un sottoinsieme `raw_matched` deterministico da 1361 immagini per classe, usato come baseline diretta del filtro
+7. Filtro adattivo con maschera: selezione di 1361 immagini positive e 1361 negative per il dataset sintetico finale
+8. Confronto sul validation set tra RAW complete, RAW matched e immagini filtrate.
+9. Valutazione finale sul test set delle RAW matched e delle immagini filtrate.
+10. Confronto metodologico tra 50-step RAW, 100-step RAW matched e 100-step filtrate.
 
 **Output:**
 - `data/synthetic/fine_tuned/positive/` — 1361 immagini positive sintetiche filtrate
 - `data/synthetic/fine_tuned/negative/` — 1361 immagini negative sintetiche filtrate
-- `results/03b_finetuning_filtered/` — metriche FID/IS per classe, report filtro, tracciamento CO₂
+- `results/03b_finetuning_filtered/` — metriche FID/IS/PRDC per classe, report filtro, grafici e tracciamento CO₂
+- Metriche finali filtrate su test: FID medio 113.59, IS medio 2.40, precision media 0.54, coverage media 0.92
 
 ---
 
@@ -451,7 +458,6 @@ Nel notebook sono presenti celle relative alla valutazione in Validation Set del
 
 **Output:**
 - `experiments/exp_trad_aug_resnet50/` — modello, log training
-- Tracciamento CO₂ tramite `eco_tracker.py`
 
 ---
 ### `11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned.ipynb`
@@ -466,7 +472,6 @@ Nel notebook sono presenti celle relative alla valutazione in Validation Set del
 
 **Output:**
 - `experiments/exp_synth_pos_resnet50/` — modello, log training
-- Tracciamento CO₂ tramite `eco_tracker.py`
 
 ---
 
@@ -475,12 +480,12 @@ Nel notebook sono presenti celle relative alla valutazione in Validation Set del
 **Scopo:** Confronto prestazionale e ambientale tra le strategie Real+Augmented (augmentation tradizionale) e Real+Synth (augmentation diffusiva). Notebook di riferimento per la risposta alla D3.
 
 **Input:**
-- Modelli da `exp_trad_aug_resnet50` e `exp20260617_real_synth_...`
+- Modelli da `exp_trad_aug_resnet50` e `exp_synth_pos_resnet50`
 - `data/processed/metadata/test.csv`
 - File `ecotracker/*.json` con dati di consumo energetico e CO₂ raccolti durante training e generazione
 
 **Output:**
-- `results/test_trad_aug_vs_real_synth/` — metriche comparative, predizioni
+- `results/test_trad_aug_vs_real_synth_pos/` — metriche comparative, predizioni
 - Grafici: confronto AUC/F1, CO₂ per fase, trade-off prestazioni/costo ambientale
 
 ---

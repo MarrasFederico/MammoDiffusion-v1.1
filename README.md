@@ -107,6 +107,7 @@ MammoDiffusion/
 │   ├── 01_preprocessing/
 │   ├── 02_data_augmentation/
 │   ├── 03b_finetuning_filtered/
+│   ├── 04b_ldm_keras_v2_extra1361/
 │   ├── 05_confronto_metriche_val_classificatori/
 │   ├── 07_test_classificatori_allVSpart/
 │   ├── 07_val_classificatori_allVSpart/

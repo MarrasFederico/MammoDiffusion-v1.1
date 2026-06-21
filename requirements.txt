@@ -9,7 +9,7 @@ scikit-image>=0.19.0
 pillow>=9.0.0
 
 # TensorFlow
-tensorflow>=2.10.0
+tensorflow>=2.15.0
 
 # PyTorch + Diffusion
 torch>=2.0.0

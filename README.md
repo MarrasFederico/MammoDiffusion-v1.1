@@ -338,7 +338,8 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 **Scopo:** Addestramento di un modello LDM (Latent Diffusion Model) from scratch con Keras, su soli dati reali preprocessati.
 
-**Input:** `data/processed/`
+**Input:**
+- `data/processed/` + `data/real_augmented/` — dati di training
 
 **Architettura:** U-Net con encoder VAE, addestrata in locale su GPU
 
@@ -352,7 +353,9 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 **Scopo:** Variante dell'esperimento LDM from scratch (`04a`) che ne estende e raffina la fase di generazione e valutazione, mantenendo la stessa architettura (VAE + U-Net) e gli stessi dati reali di training. Rispetto alla versione *basic* genera 1361 immagini *raw* aggiuntive (4083 in totale) e ne seleziona 1361 tramite il filtro adattivo, per ottenere un sottoinsieme di qualità superiore. Introduce inoltre una revisione della logica delle funzioni matematiche della diffusione e del campionamento, un tracciamento della sostenibilità (EcoTracker) più robusto, l'estensione della generazione anche alla classe negativa e nuovi grafici per l'interpretazione dei risultati. La selezione del checkpoint migliore è gestita interamente via script Python, tramite uno *sweep* delle metriche FID / IS / PRDC sul validation set.
 
-**Input:** `data/processed/` — immagini reali preprocessate
+**Input:** 
+- `data/processed/` + `data/real_augmented/` — dati di training
+
 
 **Output:**
 - `experiments/20260619_ldm_extra1361/` — pesi, checkpoint, metriche

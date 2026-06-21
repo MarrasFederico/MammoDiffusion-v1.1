@@ -1,0 +1,30 @@
+{
+  "modelli_attivi": [
+    "Real+Augmented",
+    "Real+SyntheticPositive"
+  ],
+  "configs": {
+    "Real+Augmented": {
+      "auc": 0.5899,
+      "threshold": 0.0525,
+      "accuracy": 0.6005,
+      "precision": 0.2167,
+      "recall": 0.5342,
+      "f1": 0.3083
+    },
+    "Real+SyntheticPositive": {
+      "auc": 0.5996,
+      "threshold": 0.3732,
+      "accuracy": 0.5731,
+      "precision": 0.2062,
+      "recall": 0.5479,
+      "f1": 0.2996
+    }
+  },
+  "delta_synth_pos_minus_real_augmented": {
+    "auc": 0.0097,
+    "f1": -0.0087,
+    "recall": 0.0137,
+    "accuracy": -0.0274
+  }
+}

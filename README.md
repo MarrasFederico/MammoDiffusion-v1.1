@@ -107,6 +107,7 @@ MammoDiffusion/
 │   ├── 01_preprocessing/
 │   ├── 02_data_augmentation/
 │   ├── 03b_finetuning_filtered/
+│   ├── 04_ldm_keras_v2/
 │   ├── 04b_ldm_keras_v2_extra1361/
 │   ├── 05_confronto_metriche_val_classificatori/
 │   ├── 07_test_classificatori_allVSpart/
@@ -336,7 +337,7 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `04a_LDM_basic.ipynb`
 
-**Scopo:** Addestramento di un modello LDM (Latent Diffusion Model) from scratch con Keras, su soli dati reali preprocessati.
+**Scopo:** Addestramento di un modello LDM (Latent Diffusion Model) from scratch con Keras, su dati reali preprocessati e aumentati sulla classe positiva.
 
 **Input:**
 - `data/processed/` + `data/real_augmented/` — dati di training
@@ -345,7 +346,7 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 **Output:**
 - `experiments/20260617_ldm_basic/` — pesi del modello, curve di training, metriche generative
-- `results/04a_ldm_basic/` — FID, IS, immagini campione generate
+- `results/04_ldm_keras_v2/` — FID, IS, immagini campione generate
 
 ---
 
@@ -360,6 +361,23 @@ PIPELINE 5 — Sostenibilità  (D3)
 **Output:**
 - `experiments/20260619_ldm_extra1361/` — pesi, checkpoint, metriche
 - `results/04b_ldm_keras_v2_extra1361/` — metriche, grafici e confronto con `04a`
+
+---
+
+### `04c_Confronto_FromScratch_vs_FineTuned.ipynb`
+
+**Scopo:** Confronto qualitativo e quantitativo tra il modello LDM addestrato *from scratch* (`04b`) e Stable Diffusion 2.1 fine-tuned (`03b`), usando gli artefatti già generati.
+
+**Input:**
+
+* `data/processed/test/`
+* immagini sintetiche e metriche prodotte da `03b` e `04b`
+
+**Output:**
+
+* `results/04c_Confronto_FromScratch_vs_FineTuned/` — metriche comparative, grafici e griglie qualitative
+
+**Nota:** Il confronto diretto tra i due modelli è effettuato sulla classe positiva.
 
 ---
 
@@ -379,6 +397,7 @@ Nel notebook sono presenti celle relative alla valutazione in Validation Set del
 **Output:**
 - `experiments/exp20260618_baseline_resnet50_fine_tuned_batch_size_16/` — modello migliore (`.keras`), log training, metriche validation
 
+**Nota:** In versioni precedenti di TensorFlow il parametro *negative_slope* potrebbe non esistere, sarà necessario sostituirlo con il parametro *alpha*.
 ---
 
 ### `06_Classificatore_RealSynthetic_ResNet-50_FineTuned.ipynb`

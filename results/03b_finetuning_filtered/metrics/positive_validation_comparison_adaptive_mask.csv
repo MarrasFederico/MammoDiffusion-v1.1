@@ -1,3 +1,0 @@
-set_name,FID,IS_mean,IS_std,n_generated,n_real_reference,generated_dir,real_reference_metadata
-raw_positive_2722,116.7833,2.7728,0.0626,2722,73,/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/val.csv
-filtered_positive_1361_adaptive_mask,108.5154,2.4158,0.0865,1361,73,/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive_filtered_1361_adaptive_mask,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/val.csv

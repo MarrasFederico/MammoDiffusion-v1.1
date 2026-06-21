@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "notebook": "notebooks/03b_Finetuning_StableDiffusion2.1_filtered.ipynb",
   "experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
   "experiment_dir": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps",
@@ -10,26 +10,41 @@
   "model_dir": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/model",
   "checkpoint_eval_dir": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/eval_checkpoints",
   "final_generated_dir": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final",
+  "raw_matched_dir": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/raw_matched_1361",
   "selected_checkpoint": "checkpoint-3000",
   "generation": {
     "inference_steps": 100,
     "raw_per_class": 2722,
+    "raw_matched_per_class": 1361,
     "selected_per_class": 1361,
     "classes": [
       "positive",
       "negative"
     ],
+    "raw_dirs": {
+      "negative": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative",
+      "positive": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive"
+    },
+    "raw_matched_dirs": {
+      "positive": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/raw_matched_1361/positive",
+      "negative": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/raw_matched_1361/negative"
+    },
     "filtered_dirs": {
-      "positive": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/positive_filtered_1361_adaptive_mask",
-      "negative": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative_filtered_1361_adaptive_mask"
+      "positive": "data/synthetic/fine_tuned/positive",
+      "negative": "data/synthetic/fine_tuned/negative"
+    },
+    "raw_matched_manifests": {
+      "positive": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/raw_matched_1361/positive_manifest.json",
+      "negative": "experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/raw_matched_1361/negative_manifest.json"
     }
   },
   "metrics": {
     "checkpoint_validation": "results/03b_finetuning_filtered/metrics/checkpoint_validation_metrics.json",
     "generation_info": "results/03b_finetuning_filtered/metrics/generation_info.json",
-    "validation_raw_vs_filtered": "results/03b_finetuning_filtered/metrics/validation_comparison_raw_vs_filtered.json",
+    "validation_raw_matched_vs_filtered": "results/03b_finetuning_filtered/metrics/validation_comparison_100_steps_raw_matched_vs_filtered.json",
     "final_test_filtered": "results/03b_finetuning_filtered/metrics/final_test_metrics.json",
-    "final_test_raw": "results/03b_finetuning_filtered/metrics/final_test_metrics_raw_2722.json",
+    "final_test_raw_complete_context": "results/03b_finetuning_filtered/metrics/final_test_metrics_raw_2722.json",
+    "final_test_raw_matched": "results/03b_finetuning_filtered/metrics/final_test_metrics_raw_matched_100_steps.json",
     "comparison_50_vs_100": "results/03b_finetuning_filtered/metrics/comparison_50_vs_100_summary.csv",
     "filter_summaries": {
       "positive": "results/03b_finetuning_filtered/metrics/filter_summary_positive_adaptive_mask.json",
@@ -37,23 +52,19 @@
     }
   },
   "plots": [
-    "results/03b_finetuning_filtered/plots/checkpoint_samples_negative_positive.png",
     "results/03b_finetuning_filtered/plots/checkpoint_samples_negative_positive_page_01.png",
     "results/03b_finetuning_filtered/plots/checkpoint_samples_negative_positive_page_02.png",
     "results/03b_finetuning_filtered/plots/checkpoint_samples_negative_positive_page_03.png",
-    "results/03b_finetuning_filtered/plots/comparison_50_vs_100_fid.png",
-    "results/03b_finetuning_filtered/plots/comparison_50_vs_100_is.png",
     "results/03b_finetuning_filtered/plots/density_coverage_over_steps.png",
     "results/03b_finetuning_filtered/plots/fid_per_checkpoint.png",
     "results/03b_finetuning_filtered/plots/filter_before_after.png",
     "results/03b_finetuning_filtered/plots/filter_oriented_percent_delta.png",
-    "results/03b_finetuning_filtered/plots/filter_prdc_radar.png",
     "results/03b_finetuning_filtered/plots/final_filtered_vs_test_metrics.png",
+    "results/03b_finetuning_filtered/plots/inference_steps_raw_fid_50_vs_100.png",
+    "results/03b_finetuning_filtered/plots/inference_steps_raw_is_50_vs_100.png",
     "results/03b_finetuning_filtered/plots/is_per_checkpoint.png",
     "results/03b_finetuning_filtered/plots/precision_recall_over_steps.png",
     "results/03b_finetuning_filtered/plots/precision_recall_per_checkpoint.png",
-    "results/03b_finetuning_filtered/plots/raw_vs_filtered_fid.png",
-    "results/03b_finetuning_filtered/plots/raw_vs_filtered_precision_recall.png",
     "results/03b_finetuning_filtered/plots/samples_negative.png",
     "results/03b_finetuning_filtered/plots/samples_positive.png",
     "results/03b_finetuning_filtered/plots/train_loss.png"

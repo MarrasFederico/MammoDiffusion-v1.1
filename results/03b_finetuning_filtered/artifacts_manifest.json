@@ -43,7 +43,6 @@
     "generation_info": "results/03b_finetuning_filtered/metrics/generation_info.json",
     "validation_raw_matched_vs_filtered": "results/03b_finetuning_filtered/metrics/validation_comparison_100_steps_raw_matched_vs_filtered.json",
     "final_test_filtered": "results/03b_finetuning_filtered/metrics/final_test_metrics.json",
-    "final_test_raw_complete_context": "results/03b_finetuning_filtered/metrics/final_test_metrics_raw_2722.json",
     "final_test_raw_matched": "results/03b_finetuning_filtered/metrics/final_test_metrics_raw_matched_100_steps.json",
     "comparison_50_vs_100": "results/03b_finetuning_filtered/metrics/comparison_50_vs_100_summary.csv",
     "filter_summaries": {

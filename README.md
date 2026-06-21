@@ -156,6 +156,8 @@ MammoDiffusion/
 | `data/processed/` | Immagini preprocessate + CSV split | Google Drive del team |
 | `data/real_augmented/` | Immagini positive con augmentation tradizionale | Prodotto dal notebook `02` |
 | `data/synthetic/fine_tuned/` | Immagini sintetiche generate da SD2.1 (filtrate) | Prodotto dal notebook `03b` |
+| `data/synthetic/fromscratch/` | Immagini sintetiche generate dal diffusore from scratch (filtrate) | Prodotto dal notebook `04b` |
+
 
 ---
 
@@ -229,8 +231,8 @@ PIPELINE 2 — Generazione con Stable Diffusion 2.1  (D1, input per D2 e D3)
     03b_Finetuning_StableDiffusion2.1_filtered      (variante principale: reali + augmentati, filtro qualità)
 
 PIPELINE 3 — LDM from scratch  (D1)
-    04a_LDM_basic                                   (variante: dati reali)
-    04b_LDM_extra1361                               (variante: + 1361 sintetici da SD2.1)
+    04a_LDM_basic                                   (variante: genera solo classe positiva)
+    04b_LDM_extra1361                               (variante: +1361 raw, classe negativa, logica ottimizzata)
 
 PIPELINE 4 — Classificatori  (D2)
     05_Classificatore_Baseline_ResNet-50_FineTuned
@@ -342,15 +344,13 @@ PIPELINE 5 — Sostenibilità  (D3)
 
 ### `04b_LDM_extra1361.ipynb`
 
-**Scopo:** Variante del LDM from scratch che include anche le 1361 immagini sintetiche positive prodotte da SD2.1 nel training set, per valutare se l'aggiunta di dati sintetici beneficia il modello generativo stesso.
+**Scopo:** Variante dell'esperimento LDM from scratch (`04a`) che ne estende e raffina la fase di generazione e valutazione, mantenendo la stessa architettura (VAE + U-Net) e gli stessi dati reali di training. Rispetto alla versione *basic* genera 1361 immagini *raw* aggiuntive (4083 in totale) e ne seleziona 1361 tramite il filtro adattivo, per ottenere un sottoinsieme di qualità superiore. Introduce inoltre una revisione della logica delle funzioni matematiche della diffusione e del campionamento, un tracciamento della sostenibilità (EcoTracker) più robusto, l'estensione della generazione anche alla classe negativa e nuovi grafici per l'interpretazione dei risultati. La selezione del checkpoint migliore è gestita interamente via script Python, tramite uno *sweep* delle metriche FID / IS / PRDC sul validation set.
 
-**Input:**
-- `data/processed/`
-- `data/synthetic/fine_tuned/positive/` (1361 immagini positive da `03b`)
+**Input:** `data/processed/` — immagini reali preprocessate
 
 **Output:**
-- `experiments/20260619_ldm_extra1361/` — pesi, metriche
-- `results/04b_ldm_extra1361/` — confronto metriche con `04a`
+- `experiments/20260619_ldm_extra1361/` — pesi, checkpoint, metriche
+- `results/04b_ldm_keras_v2_extra1361/` — metriche, grafici e confronto con `04a`
 
 ---
 

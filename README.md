@@ -229,7 +229,7 @@ PIPELINE 2 — Generazione con Stable Diffusion 2.1  (D1, input per D2 e D3)
 
 PIPELINE 3 — LDM from scratch  (D1)
     04a_LDM_basic                                   (variante: genera solo classe positiva)
-    04b_LDM_extra1361                               (variante: +1361 raw, classe negativa, logica ottimizzata)
+    04b_LDM_extra1361                               (variante: +1361 raw, genera sia immagini con classe positiva che classe negativa, logica ottimizzata)
 
 PIPELINE 4 — Classificatori  (D2)
     05_Classificatore_Baseline_ResNet-50_FineTuned

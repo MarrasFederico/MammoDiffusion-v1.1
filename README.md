@@ -76,10 +76,6 @@ MammoDiffusion/
 │
 ├── assets/                                         # Materiali di supporto
 │   ├── logo_MammoDiffusion.png
-│   ├── immagini_presentazione/                     # Architetture e figure per le slide
-│   └── mammodiffusion_gradio/                      # Demo interattiva Gradio
-│       ├── app.py
-│       └── requirements.txt
 │
 ├── data/                                           # Dataset (NON in git, su Google Drive)
 │   ├── original/
@@ -113,7 +109,8 @@ MammoDiffusion/
 │   ├── 08_Classificatore_Synthetic_ResNet-50_FineTuned.ipynb
 │   ├── 09_Test_Classificatori.ipynb
 │   ├── 10_Classificatore_Real_Augmented_ResNet-50_FineTuned.ipynb
-│   ├── 11_Valutazione_Sostenibilità.ipynb
+|   ├── 11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned.ipynb
+│   ├── 12_Valutazione_Sostenibilità.ipynb
 │   ├── eco_tracker.py                              # Wrapper codecarbon per il tracciamento CO₂
 │   └── generative_evaluator.py                    # Calcolo metriche FID, IS, Precision, Recall
 │
@@ -456,8 +453,23 @@ Nel notebook sono presenti celle relative alla valutazione in Validation Set del
 - Tracciamento CO₂ tramite `eco_tracker.py`
 
 ---
+### `11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned.ipynb`
 
-### `11_Valutazione_Sostenibilità.ipynb`
+**Scopo:** Classificatore addestrato con dati reali + sintetici positivi. Utilizzato come termine di paragone rispetto al classificatore del notebook precedente per la Domanda di Ricerca D3 (sostenibilità).
+
+**Input:**
+- `data/processed/` — immagini reali
+- `data/synthetic/positive` — campioni positivi sintetici
+
+**Stessa architettura ResNet-50 in due fasi degli altri classificatori.**
+
+**Output:**
+- `experiments/exp_synth_pos_resnet50/` — modello, log training
+- Tracciamento CO₂ tramite `eco_tracker.py`
+
+---
+
+### `12_Valutazione_Sostenibilità.ipynb`
 
 **Scopo:** Confronto prestazionale e ambientale tra le strategie Real+Augmented (augmentation tradizionale) e Real+Synth (augmentation diffusiva). Notebook di riferimento per la risposta alla D3.
 

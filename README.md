@@ -6,6 +6,8 @@
 
 **Generazione condizionata di immagini mammografiche sintetiche tramite modelli diffusivi**
 per il miglioramento della classificazione del cancro al seno.
+
+[English version](README_EN.md)
 <!--
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
@@ -27,6 +29,7 @@ per il miglioramento della classificazione del cancro al seno.
 - [Installazione](#installazione)
 - [Ordine di esecuzione dei notebook](#ordine-di-esecuzione-dei-notebook)
 - [Descrizione dei notebook](#descrizione-dei-notebook)
+- [Evoluzione del progetto](#evoluzione-del-progetto)
 - [Team](#team)
 
 ---
@@ -35,11 +38,12 @@ per il miglioramento della classificazione del cancro al seno.
 
 **MammoDiffusion** verte sulla costruzione e sull’addestramento di un modello diffusivo ai fini della generazione condizionata di immagini sintetiche, con il fine di comprendere se possano realmente migliorare l’identificazione  di casi positivi.
 
-Il progetto segue un flusso in tre fasi:
+Il progetto segue un flusso sperimentale incrementale:
 
 1. **Preprocessing e augmentation** dei dati originali del dataset RSNA Breast Cancer Detection
 2. **Generazione di immagini sintetiche** tramite due approcci distinti: fine-tuning di *Stable Diffusion 2.1* e addestramento di un modello LDM (Latent Diffusion Model) *from scratch*
-3. **Training e valutazione** di classificatori ResNet-50 in tre configurazioni differenti, confrontate anche in termini di sostenibilità computazionale
+3. **Training e valutazione** di classificatori ResNet-50 in tre configurazioni differenti, usati come baseline computazionalmente sostenibile e confrontati anche in termini di sostenibilità
+4. **Estensione post-consegna** con classificatori MaxViT-Tiny-512, nuovi confronti architetturali e ulteriori domande di ricerca su VAE, diffusione from scratch e combinazione di dati reali, aumentati e sintetici
 
 ---
 
@@ -60,12 +64,47 @@ Il progetto segue un flusso in tre fasi:
 - **Metriche di valutazione:** AUC, F1, Accuracy, Precision, Recall sul test set reale
 - **Architettura:** ResNet-50 con ImageNet, training in due fasi (head training + fine-tuning parziale del backbone)
 
+### D2b — Un classificatore realmente 512×512 batte ResNet-50?
+
+> *Un backbone transformer-ibrido con input nativo 512×512 (MaxViT-Tiny, `timm`) supera ResNet-50 (224×224) sulle stesse configurazioni di training?*
+
+- **Architettura:** MaxViT-Tiny-512 (`timm`, pre-addestrato `in1k`) con `BCEWithLogitsLoss`/`BinaryFocalLoss`, training PyTorch in due fasi (head training + fine-tuning parziale/completo del backbone), stesse configurazioni Baseline/Real+Synth/Full Synth di D2
+- **Confronto diretto:** notebook `21_Confronto_ResNet50_vs_MaxViT512.ipynb`, sullo stesso test set reale
+
 ### D3 — Sostenibilità e Responsible AI
 
 > *La data augmentation realizzata tramite generazione è realmente conveniente, sia in termini di guadagno prestazionale che in termini di sostenibilità, rispetto alla data augmentation tradizionale?*
 
 - **Confronto:** classificatore Real+Augmented (augmentation tradizionale) vs classificatore Real+Synth (augmentation diffusiva)
 - **Metriche:** AUC, F1 + emissioni CO₂ e consumi energetici tracciati con `codecarbon`
+
+### D4 — Combinare tutte le fonti di dati migliora il migliore assoluto?
+
+> *Invece di scegliere rigidamente tra augmentation tradizionale e dati sintetici, un classificatore addestrato su dati reali + aumentati + sintetici ottiene prestazioni superiori sul test reale?*
+
+- **Motivazione:** in un dominio complesso come la mammografia, costi computazionali elevati possono essere giustificati se il guadagno clinico è misurabile
+- **Configurazione futura:** Real+Augmented+Synthetic, con confronto contro Baseline, Real+Augmented, Real+Synth e Full Synth
+
+### D5 — Fine-tuning del VAE di Stable Diffusion
+
+> *Adattare il VAE di Stable Diffusion al dominio mammografico modifica la qualità generativa e le metriche downstream?*
+
+- **Esperimento futuro:** fine-tuning o adattamento controllato del VAE su immagini mammografiche preprocessate
+- **Metriche:** FID, IS, Precision/Recall/Density/Coverage, più impatto sui classificatori addestrati con i dati generati
+
+### D6 — VAE preaddestrato dentro il diffusore from scratch
+
+> *Sostituire o inizializzare il VAE del diffusore from scratch con un VAE preaddestrato migliora stabilità, qualità dei campioni e utilità classificativa?*
+
+- **Esperimento futuro:** nuovo notebook dedicato a un LDM from scratch con VAE di Stable Diffusion preaddestrato o adattato
+- **Confronto:** LDM from scratch attuale vs LDM con VAE preaddestrato vs Stable Diffusion fine-tuned
+
+### D7 — Dati from scratch come training signal per il classificatore
+
+> *Le immagini in `data/synthetic/fromscratch/` contengono informazione discriminativa sufficiente per migliorare o sostituire in parte i dati sintetici fine-tuned?*
+
+- **Esperimento futuro:** classificatori Real+FromScratchSynthetic e FromScratchSynthetic-only, valutati sullo stesso test set reale
+- **Obiettivo:** distinguere realismo visivo, copertura del dominio e utilità effettiva per la classificazione
 
 ---
 
@@ -100,7 +139,18 @@ MammoDiffusion/
 │   ├── 10_Classificatore_Real_Augmented_ResNet-50_FineTuned.ipynb
 |   ├── 11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned.ipynb
 │   ├── 12_Valutazione_Sostenibilità.ipynb
+│   ├── 13_Classificatore_Baseline_MaxViT512_FineTuned.ipynb
+│   ├── 14_Classificatore_RealSynthetic_MaxViT512_FineTuned.ipynb
+│   ├── 14b_Classificatore_RealSynthetic_MaxViT512_FineTuned_Full.ipynb
+│   ├── 15_Val_Classificatori_RS_AllVSPart_MaxViT512.ipynb
+│   ├── 16_Classificatore_Synthetic_MaxViT512_FineTuned.ipynb
+│   ├── 17_Test_Classificatori_MaxViT512.ipynb
+│   ├── 18_Classificatore_Real_Augmented_MaxViT512_FineTuned.ipynb
+│   ├── 19_Classificatore_RealSyntheticPositive_MaxViT512_FineTuned.ipynb
+│   ├── 20_Valutazione_Sostenibilita_MaxViT512.ipynb
+│   ├── 21_Confronto_ResNet50_vs_MaxViT512.ipynb
 │   ├── eco_tracker.py                              # Wrapper codecarbon per il tracciamento CO₂
+│   ├── maxvit_utils.py                            # Dataset/training/Grad-CAM PyTorch per i classificatori MaxViT-512
 │   └── generative_evaluator.py                    # Calcolo metriche FID, IS, Precision, Recall
 │
 ├── results/                                        # Output e metriche (in git)
@@ -158,7 +208,7 @@ I seguenti file non sono inclusi nella repository per dimensioni o per policy di
 | Dataset preprocessato (`data/processed/`) | Troppo grande | Google Drive del team — scaricato automaticamente dai notebook |
 | Dati aumentati (`data/real_augmented/`) | Troppo grande | Google Drive del team — scaricato automaticamente dai notebook |
 | Immagini sintetiche (`data/synthetic/`) | Troppo grande | Google Drive del team — scaricate automaticamente dai notebook classificatori |
-| Pesi dei modelli (`.keras`) | Troppo grandi, in `.gitignore` | Google Drive del team — scaricati automaticamente dai notebook di valutazione |
+| Pesi dei modelli (`.keras`, `.pt`) | Troppo grandi, in `.gitignore` | Google Drive del team o output locali degli esperimenti |
 | Modello base SD2.1 | ~5 GB, troppo grande | Google Drive del team — scaricati automaticamente dai notebook 03 |
 
 ---
@@ -192,7 +242,8 @@ Le dipendenze principali includono:
 |---|---|
 | Data science | `numpy`, `pandas`, `scipy`, `scikit-learn`, `scikit-image`, `pillow` |
 | Visualizzazione | `matplotlib`, `seaborn` |
-| Deep learning (classificatori) | `tensorflow >= 2.15` |
+| Deep learning (classificatori ResNet-50) | `tensorflow >= 2.15` |
+| Deep learning (classificatori MaxViT-512) | `torch >= 2.0`, `timm >= 1.0` |
 | Deep learning (diffusione) | `torch >= 2.0`, `torchvision`, `torchmetrics` |
 | Stable Diffusion | `diffusers`, `transformers`, `accelerate`, `safetensors`, `huggingface_hub` |
 | Metriche generative | `torch-fidelity`, `prdc` |
@@ -234,6 +285,20 @@ PIPELINE 5 — Sostenibilità  (D3)
     10_Classificatore_Real_Augmented_ResNet-50_FineTuned        
     11_Classificatore_RealSyntheticPositive_ResNet-50_FineTuned
         └── 12_Valutazione_Sostenibilità
+
+PIPELINE 4b — Classificatori MaxViT-Tiny-512  (D2b, equivalente PyTorch/timm della Pipeline 4)
+    13_Classificatore_Baseline_MaxViT512_FineTuned
+    14_Classificatore_RealSynthetic_MaxViT512_FineTuned          (fine-tuning parziale)
+    14b_Classificatore_RealSynthetic_MaxViT512_FineTuned_Full    (fine-tuning completo)
+        └── 15_Val_Classificatori_RS_AllVSPart_MaxViT512   (confronto parziale vs completo)
+    16_Classificatore_Synthetic_MaxViT512_FineTuned
+        └── 17_Test_Classificatori_MaxViT512               (valutazione finale delle 3 configurazioni)
+            └── 21_Confronto_ResNet50_vs_MaxViT512          (confronto diretto con la Pipeline 4, richiede 09 e 17)
+
+PIPELINE 5b — Sostenibilità MaxViT-Tiny-512  (D3, equivalente Pipeline 5)
+    18_Classificatore_Real_Augmented_MaxViT512_FineTuned
+    19_Classificatore_RealSyntheticPositive_MaxViT512_FineTuned
+        └── 20_Valutazione_Sostenibilita_MaxViT512
 ```
 
 ---
@@ -510,6 +575,106 @@ Nel notebook sono presenti celle relative alla valutazione in Validation Set del
 **Output:**
 - `results/test_trad_aug_vs_real_synth_pos/` — metriche comparative, predizioni
 - Grafici: confronto AUC/F1, CO₂ per fase, trade-off prestazioni/costo ambientale
+
+---
+
+### Classificatori MaxViT-Tiny-512 (Pipeline 4b/5b — D2b)
+
+I notebook `13`-`21` replicano le domande di ricerca D2/D3 con un secondo backbone, **MaxViT-Tiny-512**
+(`timm`, pre-addestrato `in1k`, input nativo 512×512, PyTorch), per rispondere alla domanda: *un classificatore
+realmente 512×512 batte ResNet-50 (224×224)?* Usano esattamente gli stessi dataset (reali, sintetici,
+augmentati) delle pipeline 4/5, la stessa metodologia (training a due fasi, soglia di Youden, bootstrap
+bilanciato) e gli stessi log di sostenibilità della generazione dati — cambia solo l'architettura e il
+framework (PyTorch/`timm` al posto di Keras/TensorFlow). La logica condivisa (dataset, loss, callback in
+stile Keras, Grad-CAM) è factorizzata in [`maxvit_utils.py`](notebooks/maxvit_utils.py).
+
+**Nota:** l'input 512×512 di MaxViT-Tiny richiede più VRAM di ResNet-50 a 224×224; i notebook usano
+`BATCH_SIZE=8` come default (da ridurre ulteriormente su GPU con meno di 6 GB).
+
+#### `13_Classificatore_Baseline_MaxViT512_FineTuned.ipynb`
+
+Equivalente MaxViT-512 di `05`: training in due fasi (head training a backbone congelato, poi fine-tuning
+dell'ultimo stage di MaxViT) sui soli dati reali. Loss `BCEWithLogitsLoss` (fase 1, pos_weight bilanciato) e
+`BinaryFocalLoss` (fase 2, γ=2 α=0.75) al posto delle rispettive loss Keras. Valutazione su validation set
+con soglia di Youden e Grad-CAM (basato su `forward_features`/`forward_head` di timm).
+
+**Output:** `experiments/exp_maxvit512_baseline/`
+
+#### `14_Classificatore_RealSynthetic_MaxViT512_FineTuned.ipynb` / `14b_..._Full.ipynb`
+
+Equivalenti MaxViT-512 di `06`/`06b`: training su reale + sintetico (fine-tuned SD2.1), con sblocco parziale
+(solo l'ultimo stage di MaxViT, `14`) o totale (`14b`) del backbone nella fase di fine-tuning. Include
+Grad-CAM anche sulle immagini sintetiche.
+
+**Output:** `experiments/exp_maxvit512_real_synth_partial/`, `experiments/exp_maxvit512_real_synth_full/`
+
+#### `15_Val_Classificatori_RS_AllVSPart_MaxViT512.ipynb`
+
+Equivalente MaxViT-512 di `07`: confronto su validation set tra `14` e `14b` per selezionare la
+configurazione (nel progetto, la parziale) da portare al test set in `17`.
+
+**Output:** `results/15_val_classificatori_maxvit512_allVSpart/`
+
+#### `16_Classificatore_Synthetic_MaxViT512_FineTuned.ipynb`
+
+Equivalente MaxViT-512 di `08`: training esclusivamente su immagini sintetiche (nessun dato reale).
+
+**Output:** `experiments/exp_maxvit512_full_synth/`
+
+#### `17_Test_Classificatori_MaxViT512.ipynb`
+
+Equivalente MaxViT-512 di `09`: valutazione finale delle tre configurazioni (Baseline/Real+Synth/Full Synth,
+con `14` parziale come "Real+Synth") sul test set reale. Le metriche salvate qui alimentano il confronto
+diretto con ResNet-50 nel notebook `21`.
+
+**Output:** `results/17_test_classificatori_maxvit512/tables/test_metrics.json` e figure correlate
+
+#### `18_Classificatore_Real_Augmented_MaxViT512_FineTuned.ipynb` / `19_Classificatore_RealSyntheticPositive_MaxViT512_FineTuned.ipynb`
+
+Equivalenti MaxViT-512 di `10`/`11`: stesso dataset (reale + augmentation tradizionale / reale + sintetici
+positivi), stessa valutazione con bootstrap bilanciato (N=1000) sul test set.
+
+**Nota:** `18` richiede che `data/real_augmented/` sia già presente (prodotto dal notebook `02`); non è
+ridistribuito su Google Drive.
+
+**Output:** `experiments/exp_maxvit512_real_augmented/`, `experiments/exp_maxvit512_synth_pos/`
+
+#### `20_Valutazione_Sostenibilita_MaxViT512.ipynb`
+
+Equivalente MaxViT-512 di `12`: confronta `18` vs `19` sul test set. Riusa gli stessi log di sostenibilità
+(`codecarbon`) di `02`/`03b`/`04b`, poiché il costo di generazione dei dati non dipende dal classificatore
+a valle — solo le prestazioni (AUC/F1/Recall) vengono ricalcolate con MaxViT-512.
+
+**Output:** `results/test_maxvit512_trad_aug_vs_synth_pos/`
+
+#### `21_Confronto_ResNet50_vs_MaxViT512.ipynb`
+
+Notebook di confronto diretto tra le due architetture (non esegue training): carica le tabelle di metriche
+già salvate da `09` (ResNet-50) e `17` (MaxViT-512) sulle stesse tre configurazioni e sullo stesso test set,
+calcola i delta di AUC/F1/Recall/Precision/Accuracy e produce un verdetto esplicito su quale architettura
+prevale per ciascuna configurazione. **Notebook di riferimento per la risposta alla domanda D2b.**
+
+**Input:** richiede che `09_Test_Classificatori.ipynb` e `17_Test_Classificatori_MaxViT512.ipynb` siano
+già stati eseguiti.
+
+**Output:** `results/21_confronto_resnet50_vs_maxvit512/`
+
+---
+
+## Evoluzione del progetto
+
+La versione originale del progetto ha usato ResNet-50 come classificatore principale perché offriva un compromesso ragionevole tra costo computazionale, semplicità di training e confrontabilità tra configurazioni. Questa scelta è stata adeguata per la consegna e per isolare il contributo dei dati sintetici, ma rimane una baseline: ResNet-50 lavora a 224×224, mentre le mammografie preprocessate sono disponibili a 512×512.
+
+Lo sviluppo successivo introduce quindi una domanda più chiarificatrice: il beneficio dei dati sintetici cambia quando il classificatore a valle può sfruttare direttamente la risoluzione 512×512? I notebook `13`-`21` replicano la pipeline ResNet con MaxViT-Tiny-512, mantenendo split, seed, soglie di Youden e configurazioni il più possibile confrontabili.
+
+La direzione futura non è solo stabilire quale tecnica sia "migliore" in astratto. In mammografia il problema è difficile, sbilanciato e ad alto impatto: se una combinazione più costosa produce un miglioramento robusto su AUC, recall e F1 della classe positiva, il costo può essere giustificabile. Per questo il progetto proseguirà con:
+
+- un classificatore **Real+Augmented+Synthetic**, per cercare il miglior sistema assoluto invece di scegliere tra augmentation tradizionale e diffusiva;
+- il **fine-tuning del VAE di Stable Diffusion**, per verificare se una rappresentazione latente più adatta alle mammografie migliori FID/PRDC e prestazioni downstream;
+- un nuovo esperimento LDM **from scratch con VAE preaddestrato**, così da separare il contributo del VAE dal contributo della U-Net diffusiva;
+- classificatori addestrati con `data/synthetic/fromscratch/`, per misurare se i campioni from scratch sono utili non solo visivamente ma anche come segnale discriminativo.
+
+Questa estensione mantiene la filosofia del progetto: ogni miglioramento generativo deve essere valutato sia con metriche di qualità delle immagini sia con l'effetto reale sui classificatori, usando sempre validation/test reali e confronti documentati.
 
 ---
 

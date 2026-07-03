@@ -7,6 +7,9 @@ data/
 # MODELLI E CHECKPOINTS
 # ================================
 *.keras
+*.pt
+*.pth
+*.ckpt
 *.h5
 *.hdf5
 *.npy
@@ -20,7 +23,7 @@ data/
 # ESPERIMENTI - solo pesi, non i risultati
 # ================================
 # I file val_metrics.json vengono tracciati (risultati utili)
-# I pesi (.keras) sono già coperti dalla regola sopra
+# I pesi (.keras/.pt/.pth/.ckpt) sono già coperti dalle regole sopra
 
 # ================================
 # FORMATI DATI TABELLARI
@@ -59,6 +62,7 @@ lightning_logs/
 # ================================
 # CONFIGURAZIONI LOCALI
 # ================================
+.claude/
 .env
 config_local.py
 *.local.py

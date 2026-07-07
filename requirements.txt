@@ -24,6 +24,10 @@ datasets>=2.10.0
 safetensors>=0.3.0
 huggingface_hub>=0.16.0
 bitsandbytes>=0.39.0
+peft>=0.10.0                 # adapter LoRA per train_text_to_image_lora.py (notebook 03d)
+efficientnet_pytorch>=0.7.1  # encoder immagine Mammo-FM/Mammo-CLIP (notebooks 23a-23d)
+omegaconf>=2.3.0             # richiesto per deserializzare i checkpoint Mammo-FM (config salvata con Hydra/OmegaConf)
+opencv-python-headless>=4.5.0  # opzionale: solo se USE_CLAHE_PREPROCESSING=True nei notebook Mammo-FM
 
 # Metriche generative 
 prdc>=0.0.1

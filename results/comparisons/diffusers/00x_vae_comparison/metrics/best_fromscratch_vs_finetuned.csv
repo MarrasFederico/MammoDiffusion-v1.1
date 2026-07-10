@@ -1,0 +1,15 @@
+class,metric,higher_is_better,best_fromscratch_pipeline,best_fromscratch_value,fine_tuned_value,overall_winner,overall_winner_value
+negative,FID,False,FromScratch_SD_VAE,93.9168,114.1593,FromScratch_SD_VAE,93.9168
+negative,IS_mean,True,FromScratch_SD_VAE,2.6066,2.3891,FromScratch_SD_VAE,2.6066
+negative,IS_std,False,FromScratch_SD_VAE,0.1147,0.1175,FromScratch_SD_VAE,0.1147
+negative,precision,True,FromScratch_SD_VAE,0.3159,0.4717,FineTuned_SD2.1,0.4717
+negative,recall,True,FromScratch_SD_VAE,0.1123,0.2055,FineTuned_SD2.1,0.2055
+negative,density,True,FromScratch_SD_VAE,0.1558,0.2178,FineTuned_SD2.1,0.2178
+negative,coverage,True,FromScratch_SD_VAE,0.2548,0.8767,FineTuned_SD2.1,0.8767
+positive,FID,False,FromScratch_SD_VAE,127.1515,113.0254,FineTuned_SD2.1,113.0254
+positive,IS_mean,True,FromScratch_SD_VAE,2.3761,2.4159,FineTuned_SD2.1,2.4159
+positive,IS_std,False,FromScratch_SD_VAE,0.0957,0.1138,FromScratch_SD_VAE,0.0957
+positive,precision,True,FromScratch_SD_VAE,0.2697,0.612,FineTuned_SD2.1,0.612
+positive,recall,True,FromScratch_SD_VAE,0.1096,0.274,FineTuned_SD2.1,0.274
+positive,density,True,FromScratch_SD_VAE,0.1398,0.3456,FineTuned_SD2.1,0.3456
+positive,coverage,True,FromScratch_SD_VAE,0.6164,0.9726,FineTuned_SD2.1,0.9726

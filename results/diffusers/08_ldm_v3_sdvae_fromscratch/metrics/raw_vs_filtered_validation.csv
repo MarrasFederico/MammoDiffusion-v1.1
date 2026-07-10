@@ -1,0 +1,4 @@
+dataset,reference_split,target_label,n_real_reference,n_generated,FID,IS_mean,IS_std,precision,recall,density,coverage
+raw_complete,val,1,73,4083,109.8032,2.14,0.0596,0.5849,0.0548,0.3552,0.9452
+raw_balanced_seed42,val,1,73,1361,112.2283,2.1441,0.0584,0.5915,0.0959,0.3595,0.8082
+filtered,val,1,73,1361,110.9169,1.7325,0.0832,0.6525,0.0274,0.4538,0.8219

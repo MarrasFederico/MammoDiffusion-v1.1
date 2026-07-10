@@ -1,0 +1,29 @@
+{
+  "experiment_name": "exp_mammofm_real_only_smoke",
+  "config": "RealOnly",
+  "split": "validation",
+  "n_samples": 8,
+  "threshold": 0.5149,
+  "roc_auc": 0.375,
+  "pr_auc_average_precision": 0.4833,
+  "accuracy": 0.625,
+  "balanced_accuracy": 0.625,
+  "f1": 0.6667,
+  "precision": 0.6,
+  "recall_sensitivity": 0.75,
+  "specificity": 0.5,
+  "brier_score": 0.2546,
+  "confusion_matrix": [
+    [
+      2,
+      2
+    ],
+    [
+      1,
+      3
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.67      0.50      0.57         4\n      Malato       0.60      0.75      0.67         4\n\n    accuracy                           0.62         8\n   macro avg       0.63      0.62      0.62         8\nweighted avg       0.63      0.62      0.62         8\n",
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_mammofm_real_only_smoke/exp_mammofm_real_only_smoke_final_best.pt"
+}

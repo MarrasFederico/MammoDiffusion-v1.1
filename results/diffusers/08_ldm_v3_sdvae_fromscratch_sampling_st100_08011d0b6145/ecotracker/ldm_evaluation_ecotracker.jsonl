@@ -1,0 +1,3 @@
+{"label": "ldm_evaluate_checkpoints", "elapsed_seconds": 5.736975147000521, "peak_ram_mb": 2355.7265625, "energy_kwh": 0.0001246514755952523, "co2_kg": 4.122448670591065e-05}
+{"label": "ldm_select_best_checkpoint", "elapsed_seconds": 0.14247458800036839, "peak_ram_mb": 2294.6015625, "energy_kwh": 2.022009921271696e-05, "co2_kg": 6.687150771431328e-06}
+{"label": "ldm_generate_evaluation_plots", "elapsed_seconds": 0.47080034900045575, "peak_ram_mb": 2294.84765625, "energy_kwh": 2.0218779961096612e-05, "co2_kg": 6.68671447117395e-06}

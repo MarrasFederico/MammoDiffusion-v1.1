@@ -1,0 +1,29 @@
+{
+  "experiment_name": "exp_mammofm_real_synthetic_sd_finetuned",
+  "config": "Real+Synthetic_FineTunedSD2.1",
+  "split": "validation",
+  "n_samples": 437,
+  "threshold": 0.3627,
+  "roc_auc": 0.7165,
+  "pr_auc_average_precision": 0.371,
+  "accuracy": 0.595,
+  "balanced_accuracy": 0.6802,
+  "f1": 0.4,
+  "precision": 0.2658,
+  "recall_sensitivity": 0.8082,
+  "specificity": 0.5522,
+  "brier_score": 0.1737,
+  "confusion_matrix": [
+    [
+      201,
+      163
+    ],
+    [
+      14,
+      59
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.93      0.55      0.69       364\n      Malato       0.27      0.81      0.40        73\n\n    accuracy                           0.59       437\n   macro avg       0.60      0.68      0.55       437\nweighted avg       0.82      0.59      0.65       437\n",
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_mammofm_real_synthetic_sd_finetuned/exp_mammofm_real_synthetic_sd_finetuned_final_best.pt"
+}

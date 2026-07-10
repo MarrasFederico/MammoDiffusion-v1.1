@@ -12,6 +12,8 @@ data/
 *.ckpt
 *.h5
 *.hdf5
+*.safetensors
+*.bin
 *.npy
 *.npz
 *.pkl
@@ -24,6 +26,37 @@ data/
 # ================================
 # I file val_metrics.json vengono tracciati (risultati utili)
 # I pesi (.keras/.pt/.pth/.ckpt) sono già coperti dalle regole sopra
+
+# Cache/modelli locali condivisi dai notebook
+notebooks/pretrained_model/
+
+
+# ================================
+# ESPERIMENTI DIFFUSORI - cartelle intere (troppo grandi per GitHub)
+# ================================
+# Fine-tuning Stable Diffusion (notebook 03a/03b/03c/03d):
+#   03a -> 20260607_sd21_rsna_mlo_512
+#   03b -> 20260611_sd21_rsna_mlo_512_inference_100_steps
+#   03c -> 20260706_sd21_vaeft_extra1361
+#   03d -> 20260707_sd21_lora_finetuning
+experiments/*_sd21_*/
+# LDM Keras from scratch (notebook 04a/04b/04b1/04b2/04b3):
+#   04a  -> 20260617_ldm_basic
+#   04b* -> ..._ldm_keras_v2_extra1361, 20260703_ldm_sdvae_extra1361, 20260707_ldm_v3_sdvae_extra1361
+experiments/*_ldm_*/
+# Nuova struttura: gli esperimenti dei diffusori contengono repository, cache e
+# checkpoint molto grandi. Codice e metriche restano in notebooks/ e results/.
+experiments/diffusers/
+# Output di 04d (ottimizzazione sampling di un LDM sorgente)
+experiments/04d_ldm_*/
+# Le cartelle experiments/exp_maxvit512_*, experiments/exp_mammofm_*, experiments/exp_raddino_*
+# e experiments/compare_22c_* (classificatori) restano tracciate.
+
+# Zip di backup dei notebook creati fuori workflow (non versionare)
+notebooks*.zip
+
+# Struttura piatta precedente, conservata solo come archivio locale.
+/old/
 
 # ================================
 # FORMATI DATI TABELLARI

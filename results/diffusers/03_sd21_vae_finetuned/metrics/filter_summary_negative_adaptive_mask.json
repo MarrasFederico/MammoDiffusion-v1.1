@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "filter_schema_version": "adaptive_mask_v2",
+  "timestamp": "2026-07-08T00:59:13",
+  "experiment_name": "20260706_sd21_vaeft_extra1361",
+  "class_name": "negative",
+  "experiment": "20260706_sd21_vaeft_extra1361",
+  "class": "negative",
+  "label": 0,
+  "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/final/negative",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_vaeft/negative",
+  "n_raw": 2722,
+  "n_accepted": 2242,
+  "n_rejected": 480,
+  "n_selected": 1361,
+  "thresholds": {
+    "min_nonblack_ratio": 0.11003990173339843,
+    "max_nonblack_ratio": 0.9325748443603515,
+    "min_std_nonblack": 7.653020130329478,
+    "min_largest_component_frac": 0.75,
+    "max_top_border": 0.65,
+    "max_bottom_border": 0.65
+  },
+  "reference_medians": {
+    "nonblack_ratio": 0.38591766357421875,
+    "mean_nonblack": 87.0449901615288,
+    "std_nonblack": 39.20778759458155,
+    "entropy": 3.758545965554059,
+    "lap_var": 692.666748046875,
+    "largest_component_frac": 0.99877224559856
+  },
+  "reference_iqrs": {
+    "nonblack_ratio": 0.148101806640625,
+    "mean_nonblack": 56.888699374539826,
+    "std_nonblack": 18.586548122085716,
+    "entropy": 1.1811808836873583,
+    "lap_var": 753.1515808105469,
+    "largest_component_frac": 0.00263542837800268
+  },
+  "n_real_train_reference": 1701,
+  "reject_reason_counts": {
+    "too_empty": 368,
+    "low_contrast": 89,
+    "fragmented_mask": 20,
+    "too_full": 3
+  },
+  "ranking_config": {
+    "schema_version": 2,
+    "filter_schema_version": "adaptive_mask_v2",
+    "selection_score": "robust_distance_from_train_reference",
+    "sort_order": "descending_selection_score",
+    "n_selected": 1361,
+    "eval_seed": 42,
+    "reference_seed": 42,
+    "nonblack_threshold": 10,
+    "output_naming": "selected_output_name_v1"
+  },
+  "status": "completed"
+}

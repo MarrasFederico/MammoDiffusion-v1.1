@@ -1,0 +1,5 @@
+{"label": "ldm_evaluate_checkpoints", "elapsed_seconds": 166.9944717000035, "peak_ram_mb": 2847.5859375, "energy_kwh": 0.002082737890712576, "co2_kg": 0.0006887989097406818}
+{"label": "ldm_select_best_checkpoint", "elapsed_seconds": 0.05280537100043148, "peak_ram_mb": 2767.109375, "energy_kwh": 2.0217429601975213e-05, "co2_kg": 6.686267883106039e-06}
+{"label": "ldm_generate_evaluation_plots", "elapsed_seconds": 0.6058998750013416, "peak_ram_mb": 2769.359375, "energy_kwh": 4.1504483139210335e-05, "co2_kg": 1.3726279654833364e-05}
+{"label": "ldm_select_best_checkpoint", "elapsed_seconds": 0.15374210699974356, "peak_ram_mb": 150.7265625, "energy_kwh": 2.0230510767492477e-05, "co2_kg": 6.690594060003577e-06}
+{"label": "ldm_generate_evaluation_plots", "elapsed_seconds": 0.862988994999796, "peak_ram_mb": 195.55078125, "energy_kwh": 4.15570011712583e-05, "co2_kg": 1.3743648313356205e-05}

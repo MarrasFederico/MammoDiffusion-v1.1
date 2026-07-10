@@ -1,0 +1,46 @@
+{
+  "experiment_name": "exp_maxvit512_full_synth_fromscratch_sdvae_full",
+  "date": "2026-07-08",
+  "config": "FromScratch_SD_VAE_Full",
+  "fine_tune_mode": "full",
+  "backbone": {
+    "name": "maxvit_tiny_tf_512.in1k",
+    "library": "timm",
+    "weights": "in1k",
+    "input_shape": [
+      512,
+      512,
+      3
+    ]
+  },
+  "data": {
+    "batch_size": 8,
+    "seed": 42,
+    "n_train": 2722,
+    "n_val": 437,
+    "source_counts": {
+      "fromscratch_sdvae": {
+        "sano_0": 1361,
+        "malato_1": 1361,
+        "totale": 2722
+      }
+    }
+  },
+  "phase1_head_training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.001,
+    "loss": "BCEWithLogitsLoss(pos_weight=balanced)",
+    "max_epochs": 25,
+    "early_stopping_patience": 7,
+    "backbone_trainable": false
+  },
+  "phase2_fine_tuning": {
+    "optimizer": "Adam",
+    "learning_rate": 1e-05,
+    "loss": "BinaryFocalLoss(alpha=0.75, gamma=2.0)",
+    "max_epochs": 30,
+    "fine_tune_from": "full",
+    "early_stopping_patience": 5,
+    "early_stopping_min_delta": 0.001
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "experiment_name": "exp_mammofm_real_synthetic_sd_finetuned",
+  "config": "Real+Synthetic_FineTunedSD2.1",
+  "training_mode": "real_synthetic_sd_finetuned",
+  "date": "2026-07-06",
+  "seed": 42,
+  "device": "cuda",
+  "smoke_test": false,
+  "model": {
+    "name": "Mammo-FM",
+    "backend": "efficientnet_pytorch",
+    "source": "huggingface:batmanLab/Mammo-FM/Mammo-FM_BatmanlabTrained_CLIP.tar (encoder=efficientnet-b5, config_name='tf_efficientnet_b5_ns-detect')",
+    "hidden_size": 2048,
+    "dropout": 0.1,
+    "img_size": 512,
+    "hf_repo": "batmanLab/Mammo-FM",
+    "checkpoint_name": "Mammo-FM_BatmanlabTrained_CLIP.tar",
+    "use_local_checkpoint": false,
+    "use_clahe_preprocessing": false,
+    "license_note": "Custom Academic License for Model Weights (non commerciale, solo ricerca accademica, nessun uso clinico, nessuna ridistribuzione dei pesi)."
+  },
+  "data": {
+    "batch_size": 8,
+    "grad_accum_steps": 2,
+    "num_workers": 2,
+    "n_train": 4763,
+    "n_val": 437,
+    "n_test": 438,
+    "source_counts_train": {
+      "FineTuned_SD2.1": {
+        "sano_0": 1361,
+        "malato_1": 1361,
+        "totale": 2722
+      },
+      "real_train": {
+        "sano_0": 1701,
+        "malato_1": 340,
+        "totale": 2041
+      }
+    }
+  },
+  "phase1_head_training": {
+    "optimizer": "AdamW",
+    "learning_rate": 0.001,
+    "loss": "BCEWithLogitsLoss(pos_weight=balanced)",
+    "max_epochs": 25,
+    "early_stopping_patience": 7,
+    "backbone_trainable": false
+  },
+  "phase2_fine_tuning": {
+    "optimizer": "AdamW",
+    "learning_rate": 1e-05,
+    "loss": "BinaryFocalLoss(alpha=0.75, gamma=2.0)",
+    "max_epochs": 30,
+    "fine_tune_mode": "partial",
+    "unfreeze_last_n_blocks": 2,
+    "early_stopping_patience": 5,
+    "use_amp": true,
+    "grad_clip_norm": 1.0
+  }
+}

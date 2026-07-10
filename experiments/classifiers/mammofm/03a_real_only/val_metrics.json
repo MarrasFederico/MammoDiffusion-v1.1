@@ -1,0 +1,29 @@
+{
+  "experiment_name": "exp_mammofm_real_only",
+  "config": "RealOnly",
+  "split": "validation",
+  "n_samples": 437,
+  "threshold": 0.3435,
+  "roc_auc": 0.7272,
+  "pr_auc_average_precision": 0.3815,
+  "accuracy": 0.5973,
+  "balanced_accuracy": 0.6871,
+  "f1": 0.4054,
+  "precision": 0.2691,
+  "recall_sensitivity": 0.8219,
+  "specificity": 0.5522,
+  "brier_score": 0.1715,
+  "confusion_matrix": [
+    [
+      201,
+      163
+    ],
+    [
+      13,
+      60
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.94      0.55      0.70       364\n      Malato       0.27      0.82      0.41        73\n\n    accuracy                           0.60       437\n   macro avg       0.60      0.69      0.55       437\nweighted avg       0.83      0.60      0.65       437\n",
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_mammofm_real_only/exp_mammofm_real_only_final_best.pt"
+}

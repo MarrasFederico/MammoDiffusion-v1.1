@@ -1,0 +1,20 @@
+{
+  "best_checkpoint_id": "step_75000",
+  "best_step": 75000,
+  "selection_metric": "fid_1",
+  "baseline_n_gen_per_class": 100,
+  "baseline_fid": 114.4971,
+  "sampling_n_gen_per_class": 50,
+  "reference_sample_steps": 100,
+  "reference_fid": 119.9702,
+  "quality_tolerance_factor": 1.05,
+  "max_relative_fid_degradation": 0.050000000000000044,
+  "step_budgets_tested": [
+    25,
+    50,
+    75,
+    100
+  ],
+  "recommended_gen_sample_steps": 100,
+  "sweep_summary_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/evaluation/sampling_sweep/sampling_sweep_summary.csv"
+}

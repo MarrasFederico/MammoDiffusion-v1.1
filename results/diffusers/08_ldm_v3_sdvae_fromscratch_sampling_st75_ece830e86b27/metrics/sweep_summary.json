@@ -1,0 +1,31 @@
+{
+  "n_checkpoints": 1,
+  "n_gen_per_class": 50,
+  "sample_steps": 75,
+  "guidance_scale": 1.5,
+  "results_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/evaluation/sampling_sweep/runs/step_75000__st0075__gs1p5__n050__ece830e86b27/sweep_results.csv",
+  "canonical_results_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/04b3_ldm_v3_sdvae_sampling_st75_ece830e86b27/metrics/sweep_results.csv",
+  "best_metric": "fid_1",
+  "checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/evaluation/sampling_sweep/runs/step_75000__st0075__gs1p5__n050__ece830e86b27/checkpoint_metrics.json",
+  "canonical_checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/results/04b3_ldm_v3_sdvae_sampling_st75_ece830e86b27/metrics/checkpoint_metrics.json",
+  "plots": {
+    "best_checkpoint_summary.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04b3_ldm_v3_sdvae_sampling_st75_ece830e86b27/plots/best_checkpoint_summary.png",
+    "checkpoint_fid_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04b3_ldm_v3_sdvae_sampling_st75_ece830e86b27/plots/checkpoint_fid_comparison.png",
+    "checkpoint_is_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04b3_ldm_v3_sdvae_sampling_st75_ece830e86b27/plots/checkpoint_is_comparison.png"
+  },
+  "selection_metric": "fid_1",
+  "selection_direction": "minimize",
+  "tie_breaker": "is_mean_1",
+  "tie_breaker_direction": "maximize",
+  "selected_class": 1,
+  "selection_reason": "Best generation quality for the positive mammography class",
+  "best_checkpoint_id": "step_75000",
+  "best_step": 75000,
+  "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras",
+  "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+  "notebook": "04b3_LDM_v3_SDVAE_from_scratch.ipynb",
+  "unet_version": "v3",
+  "parameterization": "v",
+  "vae_source": "sd_vae_finetuned_03c",
+  "uses_vae_ft_from_03c": true
+}

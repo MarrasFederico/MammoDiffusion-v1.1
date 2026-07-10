@@ -1,0 +1,1 @@
+{"label": "ldm_training", "elapsed_seconds": 24026.188333913, "peak_ram_mb": 3714.23046875, "energy_kwh": 1.0352974696207267, "co2_kg": 0.34239150855802747, "phase": "ldm_training", "total_steps": 150000, "best_loss": 0.005905817728489637, "batch_size": 16, "lr": 0.0001}

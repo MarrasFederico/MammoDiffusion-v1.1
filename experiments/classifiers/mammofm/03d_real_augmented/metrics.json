@@ -1,0 +1,30 @@
+{
+  "experiment_name": "exp_mammofm_real_augmented",
+  "config": "Real+Augmented_Traditional",
+  "split": "test",
+  "n_samples": 438,
+  "threshold": 0.4227,
+  "roc_auc": 0.617,
+  "pr_auc_average_precision": 0.2664,
+  "accuracy": 0.5959,
+  "balanced_accuracy": 0.5932,
+  "f1": 0.327,
+  "precision": 0.2263,
+  "recall_sensitivity": 0.589,
+  "specificity": 0.5973,
+  "brier_score": 0.2078,
+  "confusion_matrix": [
+    [
+      218,
+      147
+    ],
+    [
+      30,
+      43
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.88      0.60      0.71       365\n      Malato       0.23      0.59      0.33        73\n\n    accuracy                           0.60       438\n   macro avg       0.55      0.59      0.52       438\nweighted avg       0.77      0.60      0.65       438\n",
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_mammofm_real_augmented/exp_mammofm_real_augmented_final_best.pt",
+  "training_mode": "real_augmented"
+}

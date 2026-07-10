@@ -1,0 +1,30 @@
+{
+  "experiment_name": "exp_mammofm_real_synthetic_fromscratch",
+  "config": "Real+Synthetic_FromScratchSDVAE",
+  "split": "test",
+  "n_samples": 438,
+  "threshold": 0.5403,
+  "roc_auc": 0.6071,
+  "pr_auc_average_precision": 0.2808,
+  "accuracy": 0.726,
+  "balanced_accuracy": 0.5781,
+  "f1": 0.3023,
+  "precision": 0.2626,
+  "recall_sensitivity": 0.3562,
+  "specificity": 0.8,
+  "brier_score": 0.2069,
+  "confusion_matrix": [
+    [
+      292,
+      73
+    ],
+    [
+      47,
+      26
+    ]
+  ],
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.86      0.80      0.83       365\n      Malato       0.26      0.36      0.30        73\n\n    accuracy                           0.73       438\n   macro avg       0.56      0.58      0.57       438\nweighted avg       0.76      0.73      0.74       438\n",
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_mammofm_real_synthetic_fromscratch/exp_mammofm_real_synthetic_fromscratch_final_best.pt",
+  "training_mode": "real_synthetic_fromscratch"
+}

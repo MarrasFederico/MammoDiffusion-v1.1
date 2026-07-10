@@ -1,0 +1,36 @@
+[
+  {
+    "name": "FromScratch_SD_VAE_Partial",
+    "fine_tune_mode": "partial",
+    "experiment_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/exp_maxvit512_full_synth_fromscratch_sdvae_partial",
+    "checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/exp_maxvit512_full_synth_fromscratch_sdvae_partial/fromscratch_sdvae_synth_maxvit512_partial_final_best.pt",
+    "arch": "MaxViT-Tiny-512",
+    "config": "FromScratch_SD_VAE_Partial",
+    "split": "validation",
+    "experiment_name": "exp_maxvit512_full_synth_fromscratch_sdvae_partial",
+    "threshold_youden_from_val": 0.8237,
+    "roc_auc": 0.5555,
+    "accuracy": 0.4348,
+    "precision_malato": 0.1958,
+    "recall_malato": 0.7671,
+    "f1_malato": 0.312,
+    "optimal_threshold_youden": 0.8237
+  },
+  {
+    "name": "FromScratch_SD_VAE_Full",
+    "fine_tune_mode": "full",
+    "experiment_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/exp_maxvit512_full_synth_fromscratch_sdvae_full",
+    "checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/exp_maxvit512_full_synth_fromscratch_sdvae_full/fromscratch_sdvae_synth_maxvit512_full_final_best.pt",
+    "arch": "MaxViT-Tiny-512",
+    "config": "FromScratch_SD_VAE_Full",
+    "split": "validation",
+    "experiment_name": "exp_maxvit512_full_synth_fromscratch_sdvae_full",
+    "threshold_youden_from_val": 0.9188,
+    "roc_auc": 0.5634,
+    "accuracy": 0.7849,
+    "precision_malato": 0.3091,
+    "recall_malato": 0.2329,
+    "f1_malato": 0.2656,
+    "optimal_threshold_youden": 0.9188
+  }
+]

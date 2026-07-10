@@ -1,0 +1,6 @@
+{
+  "n_config_vinte_da_maxvit_auc": 3,
+  "n_config_totali": 3,
+  "delta_auc_medio": 0.0366,
+  "verdetto": "MaxViT-Tiny-512 batte ResNet-50 in TUTTE le configurazioni testate (AUC)."
+}

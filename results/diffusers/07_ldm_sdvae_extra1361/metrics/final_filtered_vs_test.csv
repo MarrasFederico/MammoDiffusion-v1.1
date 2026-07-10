@@ -1,0 +1,2 @@
+metric_backend,reference_split,target_label,n_real_test,n_synthetic_filtered,synthetic_dir,inception_batch,is_splits,knn_k,FID,IS_mean,IS_std,precision,recall,density,coverage
+generative_evaluator.py,test,1,73,1361,/home/fede/Documenti/MammoDiffusion/data/synthetic/fromscratch_new/positive,8,10,3,127.1515,2.3761,0.0957,0.2697,0.1096,0.1398,0.6164

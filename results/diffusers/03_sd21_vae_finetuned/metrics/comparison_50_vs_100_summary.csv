@@ -1,0 +1,9 @@
+inference_steps,stage,class_name,n_generated,FID,IS mean,IS std,precision,recall,density,coverage,comparison_role,label,artifact
+100,raw_matched,positive,1361,105.5228,2.209,0.0955,0.5129,0.0959,0.2905,0.863,inference_steps_comparison,1,final_test_metrics_raw_matched_100_steps
+100,raw_matched,positive,1361,105.5228,2.209,0.0955,0.5129,0.0959,0.2905,0.863,filter_comparison,1,final_test_metrics_raw_matched_100_steps
+100,raw_matched,negative,1361,126.3405,2.4006,0.1005,0.3358,0.137,0.1415,0.7945,inference_steps_comparison,0,final_test_metrics_raw_matched_100_steps
+100,raw_matched,negative,1361,126.3405,2.4006,0.1005,0.3358,0.137,0.1415,0.7945,filter_comparison,0,final_test_metrics_raw_matched_100_steps
+100,filtered,positive,1361,99.2599,2.0892,0.0449,0.6774,0.0822,0.4457,0.9315,filter_comparison,1,final_test_metrics
+100,filtered,positive,1361,99.2599,2.0892,0.0449,0.6774,0.0822,0.4457,0.9315,pipeline_final,1,final_test_metrics
+100,filtered,negative,1361,108.8956,2.1472,0.0486,0.5217,0.0685,0.2292,0.8219,filter_comparison,0,final_test_metrics
+100,filtered,negative,1361,108.8956,2.1472,0.0486,0.5217,0.0685,0.2292,0.8219,pipeline_final,0,final_test_metrics

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "stages": {
+    "generate": {
+      "stage": "generate",
+      "raw_dir": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/synthetic_raw",
+      "n_raw": 4083,
+      "target_label": 1,
+      "sample_steps": 100,
+      "guidance_scale": 1.5,
+      "vae_backend": "sd",
+      "sd_vae_model": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base",
+      "model_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "state_json": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/logs/generation_raw_state.json",
+      "sampler_randomness": "stateless_seed_per_image_v1",
+      "canonical_run": true
+    },
+    "filter": {
+      "stage": "filter",
+      "raw_dir": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/synthetic_raw",
+      "filtered_dir": "/home/fede/Documenti/MammoDiffusion/data/synthetic/fromscratch_new/positive",
+      "n_raw": 4083,
+      "n_selected": 1361,
+      "target_label": 1,
+      "summary_json": "/home/fede/Documenti/MammoDiffusion/results/04b2_ldm_sdvae_extra1361/metrics/synthetic_filter_summary.json",
+      "report_csv": "/home/fede/Documenti/MammoDiffusion/results/04b2_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
+      "canonical_run": true,
+      "cached": true
+    },
+    "validate": {
+      "stage": "validate",
+      "csv": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/evaluation/raw_vs_filtered_validation.csv",
+      "json": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/evaluation/raw_vs_filtered_validation.json",
+      "canonical_run": true,
+      "canonical_csv": "/home/fede/Documenti/MammoDiffusion/results/04b2_ldm_sdvae_extra1361/metrics/raw_vs_filtered_validation.csv",
+      "canonical_json": "/home/fede/Documenti/MammoDiffusion/results/04b2_ldm_sdvae_extra1361/metrics/raw_vs_filtered_validation.json"
+    },
+    "test": {
+      "stage": "test",
+      "filtered_dir": "/home/fede/Documenti/MammoDiffusion/data/synthetic/fromscratch_new/positive",
+      "csv": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/evaluation/final_filtered_vs_test.csv",
+      "json": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/evaluation/final_filtered_vs_test.json",
+      "canonical_run": true
+    }
+  }
+}

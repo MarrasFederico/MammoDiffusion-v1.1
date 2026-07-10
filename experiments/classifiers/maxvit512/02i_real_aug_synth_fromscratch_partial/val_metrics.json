@@ -1,0 +1,16 @@
+{
+  "arch": "MaxViT-Tiny-512",
+  "config": "Real+Augmented+FromScratch_SD_VAE",
+  "split": "validation",
+  "experiment_name": "exp_maxvit512_real_aug_synth_fromscratch_sdvae_partial",
+  "threshold_youden_from_val": 0.4215,
+  "roc_auc": 0.6117,
+  "accuracy": 0.6522,
+  "precision_malato": 0.2452,
+  "recall_malato": 0.5205,
+  "f1_malato": 0.3333,
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.88      0.68      0.76       364\n      Malato       0.25      0.52      0.33        73\n\n    accuracy                           0.65       437\n   macro avg       0.56      0.60      0.55       437\nweighted avg       0.77      0.65      0.69       437\n",
+  "optimal_threshold_youden": 0.4215,
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_maxvit512_real_aug_synth_fromscratch_sdvae_partial/real_aug_synth_fromscratch_sdvae_maxvit512_partial_final_best.pt"
+}

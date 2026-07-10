@@ -1,0 +1,15 @@
+{
+  "arch": "MaxViT-Tiny-512",
+  "config": "Real+Augmented+FineTuned_SD2.1",
+  "split": "test",
+  "experiment_name": "exp_maxvit512_real_aug_synth_finetuned_sd21_partial",
+  "threshold_youden_from_val": 0.4025,
+  "roc_auc": 0.6173,
+  "accuracy": 0.5845,
+  "precision_malato": 0.2176,
+  "recall_malato": 0.5753,
+  "f1_malato": 0.3158,
+  "classification_report": "              precision    recall  f1-score   support\n\n        Sano       0.87      0.59      0.70       365\n      Malato       0.22      0.58      0.32        73\n\n    accuracy                           0.58       438\n   macro avg       0.55      0.58      0.51       438\nweighted avg       0.76      0.58      0.64       438\n",
+  "fine_tune_mode": "partial",
+  "checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/exp_maxvit512_real_aug_synth_finetuned_sd21_partial/real_aug_synth_finetuned_sd21_maxvit512_partial_final_best.pt"
+}

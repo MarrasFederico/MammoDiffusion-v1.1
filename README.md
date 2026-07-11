@@ -36,7 +36,6 @@ MammoDiffusion/
 |-- data/                              # locale, esclusa da Git
 |-- experiments/
 |   |-- diffusers/                     # cache e checkpoint esclusi da Git
-|   |-- legacy/                        # risultati storici non usati dai notebook attivi
 |   `-- classifiers/
 |       |-- resnet50/
 |       |-- maxvit512/
@@ -54,7 +53,6 @@ MammoDiffusion/
 |   |-- diffusers/
 |   |-- classifiers/
 |   |-- comparisons/
-|   `-- legacy/
 `-- old/                               # struttura piatta locale, esclusa da Git
 ```
 
@@ -138,6 +136,10 @@ pip install -r requirements.txt
 PyTorch/TensorFlow e CUDA devono essere compatibili con la GPU utilizzata. Il notebook 08 configura esplicitamente RTX 5060 Ti/Blackwell e il percorso `libdevice`; il notebook 04 imposta la GPU prima di importare PyTorch. Dopo un cambio di GPU e necessario riavviare il kernel.
 
 Il modello base condiviso e risolto da `notebooks/pretrained_model/stable-diffusion-2-1-base` oppure dalla variabile `MAMMODIFFUSION_SD21_BASE`. I VAE e gli adapter modificati restano invece nelle rispettive cartelle di esperimento.
+
+## Demo Gradio
+
+La demo locale e in `assets/mammodiffusion_gradio/`. Usa i path correnti degli esperimenti 02 e 06 e salva gli output temporanei fuori da Git.
 
 ## Riproducibilita
 

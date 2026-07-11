@@ -1,11 +1,68 @@
 from __future__ import annotations
 
 import json
+import importlib
 import os
+import sys
 from pathlib import Path
 from typing import Iterable
 
 import numpy as np
+
+
+def _infer_project_root(path: Path) -> Path | None:
+    """Risale alla root del progetto partendo da un modello SD/VAE locale."""
+    for candidate in [path.resolve(), *path.resolve().parents]:
+        if (candidate / "notebooks").is_dir() and (candidate / "experiments").is_dir():
+            return candidate
+    return None
+
+
+def _local_diffusers_src_candidates(project_root: Path | None) -> list[Path]:
+    """Elenca checkout Diffusers locali in ordine stabile, senza dipendere da pip editable."""
+    candidates: list[Path] = []
+    env_value = os.environ.get("MAMMODIFFUSION_DIFFUSERS_SRC")
+    if env_value:
+        candidates.append(Path(env_value).expanduser())
+    if project_root is not None:
+        experiment_root = project_root / "experiments" / "diffusers"
+        candidates.extend([
+            experiment_root / "03_sd21_vae_finetuned" / "diffusers_repo" / "src",
+            experiment_root / "04_sd21_lora" / "diffusers_repo" / "src",
+        ])
+        if experiment_root.is_dir():
+            candidates.extend(sorted(experiment_root.glob("*/diffusers_repo/src")))
+
+    unique: list[Path] = []
+    for candidate in candidates:
+        candidate = candidate.resolve()
+        if candidate not in unique and (candidate / "diffusers" / "__init__.py").is_file():
+            unique.append(candidate)
+    return unique
+
+
+def ensure_diffusers_available(project_root: Path | None = None):
+    """Importa Diffusers, riparando automaticamente un editable install rotto dopo un rename."""
+    try:
+        return importlib.import_module("diffusers")
+    except ModuleNotFoundError as original_error:
+        for source_dir in _local_diffusers_src_candidates(project_root):
+            source_text = str(source_dir)
+            if source_text not in sys.path:
+                sys.path.insert(0, source_text)
+            importlib.invalidate_caches()
+            try:
+                return importlib.import_module("diffusers")
+            except ModuleNotFoundError:
+                sys.modules.pop("diffusers", None)
+
+        checked = _local_diffusers_src_candidates(project_root)
+        checked_text = "\n".join(f"- {path}" for path in checked) or "- nessun checkout locale trovato"
+        raise ModuleNotFoundError(
+            "Il pacchetto 'diffusers' non e' importabile. "
+            "Installa requirements.txt oppure imposta MAMMODIFFUSION_DIFFUSERS_SRC.\n"
+            f"Checkout locali controllati:\n{checked_text}"
+        ) from original_error
 
 
 def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None) -> str:
@@ -35,11 +92,6 @@ def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None
         project_root / "models" / "stable-diffusion-2-1-base",
         project_root / "experiments" / "diffusers" / "07_ldm_sdvae_extra1361" / "pretrained_model" / "stable-diffusion-2-1-base",
         project_root / "experiments" / "diffusers" / "03_sd21_vae_finetuned" / "pretrained_model" / "stable-diffusion-2-1-base",
-        # Fallback per checkout creati prima della migrazione della struttura.
-        project_root / "experiments" / "20260703_ldm_sdvae_extra1361" / "pretrained_model" / "stable-diffusion-2-1-base",
-        project_root / "experiments" / "20260706_sd21_vaeft_extra1361" / "pretrained_model" / "stable-diffusion-2-1-base",
-        project_root / "experiments" / "20260611_sd21_rsna_mlo_512_inference_100_steps" / "pretrained_model" / "stable-diffusion-2-1-base",
-        project_root / "experiments" / "20260607_sd21_rsna_mlo_512" / "pretrained_model" / "stable-diffusion-2-1-base",
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -65,6 +117,9 @@ def load_sd_vae(
     dtype: str | None = None,
 ):
     """Load the SD AutoencoderKL from a local full pipeline folder or VAE folder."""
+    project_root = _infer_project_root(Path(model_name_or_path).expanduser())
+    ensure_diffusers_available(project_root)
+
     import torch
     from diffusers import AutoencoderKL
 

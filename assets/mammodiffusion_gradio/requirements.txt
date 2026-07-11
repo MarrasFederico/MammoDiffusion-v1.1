@@ -1,0 +1,9 @@
+accelerate
+diffusers
+gradio>=6,<7
+numpy
+pillow
+safetensors
+tensorflow
+torch
+transformers

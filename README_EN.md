@@ -36,7 +36,6 @@ MammoDiffusion/
 |-- data/                              # local, excluded from Git
 |-- experiments/
 |   |-- diffusers/                     # caches and checkpoints excluded from Git
-|   |-- legacy/                        # historical runs not used by active notebooks
 |   `-- classifiers/
 |       |-- resnet50/
 |       |-- maxvit512/
@@ -54,7 +53,6 @@ MammoDiffusion/
 |   |-- diffusers/
 |   |-- classifiers/
 |   |-- comparisons/
-|   `-- legacy/
 `-- old/                               # local flat-layout archive, excluded from Git
 ```
 
@@ -90,7 +88,7 @@ Notebooks 07 and 08 apply the same workflow to both classes:
 generate -> filter -> validate (real validation) -> test (real test)
 ```
 
-Final metrics are stored separately under `metrics/positive/` and `metrics/negative/`. Main positive outputs are also mirrored to the legacy flat paths for backward compatibility.
+Final metrics are stored separately under `metrics/positive/` and `metrics/negative/`. Main positive outputs are also mirrored to flat paths for backward compatibility.
 
 ### Classifiers
 
@@ -138,6 +136,10 @@ pip install -r requirements.txt
 PyTorch/TensorFlow and CUDA must match the selected GPU. Notebook 08 explicitly configures RTX 5060 Ti/Blackwell and the `libdevice` path; notebook 04 selects its GPU before importing PyTorch. Restart the kernel after changing GPU assignments.
 
 The shared base model is resolved from `notebooks/pretrained_model/stable-diffusion-2-1-base` or `MAMMODIFFUSION_SD21_BASE`. Modified VAEs and adapters remain inside their experiment directories.
+
+## Gradio Demo
+
+The local demo lives in `assets/mammodiffusion_gradio/`. It uses the current paths for experiments 02 and 06 and keeps temporary outputs out of Git.
 
 ## Reproducibility
 

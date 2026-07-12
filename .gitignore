@@ -29,6 +29,12 @@ data/
 
 # Cache/modelli locali condivisi dai notebook
 notebooks/pretrained_model/
+recovered_legacy_candidates/
+pre_sol_recovery_*/
+archive_before_github/
+*.lock
+*.claim
+*.reservation
 
 
 # ================================
@@ -54,6 +60,8 @@ experiments/04d_ldm_*/
 
 # Zip di backup dei notebook creati fuori workflow (non versionare)
 notebooks*.zip
+new*.zip
+tests*.zip
 
 # Struttura piatta precedente, conservata solo come archivio locale.
 /old/

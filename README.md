@@ -137,6 +137,12 @@ PyTorch/TensorFlow e CUDA devono essere compatibili con la GPU utilizzata. Il no
 
 Il modello base condiviso e risolto da `notebooks/pretrained_model/stable-diffusion-2-1-base` oppure dalla variabile `MAMMODIFFUSION_SD21_BASE`. I VAE e gli adapter modificati restano invece nelle rispettive cartelle di esperimento.
 
+Il repository Diffusers condiviso e pinned vive sotto
+`experiments/diffusers/03_sd21_vae_finetuned/diffusers_repo`. Le utility lo trattano come unica
+sorgente attiva; i duplicati identici sono stati archiviati fuori dal repository.
+Il modello SD2.1 base canonico resta quello sotto `notebooks/pretrained_model/`, mentre VAE e
+LoRA modificati rimangono intenzionalmente negli esperimenti che li hanno prodotti.
+
 ## Demo Gradio
 
 La demo locale e in `assets/mammodiffusion_gradio/`. Usa i path correnti degli esperimenti 02 e 06 e salva gli output temporanei fuori da Git.
@@ -150,9 +156,20 @@ La demo locale e in `assets/mammodiffusion_gradio/`. Usa i path correnti degli e
 - FID, IS e PRDC calcolati per classe;
 - checkpoint, dataset e cache pesanti esclusi da Git, metriche e codice versionati.
 
-## Evoluzione
+## Stato conclusivo della preparazione
 
-La priorita immediata e completare 04 LoRA e rieseguire 08 nella struttura definitiva. I risultati determineranno quali dataset sintetici usare nei confronti downstream completi. La direzione del progetto non e scegliere la tecnica meno costosa per principio: in mammografia un costo maggiore e accettabile quando produce un miglioramento robusto e riproducibile, soprattutto sul recall della classe positiva.
+La generazione LoRA e le pipeline generative 02-08 sono completate; lo stato verificato e la
+classificazione finale/ablation sono in `configs/final_generator_registry.json` e
+`docs/GENERATOR_STATUS.md`. Otto inferenze locked sono predisposte. I due ResNet 01a/01b restano
+bloccati per assenza dei checkpoint `.keras`; 04y/04z non sono ancora stati eseguiti in real-run e
+`final_aggregation_complete=False`.
+
+Documentazione operativa:
+
+- `docs/LEGACY_RECOVERY_REPORT.md`: recupero e provenance legacy;
+- `docs/SHARED_ASSETS.md`: Diffusers/SD2.1 canonici e derivati;
+- `docs/CLASSIFIER_EXECUTION_PLAN.md`: ordine locked senza leakage;
+- `legacy_recovery_inventory.csv`: inventario content-aware completo.
 
 ## Team
 

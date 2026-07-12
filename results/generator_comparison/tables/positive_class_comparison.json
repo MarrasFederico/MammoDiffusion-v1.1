@@ -1,0 +1,98 @@
+[
+ {
+  "generator_id": "01_sd21_baseline_50steps",
+  "family": "sd21",
+  "role": "baseline"
+ },
+ {
+  "generator_id": "02_sd21_filtered_100steps",
+  "family": "sd21",
+  "role": "final_comparison",
+  "FID": 113.0254,
+  "IS_mean": 2.4159,
+  "IS_std": 0.1138,
+  "precision": 0.612,
+  "recall": 0.274,
+  "density": 0.3456,
+  "coverage": 0.9726,
+  "n_generated": 1361
+ },
+ {
+  "generator_id": "03_sd21_vae_finetuned",
+  "family": "sd21_full_finetune",
+  "role": "final_comparison",
+  "FID": 99.2599,
+  "IS_mean": 2.0892,
+  "IS_std": 0.0449,
+  "precision": 0.6774,
+  "recall": 0.0822,
+  "density": 0.4457,
+  "coverage": 0.9315,
+  "n_generated": 1361
+ },
+ {
+  "generator_id": "04_sd21_lora",
+  "family": "sd21_lora",
+  "role": "final_comparison",
+  "FID": 145.0826,
+  "IS_mean": 1.796,
+  "IS_std": 0.0675,
+  "precision": 0.363,
+  "recall": 0.0,
+  "density": 0.1709,
+  "coverage": 0.3973,
+  "n_generated": 1361
+ },
+ {
+  "generator_id": "05_ldm_basic_fromscratch",
+  "family": "ldm_keras",
+  "role": "baseline",
+  "FID": 166.8829,
+  "IS_mean": 2.4563,
+  "IS_std": 0.1531,
+  "precision": 0.0889,
+  "recall": 0.0137,
+  "density": 0.0407,
+  "coverage": 0.4658,
+  "n_generated": 1361
+ },
+ {
+  "generator_id": "06_ldm_extra1361_fromscratch",
+  "family": "ldm_keras",
+  "role": "ablation",
+  "FID": 154.5427,
+  "IS_mean": 2.2722,
+  "IS_std": 0.0963,
+  "precision": 0.1139,
+  "recall": 0.0137,
+  "density": 0.0534,
+  "coverage": 0.4932,
+  "n_generated": 1361
+ },
+ {
+  "generator_id": "07_ldm_sdvae_extra1361",
+  "family": "ldm_keras_sdvae",
+  "role": "final_comparison",
+  "FID": 127.1515,
+  "IS_mean": 2.3761,
+  "IS_std": 0.0957,
+  "precision": 0.2697,
+  "recall": 0.1096,
+  "density": 0.1398,
+  "coverage": 0.6164,
+  "n_generated": 1361
+ },
+ {
+  "generator_id": "08_ldm_v3_sdvae_fromscratch",
+  "family": "ldm_keras_sdvae_v3",
+  "role": "final_comparison_and_sampling_ablation",
+  "FID": 113.5512,
+  "IS_mean": 1.7323,
+  "IS_std": 0.0484,
+  "precision": 0.5878,
+  "recall": 0.0274,
+  "density": 0.432,
+  "coverage": 0.726,
+  "n_generated": 1361
+ }
+]

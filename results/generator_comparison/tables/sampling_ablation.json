@@ -1,0 +1,22 @@
+[
+ {
+  "sampling_steps": 25,
+  "status": "ok",
+  "run_dir": "results/diffusers/08_ldm_v3_sdvae_fromscratch_sampling_st25_2058ec8ae46d"
+ },
+ {
+  "sampling_steps": 50,
+  "status": "ok",
+  "run_dir": "results/diffusers/08_ldm_v3_sdvae_fromscratch_sampling_st50_fee56a99e979"
+ },
+ {
+  "sampling_steps": 75,
+  "status": "ok",
+  "run_dir": "results/diffusers/08_ldm_v3_sdvae_fromscratch_sampling_st75_ece830e86b27"
+ },
+ {
+  "sampling_steps": 100,
+  "status": "ok",
+  "run_dir": "results/diffusers/08_ldm_v3_sdvae_fromscratch_sampling_st100_08011d0b6145"
+ }
+]

@@ -1,0 +1,9 @@
+FID,IS_mean,IS_std,coverage,density,family,generator_id,n_generated,precision,recall,role
+,,,,,sd21,01_sd21_baseline_50steps,,,,baseline
+113.0254,2.4159,0.1138,0.9726,0.3456,sd21,02_sd21_filtered_100steps,1361,0.612,0.274,final_comparison
+99.2599,2.0892,0.0449,0.9315,0.4457,sd21_full_finetune,03_sd21_vae_finetuned,1361,0.6774,0.0822,final_comparison
+145.0826,1.796,0.0675,0.3973,0.1709,sd21_lora,04_sd21_lora,1361,0.363,0.0,final_comparison
+166.8829,2.4563,0.1531,0.4658,0.0407,ldm_keras,05_ldm_basic_fromscratch,1361,0.0889,0.0137,baseline
+154.5427,2.2722,0.0963,0.4932,0.0534,ldm_keras,06_ldm_extra1361_fromscratch,1361,0.1139,0.0137,ablation
+127.1515,2.3761,0.0957,0.6164,0.1398,ldm_keras_sdvae,07_ldm_sdvae_extra1361,1361,0.2697,0.1096,final_comparison
+113.5512,1.7323,0.0484,0.726,0.432,ldm_keras_sdvae_v3,08_ldm_v3_sdvae_fromscratch,1361,0.5878,0.0274,final_comparison_and_sampling_ablation

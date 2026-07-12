@@ -1,0 +1,61 @@
+[
+ {
+  "generator_id": "01_sd21_baseline_50steps",
+  "family": "sd21",
+  "status": "incomplete_metrics"
+ },
+ {
+  "generator_id": "02_sd21_filtered_100steps",
+  "family": "sd21",
+  "status": "ok",
+  "FID": 113.59235000000001,
+  "IS_mean": 2.4025,
+  "precision": 0.5418499999999999,
+  "recall": 0.23975000000000002,
+  "density": 0.2817,
+  "coverage": 0.92465
+ },
+ {
+  "generator_id": "03_sd21_vae_finetuned",
+  "family": "sd21_full_finetune",
+  "status": "ok",
+  "FID": 104.07775000000001,
+  "IS_mean": 2.1182,
+  "precision": 0.59955,
+  "recall": 0.07535,
+  "density": 0.33744999999999997,
+  "coverage": 0.8767
+ },
+ {
+  "generator_id": "04_sd21_lora",
+  "family": "sd21_lora",
+  "status": "ok",
+  "FID": 148.02055000000001,
+  "IS_mean": 1.8027,
+  "precision": 0.2928,
+  "recall": 0.00685,
+  "density": 0.12614999999999998,
+  "coverage": 0.3699
+ },
+ {
+  "generator_id": "06_ldm_extra1361_fromscratch",
+  "family": "ldm_keras",
+  "status": "incomplete_metrics"
+ },
+ {
+  "generator_id": "07_ldm_sdvae_extra1361",
+  "family": "ldm_keras_sdvae",
+  "status": "incomplete_metrics"
+ },
+ {
+  "generator_id": "08_ldm_v3_sdvae_fromscratch",
+  "family": "ldm_keras_sdvae_v3",
+  "status": "ok",
+  "FID": 101.77404999999999,
+  "IS_mean": 1.8355000000000001,
+  "precision": 0.6025,
+  "recall": 0.019200000000000002,
+  "density": 0.41485,
+  "coverage": 0.52325
+ }
+]

@@ -1,0 +1,18 @@
+{
+ "schema_version": 1,
+ "stage": 1,
+ "global_top_k": 3,
+ "per_family_ranking": {
+  "resnet50": [],
+  "maxvit512": [],
+  "mammofm": [],
+  "raddino": []
+ },
+ "mean_rank_by_generator": {},
+ "top_k_generators": [],
+ "family_winners": [],
+ "selected_generator_union": [],
+ "selection_used_test_data": false,
+ "n_completed_jobs_considered": 0,
+ "signature": "1895a5f6689c80b9aefc21d2c4a55cba160d0b6c92dbe5ca54b3e5679964e4e1"
+}

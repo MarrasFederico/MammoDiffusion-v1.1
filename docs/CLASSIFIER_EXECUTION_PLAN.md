@@ -5,6 +5,19 @@ inference-ready finalists are MaxViT 02a/02c/02j, Mammo-FM 03a/03b/03d and RAD-D
 ResNet 01a/01b remain excluded from execution until their exact `.keras` checkpoints are recovered
 and validated. This does not alter the locked ten-finalist policy.
 
+**Discrepancy observed, not resolved, during the v2 audit:** `configs/final_classifier_registry.json`
+currently marks `operationally_ready: true` on nine experiments, not eight — it also includes
+`maxvit512_02h_fromscratch_synthetic_full`, which this document's list omits. Left as-is pending
+confirmation of which is stale (the doc or the registry boolean); nothing in the v2 matrix work
+changed either.
+
+This plan governs the **original** 22-experiment registry only. A second, independent matrix (many
+more architecture x dataset-variant x seed combinations, screened purely on validation) now exists
+under `configs/dataset_variant_registry.json` / `configs/classifier_experiment_matrix.json` — see
+`docs/EXPERIMENT_MATRIX.md`. It has its own lock (`results/final_evaluation_v2/`, see
+`docs/FINAL_LOCKED_TEST_PROTOCOL.md`) and does not touch this registry, these notebooks, or
+`results/final_evaluation/FINALISTS_LOCKED`.
+
 Execute in this order:
 
 1. Run validation-only notebook `04x_Leaderboard_Validation_All_Classifiers.ipynb` and verify the

@@ -171,6 +171,19 @@ Documentazione operativa:
 - `docs/CLASSIFIER_EXECUTION_PLAN.md`: ordine locked senza leakage;
 - `docs/LEGACY_OPERATIONAL_MIGRATION.md`: mapping 01/02/05/06, modalità idempotenti e matrice operativa.
 
+Una seconda matrice sperimentale, indipendente dalla precedente e mai eseguita in questa sessione
+oltre lo screening di codice, estende il confronto a un numero molto più ampio di combinazioni
+architettura x dataset x seed, con scheduler multi-GPU adattivo e un secondo lock scientifico
+separato (`results/final_evaluation_v2/`, mai sovrapposto a `results/final_evaluation/`):
+
+- `docs/EXPERIMENT_MATRIX.md`: registry dataset/protocolli, generazione job, riuso checkpoint legacy;
+- `docs/MULTI_GPU_CLASSIFIER_SCHEDULER.md`: identificazione GPU per nome, ammissione VRAM, gestione OOM;
+- `docs/SUSTAINABILITY_ANALYSIS.md`: schema eventi, actual vs canonical, notebook `00y`;
+- `docs/FINAL_LOCKED_TEST_PROTOCOL.md`: precondizioni del lock, verifica pre-test, statistiche.
+
+Nessun job di training è stato avviato e nessun checkpoint esiste ancora per questa matrice: i
+comandi esatti per costruirla ed eseguirla sono in `docs/EXPERIMENT_MATRIX.md`.
+
 Gli inventari esaustivi e i package temporanei sono conservati localmente fuori dal repository in
 `../MammoDiffusion_local_archive/`; non sono necessari al runtime.
 

@@ -58,6 +58,9 @@ experiments/diffusers/
 experiments/04d_ldm_*/
 # Le cartelle experiments/exp_maxvit512_*, experiments/exp_mammofm_*, experiments/exp_raddino_*
 # e experiments/compare_22c_* (classificatori) restano tracciate.
+# Matrice classificatori v2: molti checkpoint per job (4 architetture x decine di dataset
+# variant x 3 seed). Codice/config/risultati restano in notebooks/, configs/, results/.
+experiments/classifiers_matrix/
 
 # Zip di backup dei notebook creati fuori workflow (non versionare)
 notebooks*.zip

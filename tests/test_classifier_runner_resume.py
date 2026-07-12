@@ -201,14 +201,20 @@ class RunnerPlanTests(unittest.TestCase):
             dirs = {runner.resolve_job(root, "maxvit512", "R", seed)["run_dir"] for seed in (17, 42, 73)}
             self.assertEqual(len(dirs), 3)
 
-    def test_train_mode_without_train_fn_raises_clear_notimplemented_and_marks_retryable(self):
+    def _tiny_bundle(self):
+        rows = [{"processed_path": "synthetic-fixture", "label": label, "image_id": str(i)}
+                for i, label in enumerate((0, 1, 0, 1))]
+        return rows, rows, {"signature": "tiny-dataset-signature"}
+
+    def test_train_mode_without_train_fn_uses_registered_adapter(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); self._project(root)
-            with self.assertRaises(NotImplementedError):
-                runner.run_train(root, "maxvit512", "R", 17)
+            result = runner.run_train(root, "maxvit512", "R", 17, tiny=True,
+                                      dataset_bundle=self._tiny_bundle())
+            self.assertEqual(result["status"], "trained")
             job = runner.resolve_job(root, "maxvit512", "R", 17)
             state = manifest.read_manifest(job["run_dir"])
-            self.assertEqual(state["state"], "FAILED_RETRYABLE")
+            self.assertEqual(state["state"], "TRAINED")
 
     def test_train_mode_with_injected_train_fn_writes_trained_state(self):
         with tempfile.TemporaryDirectory() as t:
@@ -226,10 +232,27 @@ class RunnerPlanTests(unittest.TestCase):
     def test_train_mode_releases_claim_even_on_failure(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); self._project(root)
-            with self.assertRaises(NotImplementedError):
-                runner.run_train(root, "maxvit512", "R", 17)
+            class BrokenAdapter:
+                def train(self, *_args, **_kwargs):
+                    raise RuntimeError("intentional adapter failure")
+            with self.assertRaises(RuntimeError):
+                runner.run_train(root, "maxvit512", "R", 17, adapter=BrokenAdapter(),
+                                 dataset_bundle=self._tiny_bundle())
             job = runner.resolve_job(root, "maxvit512", "R", 17)
             self.assertFalse(manifest.lock_path(job["run_dir"]).is_file())
+
+    def test_auto_train_validate_and_three_seed_ensemble_with_tiny_adapter(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); self._project(root)
+            for seed in (17, 42, 73):
+                result = runner.run_auto(root, "maxvit512", "R", seed, tiny=True,
+                                         dataset_bundle=self._tiny_bundle())
+                self.assertEqual(result["status"], "validated")
+            ensemble = root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard/ensemble_validation_manifest.json"
+            payload = json.loads(ensemble.read_text())
+            self.assertEqual(payload["seeds"], [17, 42, 73])
+            self.assertEqual(payload["aggregation"], "mean_probability")
+            self.assertFalse(payload["test_access"])
 
     def test_cli_refuses_locked_test_mode(self):
         with tempfile.TemporaryDirectory() as t:

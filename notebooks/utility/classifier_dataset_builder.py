@@ -6,6 +6,7 @@ same variant always yields the same picks regardless of filesystem enumeration o
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ from dataset_variant_registry import CLASS_LABEL, deterministic_sample_signature
 
 REAL_TRAIN_DIR = "data/processed/train"
 AUGMENTED_DIR = "data/real_augmented"
+VALIDATION_METADATA = "data/processed/metadata/val.csv"
 
 
 def _real_files_by_class(root: Path) -> dict[str, list[str]]:
@@ -123,12 +125,103 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
 
 
 def dataset_manifest_signature(file_list: dict) -> str:
-    import hashlib
     flat = []
     for klass in sorted(file_list):
         for entry in sorted(file_list[klass], key=lambda e: e["path"]):
             flat.append(f"{klass}|{entry['source']}|{entry['path']}")
     return hashlib.sha256("\n".join(flat).encode("utf-8")).hexdigest()
+
+
+def resolve_project_path(root: Path, value: str) -> Path:
+    """Resolve paths stored by older mounts without accepting files outside the project."""
+    path = Path(value)
+    if not path.is_absolute():
+        candidate = root / path
+    else:
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            markers = ("data", "experiments", "results")
+            parts = path.parts
+            marker = next((name for name in markers if name in parts), None)
+            if marker is None:
+                raise ValueError(f"path cannot be safely rerooted under project: {value}")
+            candidate = root.joinpath(*parts[parts.index(marker):])
+        else:
+            candidate = root / relative
+    return candidate.resolve()
+
+
+def rows_from_file_list(root: Path, file_list: dict) -> list[dict]:
+    """Flatten a training-only file list and fail before a loader sees missing files."""
+    rows = []
+    seen = set()
+    for klass, label in CLASS_LABEL.items():
+        for entry in file_list.get(klass, []):
+            path = resolve_project_path(root, entry["path"])
+            if not path.is_file():
+                raise FileNotFoundError(f"dataset file does not exist: {path}")
+            key = str(path)
+            if key in seen:
+                raise ValueError(f"duplicate dataset file: {path}")
+            seen.add(key)
+            rows.append({"processed_path": key, "label": int(label), "source": entry["source"]})
+    return rows
+
+
+def validation_rows(root: Path) -> list[dict]:
+    """Load the real patient-held-out validation split; synthetic data is forbidden here."""
+    metadata = root / VALIDATION_METADATA
+    with metadata.open(newline="", encoding="utf-8") as fh:
+        source_rows = list(csv.DictReader(fh))
+    rows = []
+    for row in source_rows:
+        raw = row.get("processed_path") or f"data/processed/val/{row['label']}/{row['image_id']}.png"
+        path = resolve_project_path(root, raw)
+        if not path.is_file():
+            raise FileNotFoundError(f"validation file does not exist: {path}")
+        rows.append({
+            "processed_path": str(path), "label": int(row["label"]), "source": "real_validation",
+            "patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+        })
+    assert_no_synthetic_evaluation(rows, split="validation")
+    return rows
+
+
+def assert_no_synthetic_evaluation(rows: list[dict], split: str) -> None:
+    if split not in ("validation", "test", "locked-test"):
+        return
+    offenders = [row for row in rows if "synthetic" in str(row.get("source", "")).lower()]
+    if offenders:
+        raise RuntimeError(f"synthetic samples are forbidden in {split}: {len(offenders)} found")
+
+
+def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[dict], list[dict], dict]:
+    """Canonical dataset entrypoint shared by notebooks and the CLI runner."""
+    if variant.get("status") not in ("ready", "legacy"):
+        raise RuntimeError(
+            f"dataset {variant.get('dataset_variant_id')} is {variant.get('status')}: "
+            f"{variant.get('blocker') or variant.get('invalid_reason') or 'not executable'}"
+        )
+    file_list = build_file_list(root, variant)
+    train_rows = rows_from_file_list(root, file_list)
+    val_rows = validation_rows(root)
+    train_patients = {str(row.get("patient_id")) for row in train_rows if row.get("patient_id")}
+    val_patients = {str(row.get("patient_id")) for row in val_rows if row.get("patient_id")}
+    overlap = train_patients & val_patients
+    if overlap:
+        raise RuntimeError(f"patient leakage between train and validation: {sorted(overlap)[:10]}")
+    manifest_payload = {
+        "schema_version": 2,
+        "dataset_variant_id": variant["dataset_variant_id"],
+        "counts": {klass: len(entries) for klass, entries in file_list.items()},
+        "signature": dataset_manifest_signature(file_list),
+        "validation_signature": hashlib.sha256(
+            "\n".join(f"{r.get('patient_id')}|{r.get('image_id')}|{r['label']}|{r['processed_path']}" for r in val_rows).encode()
+        ).hexdigest(),
+        "files": file_list,
+    }
+    return train_rows, val_rows, manifest_payload
 
 
 def write_dataset_manifest(root: Path, variant: dict, file_list: dict, out_path: Path) -> dict:

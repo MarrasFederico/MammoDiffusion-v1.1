@@ -410,6 +410,8 @@ def build_stage2_variants(root: Path, selected_generator_union: list[str]) -> li
     augmented = augmented_count_by_class(root)
     by_id = {g["id"]: g for g in gen_registry["generators"]}
 
+    stage1 = build_stage1_registry(root)
+    controlled_count = stage1["budgets"].get("common_synthetic_per_class")
     variants = []
     for gid in selected_generator_union:
         entry = by_id.get(gid)
@@ -420,6 +422,17 @@ def build_stage2_variants(root: Path, selected_generator_union: list[str]) -> li
         if not all(counts[k]["count"] is not None for k in TWO_CLASS):
             continue
         full = {k: counts[k]["count"] for k in TWO_CLASS}
+
+        if controlled_count is not None:
+            controlled = {k: controlled_count for k in TWO_CLASS}
+            variants.append(_synthetic_variant(
+                f"RAS_CONTROLLED_{gid}", f"Real + augmented + synthetic balanced (controlled, {gid})",
+                "stage2_advanced", "controlled", root, real, augmented, controlled, gid, TWO_CLASS,
+                precisions, include_real=True, include_augmented=True))
+            variants.append(_synthetic_variant(
+                f"S_ONLY_CONTROLLED_{gid}", f"Synthetic only balanced (controlled, {gid})",
+                "stage2_advanced", "controlled", root, real, augmented, controlled, gid, TWO_CLASS,
+                precisions, include_real=False, include_augmented=False))
 
         variants.append(_synthetic_variant(f"RAS_FULL_{gid}", f"Real + augmented + synthetic balanced (full, {gid})",
                                             "stage2_advanced", "full_available", root, real, augmented, full, gid, TWO_CLASS, precisions,
@@ -455,7 +468,7 @@ def validate_registry(registry: dict) -> list[str]:
         if "05_ldm_basic_fromscratch" == variant.get("synthetic_generator_id") and "negative" in variant.get("classes", []):
             errors.append(f"{vid}: G05 is positive-only and must never carry a negative class")
 
-        if variant.get("budget_regime") == "controlled" and variant.get("status") != "invalid":
+        if variant.get("budget_regime") == "controlled" and variant.get("status") == "ready":
             counts = set(variant.get("synthetic_count_by_class", {}).values())
             if len(counts) > 1:
                 errors.append(f"{vid}: controlled-budget variant has non-uniform per-class counts {counts}")
@@ -477,6 +490,19 @@ def validate_registry(registry: dict) -> list[str]:
 
 def build_and_write(root: Path) -> dict:
     registry = build_stage1_registry(root)
+    # Counts from historical metric files are not enough to call a dataset executable.  Resolve
+    # the actual candidates now and persist explicit blockers; this prevents a later registry
+    # rebuild from silently turning G05/G04-full back into schedulable jobs.
+    from classifier_dataset_builder import build_file_list  # noqa: PLC0415
+    generator_registry = load_generator_registry(root)
+    for variant in registry["variants"]:
+        if variant.get("status") != "ready":
+            continue
+        try:
+            build_file_list(root, variant, generator_registry)
+        except (OSError, ValueError) as exc:
+            variant["status"] = "blocked"
+            variant["invalid_reason"] = f"runtime dataset resolution failed: {exc}"
     errors = validate_registry(registry)
     registry["validation_errors"] = errors
     out_path = root / "configs/dataset_variant_registry.json"

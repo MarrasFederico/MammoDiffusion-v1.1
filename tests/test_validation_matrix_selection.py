@@ -26,18 +26,26 @@ def job(architecture, variant, seed, status="VALIDATED"):
             "dataset_variant_id": variant, "seed": seed, "status": status}
 
 
+def write_ensemble(root: Path, architecture: str, variant: str, pr_auc: float, roc_auc: float) -> Path:
+    path = root / "results/classifiers_matrix" / architecture / variant / f"{architecture}_standard" / "ensemble_validation_manifest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"architecture": architecture, "dataset_variant_id": variant,
+                                "seeds": [17, 42, 73], "test_access": False,
+                                "metrics": {"pr_auc": pr_auc, "roc_auc": roc_auc},
+                                "signature": f"{architecture}-{variant}-{pr_auc}"}))
+    return path
+
+
 class LoadCompletedValidationsTests(unittest.TestCase):
-    def test_only_validated_or_complete_jobs_with_metrics_are_loaded(self):
+    def test_only_complete_three_seed_controlled_ensembles_are_loaded(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
-            write_matrix_and_metrics(root, [
-                (job("maxvit512", "RSB_CONTROLLED_gA", 17), {"pr_auc": 0.8, "roc_auc": 0.9}),
-                (job("maxvit512", "RSB_CONTROLLED_gA", 42, status="PENDING"), {"pr_auc": 0.99, "roc_auc": 0.99}),
-                (job("maxvit512", "RSB_CONTROLLED_gA", 73), None),
-            ])
+            write_matrix_and_metrics(root, [])
+            write_ensemble(root, "maxvit512", "RSB_CONTROLLED_gA", 0.8, 0.9)
+            write_ensemble(root, "maxvit512", "RSB_FULL_gA", 0.99, 0.99)
             rows = fvs.load_completed_validations(root, stage=1)
             self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0]["seed"], 17)
+            self.assertEqual(rows[0]["aggregation"], "ensemble")
 
     def test_never_reads_test_metrics_field(self):
         # regression guard: the loader must only ever look at validation_metrics.json,
@@ -54,7 +62,8 @@ class LoadCompletedValidationsTests(unittest.TestCase):
 class RankingTests(unittest.TestCase):
     def test_generator_extracted_from_variant_id_prefix(self):
         self.assertEqual(fvs._generator_of("RSB_CONTROLLED_02_sd21_filtered_100steps"), "02_sd21_filtered_100steps")
-        self.assertEqual(fvs._generator_of("RSP_FULL_05_ldm_basic_fromscratch"), "05_ldm_basic_fromscratch")
+        self.assertIsNone(fvs._generator_of("RSP_FULL_05_ldm_basic_fromscratch"))
+        self.assertIsNone(fvs._generator_of("RSB_FULL_02_sd21_filtered_100steps"))
         self.assertIsNone(fvs._generator_of("R"))
         self.assertIsNone(fvs._generator_of("RA"))
 
@@ -66,14 +75,16 @@ class RankingTests(unittest.TestCase):
         ranking = fvs.rank_by_generator(rows, "maxvit512")
         self.assertEqual(ranking[0]["generator_id"], "gB")  # higher PR-AUC wins despite lower ROC-AUC
 
-    def test_ranking_averages_across_seeds(self):
+    def test_ranking_does_not_mix_full_or_positive_regimes(self):
         rows = [
-            {"architecture": "maxvit512", "dataset_variant_id": "RSB_CONTROLLED_gA", "pr_auc": 0.6, "roc_auc": 0.6},
-            {"architecture": "maxvit512", "dataset_variant_id": "RSB_CONTROLLED_gA", "pr_auc": 0.8, "roc_auc": 0.8},
+            {"architecture": "maxvit512", "dataset_variant_id": "RSB_CONTROLLED_gA", "pr_auc": 0.6, "roc_auc": 0.6,
+             "aggregation": "ensemble"},
+            {"architecture": "maxvit512", "dataset_variant_id": "RSB_FULL_gB", "pr_auc": 1.0, "roc_auc": 1.0},
+            {"architecture": "maxvit512", "dataset_variant_id": "RSP_CONTROLLED_gC", "pr_auc": 1.0, "roc_auc": 1.0},
         ]
         ranking = fvs.rank_by_generator(rows, "maxvit512")
-        self.assertEqual(ranking[0]["n_seeds"], 2)
-        self.assertAlmostEqual(ranking[0]["mean_pr_auc"], 0.7)
+        self.assertEqual([row["generator_id"] for row in ranking], ["gA"])
+        self.assertEqual(ranking[0]["aggregation"], "ensemble")
 
 
 class SelectedGeneratorUnionTests(unittest.TestCase):
@@ -91,8 +102,10 @@ class SelectedGeneratorUnionTests(unittest.TestCase):
             }
             for arch, gens in data.items():
                 for gid, score in gens.items():
-                    rows.append((job(arch, f"RSB_CONTROLLED_{gid}", 17), {"pr_auc": score, "roc_auc": score}))
-            write_matrix_and_metrics(root, rows)
+                    rows.append((arch, gid, score))
+            write_matrix_and_metrics(root, [])
+            for arch, gid, score in rows:
+                write_ensemble(root, arch, f"RSB_CONTROLLED_{gid}", score, score)
             payload = fvs.compute_selected_generator_union(root, stage=1)
             self.assertIn("gD", payload["selected_generator_union"])
             self.assertIn("gA", payload["selected_generator_union"])
@@ -100,7 +113,8 @@ class SelectedGeneratorUnionTests(unittest.TestCase):
     def test_union_never_reads_test_data_flag(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
-            write_matrix_and_metrics(root, [(job("maxvit512", "RSB_CONTROLLED_gA", 17), {"pr_auc": 0.8, "roc_auc": 0.9})])
+            write_matrix_and_metrics(root, [])
+            write_ensemble(root, "maxvit512", "RSB_CONTROLLED_gA", 0.8, 0.9)
             payload = fvs.compute_selected_generator_union(root, stage=1)
             self.assertFalse(payload["selection_used_test_data"])
 
@@ -115,16 +129,18 @@ class SelectedGeneratorUnionTests(unittest.TestCase):
     def test_signature_changes_if_any_input_row_changes(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
-            write_matrix_and_metrics(root, [(job("maxvit512", "RSB_CONTROLLED_gA", 17), {"pr_auc": 0.8, "roc_auc": 0.9})])
+            write_matrix_and_metrics(root, [])
+            write_ensemble(root, "maxvit512", "RSB_CONTROLLED_gA", 0.8, 0.9)
             p1 = fvs.compute_selected_generator_union(root, stage=1)
-            write_matrix_and_metrics(root, [(job("maxvit512", "RSB_CONTROLLED_gA", 17), {"pr_auc": 0.5, "roc_auc": 0.9})])
+            write_ensemble(root, "maxvit512", "RSB_CONTROLLED_gA", 0.5, 0.9)
             p2 = fvs.compute_selected_generator_union(root, stage=1)
             self.assertNotEqual(p1["signature"], p2["signature"])
 
     def test_write_selected_union_persists_to_canonical_path(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
-            write_matrix_and_metrics(root, [(job("maxvit512", "RSB_CONTROLLED_gA", 17), {"pr_auc": 0.8, "roc_auc": 0.9})])
+            write_matrix_and_metrics(root, [])
+            write_ensemble(root, "maxvit512", "RSB_CONTROLLED_gA", 0.8, 0.9)
             payload = fvs.compute_selected_generator_union(root, stage=1)
             out = fvs.write_selected_union(root, payload)
             self.assertEqual(out, root / "results/generator_comparison/selected_generator_union.json")

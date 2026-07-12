@@ -30,14 +30,25 @@ FAMILIES = ("resnet50", "maxvit512", "mammofm", "raddino")
 
 
 def _generator_of(dataset_variant_id: str) -> str | None:
-    for prefix in ("RSB_CONTROLLED_", "RSB_FULL_", "RSP_CONTROLLED_", "RSP_FULL_"):
-        if dataset_variant_id.startswith(prefix):
-            return dataset_variant_id[len(prefix):]
-    return None
+    """Primary Stage-1 screening is exclusively RSB_CONTROLLED ensemble validation."""
+    prefix = "RSB_CONTROLLED_"
+    return dataset_variant_id[len(prefix):] if dataset_variant_id.startswith(prefix) else None
 
 
 def load_completed_validations(root: Path, stage: int) -> list[dict]:
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
+    if stage == 1:
+        rows = []
+        for path in sorted((root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")):
+            payload = json.loads(path.read_text())
+            vid = payload["dataset_variant_id"]
+            if not _generator_of(vid) or payload.get("seeds") != [17, 42, 73] or payload.get("test_access") is not False:
+                continue
+            rows.append({"experiment_id": f"{payload['architecture']}__{vid}__ensemble",
+                         "stage": 1, "architecture": payload["architecture"], "dataset_variant_id": vid,
+                         "status": "COMPLETE", "aggregation": "ensemble", **payload["metrics"],
+                         "ensemble_signature": payload.get("signature")})
+        return rows
     rows = []
     for job in matrix["jobs"]:
         if job["stage"] != stage or job["status"] not in ("VALIDATED", "COMPLETE"):
@@ -62,7 +73,9 @@ def rank_by_generator(rows: list[dict], architecture: str) -> list[dict]:
         if not pr_aucs:
             continue
         aggregated.append({"generator_id": gid, "mean_pr_auc": sum(pr_aucs) / len(pr_aucs),
-                            "n_seeds": len(pr_aucs), "roc_aucs": [e["roc_auc"] for e in entries]})
+                            "n_configurations": len(pr_aucs), "aggregation": entries[0].get("aggregation", "seed_fixture"),
+                            "roc_aucs": [e["roc_auc"] for e in entries],
+                            "configuration_signatures": [e.get("ensemble_signature") for e in entries]})
     aggregated.sort(key=lambda e: e["mean_pr_auc"], reverse=True)
     for rank, entry in enumerate(aggregated, start=1):
         entry["rank"] = rank
@@ -91,7 +104,8 @@ def compute_selected_generator_union(root: Path, stage: int = 1) -> dict:
         "top_k_generators": top_k, "family_winners": sorted(family_winners),
         "selected_generator_union": union,
         "selection_used_test_data": False,
-        "n_completed_jobs_considered": len(rows),
+        "n_completed_jobs_considered": len(rows), "primary_screening_regime": "RSB_CONTROLLED",
+        "aggregation_level": "three_seed_ensemble", "excluded_regimes": ["RSB_FULL", "RSP_CONTROLLED", "RSP_FULL"],
     }
     payload["signature"] = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
     return payload
@@ -113,11 +127,26 @@ def finalize_stage2_panels(root: Path) -> dict:
         if not arch_rows:
             primary_finalists[architecture] = {"status": "no_completed_stage2_jobs_yet"}
             continue
-        best = max(arch_rows, key=lambda r: (r["pr_auc"] or -1))
-        primary_finalists[architecture] = {"best_dataset_variant_id": best["dataset_variant_id"], "pr_auc": best["pr_auc"]}
+        categories = {
+            "R_baseline": lambda v: v == "R", "RA_baseline": lambda v: v == "RA",
+            "best_RS_CONTROLLED": lambda v: v.startswith("RSB_CONTROLLED_"),
+            "best_RS_FULL": lambda v: v.startswith("RSB_FULL_"),
+            "best_RAS_CONTROLLED": lambda v: v.startswith("RAS_CONTROLLED_"),
+            "best_RAS_FULL": lambda v: v.startswith("RAS_FULL_"),
+            "best_S_ONLY_CONTROLLED": lambda v: v.startswith("S_ONLY_CONTROLLED_"),
+            "best_S_ONLY_FULL": lambda v: v.startswith("S_ONLY_FULL_"),
+            "best_positive_only": lambda v: v.startswith("RSP_") or "POSITIVE" in v,
+        }
+        selected = {}
+        for name, predicate in categories.items():
+            candidates = [r for r in arch_rows if predicate(r["dataset_variant_id"])]
+            selected[name] = (max(candidates, key=lambda r: (r["pr_auc"] or -1)) if candidates
+                              else {"status": "missing_preregistered_validation"})
+        primary_finalists[architecture] = selected
     secondary_panel = [r["experiment_id"] for r in rows]
-    payload = {"schema_version": 1, "primary_finalists": primary_finalists, "secondary_locked_panel": secondary_panel,
-               "n_completed_jobs_considered": len(rows)}
+    payload = {"schema_version": 2, "primary_finalists": primary_finalists,
+               "secondary_locked_panel": secondary_panel, "ablation_panel": [],
+               "n_completed_jobs_considered": len(rows), "test_data_used": False}
     payload["signature"] = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
     return payload
 

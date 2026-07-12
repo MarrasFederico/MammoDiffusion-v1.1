@@ -36,7 +36,21 @@ def write_ensemble(root: Path, architecture: str, variant: str, pr_auc: float, r
     return path
 
 
+def write_ensemble_new_layout(root: Path, architecture: str, variant: str, pr_auc: float, roc_auc: float) -> Path:
+    path = root / "results/classifiers_matrix" / architecture / variant / f"{architecture}_standard" / "ensemble/manifests/ensemble_validation_manifest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"architecture": architecture, "dataset_variant_id": variant,
+                                "seeds": [17, 42, 73], "test_access": False,
+                                "metrics": {"pr_auc": pr_auc, "roc_auc": roc_auc}, "signature": f"new-{variant}"}))
+    return path
+
+
 class LoadCompletedValidationsTests(unittest.TestCase):
+    def test_new_layout_is_loaded(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t); write_matrix_and_metrics(root, [])
+            write_ensemble_new_layout(root,"maxvit512","RSB_CONTROLLED_gA",.8,.9)
+            self.assertEqual(len(fvs.load_completed_validations(root,stage=1)),1)
     def test_only_complete_three_seed_controlled_ensembles_are_loaded(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)

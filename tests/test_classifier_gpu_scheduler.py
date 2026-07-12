@@ -1,11 +1,14 @@
 from __future__ import annotations
 import sys, unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import classifier_gpu_scheduler as sched  # noqa: E402
+sys.path.insert(0, str(ROOT / "scripts"))
+import run_classifier_experiment_matrix as matrix_runner  # noqa: E402
 
 
 def gpus_5060_and_3060(free_5060=15000, free_3060=11000):
@@ -122,6 +125,30 @@ class OomStateMachineTests(unittest.TestCase):
         state.record_oom()
         self.assertEqual(len(state.history), 1)
         self.assertIn("previous_physical_batch_size", state.history[0])
+
+
+class SchedulerExecutionTests(unittest.TestCase):
+    def test_preview_does_not_consume_slots(self):
+        gpu = [{"index": 0, "name": "NVIDIA GeForce RTX 3060", "uuid": "gpu-a", "total_vram_mb": 12000, "free_vram_mb": 12000}]
+        scheduler = sched.Scheduler(gpu)
+        candidate = job("preview", architecture="resnet50", profile="light", eligibility=["rtx_3060_12gb"])
+        self.assertTrue(scheduler.preview_batch([candidate])[0]["admitted"])
+        self.assertTrue(scheduler.try_admit(candidate)["admitted"])
+
+    def test_non_dry_run_launches_a_child(self):
+        gpu = [{"index": 0, "name": "NVIDIA GeForce RTX 3060", "uuid": "gpu-a", "total_vram_mb": 12000, "free_vram_mb": 12000}]
+        candidate = {**job("resnet50__R__seed17", architecture="resnet50", profile="light", eligibility=["rtx_3060_12gb"]),
+                     "dataset_variant_id": "R", "training_policy": "resnet50_standard", "seed": 17}
+        class Process:
+            returncode = 0
+            def poll(self): return 0
+        with patch.object(matrix_runner, "pending_jobs", side_effect=[[candidate], []]), \
+             patch.object(matrix_runner, "launch_job", return_value=Process()) as launch, \
+             patch.object(matrix_runner.run_manifest, "reconstruct_state", return_value={"state": "TRAINED"}), \
+             patch("time.sleep"):
+            result = matrix_runner.run(ROOT, 1, "auto", 1, 1, False, gpus=gpu, poll_interval=0)
+        self.assertTrue(launch.called)
+        self.assertEqual(result["completed"][0]["experiment_id"], candidate["experiment_id"])
 
 
 if __name__ == "__main__":

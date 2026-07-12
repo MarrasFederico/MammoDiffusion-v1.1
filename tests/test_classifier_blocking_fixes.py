@@ -25,6 +25,21 @@ class InterpretabilityTests(unittest.TestCase):
             self.assertEqual(heat.shape,(8,8)); self.assertTrue((heat>=0).all()); self.assertLessEqual(float(heat.max()),1)
 
     @unittest.skipUnless(__import__("importlib").util.find_spec("torch"), "torch unavailable")
+    def test_mammofm_gradcam_supports_production_style_encoder_wrapper(self):
+        import torch
+        class EfficientNet(torch.nn.Module):
+            def __init__(self): super().__init__(); self._conv_head=torch.nn.Conv2d(1,2,1)
+            def extract_features(self,x): return self._conv_head(x)
+        class ImageEncoder(torch.nn.Module):
+            def __init__(self): super().__init__(); self.model=EfficientNet()
+            def forward(self,x): return self.model.extract_features(x)
+        class Classifier(torch.nn.Module):
+            def __init__(self): super().__init__(); self.image_encoder=ImageEncoder(); self.head=torch.nn.Linear(2,1)
+            def forward(self,x): return self.head(self.image_encoder(x).mean((2,3)))
+        heat=ci.mammofm_gradcam(Classifier(),torch.randn(1,1,8,8,requires_grad=True))
+        self.assertEqual(heat.shape,(8,8))
+
+    @unittest.skipUnless(__import__("importlib").util.find_spec("torch"), "torch unavailable")
     def test_raddino_uses_patch_tokens_not_maxvit_api(self):
         import torch
         class TokenLayer(torch.nn.Module):
@@ -74,8 +89,16 @@ class LockedFixtureTests(unittest.TestCase):
             (root/"configs/classifier_experiment_matrix.json").write_text(json.dumps({"jobs":jobs})); (root/"configs/classifier_training_protocols.json").write_text(json.dumps({"policies":{"maxvit512":{}}}))
             fake=types.SimpleNamespace(verify_lock_still_valid=lambda _:(True,[]),LOCK_DIR="results/final_evaluation_v2")
             with patch.dict(sys.modules,{"finalize_locked_test_stage":fake}): manifest=locked.run_locked(root,lambda job,ck,rows:[.2,.8])
-            self.assertEqual(len(manifest["outputs"]),1); self.assertTrue((lock_dir/"LOCKED_TEST_COMPLETED").is_file())
+            self.assertEqual(len(manifest["outputs"]),1); self.assertTrue((lock_dir/"LOCKED_TEST_STARTED").is_file()); self.assertTrue((lock_dir/"LOCKED_TEST_COMPLETE").is_file())
             with patch.dict(sys.modules,{"finalize_locked_test_stage":fake}), self.assertRaises(PermissionError): locked.run_locked(root,lambda *args:[])
+
+    def test_started_marker_blocks_reopening_after_partial_crash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); lock_dir=root/"results/final_evaluation_v2"; lock_dir.mkdir(parents=True)
+            (lock_dir/"LOCKED_TEST_STARTED").write_text("{}")
+            fake=types.SimpleNamespace(verify_lock_still_valid=lambda _:(True,[]),LOCK_DIR="results/final_evaluation_v2")
+            with patch.dict(sys.modules,{"finalize_locked_test_stage":fake}), self.assertRaises(PermissionError):
+                locked.run_locked(root,lambda *args: [])
 
 
 if __name__=="__main__": unittest.main()

@@ -43,6 +43,17 @@ class CheckpointIoTests(unittest.TestCase):
             self.assertIsNone(payload)
             self.assertIn("incompatible", reason)
 
+    def test_new_save_quarantines_corrupt_latest_after_previous_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp); payload = {"architecture": "raddino", "seed": 17, "config_signature": "c", "dataset_signature": "d"}
+            ckio.save_resume_checkpoint(run, {**payload, "global_step": 1})
+            ckio.save_resume_checkpoint(run, {**payload, "global_step": 2})
+            ckio.resume_checkpoint_path(run).write_bytes(b"broken")
+            ckio.save_resume_checkpoint(run, {**payload, "global_step": 3})
+            restored, source = ckio.load_resume_checkpoint(run, payload)
+            self.assertEqual((restored["global_step"], source), (3, "checkpoint_latest"))
+            self.assertTrue((run / "checkpoint_latest.pkl.corrupt").is_file())
+
     def test_experiment_id_roundtrip(self):
         eid = ckio.experiment_id("maxvit512", "RSB_CONTROLLED_G04", 17)
         self.assertEqual(eid, "maxvit512__RSB_CONTROLLED_G04__seed17")
@@ -241,10 +252,28 @@ class RunnerPlanTests(unittest.TestCase):
                 "dataset_variant_id": "R", "training_policy": "maxvit512_standard", "seed": 17,
                 "config_signature": runner._signature(job["policy"]), "dataset_signature": "tiny-dataset-signature"})
             self.assertEqual(source, "checkpoint_latest"); self.assertEqual(payload["global_step"], 1)
-            runner.run_train(root, "maxvit512", "R", 17, tiny=True, dataset_bundle=self._tiny_bundle())
+            runner.run_train(root, "maxvit512", "R", 17, tiny=True, dataset_bundle=self._tiny_bundle(), allow_retrain=True)
             resumed, _ = ckio.load_resume_checkpoint(job["run_dir"], {k: payload[k] for k in (
                 "architecture", "experiment_id", "dataset_variant_id", "training_policy", "seed", "config_signature", "dataset_signature")})
             self.assertGreater(resumed["global_step"], payload["global_step"])
+
+    def test_train_refuses_verified_checkpoint_without_allow_retrain(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); self._project(root)
+            runner.run_train(root, "maxvit512", "R", 17, tiny=True, dataset_bundle=self._tiny_bundle())
+            result = runner.run_train(root, "maxvit512", "R", 17, tiny=True, dataset_bundle=self._tiny_bundle())
+            self.assertEqual(result["status"], "skipped_verified")
+
+    def test_auto_stops_after_interruption_without_validation(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); self._project(root)
+            class InterruptingAdapter:
+                def train(self, *_args, **_kwargs):
+                    raise runner.TrainingInterrupted("fixture interrupt")
+            result = runner.run_auto(root, "maxvit512", "R", 17, adapter=InterruptingAdapter(), dataset_bundle=self._tiny_bundle())
+            self.assertEqual(result["status"], "interrupted_resumable")
+            job = runner.resolve_job(root, "maxvit512", "R", 17)
+            self.assertFalse((job["results_dir"] / "validation_predictions_seed_17.json").exists())
 
     def test_train_mode_with_injected_train_fn_writes_trained_state(self):
         with tempfile.TemporaryDirectory() as t:

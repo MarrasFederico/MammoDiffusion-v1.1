@@ -25,24 +25,30 @@ def build_lockable_project(root: Path) -> None:
         json.dumps({"selected_generator_union": ["gA"]}))
 
     (root / "results/final_evaluation_v2").mkdir(parents=True)
+    seed_ids = [f"maxvit512__R__seed{seed}" for seed in (17, 42, 73)]
     (root / "results/final_evaluation_v2/primary_finalists_manifest.json").write_text(json.dumps({
-        "primary_finalists": {"maxvit512": {"best_dataset_variant_id": "R"}},
-        "secondary_locked_panel": ["maxvit512__R__seed17"],
+        "primary_finalists": {"maxvit512": {"experiment_id": "maxvit512__R__ensemble", "seed_experiment_ids": seed_ids}},
+        "secondary_locked_panel": seed_ids,
     }))
 
     (root / "data/processed/metadata").mkdir(parents=True)
     (root / "data/processed/metadata/test.csv").write_text("patient_id,label\n1,0\n2,1\n")
 
-    run = ckio.run_dir(root, "maxvit512", "R", "maxvit512_standard", 17)
-    run.mkdir(parents=True)
-    (run / "model.pt").write_bytes(b"weights")
     matrix_path = root / "configs/classifier_experiment_matrix.json"
     matrix = json.loads(matrix_path.read_text())
-    matrix["jobs"].append({
-        "experiment_id": "maxvit512__R__seed17", "stage": 1, "architecture": "maxvit512",
-        "dataset_variant_id": "R", "training_policy": "maxvit512_standard", "seed": 17,
-        "status": "VALIDATED", "manifest_path": str((run / "run_manifest.json").relative_to(root)),
-    })
+    for seed in (17, 42, 73):
+        run = ckio.run_dir(root, "maxvit512", "R", "maxvit512_standard", seed); run.mkdir(parents=True)
+        checkpoint = run / "model.pt"; checkpoint.write_bytes(f"weights-{seed}".encode())
+        ckio.write_checkpoint_metadata(run, architecture="maxvit512", dataset_variant_id="R", training_policy="maxvit512_standard", seed=seed,
+                                      checkpoint=checkpoint, dataset_manifest_sha256="dataset", protocol_signature="protocol")
+        matrix["jobs"].append({"experiment_id": f"maxvit512__R__seed{seed}", "stage": 1, "architecture": "maxvit512",
+            "dataset_variant_id": "R", "training_policy": "maxvit512_standard", "seed": seed, "status": "VALIDATED",
+            "manifest_path": str((run / "run_manifest.json").relative_to(root))})
+    ensemble = root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard/ensemble"
+    (ensemble / "predictions").mkdir(parents=True); (ensemble / "metrics").mkdir(parents=True)
+    (ensemble / "predictions/ensemble_validation_predictions.csv").write_text("patient_id,image_id,label,probability\np,i,0,0.1\n")
+    (ensemble / "predictions/ensemble_validation_predictions.json").write_text(json.dumps({"rows": []}))
+    (ensemble / "metrics/locked_validation_threshold.json").write_text(json.dumps({"threshold": 0.5}))
     matrix_path.write_text(json.dumps(matrix))
 
 
@@ -151,6 +157,14 @@ class FinalizeAndVerifyTests(unittest.TestCase):
             (root / "configs/dataset_variant_registry.json").write_text(json.dumps({"variants": [{"dataset_variant_id": "NEW"}]}))
             valid, problems = lock.verify_lock_still_valid(root)
             self.assertFalse(valid)
+
+    def test_verify_fails_if_frozen_validation_threshold_changes(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); build_lockable_project(root); lock.finalize(root)
+            path = root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard/ensemble/metrics/locked_validation_threshold.json"
+            path.write_text(json.dumps({"threshold": 0.7}))
+            valid, problems = lock.verify_lock_still_valid(root)
+            self.assertFalse(valid); self.assertTrue(any("artefacts" in problem for problem in problems))
 
     def test_lock_signature_is_deterministic_for_identical_state(self):
         with tempfile.TemporaryDirectory() as t:

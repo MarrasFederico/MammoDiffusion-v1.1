@@ -48,6 +48,8 @@ class NotebookGeneratorTests(unittest.TestCase):
             for heading in required:
                 self.assertIn(heading, text, f"{path}: {heading}")
             self.assertIn("Grad-CAM / Gradient-based attribution", text)
+            self.assertIn("reporting.render_complete_report", text)
+            self.assertIn("interpretability.generate_configuration_attributions", text)
             self.assertIn("RESUME = True", text)
             self.assertNotIn("CodeCarbon", text)
 

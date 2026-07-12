@@ -71,6 +71,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "notebooks/utility"))
 import classifier_experiment_runner as runner
 import classifier_dataset_builder as datasets
 import classifier_reporting as reporting
+import classifier_interpretability as interpretability
 
 ARCHITECTURE = {architecture!r}
 DATASET_VARIANT_ID = {vid!r}
@@ -106,7 +107,8 @@ else:
         "validation_signature": dataset_manifest["validation_signature"],
         "validation_sources": sorted({row["source"] for row in validation_rows}),
     }
-    reporting.persist_dataset_summary(RESULTS_DIR, train_rows, validation_rows, dataset_manifest)
+    if MODE != "plan":
+        reporting.persist_dataset_summary(RESULTS_DIR, train_rows, validation_rows, dataset_manifest)
 print(json.dumps(dataset_summary, indent=1))'''),
         ("markdown", "## 5 — Composizione del dataset\n\nTabelle source × classe, conteggi e percentuali sono salvati in `results/.../dataset/`. Validation è esclusivamente reale."),
         ("markdown", "## 6 — Esempi visivi del training set\n\nLa griglia usa un campionamento deterministico, senza selezione manuale degli esempi."),
@@ -132,6 +134,8 @@ else:
     )
 print(json.dumps(run_results, indent=1, default=str))'''),
         ("markdown", "## 10 — Curve di training\n\nLoss, ROC-AUC, PR-AUC, learning rate, precision e recall sono salvati per seed e aggregati sotto `figures/`; le storie restano CSV."),
+        ("code", '''report_artifacts = reporting.render_complete_report(RESULTS_DIR)
+print(json.dumps(report_artifacts, indent=1))'''),
         ("markdown", "## 11 — Validation per seed\n\nLe predizioni includono `patient_id`, `image_id`, label e probabilità. Nessuna cella importa il test."),
         ("markdown", "## 12 — Ensemble validation\n\nMedia delle probabilità dei seed 17/42/73 dopo verifica rigorosa dell'allineamento; soglia congelata dalla validation."),
         ("markdown", "## 13 — Metriche e risultati\n\nROC-AUC, PR-AUC, F1, sensitivity, specificity, PPV, NPV, balanced accuracy, MCC, accuracy, Brier, ECE e confusion matrix."),
@@ -142,8 +146,13 @@ print(json.dumps(run_results, indent=1, default=str))'''),
                      "Per campione vengono salvate mappe normalizzate per seed e media ensemble. Il manifest reale condiviso è `configs/interpretability_validation_samples.json`."),
         ("code", '''policy_name = f"{ARCHITECTURE}_standard"
 ensemble_path = (PROJECT_ROOT / "results/classifiers_matrix" / ARCHITECTURE /
-                 DATASET_VARIANT_ID / policy_name / "ensemble_validation_manifest.json")
+                 DATASET_VARIANT_ID / policy_name / "ensemble/manifests/ensemble_validation_manifest.json")
 print("ensemble:", ensemble_path, "exists=", ensemble_path.is_file())
+if GENERATE_GRADCAM and MODE != "plan" and ensemble_path.is_file() and not TINY_SMOKE:
+    attribution_status = interpretability.generate_configuration_attributions(
+        PROJECT_ROOT, ARCHITECTURE, DATASET_VARIANT_ID, policy,
+        seeds=RUN_SEEDS, limit=GRADCAM_NUM_REAL_SAMPLES)
+    print(json.dumps(attribution_status, indent=1))
 for seed in RUN_SEEDS:
     run_dir = runner.resolve_job(PROJECT_ROOT, ARCHITECTURE, DATASET_VARIANT_ID, seed)["run_dir"]
     print(seed, run_dir, sorted(p.name for p in run_dir.glob("*.json")) if run_dir.exists() else [])'''),

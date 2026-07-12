@@ -121,12 +121,18 @@ secondary_panel = json.loads((lock_dir / "secondary_panel_manifest.json").read_t
 print(f"pannello secondario locked: {len(secondary_panel['experiment_ids'])} esperimenti")
 
 import classifier_metrics as cm
+import locked_matrix_inference as locked_inference
 
 TEST_PREDICTIONS_SCHEMA = ["patient_id", "image_id", "label", "prob_seed_17", "prob_seed_42",
                            "prob_seed_73", "prob_ensemble", "predicted_label", "threshold"]
 print("Schema predizioni atteso per ogni configurazione:", TEST_PREDICTIONS_SCHEMA)
-print("Nessuna predizione di test e' stata ancora generata in questa sessione (nessun "
-      "checkpoint e' stato addestrato): questa cella descrive lo schema, non lo popola.")
+RUN_LOCKED_TEST = False  # impostare True soltanto nella sessione one-shot autorizzata
+if RUN_LOCKED_TEST:
+    assert is_valid, "lock non valido"
+    locked_manifest = locked_inference.run_locked(PROJECT_ROOT)
+    print(json.dumps(locked_manifest, indent=1))
+else:
+    print("DRY GUARD: inferenza non eseguita; nessun file test aperto da questa cella.")
 '''),
 ]
 

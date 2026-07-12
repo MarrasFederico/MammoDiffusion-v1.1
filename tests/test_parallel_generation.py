@@ -76,6 +76,18 @@ def png(path: Path) -> None:
 
 
 class ParallelGenerationTests(unittest.TestCase):
+    def test_final_plan_accepts_global_slot_layout_and_preserves_surplus(self):
+        with tempfile.TemporaryDirectory() as t:
+            directory = Path(t)
+            for index in range(2):
+                png(directory / f"eval_neg_{index:04d}.png")
+            (directory / ".evaluation_reuse.json").write_text(json.dumps({"files": [{}, {}]}))
+            for index in range(2, 5):
+                png(directory / f"gen_{index:04d}.png")
+            plan = final_sd_generation_plan(directory, target_total=5, reused_prefix="eval_neg")
+            self.assertTrue(plan["complete"])
+            self.assertEqual(plan["gen_index_layout"], "global_target_slots")
+            self.assertEqual(plan["excluded_surplus_gen_files"], [])
     def test_dynamic_reservation_defaults_and_last_chunk(self):
         self.assertEqual(DEFAULT_GENERATION_SCHEDULER, "dynamic_reservations")
         self.assertEqual(DEFAULT_GENERATION_RESERVATION_SIZE, 4)

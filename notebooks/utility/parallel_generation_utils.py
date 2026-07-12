@@ -436,12 +436,38 @@ def final_sd_generation_plan(
     ]
     n_new_required = target_total - expected_reused_count
     gen_scan = scan_named_png_set(final_dir, n_new_required, "gen_")
-    valid_gen = gen_scan["valid_indices"]
-    known = {path.name for path in reused} | {f"gen_{i:04d}.png" for i in range(n_new_required)}
+    compact_indices = list(range(n_new_required))
+    global_indices = list(range(expected_reused_count, int(target_total)))
+    global_valid = [i for i in global_indices if _valid_png(Path(final_dir) / f"gen_{i:04d}.png")]
+    compact_complete = not gen_scan["missing_indices"] and not gen_scan["corrupt_indices"]
+    global_complete = len(global_valid) == n_new_required
+    if compact_complete:
+        gen_index_layout, expected_gen_indices, valid_gen = "compact_after_reuse", compact_indices, gen_scan["valid_indices"]
+    elif global_complete:
+        gen_index_layout, expected_gen_indices, valid_gen = "global_target_slots", global_indices, global_valid
+    else:
+        gen_index_layout, expected_gen_indices, valid_gen = "compact_after_reuse", compact_indices, gen_scan["valid_indices"]
+    missing_gen = [i for i in expected_gen_indices if not (Path(final_dir) / f"gen_{i:04d}.png").is_file()
+                   or not _valid_png(Path(final_dir) / f"gen_{i:04d}.png")]
+    known = {path.name for path in reused} | {f"gen_{i:04d}.png" for i in expected_gen_indices}
     foreign = [
         path.name for path in sorted(final_dir.glob("*.png"))
         if not path.name.startswith(".tmp_") and path.name not in known
     ]
+    # A previous interrupted run may have generated target_total gen_* files before the
+    # evaluation subset was copied in.  Those high indexed, readable gen_* files are valid
+    # images but are not members of the canonical exact-size dataset.  Preserve them on disk
+    # and exclude them deterministically instead of making every resume fail or deleting user
+    # artifacts.  Arbitrary names and corrupt surplus files remain hard errors.
+    surplus_gen_files, true_foreign = [], []
+    surplus_pattern = re.compile(r"^gen_(\d{4,})\.png$")
+    for name in foreign:
+        match = surplus_pattern.fullmatch(name)
+        path = Path(final_dir) / name
+        if match and _valid_png(path):
+            surplus_gen_files.append(name)
+        else:
+            true_foreign.append(name)
     return {
         "valid_reused_paths": reused,
         "valid_reused_indices": reused_indices,
@@ -450,18 +476,20 @@ def final_sd_generation_plan(
         "expected_reused_count": expected_reused_count,
         "n_valid_reused": len(reused),
         "n_new_required": n_new_required,
+        "gen_index_layout": gen_index_layout,
         "valid_gen_indices": valid_gen,
-        "missing_gen_indices": sorted(set(gen_scan["missing_indices"]) | set(gen_scan["corrupt_indices"])),
-        "corrupt_files": corrupt_reused + [f"gen_{i:04d}.png" for i in gen_scan["corrupt_indices"]],
-        "extra_files": foreign,
+        "missing_gen_indices": missing_gen,
+        "corrupt_files": corrupt_reused + [f"gen_{i:04d}.png" for i in missing_gen
+                                             if (Path(final_dir) / f"gen_{i:04d}.png").is_file()],
+        "extra_files": true_foreign,
+        "excluded_surplus_gen_files": surplus_gen_files,
         "complete": (
             len(reused) == expected_reused_count
             and expected_reused_count + len(valid_gen) == int(target_total)
             and not missing_reused_indices
             and not corrupt_reused
-            and not gen_scan["missing_indices"]
-            and not gen_scan["corrupt_indices"]
-            and not foreign
+            and not missing_gen
+            and not true_foreign
         ),
     }
 

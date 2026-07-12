@@ -36,10 +36,10 @@ def _probe_pytorch(architecture: str, policy: dict, n_batches: int) -> dict:
         model = build_maxvit_model(num_classes=1, pretrained=True)
     elif architecture == "mammofm":
         from mammofm_utils import build_mammofm_model
-        model = build_mammofm_model()
+        model = build_mammofm_model()[0]
     elif architecture == "raddino":
         from medfoundation_utils import build_medfoundation_model
-        model = build_medfoundation_model()
+        model = build_medfoundation_model()[0]
     else:
         return {"error": f"no pytorch builder registered for {architecture}"}
 
@@ -70,6 +70,9 @@ def _probe_pytorch(architecture: str, policy: dict, n_batches: int) -> dict:
         "elapsed_seconds_for_n_batches": elapsed,
         "n_batches": n_batches,
         "physical_batch_size": batch_size,
+        "effective_batch_size": policy["effective_batch_size"],
+        "gpu_name": torch.cuda.get_device_name(device),
+        "gpu_uuid": getattr(torch.cuda.get_device_properties(device), "uuid", None),
     }
 
 
@@ -129,12 +132,29 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--architecture", default=None, help="Profile only this architecture (default: all)")
     parser.add_argument("--n-batches", type=int, default=5)
+    parser.add_argument("--dry-run", action="store_true", help="Resolve policies/assets without loading a model or writing profiles")
+    parser.add_argument("--smoke-tiny", action="store_true", help="Exercise the adapter contract without GPU/model loading")
     parser.add_argument("--project-root", default=str(ROOT))
     args = parser.parse_args()
 
     root = Path(args.project_root)
     protocols = json.loads((root / "configs/classifier_training_protocols.json").read_text())["policies"]
     architectures = [args.architecture] if args.architecture else list(protocols)
+
+    if args.dry_run:
+        print(json.dumps({architecture: {
+            "framework": protocols[architecture]["framework"],
+            "physical_batch_size": protocols[architecture]["physical_batch_size"],
+            "gradient_accumulation_steps": protocols[architecture]["gradient_accumulation_steps"],
+            "effective_batch_size": protocols[architecture]["effective_batch_size"],
+            "checkpoint_base": protocols[architecture]["checkpoint_base"],
+        } for architecture in architectures}, indent=1))
+        return
+    if args.smoke_tiny:
+        from classifier_architecture_adapters import get_adapter
+        print(json.dumps({architecture: get_adapter(architecture, protocols[architecture], root, tiny=True)
+                          .estimate_memory_profile() for architecture in architectures}, indent=1))
+        return
 
     out_path = root / "results/runtime_profiles/classifier_vram_profiles.json"
     existing = {}

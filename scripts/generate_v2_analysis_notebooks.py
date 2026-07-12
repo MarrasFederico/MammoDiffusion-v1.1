@@ -40,7 +40,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 SUSTAINABILITY_CELLS = [
     ("markdown", "## 1. Registro canonico\n\nQuesto notebook legge esclusivamente "
-     "`results/sustainability/events.jsonl` tramite `sustainability_registry.py`. Non somma mai "
+     "`results/sustainability/canonical_events.jsonl` (import legacy idempotente) tramite `sustainability_registry.py`. Non somma mai "
      "JSON/JSONL grezzi a mano, non mescola resume duplicati, e riporta sempre "
      "`actual_project_energy` accanto a `canonical_pipeline_energy` (mai uno al posto dell'altro)."),
     ("code", BOOTSTRAP + '''
@@ -48,13 +48,12 @@ import sustainability_registry as sr
 import matplotlib.pyplot as plt
 import numpy as np
 
-EVENTS_PATH = PROJECT_ROOT / "results/sustainability/events.jsonl"
+EVENTS_PATH = PROJECT_ROOT / "results/sustainability/canonical_events.jsonl"
 events = sr.load_events(EVENTS_PATH)
 print(f"eventi caricati: {len(events)} da {EVENTS_PATH}")
 if not events:
-    print("Nessun evento ancora registrato: questo notebook produce grafici vuoti finche' la "
-          "matrice classificatori non ha eseguito almeno un job con eco_tracker collegato a "
-          "sustainability_registry.append_event.")
+    print("Nessun evento canonico trovato. Eseguire scripts/import_legacy_sustainability_logs.py "
+          "oppure collegare eco_tracker a sustainability_registry.append_event.")
 '''),
     ("markdown", "## 2. Consumi assoluti (energia/CO2, scala log) — spec 13.1.1"),
     ("code", '''

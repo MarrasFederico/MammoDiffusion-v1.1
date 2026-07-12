@@ -43,3 +43,9 @@ not part of this session (no training ran, so there is nothing yet to log).
 
 CodeCarbon figures are estimates, not wall-socket measurements — repeated here because the
 original notebook's summary made the same disclaimer and it remains true.
+# Import legacy canonico
+
+`python scripts/import_legacy_sustainability_logs.py` normalizza in modo idempotente i JSON/JSONL
+EcoTracker già presenti in `experiments/` e `results/`, deduplica per firma del contenuto e scrive
+`results/sustainability/canonical_events.jsonl`. Il dataset corrente contiene 193 eventi importati.
+Il notebook `00y` usa questa registry e riporta separatamente actual e canonical energy.

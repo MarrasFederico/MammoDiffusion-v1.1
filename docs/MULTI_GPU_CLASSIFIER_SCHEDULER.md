@@ -51,3 +51,9 @@ in `.history`, never applied silently.
   state machine (`tests/test_classifier_gpu_scheduler.py`).
 - `scripts/profile_classifier_vram.py` itself was **not** executed — it performs real GPU
   training work and is listed as a follow-up command, not part of this session's verification.
+# Integrazione runner v2
+
+Lo scheduler lancia `classifier_experiment_runner --mode auto`, non più il vecchio `--mode
+train` privo di adapter. Rilegge lo stato dagli artefatti, include job `TRAINED` che richiedono
+validation, isola ogni processo con `CUDA_VISIBLE_DEVICES` e completa batch successivi fino a
+esaurimento dei job ammessi. I job falliti restano `FAILED_RETRYABLE` per il comando resume.

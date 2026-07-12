@@ -26,19 +26,31 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 from classifier_gpu_scheduler import GPU_TARGETS, Scheduler, load_vram_profiles, query_gpus_live  # noqa: E402
+import classifier_run_manifest as run_manifest  # noqa: E402
+import classifier_checkpoint_io as checkpoint_io  # noqa: E402
 
 
 def pending_jobs(root: Path, stage: int) -> list[dict]:
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
-    return [j for j in matrix["jobs"] if j["stage"] == stage and j["status"] in ("PENDING", "FAILED_RETRYABLE")]
+    protocols = json.loads((root / "configs/classifier_training_protocols.json").read_text())["policies"]
+    pending = []
+    for job in matrix["jobs"]:
+        if job["stage"] != stage:
+            continue
+        run = checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
+                                    job["training_policy"], job["seed"])
+        state = run_manifest.reconstruct_state(run, protocols[job["architecture"]]["framework"])["state"]
+        if state in ("PENDING", "TRAINED", "VALIDATING", "FAILED_RETRYABLE"):
+            pending.append({**job, "status": state})
+    return pending
 
 
-def launch_job(root: Path, job: dict, gpu_index: int) -> subprocess.Popen:
+def launch_job(root: Path, job: dict, gpu_index: int, mode: str = "auto") -> subprocess.Popen:
     import os
     env = dict(os.environ)
     env["CUDA_VISIBLE_DEVICES"] = str(gpu_index)
     cmd = [sys.executable, "-m", "notebooks.utility.classifier_experiment_runner",
-           "--experiment-id", job["experiment_id"], "--mode", "train", "--project-root", str(root)]
+           "--experiment-id", job["experiment_id"], "--mode", mode, "--project-root", str(root)]
     return subprocess.Popen(cmd, cwd=str(root), env=env)
 
 
@@ -58,23 +70,34 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
     if dry_run:
         return {"mode": mode, "dry_run": True, "gpus": [g["name"] for g in gpus], "plan": plan}
 
-    processes: dict[str, tuple[subprocess.Popen, str]] = {}
-    for job, decision in zip(sorted(jobs, key=lambda j: j["experiment_id"]), plan):
-        if not decision["admitted"]:
-            continue
-        gpu_index = index_by_uuid[decision["gpu_uuid"]]
-        proc = launch_job(root, job, gpu_index)
-        processes[job["experiment_id"]] = (proc, decision["gpu_key"])
-
     completed = []
-    while processes:
-        time.sleep(poll_interval)
-        for experiment_id, (proc, gpu_key) in list(processes.items()):
-            if proc.poll() is not None:
-                completed.append({"experiment_id": experiment_id, "returncode": proc.returncode})
-                job = next(j for j in jobs if j["experiment_id"] == experiment_id)
-                scheduler.release(job, gpu_key)
-                del processes[experiment_id]
+    while jobs:
+        batch_plan = scheduler.schedule_batch(jobs)
+        processes: dict[str, tuple[subprocess.Popen, str, dict]] = {}
+        for job, decision in zip(sorted(jobs, key=lambda j: j["experiment_id"]), batch_plan):
+            if not decision["admitted"]:
+                continue
+            gpu_index = index_by_uuid[decision["gpu_uuid"]]
+            proc = launch_job(root, job, gpu_index, mode="auto")
+            processes[job["experiment_id"]] = (proc, decision["gpu_key"], job)
+        if not processes:
+            break
+        attempted_ids = set(processes)
+        while processes:
+            time.sleep(poll_interval)
+            for experiment_id, (proc, gpu_key, job) in list(processes.items()):
+                if proc.poll() is not None:
+                    completed.append({"experiment_id": experiment_id, "returncode": proc.returncode,
+                                      "state": run_manifest.reconstruct_state(
+                                          checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
+                                                                job["training_policy"], job["seed"]),
+                                          json.loads((root / "configs/classifier_training_protocols.json").read_text())
+                                              ["policies"][job["architecture"]]["framework"])["state"]})
+                    scheduler.release(job, gpu_key)
+                    del processes[experiment_id]
+        jobs = pending_jobs(root, stage)
+        # A failed job remains retryable for resume/OOM handling; do not spin forever here.
+        jobs = [job for job in jobs if job["experiment_id"] not in attempted_ids]
     return {"mode": mode, "dry_run": False, "gpus": [g["name"] for g in gpus], "plan": plan, "completed": completed}
 
 

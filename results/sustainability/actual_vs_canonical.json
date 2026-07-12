@@ -1,0 +1,11 @@
+{
+ "actual_project_energy_kwh": 16.515253742287154,
+ "actual_project_co2_kg": 5.7313697306787414,
+ "actual_project_seconds": 383748.497560477,
+ "canonical_pipeline_energy_kwh": 16.13545847469759,
+ "canonical_pipeline_co2_kg": 5.455383072564139,
+ "canonical_pipeline_seconds": 376509.28656574996,
+ "retry_and_failure_overhead_kwh": 0.3797952675895644,
+ "n_events_actual": 193,
+ "n_events_canonical": 174
+}

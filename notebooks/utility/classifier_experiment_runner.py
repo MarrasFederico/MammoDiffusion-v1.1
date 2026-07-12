@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import os
+import signal
 import sys
 from pathlib import Path
 
@@ -22,6 +23,10 @@ from dataset_variant_registry import load_classifier_registry  # noqa: E402
 
 MODES = ("plan", "auto", "train", "validate", "locked-test", "metrics-only")
 SEEDS = (17, 42, 73)
+
+
+class TrainingInterrupted(KeyboardInterrupt):
+    pass
 
 
 def _atomic_json(path: Path, payload: dict) -> Path:
@@ -69,17 +74,15 @@ def plan(root: Path, architecture: str, dataset_variant_id: str, seed: int) -> d
         return {"action": "error", "reason": f"dataset_variant {dataset_variant_id} is {variant.get('status')}: "
                 f"{variant.get('blocker') or variant.get('invalid_reason')}"}
     state = manifest.reconstruct_state(run, policy["framework"])
+    # Definitive v2 policy: all matrix seeds are trained homogeneously from scratch.  Legacy
+    # artifacts remain historical baselines and are never copied into seed 17/42/73 runs.
     legacy_id = None
-    try:
-        legacy_id = ckio.legacy_alias_for(variant, load_classifier_registry(root), policy["architecture"])
-    except (OSError, json.JSONDecodeError):
-        pass
     if state["state"] in ("TRAINED", "VALIDATING", "VALIDATED", "ENSEMBLE_READY", "COMPLETE"):
         action = "skip_training"
     elif state["state"] == "RUNNING":
         action = "wait_running_elsewhere"
-    elif legacy_id is not None:
-        action = "reuse_legacy_checkpoint"
+    elif state["state"] == "INTERRUPTED_RESUMABLE":
+        action = "resume_training"
     else:
         action = "train"
     needs_validation = state["state"] not in ("VALIDATED", "ENSEMBLE_READY", "COMPLETE") and action != "wait_running_elsewhere"
@@ -136,6 +139,11 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
     run = job["run_dir"]
     if not manifest.acquire_claim(run, worker_id=f"pid{os.getpid()}", pid=os.getpid()):
         return {"status": "not_claimed", "reason": "another worker holds a live claim on this run"}
+    previous_handlers = {}
+    def interrupt_handler(signum, _frame):
+        raise TrainingInterrupted(f"signal {signum}")
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        previous_handlers[sig] = signal.getsignal(sig); signal.signal(sig, interrupt_handler)
     try:
         manifest.write_state(run, "RUNNING", experiment_id=ckio.experiment_id(architecture, dataset_variant_id, seed))
         if train_fn is not None and dataset_bundle is None:
@@ -158,10 +166,14 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
         _write_checkpoint_metadata(job, architecture, dataset_variant_id, seed, checkpoint, dataset_payload)
         manifest.write_state(run, "TRAINED", checkpoint=str(checkpoint))
         return {"status": "trained", "checkpoint": str(checkpoint)}
+    except TrainingInterrupted as exc:
+        manifest.write_state(run, "INTERRUPTED_RESUMABLE", error=str(exc))
+        return {"status": "interrupted_resumable", "reason": str(exc)}
     except Exception as exc:
         manifest.write_state(run, "FAILED_RETRYABLE", error=str(exc))
         raise
     finally:
+        for sig, handler in previous_handlers.items(): signal.signal(sig, handler)
         manifest.release_claim(run)
 
 
@@ -259,7 +271,7 @@ def run_auto(root: Path, architecture: str, dataset_variant_id: str, seed: int, 
         _, _, dataset_payload = _dataset_bundle(root, job, dataset_bundle)
         import_legacy_checkpoint(root, job, architecture, dataset_variant_id, seed, adapter,
                                  current["legacy_checkpoint_alias"], dataset_payload)
-    elif current["action"] == "train":
+    elif current["action"] in ("train", "resume_training"):
         run_train(root, architecture, dataset_variant_id, seed, adapter=adapter,
                   dataset_bundle=dataset_bundle, tiny=tiny)
     if plan(root, architecture, dataset_variant_id, seed)["needs_validation"]:

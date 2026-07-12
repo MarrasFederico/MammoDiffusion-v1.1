@@ -11,7 +11,7 @@ import os
 import time
 from pathlib import Path
 
-STATES = ("PENDING", "CLAIMED", "RUNNING", "TRAINED", "VALIDATING", "VALIDATED",
+STATES = ("PENDING", "CLAIMED", "RUNNING", "INTERRUPTED_RESUMABLE", "TRAINED", "VALIDATING", "VALIDATED",
           "ENSEMBLE_READY", "COMPLETE",
           "BLOCKED", "FAILED_RETRYABLE", "FAILED_FINAL", "INVALIDATED")
 
@@ -59,6 +59,8 @@ def reconstruct_state(run: Path, framework: str) -> dict:
 
     verified, reason = checkpoint_is_verified(run, framework)
     if not verified:
+        if (run / "checkpoint_latest.pkl").is_file() or (run / "checkpoint_previous.pkl").is_file():
+            return {"state": "INTERRUPTED_RESUMABLE", "reason": "resume checkpoint available"}
         lock = lock_path(run)
         if lock.is_file() and _pid_is_running(_read_lock_pid(lock)):
             return {"state": "RUNNING", "reason": reason}

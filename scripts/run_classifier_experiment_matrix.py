@@ -40,7 +40,7 @@ def pending_jobs(root: Path, stage: int) -> list[dict]:
         run = checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
                                     job["training_policy"], job["seed"])
         state = run_manifest.reconstruct_state(run, protocols[job["architecture"]]["framework"])["state"]
-        if state in ("PENDING", "TRAINED", "VALIDATING", "FAILED_RETRYABLE"):
+        if state in ("PENDING", "INTERRUPTED_RESUMABLE", "TRAINED", "VALIDATING", "VALIDATED", "FAILED_RETRYABLE"):
             pending.append({**job, "status": state})
     return pending
 
@@ -74,7 +74,9 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
     while jobs:
         batch_plan = scheduler.schedule_batch(jobs)
         processes: dict[str, tuple[subprocess.Popen, str, dict]] = {}
-        for job, decision in zip(sorted(jobs, key=lambda j: j["experiment_id"]), batch_plan):
+        decisions = {row["experiment_id"]: row for row in batch_plan}
+        for job in jobs:
+            decision = decisions[job["experiment_id"]]
             if not decision["admitted"]:
                 continue
             gpu_index = index_by_uuid[decision["gpu_uuid"]]
@@ -83,18 +85,24 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
         if not processes:
             break
         attempted_ids = set(processes)
-        while processes:
-            time.sleep(poll_interval)
-            for experiment_id, (proc, gpu_key, job) in list(processes.items()):
-                if proc.poll() is not None:
-                    completed.append({"experiment_id": experiment_id, "returncode": proc.returncode,
-                                      "state": run_manifest.reconstruct_state(
-                                          checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
-                                                                job["training_policy"], job["seed"]),
-                                          json.loads((root / "configs/classifier_training_protocols.json").read_text())
-                                              ["policies"][job["architecture"]]["framework"])["state"]})
-                    scheduler.release(job, gpu_key)
-                    del processes[experiment_id]
+        try:
+            while processes:
+                time.sleep(poll_interval)
+                for experiment_id, (proc, gpu_key, job) in list(processes.items()):
+                    if proc.poll() is not None:
+                        completed.append({"experiment_id": experiment_id, "returncode": proc.returncode,
+                                          "state": run_manifest.reconstruct_state(
+                                              checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
+                                                                    job["training_policy"], job["seed"]),
+                                              json.loads((root / "configs/classifier_training_protocols.json").read_text())
+                                                  ["policies"][job["architecture"]]["framework"])["state"]})
+                        scheduler.release(job, gpu_key)
+                        del processes[experiment_id]
+        except KeyboardInterrupt:
+            # SIGTERM gives the shared runner a chance to checkpoint and mark resumable.
+            for proc, _gpu_key, _job in processes.values(): proc.terminate()
+            for proc, _gpu_key, _job in processes.values(): proc.wait(timeout=60)
+            return {"mode": mode, "interrupted": True, "message": "children stopped; rerun the same command to resume"}
         jobs = pending_jobs(root, stage)
         # A failed job remains retryable for resume/OOM handling; do not spin forever here.
         jobs = [job for job in jobs if job["experiment_id"] not in attempted_ids]

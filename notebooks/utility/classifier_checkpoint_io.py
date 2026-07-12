@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import pickle
 from pathlib import Path
 
 EXPERIMENTS_ROOT = "experiments/classifiers_matrix"
 RESULTS_ROOT = "results/classifiers_matrix"
+RESUME_NAMES = ("checkpoint_latest", "checkpoint_previous", "checkpoint_best")
 
 
 def experiment_id(architecture: str, dataset_variant_id: str, seed: int) -> str:
@@ -34,6 +37,75 @@ def results_dir(root: Path, architecture: str, dataset_variant_id: str, training
 
 def checkpoint_path(run: Path, framework: str) -> Path:
     return run / ("model.keras" if framework == "tensorflow_keras" else "model.pt")
+
+
+def resume_checkpoint_path(run: Path, name: str = "checkpoint_latest") -> Path:
+    if name not in RESUME_NAMES:
+        raise ValueError(f"unknown resume checkpoint: {name}")
+    return run / f"{name}.pkl"
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def atomic_pickle(path: Path, payload: dict) -> Path:
+    """Durable temporary-file -> fsync -> atomic rename checkpoint write."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + f".tmp.{os.getpid()}")
+    with tmp.open("wb") as stream:
+        pickle.dump(payload, stream, protocol=pickle.HIGHEST_PROTOCOL)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(tmp, path)
+    _fsync_directory(path.parent)
+    return path
+
+
+def read_resume_checkpoint(path: Path) -> dict:
+    with path.open("rb") as stream:
+        payload = pickle.load(stream)
+    if not isinstance(payload, dict) or payload.get("schema_version") != 2:
+        raise ValueError("unsupported resume checkpoint schema")
+    return payload
+
+
+def save_resume_checkpoint(run: Path, payload: dict, *, best: bool = False) -> Path:
+    """Rotate only after the existing latest has been deserialized successfully."""
+    latest = resume_checkpoint_path(run)
+    previous = resume_checkpoint_path(run, "checkpoint_previous")
+    if latest.is_file():
+        read_resume_checkpoint(latest)
+        os.replace(latest, previous)
+    normalized = {"schema_version": 2, **payload}
+    atomic_pickle(latest, normalized)
+    if best:
+        atomic_pickle(resume_checkpoint_path(run, "checkpoint_best"), normalized)
+    return latest
+
+
+def load_resume_checkpoint(run: Path, expected: dict) -> tuple[dict | None, str]:
+    """Load latest, then previous; reject scientific-provenance mismatches."""
+    errors = []
+    for name in ("checkpoint_latest", "checkpoint_previous"):
+        path = resume_checkpoint_path(run, name)
+        if not path.is_file():
+            continue
+        try:
+            payload = read_resume_checkpoint(path)
+            mismatches = {key: (payload.get(key), value) for key, value in expected.items()
+                          if payload.get(key) != value}
+            if mismatches:
+                errors.append(f"{name}: incompatible {mismatches}")
+                continue
+            return payload, name
+        except Exception as exc:
+            errors.append(f"{name}: {type(exc).__name__}: {exc}")
+    return None, "; ".join(errors) if errors else "no resume checkpoint"
 
 
 def sha256_file(path: Path) -> str:

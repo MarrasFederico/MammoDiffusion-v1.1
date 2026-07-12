@@ -22,6 +22,27 @@ def write_checkpoint(run: Path, content: bytes = b"weights") -> Path:
 
 
 class CheckpointIoTests(unittest.TestCase):
+    def test_resume_checkpoint_rotates_and_falls_back_from_corrupt_latest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            expected = {"architecture": "raddino", "seed": 17, "config_signature": "c", "dataset_signature": "d"}
+            ckio.save_resume_checkpoint(run, {**expected, "global_step": 10})
+            ckio.save_resume_checkpoint(run, {**expected, "global_step": 20})
+            ckio.resume_checkpoint_path(run).write_bytes(b"corrupt")
+            payload, source = ckio.load_resume_checkpoint(run, expected)
+            self.assertEqual(source, "checkpoint_previous")
+            self.assertEqual(payload["global_step"], 10)
+
+    def test_resume_checkpoint_rejects_config_and_dataset_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            ckio.save_resume_checkpoint(run, {"architecture": "maxvit512", "seed": 42,
+                                               "config_signature": "old", "dataset_signature": "old"})
+            payload, reason = ckio.load_resume_checkpoint(run, {"architecture": "maxvit512", "seed": 42,
+                                                                 "config_signature": "new", "dataset_signature": "new"})
+            self.assertIsNone(payload)
+            self.assertIn("incompatible", reason)
+
     def test_experiment_id_roundtrip(self):
         eid = ckio.experiment_id("maxvit512", "RSB_CONTROLLED_G04", 17)
         self.assertEqual(eid, "maxvit512__RSB_CONTROLLED_G04__seed17")
@@ -183,7 +204,7 @@ class RunnerPlanTests(unittest.TestCase):
             result = runner.plan(root, "maxvit512", "R", 17)
             self.assertTrue(result["needs_validation"])
 
-    def test_plan_reuses_legacy_checkpoint_when_alias_exists(self):
+    def test_plan_retrains_matrix_seed_even_when_legacy_alias_exists(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); self._project(root)
             registry = json.loads((root / "configs/dataset_variant_registry.json").read_text())
@@ -192,8 +213,8 @@ class RunnerPlanTests(unittest.TestCase):
             (root / "configs/final_classifier_registry.json").write_text(json.dumps({"experiments": [
                 {"experiment_id": "maxvit512_02a_real_only", "architecture": "MaxViT-512"}]}))
             result = runner.plan(root, "maxvit512", "R", 17)
-            self.assertEqual(result["action"], "reuse_legacy_checkpoint")
-            self.assertEqual(result["legacy_checkpoint_alias"], "maxvit512_02a_real_only")
+            self.assertEqual(result["action"], "train")
+            self.assertIsNone(result["legacy_checkpoint_alias"])
 
     def test_three_seeds_produce_three_independent_run_dirs(self):
         with tempfile.TemporaryDirectory() as t:

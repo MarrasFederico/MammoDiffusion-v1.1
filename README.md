@@ -169,7 +169,10 @@ Documentazione operativa:
 - `docs/LEGACY_RECOVERY_REPORT.md`: recupero e provenance legacy;
 - `docs/SHARED_ASSETS.md`: Diffusers/SD2.1 canonici e derivati;
 - `docs/CLASSIFIER_EXECUTION_PLAN.md`: ordine locked senza leakage;
-- `legacy_recovery_inventory.csv`: inventario content-aware completo.
+- `docs/LEGACY_OPERATIONAL_MIGRATION.md`: mapping 01/02/05/06, modalità idempotenti e matrice operativa.
+
+Gli inventari esaustivi e i package temporanei sono conservati localmente fuori dal repository in
+`../MammoDiffusion_local_archive/`; non sono necessari al runtime.
 
 ## Team
 

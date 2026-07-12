@@ -32,6 +32,7 @@ notebooks/pretrained_model/
 recovered_legacy_candidates/
 pre_sol_recovery_*/
 archive_before_github/
+MammoDiffusion_local_archive/
 *.lock
 *.claim
 *.reservation

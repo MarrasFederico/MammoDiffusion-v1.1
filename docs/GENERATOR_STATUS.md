@@ -5,11 +5,11 @@ is validation-only; downstream test performance cannot change the choice.
 
 | ID | Status | Classes | Scientific role |
 |---|---|---|---|
-| 01 | legacy/incomplete | not canonically evidenced | SD2.1 50-step baseline |
+| 01 | complete, legacy normalized/verified | negative, positive | SD2.1 50-step baseline |
 | 02 | complete | negative, positive | final comparison |
 | 03 | complete | negative, positive | final comparison, fine-tuned VAE/full tuning |
 | 04 | complete | negative, positive | final comparison, LoRA |
-| 05 | complete | negative, positive | from-scratch baseline |
+| 05 | complete | positive only | from-scratch baseline |
 | 06 | complete | negative, positive | extra-data ablation |
 | 07 | complete | negative, positive | final comparison, SD-VAE |
 | 08 | complete | negative, positive | final comparison plus 25/50/75/100-step ablation |

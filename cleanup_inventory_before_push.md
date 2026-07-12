@@ -10,7 +10,7 @@
 | `results/**/*.json`, `results/**/*.csv`, plots | mixed | yes | keep | compact scientific evidence, not blanket-ignored |
 | `__pycache__`, `*.pyc`, runtime locks/claims | no | no | remove | regenerated automatically |
 | `recovered_legacy_candidates/` | no | no | ignore | collision staging only |
-| sibling safety/archive directories | no | recovery only | keep outside Git | reversible safety material |
+| `../MammoDiffusion_local_archive/` | no | recovery only | keep outside Git | packages, audits, patches, inventories and reversible backups |
 
 The pre-audit working tree already contained extensive notebook, utility, metric and classifier
 pipeline changes. They are preserved as user work and reviewed/tested together; unrelated content

@@ -2,8 +2,9 @@
 
 The legacy source was found at `/mnt/MammoDiffusion/Versione vecchia` (the prompt's expected words
 were reversed). It was audited read-only. `legacy_recovery_inventory.csv` records every examined
-file with target, byte size, SHA-256, provenance and decision; the Markdown companion summarizes
-the classifications.
+file with target, byte size, SHA-256, provenance and decision. Dopo la mappatura operativa,
+l'inventario esaustivo è stato spostato in `../MammoDiffusion_local_archive/inventories/`; il mapping
+permanente e versionato è `configs/legacy_experiment_migration.json`.
 
 No `baseline_resnet50_final_best.keras`, `real_synth_resnet50_final_best.keras`, or equivalent
 ResNet50 finalist checkpoint was found in either tree. Consequently 01a/01b remain blocked, no
@@ -13,5 +14,5 @@ but their names alone are insufficient provenance and current generator artefact
 complete. They remain `legacy_unverified` and were not copied.
 
 The pre-change safety snapshot is outside the repository in the newest sibling directory named
-`pre_sol_recovery_<timestamp>`. It contains Git status/diff, both file listings and critical legacy
+`MammoDiffusion_local_archive/audits/pre_sol_recovery_<timestamp>`. It contains Git status/diff, both file listings and critical legacy
 checksums. The legacy source itself was never modified.

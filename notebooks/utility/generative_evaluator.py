@@ -37,6 +37,17 @@ SUPPORTED_EXTENSIONS: Tuple[str, ...] = (
 )
 
 
+def _readable_image(path: Path) -> bool:
+    if path.name.startswith(".tmp_"):
+        return False
+    try:
+        with Image.open(path) as image:
+            image.verify()
+        return True
+    except Exception:
+        return False
+
+
 """
 -carica immagini da directory, le converte in scala di grigi e le replica su 3 canali così che InceptionV3 possa elaborarle
 -restituisce tipo di dato uint8 con shape (3, H, W) e valori in [0, 255] per compatibilità
@@ -53,10 +64,8 @@ class GrayscaleImageDataset(Dataset):
         if not self.root.is_dir():
             raise NotADirectoryError(f"cartella delle immagini non trovata: {self.root}")
 
-        self.paths = sorted(
-            p for p in self.root.iterdir()
-            if p.suffix.lower() in SUPPORTED_EXTENSIONS
-        )
+        from parallel_generation_utils import metric_image_paths
+        self.paths = metric_image_paths(self.root, SUPPORTED_EXTENSIONS)
         if not self.paths:
             raise FileNotFoundError(
                 f"la cartella è vuota -> {self.root}. "

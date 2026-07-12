@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "stages": {
+    "filter": {
+      "stage": "filter",
+      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw_negative",
+      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fromscratch_v3/negative",
+      "n_raw": 4083,
+      "n_selected": 1361,
+      "target_label": 0,
+      "summary_json": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/negative/synthetic_filter_summary.json",
+      "report_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/negative/synthetic_filter_report.csv",
+      "canonical_run": true,
+      "cached": false,
+      "notebook": "08_LDM_v3_SDVAE_FromScratch.ipynb",
+      "unet_version": "v3",
+      "parameterization": "v",
+      "vae_source": "sd_vae_original",
+      "uses_vae_ft_from_03c": false
+    },
+    "validate": {
+      "stage": "validate",
+      "target_label": 0,
+      "csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/negative/raw_vs_filtered_validation.csv",
+      "json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/negative/raw_vs_filtered_validation.json",
+      "canonical_run": true,
+      "notebook": "08_LDM_v3_SDVAE_FromScratch.ipynb",
+      "unet_version": "v3",
+      "parameterization": "v",
+      "vae_source": "sd_vae_original",
+      "uses_vae_ft_from_03c": false,
+      "canonical_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/negative/raw_vs_filtered_validation.csv",
+      "canonical_json": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/negative/raw_vs_filtered_validation.json"
+    },
+    "test": {
+      "stage": "test",
+      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fromscratch_v3/negative",
+      "target_label": 0,
+      "csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/negative/final_filtered_vs_test.csv",
+      "json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/negative/final_filtered_vs_test.json",
+      "canonical_run": true,
+      "notebook": "08_LDM_v3_SDVAE_FromScratch.ipynb",
+      "unet_version": "v3",
+      "parameterization": "v",
+      "vae_source": "sd_vae_original",
+      "uses_vae_ft_from_03c": false
+    }
+  }
+}

@@ -43,15 +43,22 @@ class DiffusionSchedule:
     posterior_log_variance: tf.Tensor
 
 
-def configure_tensorflow(seed: int = 42) -> None:
+def configure_tensorflow(seed: int = 42, allow_gpu_memory_growth: bool = False) -> None:
     """Fissa i seed di TF/numpy per la riproducibilità degli esperimenti e stampa la GPU rilevata."""
     tf.random.set_seed(seed)
     np.random.seed(seed)
 
     gpus = tf.config.list_physical_devices("GPU")
 
-    # Non usare memory_growth:
-    # TensorFlow prealloca quasi tutta la memoria GPU disponibile.
+    if allow_gpu_memory_growth:
+        for gpu in gpus:
+            try:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            except RuntimeError as exc:
+                raise RuntimeError(
+                    "Impossibile abilitare TensorFlow GPU memory growth: la GPU e' gia' inizializzata."
+                ) from exc
+
     print("TF version:", tf.__version__)
     print("GPU disponibili:", gpus)
 

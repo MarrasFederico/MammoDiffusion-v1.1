@@ -5,3 +5,13 @@
 {"label": "ldm_generate_raw", "elapsed_seconds": 4301.732863153, "peak_ram_mb": 2890.4375, "energy_kwh": 0.05344680224330434, "co2_kg": 0.017675819544301124}
 {"label": "ldm_filter_raw", "elapsed_seconds": 169.64523539400034, "peak_ram_mb": 247.83203125, "energy_kwh": 0.0025923770293528694, "co2_kg": 0.0008573457463935223}
 {"label": "ldm_validate_raw_filtered", "elapsed_seconds": 61.8603234000002, "peak_ram_mb": 2554.1875, "energy_kwh": 0.0008775377046647371, "co2_kg": 0.00029021751461131255}
+{"label": "ldm_filter_raw", "elapsed_seconds": 0.08684454900003402, "peak_ram_mb": 162.6015625, "energy_kwh": 2.0226792259717536e-05, "co2_kg": 6.689364282549264e-06}
+{"label": "ldm_filter_raw", "elapsed_seconds": 0.08934949399963443, "peak_ram_mb": 162.625, "energy_kwh": 2.023060112133232e-05, "co2_kg": 6.690623941644783e-06}
+{"label": "ldm_filter_raw", "elapsed_seconds": 0.08617071499975282, "peak_ram_mb": 162.5546875, "energy_kwh": 2.0225482860105734e-05, "co2_kg": 6.688931240528448e-06}
+{"label": "ldm_validate_raw_filtered", "elapsed_seconds": 57.96155996399966, "peak_ram_mb": 2514.5234375, "energy_kwh": 0.0007997648933222734, "co2_kg": 0.00026449664598975563}
+{"label": "ldm_filter_raw", "elapsed_seconds": 0.1437040790001447, "peak_ram_mb": 162.68359375, "energy_kwh": 2.0226845474483226e-05, "co2_kg": 6.689381881630144e-06}
+{"label": "ldm_validate_raw_filtered", "elapsed_seconds": 60.16503786500016, "peak_ram_mb": 2529.671875, "energy_kwh": 0.0008390345280685252, "co2_kg": 0.0002774838210537665}
+{"label": "ldm_filter_raw", "elapsed_seconds": 89.15374919199894, "peak_ram_mb": 234.84765625, "energy_kwh": 0.00191341162027581, "co2_kg": 0.0006327996642343754}
+{"label": "ldm_validate_raw_filtered", "elapsed_seconds": 72.64621075499963, "peak_ram_mb": 2685.55078125, "energy_kwh": 0.0032699749461032887, "co2_kg": 0.0010814395742253875}
+{"label": "ldm_filter_raw", "elapsed_seconds": 171.67146612800207, "peak_ram_mb": 247.96875, "energy_kwh": 0.006142320579709793, "co2_kg": 0.0020313759774804635}
+{"label": "ldm_validate_raw_filtered", "elapsed_seconds": 1356.1466754190005, "peak_ram_mb": 2688.83984375, "energy_kwh": 0.07089990081795175, "co2_kg": 0.023447873398711367}

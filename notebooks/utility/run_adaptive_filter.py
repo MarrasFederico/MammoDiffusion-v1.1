@@ -5,17 +5,43 @@ import hashlib
 import json
 import shutil
 import sys
+import re
 from datetime import datetime
 from pathlib import Path
 
 
 FILTER_SUMMARY_SCHEMA_VERSION = 2
 FILTER_SCHEMA_VERSION = "adaptive_mask_v2"
+from parallel_generation_utils import GENERATED_PNG_PATTERN
+_CANDIDATE_NAME = re.compile(GENERATED_PNG_PATTERN, re.IGNORECASE)
 
 
 def count_pngs(directory: Path) -> int:
-    """Conta i PNG presenti in una cartella, 0 se la cartella non esiste."""
-    return len(list(Path(directory).glob("*.png"))) if Path(directory).exists() else 0
+    """Conta solo PNG leggibili e non temporanei."""
+    return len(candidate_png_paths(directory))
+
+
+def candidate_png_paths(directory: Path) -> list[Path]:
+    """Dataset effettivo del filtro: immagini leggibili, mai file temporanei."""
+    directory = Path(directory)
+    if not directory.is_dir():
+        return []
+    from PIL import Image
+    result = []
+    for path in sorted(directory.glob("*.png")):
+        if path.name.startswith(".tmp_"):
+            continue
+        try:
+            with Image.open(path) as image:
+                image.verify()
+            result.append(path)
+        except Exception:
+            continue
+    return (
+        [path for path in result if _CANDIDATE_NAME.fullmatch(path.name)]
+        if any(_CANDIDATE_NAME.fullmatch(path.name) for path in result)
+        else result
+    )
 
 
 def file_sha256(path: Path) -> str:
@@ -30,7 +56,7 @@ def file_sha256(path: Path) -> str:
 def duplicate_png_groups(directory: Path) -> dict[str, list[str]]:
     """Raggruppa i PNG per hash del contenuto e restituisce solo i gruppi con più di un file."""
     by_hash: dict[str, list[str]] = {}
-    for path in sorted(Path(directory).glob("*.png")):
+    for path in candidate_png_paths(directory):
         by_hash.setdefault(file_sha256(path), []).append(path.name)
     return {digest: names for digest, names in by_hash.items() if len(names) > 1}
 
@@ -188,7 +214,7 @@ def run_filter(args: argparse.Namespace) -> None:
             "o incompatibile; rieseguo il filtro."
         )
 
-    raw_paths = sorted(raw_dir.glob("*.png"))
+    raw_paths = candidate_png_paths(raw_dir)
     if not raw_paths:
         raise RuntimeError(f"Nessuna immagine RAW in {raw_dir}")
 

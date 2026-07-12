@@ -18,6 +18,16 @@ from ldm_project_paths import (
     ExperimentPaths,
     get_experiment_paths,
     get_results_paths,
+    normalize_processed_path,
+)
+from parallel_generation_utils import (
+    checkpoint_content_signature,
+    create_parallel_run_dir,
+    png_content_signature,
+    print_generation_diagnostics,
+    resolve_generation_gpu_devices,
+    run_dynamic_gpu_jobs,
+    sd_base_model_signature,
 )
 
 POSITIVE_CLASS = 1
@@ -54,9 +64,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-dir", type=Path, default=None)
     parser.add_argument("--gpu-visible-devices", default=None)
     parser.add_argument(
+        "--generation-gpus",
+        default="auto",
+        help="GPU per l'orchestratore di generazione: auto, off o lista comma-separata.",
+    )
+    parser.add_argument("--max-generation-workers", type=int, default=None)
+    parser.add_argument("--generation-worker", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--dry-run", action="store_true", help="Mostra worker e comandi senza caricare modelli.")
+    parser.add_argument(
         "--cuda-root",
         type=Path,
-        default=Path("/home/fede/miniforge3/envs/tf-gpu"),
+        default=Path(os.environ.get("MAMMODIFFUSION_CUDA_ROOT", sys.prefix)),
     )
     parser.add_argument("--min-step", type=int, default=14_000)
     parser.add_argument("--max-checkpoints", type=int, default=None)
@@ -271,6 +289,9 @@ def build_eval_config(args: argparse.Namespace) -> dict:
         "positive_class": POSITIVE_CLASS,
         "parameterization": args.parameterization,
         "unet_version": args.unet_version,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "parallel_generation": str(args.generation_gpus).strip().lower() not in {"off", "none", "false", ""},
+        "generation_gpus_requested": args.generation_gpus,
     }
 
 
@@ -400,9 +421,161 @@ def build_candidate_signature(checkpoint_candidates: list[dict]) -> list[dict]:
             "kind": candidate["kind"],
             "step": candidate["step"],
             "path": str(candidate["path"]),
+            "checkpoint_signature": checkpoint_content_signature(Path(candidate["path"])),
         }
         for candidate in checkpoint_candidates
     ]
+
+
+def _atomic_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".tmp_{path.name}.{os.getpid()}")
+    with open(tmp, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, ensure_ascii=False)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+
+
+def sweep_vae_signature(args: argparse.Namespace, paths: ExperimentPaths) -> dict:
+    if args.vae_backend == "sd":
+        from sd_vae_utils import resolve_sd_vae_model
+
+        return sd_base_model_signature(Path(resolve_sd_vae_model(paths.project_root, args.sd_vae_model)))
+    return checkpoint_content_signature(paths.models_dir / "vae_decoder_best.keras")
+
+
+def sweep_generation_manifest(
+    args: argparse.Namespace, paths: ExperimentPaths, candidate: dict, cls: int
+) -> dict:
+    """Provenance contract for one checkpoint/CFG/class sweep directory."""
+    return {
+        "schema_version": 2,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "checkpoint": str(candidate["path"]),
+        "checkpoint_signature": checkpoint_content_signature(Path(candidate["path"])),
+        "seed": int(args.seed),
+        "target_label": int(cls),
+        "n_raw": int(args.n_gen_per_class),
+        "sample_steps": int(args.sample_steps),
+        "guidance_scale": float(args.guidance_scale),
+        "parameterization": args.parameterization,
+        "unet_version": args.unet_version,
+        "vae_backend": args.vae_backend,
+        "vae_source": args.vae_source,
+        "decode_on_cpu": bool(getattr(args, "decode_on_cpu", False)),
+        "sd_vae_batch_size": int(getattr(args, "sd_vae_batch_size", 1)),
+        "latent_stats_signature": checkpoint_content_signature(
+            getattr(paths, "latents_dir", paths.project_root / "latents") / "latent_stats.npz"
+        ),
+        "vae_model_signature": sweep_vae_signature(args, paths),
+    }
+
+
+def prepare_sweep_generation_manifest(
+    args: argparse.Namespace, paths: ExperimentPaths, candidate: dict, cls: int, dry_run: bool = False
+) -> dict:
+    """Validate sweep outputs before resuming holes; force recompute clears them."""
+    out_dir = fake_output_dir(paths, args, candidate["checkpoint_id"], cls, create=not dry_run)
+    if not dry_run:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = out_dir / ".generation_manifest.json"
+    expected = sweep_generation_manifest(args, paths, candidate, cls)
+    png_paths = [path for path in out_dir.glob("*.png") if not path.name.startswith(".tmp_")]
+    current = None
+    if manifest_path.is_file():
+        try:
+            current = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise RuntimeError(f"Unreadable sweep generation manifest: {manifest_path}") from exc
+    force_generation = bool(args.generation_worker and args.force_recompute)
+    if dry_run:
+        if current != expected:
+            changed = sorted(key for key in set(current or {}) | set(expected) if (current or {}).get(key) != expected.get(key))
+            print(f"DRY-RUN: manifest sweep incompatibile in {out_dir}: {changed}")
+        elif force_generation:
+            print(f"DRY-RUN: verrebbero rigenerati {len(png_paths)} PNG in {out_dir}")
+        return expected
+    if current == expected and force_generation:
+        for path in png_paths:
+            path.unlink()
+    elif current != expected:
+        if current is None and png_paths and not force_generation:
+            raise RuntimeError(
+                f"Sweep directory {out_dir} contains PNGs without a generation manifest; "
+                "use a new directory or --force-recompute."
+            )
+        if current is not None and not force_generation:
+            changed = sorted(key for key in set(current) | set(expected) if current.get(key) != expected.get(key))
+            raise RuntimeError(
+                f"Incompatible sweep generation manifest in {out_dir}: {changed}. "
+                "Use a new directory or --force-recompute."
+            )
+        if force_generation:
+            for path in png_paths:
+                path.unlink()
+        _atomic_json(manifest_path, expected)
+    return expected
+
+
+def sweep_generated_image_signature(
+    args: argparse.Namespace, paths: ExperimentPaths, checkpoint_candidates: list[dict]
+) -> dict:
+    return {
+        candidate["checkpoint_id"]: {
+            str(cls): png_content_signature(
+                fake_output_dir(paths, args, candidate["checkpoint_id"], cls), r"\d+\.png"
+            )
+            for cls in (0, 1)
+        }
+        for candidate in checkpoint_candidates
+    }
+
+
+def sweep_metrics_input_signature(args: argparse.Namespace, paths: ExperimentPaths) -> dict:
+    """Content-aware identities for every non-generated metrics dependency."""
+    val_csv = paths.metadata_dir / "val.csv"
+    reference_images = []
+    if val_csv.is_file():
+        import pandas as pd
+
+        for _, row in pd.read_csv(val_csv).iterrows():
+            image_path = normalize_processed_path(row, paths.data_processed_dir)
+            reference_images.append({
+                "path": str(image_path),
+                "signature": checkpoint_content_signature(image_path),
+            })
+    return {
+        "vae_model_signature": sweep_vae_signature(args, paths),
+        "validation_csv_signature": checkpoint_content_signature(val_csv),
+        "validation_reference_image_signature": reference_images,
+        "latent_stats_signature": checkpoint_content_signature(paths.latents_dir / "latent_stats.npz"),
+        "decode_on_cpu": bool(args.decode_on_cpu),
+        "sd_vae_batch_size": int(args.sd_vae_batch_size),
+    }
+
+
+def ldm_metrics_cache_compatible(
+    payload: object,
+    args: argparse.Namespace,
+    paths: ExperimentPaths,
+    checkpoint_candidates: list[dict],
+) -> bool:
+    """Whether a sweep metrics payload still matches weights and generated PNGs."""
+    base_compatible = bool(
+        isinstance(payload, dict)
+        and payload.get("schema_version") == 2
+        and payload.get("candidate_signature") == build_candidate_signature(checkpoint_candidates)
+        and payload.get("generation_image_signature")
+        == sweep_generated_image_signature(args, paths, checkpoint_candidates)
+    )
+    if not base_compatible:
+        return False
+    expected_inputs = sweep_metrics_input_signature(args, paths)
+    stored_inputs = payload.get("metrics_input_signature")
+    if stored_inputs is None:
+        stored_inputs = {key: payload.get(key) for key in expected_inputs}
+    return stored_inputs == expected_inputs
 
 
 def use_cached_metrics_if_valid(
@@ -434,6 +607,9 @@ def use_cached_metrics_if_valid(
     if payload.get("candidate_signature") != candidate_signature:
         print("Cache metriche con checkpoint diversi, ricalcolo.")
         return False
+    if not ldm_metrics_cache_compatible(payload, args, paths, checkpoint_candidates):
+        print("Cache metriche con immagini generate diverse, ricalcolo.")
+        return False
 
     selection = payload.get("selection", {})
     if not selection_policy_is_compatible(selection):
@@ -449,12 +625,14 @@ def use_cached_metrics_if_valid(
         print("Cache metriche senza best_checkpoint/best_model, ricalcolo.")
         return False
     best_checkpoint = Path(best_checkpoint_value)
-    best_model = Path(best_model_value)
     if not best_checkpoint.exists():
         print("Cache metriche valida ma best_checkpoint mancante, ricalcolo.")
         return False
-    shutil.copy2(best_checkpoint, best_model)
-    print(f"Best model sincronizzato da cache: {best_model}")
+    best_eval_model_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(best_checkpoint, best_eval_model_path)
+    selection["best_model"] = str(best_eval_model_path)
+    selection["best_eval_model"] = str(best_eval_model_path)
+    print(f"Best model sincronizzato da cache: {best_eval_model_path}")
 
     if not refresh_artifacts_from_cache(args, paths, checkpoint_candidates, payload):
         return False
@@ -462,15 +640,16 @@ def use_cached_metrics_if_valid(
     print(f"Metriche checkpoint gia' presenti: {metrics_json_path}")
     print(
         "Best model da cache: "
-        f"{selection.get('best_checkpoint_id')} -> {best_model_value}"
+        f"{selection.get('best_checkpoint_id')} -> {best_eval_model_path}"
     )
     return True
 
 
-def evaluation_generated_dir(paths: ExperimentPaths) -> Path:
+def evaluation_generated_dir(paths: ExperimentPaths, create: bool = True) -> Path:
     """Restituisce (creandola se serve) la cartella radice dove vengono salvate le immagini generate durante lo sweep."""
     out_dir = paths.evaluation_dir / "sweep_generated"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if create:
+        out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir
 
 
@@ -479,10 +658,11 @@ def fake_output_dir(
     args: argparse.Namespace,
     checkpoint_id: str,
     cls: int,
+    create: bool = True,
 ) -> Path:
     """Calcola la cartella delle immagini sintetiche per uno specifico checkpoint/configurazione CFG/classe."""
     cfg_label = format_cfg_label(args.guidance_scale, args.sample_steps)
-    return evaluation_generated_dir(paths) / checkpoint_id / cfg_label / f"class_{cls}"
+    return evaluation_generated_dir(paths, create=create) / checkpoint_id / cfg_label / f"class_{cls}"
 
 
 def list_fake_image_paths(
@@ -494,11 +674,44 @@ def list_fake_image_paths(
     """Elenca, in ordine di indice, le immagini sintetiche gia' generate per un checkpoint/classe, ignorando file con nome non numerico."""
     indexed_paths = []
     for path in fake_output_dir(paths, args, checkpoint_id, cls).glob("*.png"):
+        if path.name.startswith(".tmp_"):
+            continue
         try:
-            indexed_paths.append((int(path.stem), path))
+            index = int(path.stem)
         except ValueError:
             continue
+        try:
+            from PIL import Image
+            with Image.open(path) as image:
+                image.verify()
+            indexed_paths.append((index, path))
+        except Exception:
+            continue
     return [path for _, path in sorted(indexed_paths)]
+
+
+def missing_fake_image_indices(
+    paths: ExperimentPaths, args: argparse.Namespace, checkpoint_id: str, cls: int
+) -> list[int]:
+    """Return holes/corrupt output indices; unrelated PNG names are ignored."""
+    valid = set()
+    for path in fake_output_dir(paths, args, checkpoint_id, cls).glob("*.png"):
+        if path.name.startswith(".tmp_"):
+            continue
+        try:
+            index = int(path.stem)
+        except ValueError:
+            continue
+        if not 0 <= index < args.n_gen_per_class:
+            continue
+        try:
+            from PIL import Image
+            with Image.open(path) as image:
+                image.verify()
+            valid.add(index)
+        except Exception:
+            pass
+    return [index for index in range(args.n_gen_per_class) if index not in valid]
 
 
 def next_fake_image_index(paths_for_class: list[Path]) -> int:
@@ -516,6 +729,7 @@ def child_generate_command(
     args: argparse.Namespace,
     paths: ExperimentPaths,
     checkpoint_id: str,
+    gpu_device: str | None = None,
 ) -> list[str]:
     """Costruisce la riga di comando per rilanciare questo stesso script in un sottoprocesso, in modalita' generate, su un singolo checkpoint."""
     command = [
@@ -535,9 +749,11 @@ def child_generate_command(
         "--seed", str(args.seed),
         "--vram-log-every", str(args.vram_log_every),
         "--results-stage-name", args.results_stage_name,
+        "--generation-gpus", "off",
+        "--generation-worker",
     ]
-    if args.gpu_visible_devices is not None:
-        command.extend(["--gpu-visible-devices", args.gpu_visible_devices])
+    if gpu_device is not None:
+        command.extend(["--gpu-visible-devices", str(gpu_device)])
     if args.decode_on_cpu:
         command.append("--decode-on-cpu")
     if args.vae_backend != "keras":
@@ -546,6 +762,8 @@ def child_generate_command(
         command.extend(["--sd-vae-model", str(args.sd_vae_model)])
     if args.sd_vae_batch_size != 1:
         command.extend(["--sd-vae-batch-size", str(args.sd_vae_batch_size)])
+    if args.force_recompute:
+        command.append("--force-recompute")
     command.extend(["--parameterization", args.parameterization])
     command.extend(["--unet-version", args.unet_version])
     command.extend(["--vae-source", args.vae_source])
@@ -561,23 +779,38 @@ def orchestrate_generation(
     paths: ExperimentPaths,
     checkpoint_candidates: list[dict],
 ) -> None:
-    """Lancia un sottoprocesso TensorFlow per ciascun checkpoint dello sweep, cosi' la sessione/memoria GPU viene azzerata tra un checkpoint e l'altro; si interrompe e propaga l'errore se un sottoprocesso fallisce, lasciando su disco le immagini gia' generate per poter riprendere."""
+    """Schedule checkpoint jobs dynamically, one CUDA-isolated process per GPU."""
+    devices = resolve_generation_gpu_devices(args.generation_gpus, args.max_generation_workers)
+    print_generation_diagnostics(args.generation_gpus, devices)
     print("Modalita generate orchestrata: un subprocess TensorFlow per checkpoint.")
     print("CFG_LABEL:", format_cfg_label(args.guidance_scale, args.sample_steps))
     for candidate in checkpoint_candidates:
-        checkpoint_id = candidate["checkpoint_id"]
-        print(f"\n[orchestrator] avvio checkpoint {checkpoint_id}")
-        command = child_generate_command(args, paths, checkpoint_id)
-        print(" ".join(command))
-        completed = subprocess.run(command, cwd=str(paths.project_root), check=False)
-        if completed.returncode != 0:
-            print(
-                f"[orchestrator] checkpoint {checkpoint_id} fallito con "
-                f"return code {completed.returncode}."
-            )
-            print("Le immagini gia' salvate restano su disco: rilancia per riprendere.")
-            raise SystemExit(completed.returncode)
-        print(f"[orchestrator] checkpoint {checkpoint_id} completato.")
+        for cls in parse_classes(args.classes):
+            prepare_sweep_generation_manifest(args, paths, candidate, cls, dry_run=args.dry_run)
+    jobs = [
+        {
+            **candidate,
+            "label": (
+                f"{paths.experiment_dir.name}_classes_0_1_evaluation_"
+                f"checkpoint_{candidate['checkpoint_id']}_worker_{worker_id}"
+            ),
+        }
+        for worker_id, candidate in enumerate(checkpoint_candidates)
+    ]
+    logs_dir = (
+        paths.logs_dir / "parallel_generation" / "run_dry_run"
+        if args.dry_run else create_parallel_run_dir(paths.logs_dir)
+    )
+    run_dynamic_gpu_jobs(
+        jobs=jobs,
+        devices=devices,
+        command_for_job=lambda job, gpu: child_generate_command(
+            args, paths, job["checkpoint_id"], gpu
+        ),
+        logs_dir=logs_dir,
+        dry_run=args.dry_run,
+        cwd=paths.project_root,
+    )
 
 
 def save_single_fake_image(image_np, output_path: Path) -> None:
@@ -589,9 +822,11 @@ def save_single_fake_image(image_np, output_path: Path) -> None:
     arr = image_np.copy()
     if arr.min() < 0:
         arr = (arr + 1.0) / 2.0
-    Image.fromarray(
-        np.clip(arr * 255.0, 0, 255).astype(np.uint8)
-    ).save(output_path)
+    tmp_path = output_path.with_name(f".tmp_gen_{output_path.stem}_{os.getpid()}.png")
+    Image.fromarray(np.clip(arr * 255.0, 0, 255).astype(np.uint8)).save(tmp_path)
+    with Image.open(tmp_path) as image:
+        image.verify()
+    os.replace(tmp_path, output_path)
 
 
 def sampler_trace_count(compiled_sampler) -> int | None:
@@ -619,25 +854,20 @@ def run_generation_worker(
 
     preflight_missing = []
     for cls in classes:
-        existing_paths = list_fake_image_paths(paths, args, checkpoint_id, cls)
-        existing_count = len(existing_paths)
-        missing = max(0, args.n_gen_per_class - existing_count)
-        preflight_missing.append(missing)
-        if existing_count > args.n_gen_per_class:
-            print(
-                f"classe {cls}: {args.n_gen_per_class}/{args.n_gen_per_class} "
-                f"gia' presenti ({existing_count} file totali, uso le prime "
-                f"{args.n_gen_per_class})"
-            )
-        else:
-            print(f"classe {cls}: {existing_count}/{args.n_gen_per_class} gia' presenti")
-        print(f"classe {cls}: genero {missing} immagini mancanti")
+        prepare_sweep_generation_manifest(args, paths, candidate, cls)
+        missing = missing_fake_image_indices(paths, args, checkpoint_id, cls)
+        preflight_missing.append(len(missing))
+        print(f"classe {cls}: {args.n_gen_per_class - len(missing)}/{args.n_gen_per_class} gia' presenti")
+        print(f"classe {cls}: genero {len(missing)} immagini mancanti o corrotte")
 
     if sum(preflight_missing) == 0:
         print("Nessuna immagine mancante: non carico TensorFlow, LDM o VAE.")
         return
 
     configure_environment(args)
+
+    if args.vae_backend == "sd" and not args.decode_on_cpu:
+        os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")
 
     import tensorflow as tf
 
@@ -652,7 +882,9 @@ def run_generation_worker(
         vram_gb,
     )
 
-    configure_tensorflow()
+    configure_tensorflow(
+        allow_gpu_memory_growth=args.vae_backend == "sd" and not args.decode_on_cpu
+    )
     vram_gb("VRAM prima del checkpoint")
 
     schedule = build_schedule()
@@ -695,23 +927,14 @@ def run_generation_worker(
     print(f"sampler compilato una sola volta e riusato per tutto il checkpoint (parameterization={args.parameterization})")
 
     for cls in classes:
-        existing_paths = list_fake_image_paths(paths, args, checkpoint_id, cls)
-        existing_count = len(existing_paths)
-        missing = max(0, args.n_gen_per_class - existing_count)
-        if existing_count > args.n_gen_per_class:
-            print(
-                f"classe {cls}: {args.n_gen_per_class}/{args.n_gen_per_class} "
-                f"gia' presenti ({existing_count} file totali, uso le prime "
-                f"{args.n_gen_per_class})"
-            )
-        else:
-            print(f"classe {cls}: {existing_count}/{args.n_gen_per_class} gia' presenti")
-        print(f"classe {cls}: genero {missing} immagini mancanti")
+        # Re-validate in the worker immediately before looking for holes.  This
+        # remains cheap and catches a checkpoint replaced while jobs were queued.
+        prepare_sweep_generation_manifest(args, paths, candidate, cls)
+        missing_indices = missing_fake_image_indices(paths, args, checkpoint_id, cls)
+        print(f"classe {cls}: genero {len(missing_indices)} immagini mancanti o corrotte")
 
         generated = 0
-        next_index = next_fake_image_index(existing_paths)
-        while generated < missing:
-            output_index = next_index + generated
+        for output_index in missing_indices:
             # Seed identico per ogni checkpoint a parita' di (classe, indice immagine):
             # la variabile confrontata nello sweep deve essere solo il checkpoint, non
             # anche il rumore iniziale da cui si parte.
@@ -745,12 +968,12 @@ def run_generation_worker(
             trace_count = sampler_trace_count(compiled_sampler)
             trace_msg = f" | sampler_traces={trace_count}" if trace_count is not None else ""
             print(
-                f"  classe {cls}: generate {generated}/{missing} mancanti "
+                f"  classe {cls}: generate {generated}/{len(missing_indices)} mancanti "
                 f"-> {output_path.name}{trace_msg}",
                 flush=True,
             )
             if (
-                generated == missing
+                generated == len(missing_indices)
                 or (args.vram_log_every > 0 and generated % args.vram_log_every == 0)
             ):
                 gc.collect()
@@ -758,11 +981,10 @@ def run_generation_worker(
                     f"VRAM checkpoint {checkpoint_id} classe {cls} dopo {generated} immagini"
                 )
 
-        fake_paths = list_fake_image_paths(paths, args, checkpoint_id, cls)
-        if len(fake_paths) < min(args.n_gen_per_class, existing_count + missing):
+        remaining = missing_fake_image_indices(paths, args, checkpoint_id, cls)
+        if remaining:
             raise RuntimeError(
-                f"Classe {cls}, checkpoint {checkpoint_id}: trovate {len(fake_paths)} "
-                f"immagini in {fake_output_dir(paths, args, checkpoint_id, cls)}"
+                f"Classe {cls}, checkpoint {checkpoint_id}: indici mancanti/corrotti {remaining[:20]}"
             )
 
     print("sampler_traces_finale:", sampler_trace_count(compiled_sampler))
@@ -1034,10 +1256,16 @@ def persist_sweep_artifacts(
 
         selection = build_selection(best_row, best_eval_model_path, args)
         checkpoint_records = json.loads(results_df.to_json(orient="records"))
+        metrics_input_signature = sweep_metrics_input_signature(args, paths)
         metrics_payload = {
             "schema_version": 2,
             "config": build_eval_config(args),
             "candidate_signature": build_candidate_signature(checkpoint_candidates),
+            "generation_image_signature": sweep_generated_image_signature(
+                args, paths, checkpoint_candidates
+            ),
+            "metrics_input_signature": metrics_input_signature,
+            **metrics_input_signature,
             "selection_policy": selection_policy(),
             "checkpoints": checkpoint_records,
             "selection": selection,
@@ -1191,15 +1419,17 @@ def run_metrics(
             }
 
             for cls in [0, 1]:
-                fake_paths = list_fake_image_paths(paths, args, checkpoint_id, cls)[
-                    : args.n_gen_per_class
-                ]
-                if len(fake_paths) < args.n_gen_per_class:
+                prepare_sweep_generation_manifest(args, paths, candidate, cls)
+                missing = missing_fake_image_indices(paths, args, checkpoint_id, cls)
+                if missing:
                     raise RuntimeError(
-                        f"Classe {cls}, checkpoint {checkpoint_id}: trovate {len(fake_paths)} "
-                        f"immagini su {args.n_gen_per_class} richieste in "
+                        f"Classe {cls}, checkpoint {checkpoint_id}: indici mancanti o corrotti {missing} in "
                         f"{fake_output_dir(paths, args, checkpoint_id, cls)}"
                     )
+                fake_paths = [
+                    fake_output_dir(paths, args, checkpoint_id, cls) / f"{index:04d}.png"
+                    for index in range(args.n_gen_per_class)
+                ]
 
                 row_result[f"existing_before_{cls}"] = len(fake_paths)
                 row_result[f"generated_now_{cls}"] = 0
@@ -1284,13 +1514,18 @@ def main() -> None:
         )
         args.mini_batch = 1
 
-    paths = get_experiment_paths(args.project_root, args.experiment_dir)
+    paths = get_experiment_paths(args.project_root, args.experiment_dir, create=not args.dry_run)
     checkpoint_candidates = collect_checkpoint_candidates(paths, args)
     print(f"Checkpoint candidati: {len(checkpoint_candidates)}")
     for candidate in checkpoint_candidates:
         print(f"  {candidate['checkpoint_id']} -> {Path(candidate['path']).name}")
 
-    if args.mode == "generate" and args.checkpoint_id is not None:
+    if args.dry_run:
+        # A dry run never reaches a child worker or expensive metrics/artifact stages.
+        orchestrate_generation(args, paths, checkpoint_candidates)
+        return
+
+    if args.mode == "generate" and args.generation_worker:
         run_generation_worker(args, paths, checkpoint_candidates[0])
         return
 

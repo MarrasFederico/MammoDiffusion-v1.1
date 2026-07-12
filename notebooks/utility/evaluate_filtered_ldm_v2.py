@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import shutil
+import sys
 from pathlib import Path
 
 
@@ -19,12 +20,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cuda-root",
         type=Path,
-        default=Path("/home/fede/miniforge3/envs/tf-gpu"),
+        default=Path(os.environ.get("MAMMODIFFUSION_CUDA_ROOT", sys.prefix)),
     )
     parser.add_argument("--synthetic-dir", type=Path, default=None)
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--target-label", type=int, default=1)
     parser.add_argument("--max-synthetic", type=int, default=None)
+    parser.add_argument("--expected-synthetic-count", type=int, default=None)
     parser.add_argument("--inception-batch", type=int, default=8)
     parser.add_argument("--is-splits", type=int, default=10)
     parser.add_argument("--knn-k", type=int, default=3)
@@ -93,7 +95,10 @@ def main() -> None:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    synthetic_paths = sorted(synthetic_dir.glob("*.png"))
+    from parallel_generation_utils import checkpoint_content_signature, exact_filtered_png_paths, readable_png_paths
+    synthetic_paths = readable_png_paths(synthetic_dir, r"synth_filtered_\d{4}\.png")
+    if args.expected_synthetic_count is not None:
+        synthetic_paths = exact_filtered_png_paths(synthetic_dir, args.expected_synthetic_count)
     if args.max_synthetic is not None:
         synthetic_paths = synthetic_paths[: args.max_synthetic]
     if not synthetic_paths:
@@ -144,20 +149,13 @@ def main() -> None:
         "knn_k": int(args.knn_k),
         "inception_weights": args.inception_weights,
     }
+    from ldm_project_paths import normalize_processed_path
+    test_csv = paths.metadata_dir / "test.csv"
+    test_reference_paths = [normalize_processed_path(row, paths.data_processed_dir) for _, row in test_label_df.iterrows()]
     input_signature = {
-        "synthetic_files": [
-            {
-                "name": path.name,
-                "size": path.stat().st_size,
-                "mtime_ns": path.stat().st_mtime_ns,
-            }
-            for path in synthetic_paths
-        ],
-        "test_csv": {
-            "path": str(paths.metadata_dir / "test.csv"),
-            "size": (paths.metadata_dir / "test.csv").stat().st_size,
-            "mtime_ns": (paths.metadata_dir / "test.csv").stat().st_mtime_ns,
-        },
+        "synthetic_files": [checkpoint_content_signature(path) for path in synthetic_paths],
+        "test_csv_signature": checkpoint_content_signature(test_csv),
+        "test_reference_image_signature": [checkpoint_content_signature(path) for path in test_reference_paths],
     }
 
     def use_cached_metrics_if_valid() -> bool:

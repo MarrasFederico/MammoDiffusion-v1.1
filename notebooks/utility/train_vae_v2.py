@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cuda-root",
         type=Path,
-        default=Path("/home/fede/miniforge3/envs/tf-gpu"),
+        default=Path(sys.prefix),
     )
     parser.add_argument("--epochs", type=int, default=VAE_EPOCHS)
     parser.add_argument("--batch-size", type=int, default=VAE_BATCH_SIZE)

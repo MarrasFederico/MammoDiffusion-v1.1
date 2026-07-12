@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import gc
 import json
 import os
@@ -24,6 +25,25 @@ from ldm_project_paths import (
     get_results_paths,
     normalize_processed_path,
 )
+from parallel_generation_utils import (
+    checkpoint_content_signature,
+    acquire_parallel_generation_lock,
+    create_parallel_run_dir,
+    file_content_signature,
+    claim_index,
+    claim_next_chunk,
+    complete_claimed_chunk,
+    DEFAULT_GENERATION_RESERVATION_SIZE,
+    DEFAULT_GENERATION_SCHEDULER,
+    partition_indices,
+    prepare_dynamic_queue,
+    print_generation_diagnostics,
+    resolve_generation_gpu_devices,
+    run_dynamic_gpu_jobs,
+    release_index_claim,
+    release_parallel_generation_lock,
+    sd_base_model_signature,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,9 +55,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-dir", type=Path, default=None)
     parser.add_argument("--gpu-visible-devices", default=None)
     parser.add_argument(
+        "--generation-gpus",
+        default="auto",
+        help="GPU per la sola generazione RAW: auto, off o lista comma-separata.",
+    )
+    parser.add_argument("--max-generation-workers", type=int, default=None)
+    parser.add_argument("--generation-scheduler", choices=["dynamic_reservations", "round_robin"], default=DEFAULT_GENERATION_SCHEDULER)
+    parser.add_argument("--generation-reservation-size", type=int, default=DEFAULT_GENERATION_RESERVATION_SIZE)
+    parser.add_argument("--generation-worker", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--generation-indices-file", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--generation-queue-dir", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--dry-run", action="store_true", help="Mostra GPU, shard e comandi senza caricare modelli.")
+    parser.add_argument(
         "--cuda-root",
         type=Path,
-        default=Path("/home/fede/miniforge3/envs/tf-gpu"),
+        default=Path(os.environ.get("MAMMODIFFUSION_CUDA_ROOT", sys.prefix)),
     )
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument(
@@ -185,8 +217,9 @@ def resolve_image_dirs(paths, args: argparse.Namespace) -> tuple[Path, Path]:
         if args.filtered_dir is not None
         else canonical_filtered_dir
     )
-    raw_dir.mkdir(parents=True, exist_ok=True)
-    filtered_dir.mkdir(parents=True, exist_ok=True)
+    if not getattr(args, "dry_run", False):
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        filtered_dir.mkdir(parents=True, exist_ok=True)
     return raw_dir, filtered_dir
 
 
@@ -198,7 +231,9 @@ def is_canonical_image_run(paths, args: argparse.Namespace, raw_dir: Path, filte
 
 def mirror_positive_legacy_outputs(source_dir: Path, legacy_dir: Path, target_label: int) -> None:
     """Mantiene leggibili i percorsi positivi storici mentre i nuovi output sono class-scoped."""
-    if int(target_label) != 1 or source_dir == legacy_dir:
+    # Con un filtro ripreso da cache i report possono esistere senza grafici: in quel
+    # caso source_dir non viene creato e il mirror e' semplicemente non necessario.
+    if int(target_label) != 1 or source_dir == legacy_dir or not source_dir.is_dir():
         return
     for source in source_dir.iterdir():
         if source.is_file():
@@ -252,7 +287,7 @@ def scan_raw_generation_state(raw_dir: Path, n_raw: int, force_recompute: bool =
             "extra_files": [
                 str(path)
                 for path in sorted(raw_dir.glob("*.png"))
-                if raw_index_from_name(path) is None or raw_index_from_name(path) >= n_raw
+                if not path.name.startswith(".tmp_") and (raw_index_from_name(path) is None or raw_index_from_name(path) >= n_raw)
             ],
             "force_recompute": True,
         }
@@ -269,6 +304,8 @@ def scan_raw_generation_state(raw_dir: Path, n_raw: int, force_recompute: bool =
 
     extra_files = []
     for path in sorted(raw_dir.glob("*.png")):
+        if path.name.startswith(".tmp_"):
+            continue
         index = raw_index_from_name(path)
         if index is None or index < 0 or index >= n_raw:
             extra_files.append(str(path))
@@ -290,6 +327,97 @@ def write_json(path: Path, payload: dict) -> None:
         json.dump(payload, file, indent=2, ensure_ascii=False)
 
 
+def atomic_write_json(path: Path, payload: dict) -> None:
+    """Atomically publish a manifest: readers never observe a partial JSON file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".tmp_{path.name}.{os.getpid()}")
+    with open(tmp_path, "w", encoding="utf-8") as file:
+        json.dump(payload, file, indent=2, ensure_ascii=False)
+        file.flush()
+        os.fsync(file.fileno())
+    os.replace(tmp_path, path)
+
+
+def ldm_vae_signature(args: argparse.Namespace, paths) -> dict:
+    """Return the effective decoder identity without loading a model."""
+    if args.vae_backend == "sd":
+        from sd_vae_utils import resolve_sd_vae_model
+
+        return sd_base_model_signature(Path(resolve_sd_vae_model(paths.project_root, args.sd_vae_model)))
+    return checkpoint_content_signature(paths.models_dir / "vae_decoder_best.keras")
+
+
+def raw_generation_manifest_payload(args: argparse.Namespace, paths, raw_dir: Path) -> dict:
+    """Scientific provenance required to resume a RAW LDM output directory."""
+    model_path = resolve_model_path(paths.experiment_dir, args.model_path)
+    return {
+        "schema_version": 2,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "seed": int(args.seed),
+        "target_label": int(args.target_label),
+        "n_raw": int(args.n_raw),
+        "sample_steps": int(args.sample_steps),
+        "guidance_scale": float(args.guidance_scale),
+        "parameterization": args.parameterization,
+        "unet_version": args.unet_version,
+        "vae_backend": args.vae_backend,
+        "vae_source": args.vae_source,
+        "decode_on_cpu": bool(getattr(args, "decode_on_cpu", False)),
+        "sd_vae_batch_size": int(getattr(args, "sd_vae_batch_size", 1)),
+        "latent_stats_signature": checkpoint_content_signature(
+            getattr(paths, "latents_dir", paths.experiment_dir / "latents") / "latent_stats.npz"
+        ),
+        "sd_vae_model_signature": ldm_vae_signature(args, paths),
+        "model_signature": checkpoint_content_signature(model_path),
+    }
+
+
+def prepare_raw_generation_manifest(
+    args: argparse.Namespace, paths, raw_dir: Path, *, parent: bool, dry_run: bool = False
+) -> dict:
+    """Validate RAW resume provenance before inspecting missing image indices.
+
+    Only the parent may create/replace the global manifest.  A worker merely
+    validates the already-published manifest, preserving the multi-GPU protocol.
+    """
+    raw_dir = Path(raw_dir)
+    manifest_path = raw_dir / ".generation_manifest.json"
+    expected = raw_generation_manifest_payload(args, paths, raw_dir)
+    png_paths = [path for path in raw_dir.glob("*.png") if not path.name.startswith(".tmp_")]
+    current = None
+    if manifest_path.is_file():
+        try:
+            current = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise RuntimeError(f"RAW generation manifest unreadable: {manifest_path}") from exc
+    if current != expected:
+        if dry_run:
+            changed = sorted(key for key in set(current or {}) | set(expected) if (current or {}).get(key) != expected.get(key))
+            print(f"DRY-RUN: manifest RAW incompatibile ({changed}); verrebbe sostituito senza riusare i PNG.")
+            return expected
+        if not parent:
+            raise RuntimeError(
+                f"RAW generation manifest is missing or incompatible in worker: {manifest_path}. "
+                "Restart the parent orchestration."
+            )
+        if current is None and png_paths and not args.force_recompute:
+            raise RuntimeError(
+                f"RAW directory {raw_dir} contains PNGs without .generation_manifest.json; "
+                "refusing resume. Use a new directory or --force-recompute."
+            )
+        if current is not None and not args.force_recompute:
+            changed = sorted(key for key in set(current) | set(expected) if current.get(key) != expected.get(key))
+            raise RuntimeError(
+                f"Incompatible RAW generation manifest in {raw_dir}: {changed}. "
+                "Use a new directory or --force-recompute; existing images will not be reused."
+            )
+        if args.force_recompute:
+            for path in png_paths:
+                path.unlink()
+        atomic_write_json(manifest_path, expected)
+    return expected
+
+
 def sampler_trace_count(compiled_sampler) -> int | None:
     """Legge quante volte la funzione tf.function del sampler e' stata ritracciata, utile per verificare che la compilazione sia avvenuta una sola volta."""
     getter = getattr(compiled_sampler, "experimental_get_tracing_count", None)
@@ -308,12 +436,14 @@ def save_single_image(image_np, output_path: Path) -> None:
     if arr.min() < 0:
         arr = (arr + 1.0) / 2.0
     arr = np.squeeze(arr)
-    tmp_path = output_path.with_name(f".tmp_{output_path.name}")
+    tmp_path = output_path.with_name(f".tmp_gen_{output_path.stem}_{os.getpid()}.png")
     Image.fromarray(
         np.clip(arr * 255.0, 0, 255).astype(np.uint8),
         mode="L",
     ).save(tmp_path)
-    tmp_path.replace(output_path)
+    with Image.open(tmp_path) as image:
+        image.verify()
+    os.replace(tmp_path, output_path)
 
 
 def append_jsonl(path: Path, payload: dict) -> None:
@@ -414,7 +544,130 @@ def maybe_measure(args: argparse.Namespace, paths, label: str):
             print(tracker.metrics)
 
 
-def run_generate(args: argparse.Namespace, paths) -> None:
+def _worker_indices(args: argparse.Namespace) -> list[int] | None:
+    if args.generation_indices_file is None:
+        return None
+    with open(args.generation_indices_file, "r", encoding="utf-8") as file:
+        payload = json.load(file)
+    indices = payload.get("indices", payload)
+    if not isinstance(indices, list) or any(not isinstance(value, int) for value in indices):
+        raise ValueError(f"Indice worker non valido: {args.generation_indices_file}")
+    return sorted(set(indices))
+
+
+def generation_child_command(args: argparse.Namespace, paths, indices_file: Path | None, gpu: str, queue_dir: Path | None = None) -> list[str]:
+    """Create a non-recursive, CUDA-isolated RAW-generation child command."""
+    command = child_command(args, paths, "generate")
+    # The generate child already received the parent's settings. A worker must be
+    # non-recursive, so replace that one value while preserving max-workers.
+    gpu_option = command.index("--generation-gpus")
+    command[gpu_option + 1] = "off"
+    command.extend(["--generation-worker", "--gpu-visible-devices", str(gpu)])
+    if indices_file is not None: command.extend(["--generation-indices-file", str(indices_file)])
+    if queue_dir is not None: command.extend(["--generation-queue-dir", str(queue_dir)])
+    # Workers never write aggregate energy records concurrently.
+    while "--eco-track" in command:
+        command.remove("--eco-track")
+    return command
+
+
+def orchestrate_parallel_raw_generation(args: argparse.Namespace, paths, raw_dir: Path, targets: list[int]) -> dict:
+    devices = resolve_generation_gpu_devices(args.generation_gpus, args.max_generation_workers)
+    print_generation_diagnostics(args.generation_gpus, devices)
+    log_dir = (
+        paths.logs_dir / "parallel_generation" / "dry_run"
+        if args.dry_run else create_parallel_run_dir(paths.logs_dir)
+    )
+    shard_dir = log_dir / "raw_index_shards"
+    scheduler = args.generation_scheduler
+    state = scan_raw_generation_state(raw_dir, args.n_raw, force_recompute=False)
+    if scheduler == "dynamic_reservations":
+        queue_dir = log_dir / "work_queue"
+        prepare_dynamic_queue(queue_dir, targets, target_count=args.n_raw, valid_indices=state["valid_indices"],
+            corrupt_indices=state["corrupt_indices"], reservation_size=args.generation_reservation_size,
+            output_dir=raw_dir, metadata={"seed_strategy": "stateless_seed_per_image_v1", "parameters": {"seed": args.seed, "target_label": args.target_label}}, dry_run=args.dry_run)
+        shards = [[-1] for _ in devices]
+    else:
+        queue_dir = None
+        shards = partition_indices(targets, len(devices))
+    jobs = []
+    for worker_id, indices in enumerate(shards):
+        if not indices:
+            continue
+        experiment_label = paths.experiment_dir.name
+        class_label = class_name_for_label(args.target_label)
+        phase = "raw_generation"
+        indices_file = None if scheduler == "dynamic_reservations" else shard_dir / f"{experiment_label}_{class_label}_{phase}_worker_{worker_id}.json"
+        if not args.dry_run and indices_file is not None:
+            write_json(indices_file, {"indices": indices, "raw_dir": str(raw_dir)})
+        jobs.append({
+            "worker_id": worker_id,
+            "indices_file": indices_file, "queue_dir": queue_dir,
+            "label": (
+                f"{experiment_label}_{class_label}_target_{args.target_label}_"
+                f"{phase}_worker_{worker_id}"
+            ),
+        })
+    print(f"RAW generation jobs: {len(targets)} indices across {len(jobs)} workers")
+    start = time.perf_counter()
+    run_dynamic_gpu_jobs(
+        jobs=jobs,
+        devices=devices,
+        command_for_job=lambda job, gpu: generation_child_command(
+            args, paths, job["indices_file"], gpu, job["queue_dir"]
+        ),
+        logs_dir=log_dir,
+        dry_run=args.dry_run,
+        cwd=paths.project_root,
+    )
+    return {
+        "devices": devices,
+        "worker_count": len(jobs),
+        "wall_clock_seconds": time.perf_counter() - start,
+        "job_partition_strategy": scheduler,
+        "generation_scheduler": scheduler,
+        "generation_reservation_size": args.generation_reservation_size,
+    }
+
+
+def write_parallel_generation_parent_artifacts(args: argparse.Namespace, paths, raw_dir: Path, filtered_dir: Path, log_dir: Path, state: dict, parallel_info: dict) -> None:
+    """Only the parent writes the global state and manifest after all children finish."""
+    state_path = log_dir / "generation_raw_state.json"
+    write_json(state_path, {**state, "raw_dir": str(raw_dir), "n_raw": args.n_raw, "target_label": args.target_label, "seed": args.seed})
+    canonical_run = is_canonical_image_run(paths, args, raw_dir, filtered_dir)
+    model_path = resolve_model_path(paths.experiment_dir, args.model_path)
+    payload = {
+        "stage": "generate",
+        "raw_dir": str(raw_dir),
+        "n_raw": args.n_raw,
+        "target_label": args.target_label,
+        "sample_steps": args.sample_steps,
+        "guidance_scale": args.guidance_scale,
+        "vae_backend": args.vae_backend,
+        "sd_vae_model": args.sd_vae_model,
+        "model_path": str(model_path),
+        "state_json": str(state_path),
+        "canonical_run": canonical_run,
+        "parallel_generation": True,
+        "generation_gpu_devices_requested": args.generation_gpus,
+        "generation_gpu_devices_resolved": parallel_info["devices"],
+        "generation_worker_count": parallel_info["worker_count"],
+        "job_partition_strategy": parallel_info["job_partition_strategy"],
+        "generation_scheduler": parallel_info["generation_scheduler"],
+        "generation_reservation_size": parallel_info["generation_reservation_size"],
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "sampler_randomness": "stateless_seed_per_image_v1",
+        "wall_clock_seconds": parallel_info["wall_clock_seconds"],
+        "energy_measurement": "not_aggregated_across_parallel_workers",
+        **manifest_lineage_fields(args),
+    }
+    if canonical_run:
+        write_pipeline_manifest(paths, payload, args.results_stage_name)
+    else:
+        write_json(log_dir / "generation_manifest_smoke.json", payload)
+
+
+def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
     """Esegue la generazione RAW: carica VAE decoder e U-Net LDM, compila il sampler una sola volta e genera via reverse diffusion solo le immagini mancanti o corrotte rispetto allo stato gia' su disco, salvando log/manifest a fine corsa."""
     if args.batch_size != 1:
         print(f"Nota: --batch-size={args.batch_size} ignorato; uso batch fisso 1.")
@@ -427,20 +680,30 @@ def run_generate(args: argparse.Namespace, paths) -> None:
         if canonical_run
         else raw_dir.parent / "generation_logs_smoke"
     )
-    log_dir.mkdir(parents=True, exist_ok=True)
+    if args.generation_worker:
+        # No worker writes aggregate state, manifests or shared JSONL files.
+        log_dir = paths.logs_dir / "parallel_generation" / f"final_worker_gpu_{args.gpu_visible_devices or 'unknown'}"
+    if not args.dry_run:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    # This must precede the no-target fast path: a complete directory is safe to
+    # skip only when its model/decoder/sampling provenance is still compatible.
+    prepare_raw_generation_manifest(
+        args, paths, raw_dir, parent=not args.generation_worker, dry_run=args.dry_run
+    )
     state = scan_raw_generation_state(raw_dir, args.n_raw, args.force_recompute)
     targets = sorted(set(state["missing_indices"]) | set(state["corrupt_indices"]))
     state_path = log_dir / "generation_raw_state.json"
-    write_json(
-        state_path,
-        {
-            **state,
-            "raw_dir": str(raw_dir),
-            "n_raw": args.n_raw,
-            "target_label": args.target_label,
-            "seed": args.seed,
-        },
-    )
+    if not args.generation_worker and not args.dry_run:
+        write_json(
+            state_path,
+            {
+                **state,
+                "raw_dir": str(raw_dir),
+                "n_raw": args.n_raw,
+                "target_label": args.target_label,
+                "seed": args.seed,
+            },
+        )
     print(
         "RAW resume: "
         f"valid={len(state['valid_indices'])} "
@@ -456,7 +719,36 @@ def run_generate(args: argparse.Namespace, paths) -> None:
         print("Skip: immagini raw gia' complete e leggibili. Non carico TensorFlow.")
         return
 
+    if not args.generation_worker and str(args.generation_gpus).strip().lower() not in {"off", "none", "false", ""}:
+        parallel_info = orchestrate_parallel_raw_generation(args, paths, raw_dir, targets)
+        if args.dry_run:
+            return
+        final_state = scan_raw_generation_state(raw_dir, args.n_raw, force_recompute=False)
+        if final_state["missing_indices"] or final_state["corrupt_indices"]:
+            raise RuntimeError(
+                "Generazione RAW parallela incompleta: "
+                f"missing={len(final_state['missing_indices'])}, corrupt={len(final_state['corrupt_indices'])}"
+            )
+        write_parallel_generation_parent_artifacts(
+            args, paths, raw_dir, filtered_dir, log_dir, final_state, parallel_info
+        )
+        return
+
+    assigned_indices = _worker_indices(args)
+    if assigned_indices is not None:
+        target_set = set(targets)
+        unexpected = set(assigned_indices) - target_set
+        if unexpected:
+            raise RuntimeError(f"Worker ha ricevuto indici non mancanti: {sorted(unexpected)[:20]}")
+        targets = assigned_indices
+        if not targets:
+            print("Worker senza indici assegnati: esco senza caricare TensorFlow.")
+            return
+
     configure_environment(args)
+
+    if args.vae_backend == "sd" and not args.decode_on_cpu:
+        os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")
 
     import numpy as np
     import tensorflow as tf
@@ -472,7 +764,10 @@ def run_generate(args: argparse.Namespace, paths) -> None:
         vram_gb,
     )
 
-    configure_tensorflow(seed=args.seed)
+    configure_tensorflow(
+        seed=args.seed,
+        allow_gpu_memory_growth=args.vae_backend == "sd" and not args.decode_on_cpu,
+    )
     tf.random.set_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -530,7 +825,34 @@ def run_generate(args: argparse.Namespace, paths) -> None:
         print(f"sampler compilato una sola volta e riusato per tutte le immagini (parameterization={args.parameterization})")
 
         start_time = time.perf_counter()
-        for generated_count, index in enumerate(targets, start=1):
+        worker_stats = {"worker_id": os.getpid(), "gpu_physical_id": args.gpu_visible_devices,
+            "chunks_claimed": 0, "chunks_completed": 0, "indices_reserved": 0,
+            "images_generated": 0, "images_already_completed": 0, "images_failed": 0}
+
+        def iter_worker_targets():
+            if args.generation_queue_dir is None:
+                yield from targets
+                return
+            while True:
+                claimed = claim_next_chunk(args.generation_queue_dir, str(os.getpid()))
+                if claimed is None: break
+                claimed_path, chunk = claimed; worker_stats["chunks_claimed"] += 1
+                for index in chunk["indices"]:
+                    output_path = expected_raw_path(raw_dir, index)
+                    if is_readable_png(output_path):
+                        worker_stats["images_already_completed"] += 1
+                        continue
+                    reservation = claim_index(args.generation_queue_dir, index, chunk["chunk_id"], str(os.getpid()), str(args.gpu_visible_devices))
+                    if reservation is None:
+                        if is_readable_png(output_path): worker_stats["images_already_completed"] += 1
+                        continue
+                    worker_stats["indices_reserved"] += 1
+                    try: yield index
+                    finally: release_index_claim(reservation)
+                complete_claimed_chunk(args.generation_queue_dir, claimed_path, chunk)
+                worker_stats["chunks_completed"] += 1
+
+        for generated_count, index in enumerate(iter_worker_targets(), start=1):
             output_path = expected_raw_path(raw_dir, index)
             if output_path.exists() and is_readable_png(output_path) and not args.force_recompute:
                 continue
@@ -551,6 +873,7 @@ def run_generate(args: argparse.Namespace, paths) -> None:
             else:
                 image_np = sample_out[0].numpy()
             save_single_image(image_np, output_path)
+            worker_stats["images_generated"] += 1
 
             del sample_out
             del image_np
@@ -569,24 +892,31 @@ def run_generate(args: argparse.Namespace, paths) -> None:
                 vram_gb(f"VRAM dopo {generated_count} nuove RAW")
 
         elapsed = time.perf_counter() - start_time
-        final_state = scan_raw_generation_state(raw_dir, args.n_raw, force_recompute=False)
-        write_json(
-            state_path,
-            {
-                **final_state,
-                "raw_dir": str(raw_dir),
-                "n_raw": args.n_raw,
-                "target_label": args.target_label,
-                "seed": args.seed,
-                "elapsed_seconds": elapsed,
-            },
-        )
-        if final_state["missing_indices"] or final_state["corrupt_indices"]:
-            raise RuntimeError(
-                "Generazione RAW incompleta: "
-                f"missing={len(final_state['missing_indices'])}, "
-                f"corrupt={len(final_state['corrupt_indices'])}"
+        worker_stats["wall_clock_seconds"] = elapsed
+        worker_stats["images_per_second"] = worker_stats["images_generated"] / elapsed if elapsed else 0.0
+        if args.generation_queue_dir is not None:
+            write_json(args.generation_queue_dir / "worker_stats" / f"worker_{os.getpid()}.json", worker_stats)
+        if not args.generation_worker:
+            final_state = scan_raw_generation_state(raw_dir, args.n_raw, force_recompute=False)
+            write_json(
+                state_path,
+                {
+                    **final_state,
+                    "raw_dir": str(raw_dir),
+                    "n_raw": args.n_raw,
+                    "target_label": args.target_label,
+                    "seed": args.seed,
+                    "elapsed_seconds": elapsed,
+                },
             )
+            if final_state["missing_indices"] or final_state["corrupt_indices"]:
+                raise RuntimeError(
+                    "Generazione RAW incompleta: "
+                    f"missing={len(final_state['missing_indices'])}, "
+                    f"corrupt={len(final_state['corrupt_indices'])}"
+                )
+        else:
+            print(f"Worker completed {len(targets)} assigned RAW indices in {elapsed:.1f}s")
         print("sampler_traces_finale:", sampler_trace_count(compiled_sampler))
         append_jsonl(
             log_dir / "generation_summary.jsonl",
@@ -621,7 +951,7 @@ def run_generate(args: argparse.Namespace, paths) -> None:
             "canonical_run": canonical_run,
             **manifest_lineage_fields(args),
         }
-        if canonical_run:
+        if canonical_run and not args.generation_worker:
             write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
         else:
             write_json(log_dir / "generation_manifest_smoke.json", manifest_payload)
@@ -638,6 +968,18 @@ def run_generate(args: argparse.Namespace, paths) -> None:
         gc.collect()
         tf.keras.backend.clear_session()
         vram_gb("VRAM alla fine della generazione")
+
+
+def run_generate(args: argparse.Namespace, paths) -> None:
+    """Acquire the output lock before scanning, cleanup or queue construction."""
+    if args.dry_run or args.generation_worker:
+        return _run_generate_locked_body(args, paths)
+    raw_dir, _ = resolve_image_dirs(paths, args)
+    lock = acquire_parallel_generation_lock(raw_dir)
+    try:
+        return _run_generate_locked_body(args, paths)
+    finally:
+        release_parallel_generation_lock(lock)
 
 
 def train_reference_paths(paths, target_label: int) -> list[Path]:
@@ -665,7 +1007,9 @@ def run_filter(args: argparse.Namespace, paths) -> None:
     """Applica il filtro adattivo alle immagini RAW per selezionare le n_selected migliori (confrontate con le reali della classe target) e salva il relativo report/manifest. Genera prima le RAW mancanti se la cartella non ne contiene ancora a sufficienza."""
     from adaptive_mammography_filter import filter_generated_directory
 
-    run_generate(args, paths)
+    generation_args = copy.copy(args)
+    generation_args.force_recompute = False
+    run_generate(generation_args, paths)
 
     raw_dir, filtered_dir = resolve_image_dirs(paths, args)
     results_paths = get_results_paths(paths.project_root, args.results_stage_name)
@@ -721,7 +1065,7 @@ def run_filter(args: argparse.Namespace, paths) -> None:
 
 def readable_png_paths(directory: Path, limit: int | None = None) -> list[Path]:
     """Elenca in ordine i PNG leggibili in una cartella, scartando quelli corrotti, con limite opzionale."""
-    paths = [path for path in sorted(directory.glob("*.png")) if is_readable_png(path)]
+    paths = [path for path in sorted(directory.glob("*.png")) if not path.name.startswith(".tmp_") and is_readable_png(path)]
     return paths[:limit] if limit is not None else paths
 
 
@@ -731,15 +1075,8 @@ def select_metric_paths(paths: list[Path], limit: int | None) -> list[Path]:
 
 
 def file_signature(paths: list[Path]) -> list[dict]:
-    """Costruisce una firma leggera (nome, dimensione, mtime) dei file di input, usata per invalidare la cache delle metriche se i file cambiano."""
-    return [
-        {
-            "name": path.name,
-            "size": path.stat().st_size,
-            "mtime_ns": path.stat().st_mtime_ns,
-        }
-        for path in paths
-    ]
+    """Costruisce una firma content-aware (sha256) dei file di input, usata per invalidare la cache delle metriche se il contenuto cambia."""
+    return [file_content_signature(path) for path in paths]
 
 
 def use_metrics_cache(json_path: Path, csv_path: Path, config: dict, input_signature: dict) -> bool:
@@ -779,12 +1116,12 @@ def run_validate(args: argparse.Namespace, paths) -> None:
         else filtered_dir.parent / "validation_outputs_smoke"
     )
     output_dir.mkdir(parents=True, exist_ok=True)
-    raw_paths = readable_png_paths(raw_dir)
-    filtered_paths = readable_png_paths(filtered_dir)
-    if len(raw_paths) < args.n_raw:
+    from parallel_generation_utils import exact_filtered_png_paths, ldm_raw_png_paths
+    raw_paths = ldm_raw_png_paths(raw_dir)
+    filtered_paths = exact_filtered_png_paths(filtered_dir, args.n_selected)
+    expected_raw = [raw_dir / f"synth_{index:05d}.png" for index in range(args.n_raw)]
+    if raw_paths != expected_raw:
         raise RuntimeError(f"RAW complete insufficienti: {len(raw_paths)}/{args.n_raw}")
-    if len(filtered_paths) < args.n_selected:
-        raise RuntimeError(f"FILTERED insufficienti: {len(filtered_paths)}/{args.n_selected}")
 
     raw_complete = raw_paths[:args.n_raw]
     rng = random.Random(args.balanced_seed)
@@ -809,10 +1146,20 @@ def run_validate(args: argparse.Namespace, paths) -> None:
         "knn_k": int(args.knn_k),
         "inception_weights": args.inception_weights,
     }
+    val_csv = paths.metadata_dir / "val.csv"
+    val_df = pd.read_csv(val_csv)
+    val_label_df = val_df[val_df["label"].astype(int) == int(args.target_label)]
+    val_reference_paths = [normalize_processed_path(row, paths.data_processed_dir) for _, row in val_label_df.iterrows()]
     input_signature = {
         name: file_signature(dataset_paths)
         for name, dataset_paths in datasets.items()
     }
+    input_signature.update({
+        "validation_csv_signature": checkpoint_content_signature(val_csv),
+        "validation_reference_image_signature": [checkpoint_content_signature(path) for path in val_reference_paths],
+        "metric_backend": "generative_evaluator.py",
+        "metric_backend_version": "content_signature_v1",
+    })
     csv_path = output_dir / "raw_vs_filtered_validation.csv"
     json_path = output_dir / "raw_vs_filtered_validation.json"
     class_metrics_dir = get_class_metrics_dir(results_paths, args.target_label)
@@ -825,7 +1172,6 @@ def run_validate(args: argparse.Namespace, paths) -> None:
             copy_if_exists(json_path, canonical_json_path)
         return
 
-    val_df = pd.read_csv(paths.metadata_dir / "val.csv")
     rows = []
     with maybe_measure(args, paths, "ldm_validate_raw_filtered"):
         for dataset_name, generated_paths in datasets.items():
@@ -895,6 +1241,7 @@ def evaluate_filtered_command(args: argparse.Namespace, paths, filtered_dir: Pat
         "--experiment-dir", str(paths.experiment_dir),
         "--cuda-root", str(args.cuda_root),
         "--synthetic-dir", str(filtered_dir),
+        "--expected-synthetic-count", str(args.n_selected),
         "--target-label", str(args.target_label),
         "--inception-batch", str(args.inception_batch),
         "--is-splits", str(args.is_splits),
@@ -973,6 +1320,12 @@ def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
         "--inception-weights", args.inception_weights,
         "--results-stage-name", args.results_stage_name,
     ]
+    if mode == "generate":
+        command.extend(["--generation-gpus", str(args.generation_gpus),
+                        "--generation-scheduler", str(args.generation_scheduler),
+                        "--generation-reservation-size", str(args.generation_reservation_size)])
+        if args.max_generation_workers is not None:
+            command.extend(["--max-generation-workers", str(args.max_generation_workers)])
     if args.model_path is not None:
         command.extend(["--model-path", str(args.model_path)])
     if args.gpu_visible_devices is not None:
@@ -1118,8 +1471,21 @@ def run_reverse(args: argparse.Namespace, paths) -> None:
 def main() -> None:
     """Punto di ingresso CLI: parsa gli argomenti e smista l'esecuzione verso la modalita' richiesta (singola fase o orchestrazione di piu' fasi)."""
     args = parse_args()
+    if (
+        not args.generation_worker
+        and str(args.generation_gpus).strip().lower() in {"off", "none", "false", ""}
+        and args.gpu_visible_devices is None
+    ):
+        # The non-orchestrated compatibility path still uses exactly one GPU.
+        args.gpu_visible_devices = resolve_generation_gpu_devices("off", 1)[0]
     configure_environment(args)
-    paths = get_experiment_paths(args.project_root, args.experiment_dir)
+    paths = get_experiment_paths(args.project_root, args.experiment_dir, create=not args.dry_run)
+
+    if args.dry_run:
+        if args.mode != "generate":
+            print("--dry-run mostra soltanto il piano della generazione RAW; filter/validate/test/reverse non vengono avviati.")
+        run_generate(args, paths)
+        return
 
     if args.mode == "all":
         orchestrate_modes(args, paths, ["generate", "filter", "validate", "test"])

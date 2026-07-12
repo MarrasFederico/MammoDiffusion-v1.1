@@ -4,10 +4,16 @@ import json
 import importlib
 import os
 import sys
+import warnings
 from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from torch import Tensor
+else:
+    Tensor = Any
 
 
 def _infer_project_root(path: Path) -> Path | None:
@@ -19,19 +25,19 @@ def _infer_project_root(path: Path) -> Path | None:
 
 
 def _local_diffusers_src_candidates(project_root: Path | None) -> list[Path]:
-    """Elenca checkout Diffusers locali in ordine stabile, senza dipendere da pip editable."""
+    """Return only the configured/canonical checkout, never experiment fallbacks."""
     candidates: list[Path] = []
     env_value = os.environ.get("MAMMODIFFUSION_DIFFUSERS_SRC")
     if env_value:
         candidates.append(Path(env_value).expanduser())
     if project_root is not None:
-        experiment_root = project_root / "experiments" / "diffusers"
-        candidates.extend([
-            experiment_root / "03_sd21_vae_finetuned" / "diffusers_repo" / "src",
-            experiment_root / "04_sd21_lora" / "diffusers_repo" / "src",
-        ])
-        if experiment_root.is_dir():
-            candidates.extend(sorted(experiment_root.glob("*/diffusers_repo/src")))
+        try:
+            from shared_diffusers_assets import resolve_shared_diffusers_repo
+            candidates.append(resolve_shared_diffusers_repo() / "src")
+        except ImportError as exc:
+            raise RuntimeError(
+                "shared_diffusers_assets is required to resolve the canonical Diffusers checkout"
+            ) from exc
 
     unique: list[Path] = []
     for candidate in candidates:
@@ -86,28 +92,33 @@ def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None
             f"{candidate}"
         )
 
-    candidates = [
-        project_root / "notebooks" / "pretrained_model" / "stable-diffusion-2-1-base",
-        project_root / "pretrained_model" / "stable-diffusion-2-1-base",
-        project_root / "models" / "stable-diffusion-2-1-base",
-        project_root / "experiments" / "diffusers" / "07_ldm_sdvae_extra1361" / "pretrained_model" / "stable-diffusion-2-1-base",
-        project_root / "experiments" / "diffusers" / "03_sd21_vae_finetuned" / "pretrained_model" / "stable-diffusion-2-1-base",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate.absolute())
-    checked = "\n".join(f"- {candidate}" for candidate in candidates)
+    from shared_diffusers_assets import resolve_shared_sd21_base, verify_shared_sd21_base
+
+    candidate = resolve_shared_sd21_base()
+    try:
+        verify_shared_sd21_base(candidate)
+        return str(candidate.absolute())
+    except FileNotFoundError:
+        checked = str(candidate)
     raise FileNotFoundError(
         "Modello Stable Diffusion 2.1 locale non trovato. "
         "Non uso Hugging Face Hub perché il modello pubblico non è più disponibile.\n"
-        f"Percorsi controllati:\n{checked}"
+        f"Percorso canonico controllato:\n- {checked}"
     )
 
 
 def _has_vae_config(path: Path) -> bool:
-    return (path / "config.json").is_file() and (
-        (path / "diffusion_pytorch_model.safetensors").is_file()
-        or (path / "diffusion_pytorch_model.bin").is_file()
+    """True if ``path`` is a standalone Diffusers VAE folder.
+
+    Accepts full-precision, FP16 (``diffusion_pytorch_model.fp16.safetensors``)
+    and sharded (``diffusion_pytorch_model*-of-*.safetensors`` plus a
+    ``*.index.json``) weight layouts instead of only the two exact legacy names.
+    """
+    if not (path / "config.json").is_file():
+        return False
+    return any(
+        any(path.glob(pattern))
+        for pattern in ("diffusion_pytorch_model*.safetensors", "diffusion_pytorch_model*.bin", "*.index.json")
     )
 
 
@@ -153,7 +164,7 @@ def load_sd_vae(
     return vae, device, torch_dtype, scaling_factor
 
 
-def image_batch_to_sd_tensor(images: np.ndarray, device: str, dtype) -> "torch.Tensor":
+def image_batch_to_sd_tensor(images: np.ndarray, device: str, dtype) -> Tensor:
     """Convert grayscale NHWC images in [-1, 1] to SD RGB NCHW tensors."""
     import torch
 

@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "filter_schema_version": "adaptive_mask_v2",
+  "timestamp": "2026-07-12T13:56:50",
+  "experiment_name": "diffusers/04_sd21_lora",
+  "class_name": "positive",
+  "experiment": "diffusers/04_sd21_lora",
+  "class": "positive",
+  "label": 1,
+  "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/04_sd21_lora/generated_images/final/positive",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_lora/positive",
+  "n_raw": 2722,
+  "n_accepted": 2090,
+  "n_rejected": 632,
+  "n_selected": 1361,
+  "thresholds": {
+    "min_nonblack_ratio": 0.1308173599243164,
+    "max_nonblack_ratio": 0.9401134300231935,
+    "min_std_nonblack": 8.0108599903395,
+    "min_largest_component_frac": 0.75,
+    "max_top_border": 0.65,
+    "max_bottom_border": 0.65
+  },
+  "reference_medians": {
+    "nonblack_ratio": 0.4025707244873047,
+    "mean_nonblack": 83.61933028886709,
+    "std_nonblack": 40.33224258532965,
+    "entropy": 3.8458387206379756,
+    "lap_var": 857.448486328125,
+    "largest_component_frac": 0.9985250903699046
+  },
+  "reference_iqrs": {
+    "nonblack_ratio": 0.1483011245727539,
+    "mean_nonblack": 32.72959996324846,
+    "std_nonblack": 14.162236709954072,
+    "entropy": 1.0149152250103057,
+    "lap_var": 811.8924560546875,
+    "largest_component_frac": 0.0018010371645313938
+  },
+  "n_real_train_reference": 340,
+  "reject_reason_counts": {
+    "too_empty": 601,
+    "fragmented_mask": 20,
+    "low_contrast": 11
+  },
+  "ranking_config": {
+    "schema_version": 2,
+    "filter_schema_version": "adaptive_mask_v2",
+    "selection_score": "robust_distance_from_train_reference",
+    "sort_order": "descending_selection_score",
+    "n_selected": 1361,
+    "eval_seed": 42,
+    "reference_seed": 43,
+    "nonblack_threshold": 10,
+    "output_naming": "selected_output_name_v1"
+  },
+  "status": "completed"
+}

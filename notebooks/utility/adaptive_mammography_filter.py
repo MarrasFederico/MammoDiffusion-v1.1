@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Iterable
@@ -10,6 +11,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from scipy import ndimage as ndi
+from parallel_generation_utils import file_content_signature, filtered_selection_cache_matches
 
 
 QUALITY_FEATURES = [
@@ -208,22 +210,27 @@ def evaluate_candidate(
 
 
 def _image_signature(paths: list[Path]) -> list[dict]:
-    return [
-        {
-            "name": path.name,
-            "size": path.stat().st_size,
-            "mtime_ns": path.stat().st_mtime_ns,
-        }
-        for path in paths
-    ]
+    return [file_content_signature(path) for path in paths]
 
 
 def _existing_filtered_complete(filtered_dir: Path, n_selected: int) -> bool:
     for index in range(n_selected):
         path = filtered_dir / f"synth_filtered_{index:04d}.png"
-        if not path.exists() or path.stat().st_size == 0:
+        try:
+            with Image.open(path) as image:
+                image.verify()
+        except Exception:
             return False
     return True
+
+
+def _valid_png(path: Path) -> bool:
+    try:
+        with Image.open(path) as image:
+            image.verify()
+        return True
+    except Exception:
+        return False
 
 
 def _clear_filtered_outputs(filtered_dir: Path) -> None:
@@ -311,10 +318,24 @@ def filter_generated_directory(
     report_path = output_dir / "synthetic_filter_report.csv"
     summary_path = output_dir / "synthetic_filter_summary.json"
 
-    raw_paths = sorted(raw_dir.glob("*.png"))
-    if len(raw_paths) < n_raw:
-        raise RuntimeError(f"Raw insufficienti: {len(raw_paths)} disponibili, {n_raw} richieste.")
-    raw_paths = raw_paths[:n_raw]
+    expected_raw_paths = [raw_dir / f"synth_{index:05d}.png" for index in range(int(n_raw))]
+    missing_or_corrupt = [
+        index for index, path in enumerate(expected_raw_paths)
+        if not path.is_file() or not _valid_png(path)
+    ]
+    canonical_out_of_range = [
+        path.name for path in raw_dir.glob("synth_*.png")
+        if (match := re.fullmatch(r"synth_(\d{5})\.png", path.name))
+        and int(match.group(1)) >= int(n_raw)
+    ]
+    if missing_or_corrupt or canonical_out_of_range:
+        details = []
+        if missing_or_corrupt:
+            details.append(f"indici mancanti o corrotti={missing_or_corrupt}")
+        if canonical_out_of_range:
+            details.append(f"indici canonici fuori range={sorted(canonical_out_of_range)}")
+        raise RuntimeError("RAW non valido: " + "; ".join(details))
+    raw_paths = expected_raw_paths
     reference_paths = [Path(path) for path in reference_paths]
     input_signature = {
         "raw_dir": str(raw_dir),
@@ -327,24 +348,24 @@ def filter_generated_directory(
         "reference_files": _image_signature(reference_paths),
     }
 
-    if not force_recompute and _existing_filtered_complete(filtered_dir, n_selected):
+    cached_summary = None
+    cache_matches = filtered_selection_cache_matches(
+        summary_path, input_signature, filtered_dir, n_selected
+    )
+    if cache_matches:
+        cached_summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if (
+        not force_recompute
+        and cache_matches
+    ):
         if verbose:
             print(
                 f"Filtro gia' completo: {n_selected} PNG presenti in {filtered_dir} "
                 "(selezione precedente mantenuta, skip)."
             )
-        return {
-            "schema_version": FILTER_SCHEMA_VERSION,
-            "cached": True,
-            "report_path": str(report_path),
-            "summary_path": str(summary_path),
-            "filtered_dir": str(filtered_dir),
-        }
+        return {**cached_summary, "cached": True}
 
-    if force_recompute:
-        _clear_filtered_outputs(filtered_dir)
-    else:
-        filtered_dir.mkdir(parents=True, exist_ok=True)
+    _clear_filtered_outputs(filtered_dir)
 
     reference = compute_reference_statistics(
         reference_paths,

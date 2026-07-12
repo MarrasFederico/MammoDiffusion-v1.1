@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "selection_policy": "Generator selection is validation-only; downstream locked test results are descriptive and never used for selection.",
+  "canonical_assets": {
+    "diffusers_revision": "3759fab56d3170a04d747e918a13e55fda6681e2",
+    "diffusers_path": "experiments/diffusers/03_sd21_vae_finetuned/diffusers_repo",
+    "sd21_base_path": "notebooks/pretrained_model/stable-diffusion-2-1-base",
+    "sd21_base_sha256": "b7cf9e437c92e45c0a6556cf790da6eabec7506a5f2d9a8aa9ea99af7f0040c0"
+  },
+  "generators": [
+    {"id":"01_sd21_baseline_50steps","family":"sd21","notebook":"notebooks/2_diffusers/01_SD21_Baseline_50steps.ipynb","classes":[],"status":"legacy_incomplete","role":"baseline","final_dataset":false,"reason":"No canonical result directory or complete two-class manifest is present."},
+    {"id":"02_sd21_filtered_100steps","family":"sd21","notebook":"notebooks/2_diffusers/02_SD21_Filtered_100steps.ipynb","classes":["negative","positive"],"status":"completed","role":"final_comparison","final_dataset":true,"metrics":"results/diffusers/02_sd21_filtered_100steps/metrics/final_test_metrics.json","filter":"adaptive_mask","base":"canonical_sd21"},
+    {"id":"03_sd21_vae_finetuned","family":"sd21_full_finetune","notebook":"notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb","classes":["negative","positive"],"status":"completed","role":"final_comparison","final_dataset":true,"metrics":"results/diffusers/03_sd21_vae_finetuned/metrics/final_test_metrics.json","filter":"adaptive_mask","derived_model":"vae_finetuned_pipeline"},
+    {"id":"04_sd21_lora","family":"sd21_lora","notebook":"notebooks/2_diffusers/04_SD21_LoRA.ipynb","classes":["negative","positive"],"status":"completed","role":"final_comparison","final_dataset":true,"checkpoint":"experiments/diffusers/04_sd21_lora/model/checkpoint-4500/pytorch_lora_weights.safetensors","adapter":"experiments/diffusers/04_sd21_lora/model/pytorch_lora_weights.safetensors","metrics":"results/diffusers/04_sd21_lora/metrics/final_test_metrics.json","manifest":"results/diffusers/04_sd21_lora/metrics/generation_info.json","filter":"adaptive_mask","base":"canonical_sd21","sampling_steps":100,"guidance_scale":7.5,"seed_policy":"per_image_seed_v2","requested_per_class":2722,"produced_per_class":2722},
+    {"id":"05_ldm_basic_fromscratch","family":"ldm_keras","notebook":"notebooks/2_diffusers/05_LDM_Basic_FromScratch.ipynb","classes":["negative","positive"],"status":"completed","role":"baseline","final_dataset":false,"metrics":"results/diffusers/05_ldm_basic_fromscratch/metrics/final_filtered_vs_test.json"},
+    {"id":"06_ldm_extra1361_fromscratch","family":"ldm_keras","notebook":"notebooks/2_diffusers/06_LDM_Extra1361_FromScratch.ipynb","classes":["negative","positive"],"status":"completed","role":"ablation","final_dataset":false,"metrics":"results/diffusers/06_ldm_extra1361_fromscratch/metrics/final_filtered_vs_test.json"},
+    {"id":"07_ldm_sdvae_extra1361","family":"ldm_keras_sdvae","notebook":"notebooks/2_diffusers/07_LDM_SDVAE_Extra1361.ipynb","classes":["negative","positive"],"status":"completed","role":"final_comparison","final_dataset":true,"metrics":"results/diffusers/07_ldm_sdvae_extra1361/metrics/final_filtered_vs_test.json","base":"canonical_sd21_vae_component"},
+    {"id":"08_ldm_v3_sdvae_fromscratch","family":"ldm_keras_sdvae_v3","notebook":"notebooks/2_diffusers/08_LDM_v3_SDVAE_FromScratch.ipynb","classes":["negative","positive"],"status":"completed","role":"final_comparison_and_sampling_ablation","final_dataset":true,"metrics":"results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/final_filtered_vs_test.json","sampling_ablations":[25,50,75,100]}
+  ]
+}

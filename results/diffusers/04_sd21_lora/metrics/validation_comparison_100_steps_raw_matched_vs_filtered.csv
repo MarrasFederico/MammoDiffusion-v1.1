@@ -1,0 +1,7 @@
+class,label,set_name,stage,comparison_role,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated
+positive,1,positive_raw_complete_2722,raw,context_only,162.3595,2.0917,0.0556,0.1157,0.0,0.0414,0.3973,2722
+positive,1,positive_raw_matched_1361,raw_matched,filter_comparison,162.4701,2.062,0.0629,0.1212,0.0137,0.046,0.3562,1361
+positive,1,positive_filtered_1361_adaptive_mask,filtered,filter_comparison,154.3978,1.7973,0.046,0.2043,0.0,0.0748,0.3699,1361
+negative,0,negative_raw_complete_2722,raw,context_only,162.3248,2.2268,0.0896,0.2858,0.0,0.096,0.4658,2722
+negative,0,negative_raw_matched_1361,raw_matched,filter_comparison,161.7431,2.2041,0.0945,0.2836,0.0,0.0965,0.4247,1361
+negative,0,negative_filtered_1361_adaptive_mask,filtered,filter_comparison,150.4518,1.8059,0.0435,0.4585,0.0,0.1636,0.4658,1361

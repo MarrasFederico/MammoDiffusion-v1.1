@@ -149,14 +149,32 @@ def finalize(root: Path) -> dict:
 
     experiment_matrix_manifest = build_experiment_matrix_manifest(root)
     test_dataset_manifest = build_test_dataset_manifest(root)
-    secondary_panel = {"schema_version": 1, "experiment_ids": finalists.get("secondary_locked_panel", [])}
-    primary_ids = [v.get("best_dataset_variant_id") for v in finalists.get("primary_finalists", {}).values()
-                   if isinstance(v, dict) and "best_dataset_variant_id" in v]
-    checkpoints = build_finalist_checkpoint_manifest(root, matrix, secondary_panel["experiment_ids"])
+    secondary_panel = {"schema_version": 2, "experiment_ids": finalists.get("secondary_locked_panel", [])}
+    ablation_panel = {"schema_version": 1, "experiment_ids": finalists.get("ablation_panel", [])}
+    primary_ids = []
+    primary_seed_ids = []
+    for architecture_panel in finalists.get("primary_finalists", {}).values():
+        if not isinstance(architecture_panel, dict):
+            continue
+        # schema v2: one entry per preregistered comparison category. Keep compatibility with
+        # the older single-best schema while never counting a missing placeholder as a finalist.
+        if architecture_panel.get("experiment_id"):
+            primary_ids.append(architecture_panel["experiment_id"])
+            primary_seed_ids.extend(architecture_panel.get("seed_experiment_ids", []))
+        for category in architecture_panel.values():
+            if isinstance(category, dict) and category.get("experiment_id"):
+                primary_ids.append(category["experiment_id"])
+                primary_seed_ids.extend(category.get("seed_experiment_ids", []))
+    primary_ids = sorted(set(primary_ids))
+    all_locked_ids = sorted(set(primary_seed_ids) | set(secondary_panel["experiment_ids"]) |
+                            set(ablation_panel["experiment_ids"]))
+    checkpoints = build_finalist_checkpoint_manifest(root, matrix, all_locked_ids)
 
     (lock_dir / "experiment_matrix_manifest.json").write_text(json.dumps(experiment_matrix_manifest, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "test_dataset_manifest.json").write_text(json.dumps(test_dataset_manifest, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "secondary_panel_manifest.json").write_text(json.dumps(secondary_panel, ensure_ascii=False, indent=1) + "\n")
+    (lock_dir / "primary_panel_manifest.json").write_text(json.dumps({"schema_version": 2, "experiment_ids": primary_ids}, ensure_ascii=False, indent=1) + "\n")
+    (lock_dir / "ablation_panel_manifest.json").write_text(json.dumps(ablation_panel, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "primary_finalists_checkpoints.json").write_text(json.dumps(checkpoints, ensure_ascii=False, indent=1) + "\n")
 
     lock_signature = _sha256_json({**experiment_matrix_manifest, **test_dataset_manifest, "checkpoints": checkpoints})

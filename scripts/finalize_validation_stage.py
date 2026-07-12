@@ -37,15 +37,20 @@ def _generator_of(dataset_variant_id: str) -> str | None:
 
 def load_completed_validations(root: Path, stage: int) -> list[dict]:
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
-    if stage == 1:
+    if stage in (1, 2):
         rows = []
         for path in sorted((root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")):
             payload = json.loads(path.read_text())
             vid = payload["dataset_variant_id"]
-            if not _generator_of(vid) or payload.get("seeds") != [17, 42, 73] or payload.get("test_access") is not False:
+            is_stage1 = bool(_generator_of(vid))
+            is_stage2 = vid.startswith(("RAS_", "S_ONLY_"))
+            if (stage == 1 and not is_stage1) or (stage == 2 and not is_stage2):
+                continue
+            if payload.get("seeds") != [17, 42, 73] or payload.get("test_access") is not False:
                 continue
             rows.append({"experiment_id": f"{payload['architecture']}__{vid}__ensemble",
-                         "stage": 1, "architecture": payload["architecture"], "dataset_variant_id": vid,
+                         "seed_experiment_ids": [f"{payload['architecture']}__{vid}__seed{seed}" for seed in (17, 42, 73)],
+                         "stage": stage, "architecture": payload["architecture"], "dataset_variant_id": vid,
                          "status": "COMPLETE", "aggregation": "ensemble", **payload["metrics"],
                          "ensemble_signature": payload.get("signature")})
         return rows
@@ -121,6 +126,20 @@ def write_selected_union(root: Path, payload: dict) -> Path:
 
 def finalize_stage2_panels(root: Path) -> dict:
     rows = load_completed_validations(root, stage=2)
+    # Required baselines and Stage-1 RS/positive-only panels remain eligible comparators even
+    # though Stage 2 itself only schedules RAS/S_ONLY variants.
+    for path in sorted((root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")):
+        payload = json.loads(path.read_text())
+        vid = payload["dataset_variant_id"]
+        if not (vid in ("R", "RA") or vid.startswith(("RSB_CONTROLLED_", "RSB_FULL_", "RSP_"))):
+            continue
+        if payload.get("seeds") != [17, 42, 73] or payload.get("test_access") is not False:
+            continue
+        rows.append({"experiment_id": f"{payload['architecture']}__{vid}__ensemble",
+                     "seed_experiment_ids": [f"{payload['architecture']}__{vid}__seed{seed}" for seed in (17, 42, 73)],
+                     "stage": 1, "architecture": payload["architecture"], "dataset_variant_id": vid,
+                     "status": "COMPLETE", "aggregation": "ensemble", **payload["metrics"],
+                     "ensemble_signature": payload.get("signature")})
     primary_finalists: dict[str, dict] = {}
     for architecture in FAMILIES:
         arch_rows = [r for r in rows if r["architecture"] == architecture]
@@ -143,7 +162,7 @@ def finalize_stage2_panels(root: Path) -> dict:
             selected[name] = (max(candidates, key=lambda r: (r["pr_auc"] or -1)) if candidates
                               else {"status": "missing_preregistered_validation"})
         primary_finalists[architecture] = selected
-    secondary_panel = [r["experiment_id"] for r in rows]
+    secondary_panel = sorted({seed_id for row in rows for seed_id in row.get("seed_experiment_ids", [])})
     payload = {"schema_version": 2, "primary_finalists": primary_finalists,
                "secondary_locked_panel": secondary_panel, "ablation_panel": [],
                "n_completed_jobs_considered": len(rows), "test_data_used": False}

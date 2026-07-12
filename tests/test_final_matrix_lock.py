@@ -86,6 +86,23 @@ class NoWriteWithoutConfirmationTests(unittest.TestCase):
 
 
 class FinalizeAndVerifyTests(unittest.TestCase):
+    def test_finalize_collects_nested_stage2_primary_categories(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); build_lockable_project(root)
+            lock_dir = root / "results/final_evaluation_v2"
+            payload = json.loads((lock_dir / "primary_finalists_manifest.json").read_text())
+            payload["primary_finalists"] = {"maxvit512": {
+                "R_baseline": {"experiment_id": "maxvit512__R__ensemble",
+                               "seed_experiment_ids": ["maxvit512__R__seed17"]},
+                "best_RS_CONTROLLED": {"experiment_id": "maxvit512__R__ensemble",
+                                       "seed_experiment_ids": ["maxvit512__R__seed17"]},
+                "best_RAS_FULL": {"status": "missing_preregistered_validation"},
+            }}
+            (lock_dir / "primary_finalists_manifest.json").write_text(json.dumps(payload))
+            marker = lock.finalize(root)
+            primary = json.loads((lock_dir / "primary_panel_manifest.json").read_text())
+            self.assertEqual(primary["experiment_ids"], ["maxvit512__R__ensemble"])
+            self.assertEqual(marker["n_primary_finalists"], 1)
     def test_finalize_writes_all_required_artifacts(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); build_lockable_project(root)

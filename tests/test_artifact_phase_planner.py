@@ -60,4 +60,68 @@ class ArtifactPhasePlannerTests(unittest.TestCase):
    if 'LockedFinalTest' in p.name: continue
    text=p.read_text(); self.assertIn('CLASSIFIER_PHASE_MODES_V1',text); self.assertIn('LOCKED_TEST_MODE',text); self.assertIn('manual',text)
 
+ # --- ALLOW_HEAVY_RETRAIN / ALLOW_FULL_REGENERATION -------------------------------------------
+ def test_auto_incomplete_training_blocked_without_allow_heavy_retrain(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root); (root/'model.bin').write_bytes(b'changed')
+   plan=plan_experiment(root,{'training':'auto'},{'training':False})
+   self.assertEqual(plan[0]['action'],'blocked')
+   self.assertIn('ALLOW_HEAVY_RETRAIN',plan[0]['reason'])
+   with self.assertRaises(RuntimeError):
+    phase_should_run(plan,'training')
+ def test_auto_incomplete_training_runs_with_allow_heavy_retrain(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root); (root/'model.bin').write_bytes(b'changed')
+   plan=plan_experiment(root,{'training':'auto'},{'training':True})
+   self.assertEqual(plan[0]['action'],'run')
+   self.assertTrue(phase_should_run(plan,'training'))
+ def test_auto_incomplete_generation_blocked_without_allow_full_regeneration(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root)
+   for p in (root/'images').glob('*.png'): p.unlink()
+   plan=plan_experiment(root,{'generation':'auto'},{'generation':False})
+   self.assertEqual(plan[0]['action'],'blocked')
+   self.assertIn('ALLOW_FULL_REGENERATION',plan[0]['reason'])
+ def test_partial_images_resume_ignores_allow_full_regeneration(self):
+  # A partial (resumable) index gap is not a "full regeneration": must still run even when blocked.
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root); (root/'images/gen_0001.png').unlink()
+   plan=plan_experiment(root,{'generation':'auto'},{'generation':False})
+   self.assertEqual(plan[0]['action'],'run')
+ def test_zero_images_blocked_without_allow_full_regeneration(self):
+  # No valid images at all is a genuine from-scratch regeneration: must be gated.
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root)
+   for p in (root/'images').glob('*.png'): p.unlink()
+   plan=plan_experiment(root,{'generation':'auto'},{'generation':False})
+   self.assertEqual(plan[0]['action'],'blocked')
+   plan=plan_experiment(root,{'generation':'auto'},{'generation':True})
+   self.assertEqual(plan[0]['action'],'run')
+ def test_complete_phase_never_blocked_regardless_of_allow_flags(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root)
+   plan=plan_experiment(root,{'training':'auto','generation':'auto'},{'training':False,'generation':False})
+   self.assertEqual([x['action'] for x in plan],['skip','skip'])
+ def test_evaluation_and_filter_recompute_never_blocked(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root)
+   manifest=json.loads((root/'legacy_runtime_manifest.json').read_text())
+   manifest['phases']['evaluation']['files'][0]['path']='missing_metrics.json'
+   (root/'legacy_runtime_manifest.json').write_text(json.dumps(manifest))
+   plan=plan_experiment(root,{'evaluation':'recompute','filter':'recompute'},{})
+   self.assertEqual([x['action'] for x in plan],['recompute','recompute'])
+ def test_explicit_run_mode_bypasses_allow_heavy_retrain_gate(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root)
+   plan=plan_experiment(root,{'training':'run'},{'training':False})
+   self.assertEqual(plan[0]['action'],'run')
+ def test_plan_experiment_without_allow_flags_is_unrestricted_backward_compatible(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root); (root/'model.bin').write_bytes(b'changed')
+   plan=plan_experiment(root,{'training':'auto'})
+   self.assertEqual(plan[0]['action'],'run')
+ def test_notebooks_expose_allow_heavy_flags(self):
+  for p in sorted((ROOT/'notebooks/2_diffusers').glob('0[1-8]_*.ipynb')):
+   text=p.read_text(); self.assertIn('ALLOW_HEAVY_RETRAIN',text); self.assertIn('ALLOW_FULL_REGENERATION',text)
+
 if __name__=='__main__': unittest.main()

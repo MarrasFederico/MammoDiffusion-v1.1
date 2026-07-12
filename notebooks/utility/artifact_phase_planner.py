@@ -14,6 +14,11 @@ VALID_MODES = {
     "locked_test": {"manual", "run", "skip"},
 }
 
+# Phases where "auto" discovering incomplete evidence implies a heavy, costly
+# re-run (full training or full regeneration of a whole image set). These are
+# the only phases gated by ALLOW_HEAVY_RETRAIN / ALLOW_FULL_REGENERATION.
+HEAVY_PHASES = {"training": "ALLOW_HEAVY_RETRAIN", "generation": "ALLOW_FULL_REGENERATION"}
+
 
 def file_sha256(path: str | Path) -> str:
     digest = hashlib.sha256()
@@ -40,6 +45,21 @@ def verify_file(spec: dict, root: Path) -> tuple[bool, str]:
     if spec.get("sha256") and file_sha256(path) != spec["sha256"]:
         return False, f"signature mismatch: {spec['path']}"
     return True, f"verified file: {spec['path']}"
+
+
+def count_valid_images(spec: dict, root: Path) -> int:
+    """Number of already-valid, correctly-named images for an image_set spec.
+
+    Used to tell a resumable partial gap (some valid images exist) apart from a
+    genuine from-scratch regeneration (none do) — only the latter is heavy.
+    """
+    path = root / spec["path"]
+    if not path.is_dir(): return 0
+    if "allowed_prefixes" in spec:
+        return sum(1 for p in path.glob("*.png")
+                    if any(p.stem.startswith(prefix) and p.stem[len(prefix):].isdigit() for prefix in spec["allowed_prefixes"]))
+    indices, _invalid = indexed_pngs(path, spec["prefix"])
+    return len(indices)
 
 
 def verify_images(spec: dict, root: Path) -> tuple[bool, str]:
@@ -73,11 +93,12 @@ def load_runtime_manifest(experiment_dir: str | Path) -> dict:
         for item in spec.get("files", []): checks.append(verify_file(item, root))
         for item in spec.get("image_sets", []): checks.append(verify_images(item, root))
         ok = bool(checks) and all(value for value, _ in checks)
-        results[phase] = {"complete": ok, "reason": "; ".join(reason for _, reason in checks) or "no evidence"}
+        partial = any(count_valid_images(item, root) > 0 for item in spec.get("image_sets", []))
+        results[phase] = {"complete": ok, "reason": "; ".join(reason for _, reason in checks) or "no evidence", "has_partial_progress": partial}
     return {"valid": True, "reason": "manifest parsed", "phases": results, "payload": payload}
 
 
-def resolve_action(phase: str, mode: str, complete: bool, reason: str) -> dict:
+def resolve_action(phase: str, mode: str, complete: bool, reason: str, allow_heavy: bool = True, has_partial_progress: bool = False) -> dict:
     if mode not in VALID_MODES[phase]: raise ValueError(f"Invalid {phase} mode: {mode}")
     if mode == "manual": return {"phase": phase, "status": "manual", "action": "skip", "reason": "manual locked-test gate"}
     if mode == "skip":
@@ -85,15 +106,24 @@ def resolve_action(phase: str, mode: str, complete: bool, reason: str) -> dict:
         action = "skip"
     elif mode == "run": action = "run"
     elif mode == "recompute": action = "recompute"
-    else: action = "skip" if complete else "run"
-    return {"phase": phase, "status": "complete" if complete else "missing_or_invalid", "action": action, "reason": reason}
+    elif complete: action = "skip"
+    elif phase in HEAVY_PHASES and not allow_heavy and not has_partial_progress: action = "blocked"
+    else: action = "run"
+    status = "complete" if complete else "missing_or_invalid"
+    if action == "blocked":
+        flag = HEAVY_PHASES[phase]
+        reason = f"heavy {phase} required but blocked: set {flag} = True to allow auto mode to proceed ({reason})"
+    return {"phase": phase, "status": status, "action": action, "reason": reason}
 
 
-def plan_experiment(experiment_dir: str | Path, modes: dict[str, str]) -> list[dict]:
+def plan_experiment(experiment_dir: str | Path, modes: dict[str, str], allow_flags: dict[str, bool] | None = None) -> list[dict]:
     audit = load_runtime_manifest(experiment_dir); plan = []
+    allow_flags = allow_flags or {}
     for phase, mode in modes.items():
-        evidence = audit["phases"].get(phase, {"complete": False, "reason": audit["reason"]})
-        plan.append(resolve_action(phase, mode, evidence["complete"], evidence["reason"]))
+        evidence = audit["phases"].get(phase, {"complete": False, "reason": audit["reason"], "has_partial_progress": False})
+        allow_heavy = allow_flags.get(phase, True)
+        partial = evidence.get("has_partial_progress", False)
+        plan.append(resolve_action(phase, mode, evidence["complete"], evidence["reason"], allow_heavy, partial))
     return plan
 
 
@@ -107,6 +137,7 @@ def phase_should_run(plan: list[dict], phase: str, plan_only: bool = False) -> b
     row = next(item for item in plan if item["phase"] == phase)
     label = phase.upper()
     if plan_only: print(f"PLAN ONLY — {label}: {row['action']} — {row['reason']}"); return False
+    if row["action"] == "blocked": raise RuntimeError(f"BLOCKED {label} — {row['reason']}")
     if row["action"] == "skip": print(f"SKIP {label} — {row['reason']}"); return False
     if row["action"] == "recompute": print(f"RECOMPUTE {label} — immagini/checkpoint riusati")
     else: print(f"RUN {label} — {row['reason']}")

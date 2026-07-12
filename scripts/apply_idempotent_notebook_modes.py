@@ -24,11 +24,14 @@ GENERATION_MODE = "auto"  # auto | run | skip
 EVALUATION_MODE = "auto"  # auto | run | skip | recompute
 FILTER_MODE = "auto"      # auto | run | skip | recompute
 PLAN_ONLY = False
+ALLOW_HEAVY_RETRAIN = False       # must be True for auto mode to retrain from scratch
+ALLOW_FULL_REGENERATION = False   # must be True for auto mode to regenerate a full image set
 
 from artifact_phase_planner import plan_experiment, print_plan, phase_should_run
 PHASE_MODES = {{"training": TRAIN_MODE, "generation": GENERATION_MODE,
                "evaluation": EVALUATION_MODE, "filter": FILTER_MODE}}
-PHASE_PLAN = plan_experiment(EXPERIMENT_DIR, PHASE_MODES)
+ALLOW_FLAGS = {{"training": ALLOW_HEAVY_RETRAIN, "generation": ALLOW_FULL_REGENERATION}}
+PHASE_PLAN = plan_experiment(EXPERIMENT_DIR, PHASE_MODES, ALLOW_FLAGS)
 print_plan(PHASE_PLAN)
 '''
     return {'cell_type':'code','execution_count':None,'metadata':{},'outputs':[],

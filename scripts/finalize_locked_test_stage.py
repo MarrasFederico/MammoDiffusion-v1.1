@@ -77,20 +77,45 @@ def build_experiment_matrix_manifest(root: Path) -> dict:
 
 
 def build_test_dataset_manifest(root: Path) -> dict:
+    """test_csv_sha256 alone only catches a changed *row* (label, path, ...); it says nothing
+    about the actual pixel content of the referenced PNGs. image_signatures_sha256 is a
+    content-aware digest over every (patient_id, image_id, label, relative_path, file_size,
+    sha256) tuple, so editing a single test PNG in place invalidates the lock even though
+    test.csv itself never changed.
+    """
     test_csv = root / "data/processed/metadata/test.csv"
     import csv
     with test_csv.open(newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     patient_ids = sorted({r["patient_id"] for r in rows})
+
+    image_records = []
+    for row in sorted(rows, key=lambda r: (r.get("patient_id", ""), r.get("image_id", ""))):
+        rel = row.get("processed_path")
+        image_path = (root / rel) if rel else None
+        if image_path is None or not image_path.is_file():
+            image_records.append({"patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+                                   "label": row.get("label"), "relative_path": rel,
+                                   "file_size": None, "sha256": None, "status": "missing"})
+            continue
+        image_records.append({"patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+                               "label": row.get("label"), "relative_path": rel,
+                               "file_size": image_path.stat().st_size, "sha256": _sha256_file(image_path),
+                               "status": "ok"})
+    image_signatures_sha256 = hashlib.sha256(
+        json.dumps(image_records, sort_keys=True).encode("utf-8")).hexdigest()
+
     return {
-        "schema_version": 1, "test_csv_sha256": _sha256_file(test_csv),
+        "schema_version": 2, "test_csv_sha256": _sha256_file(test_csv),
         "n_rows": len(rows), "n_unique_patients": len(patient_ids),
         "patient_id_set_sha256": hashlib.sha256("\n".join(patient_ids).encode("utf-8")).hexdigest(),
+        "image_signatures_sha256": image_signatures_sha256,
+        "n_images_missing": sum(1 for r in image_records if r["status"] == "missing"),
     }
 
 
 def build_finalist_checkpoint_manifest(root: Path, matrix: dict, experiment_ids: list[str]) -> dict:
-    from classifier_checkpoint_io import checkpoint_path as ckpt_path_for  # noqa: PLC0415
+    from classifier_checkpoint_io import checkpoint_path as ckpt_path_for, checkpoint_is_verified  # noqa: PLC0415
     by_id = {j["experiment_id"]: j for j in matrix["jobs"]}
     protocols = json.loads((root / "configs/classifier_training_protocols.json").read_text())["policies"]
     entries = {}
@@ -103,7 +128,14 @@ def build_finalist_checkpoint_manifest(root: Path, matrix: dict, experiment_ids:
         run = root / job["manifest_path"]
         run = run.parent
         ckpt = ckpt_path_for(run, framework)
-        entries[eid] = {"checkpoint_sha256": _sha256_file(ckpt), "status": job["status"]}
+        base = root / "results/classifiers_matrix" / job["architecture"] / job["dataset_variant_id"] / job["training_policy"] / "ensemble"
+        entries[eid] = {
+            "checkpoint_sha256": _sha256_file(ckpt), "checkpoint_verified": checkpoint_is_verified(run, framework)[0],
+            "status": job["status"],
+            "ensemble_predictions_csv_sha256": _sha256_file(base / "predictions/ensemble_validation_predictions.csv"),
+            "ensemble_predictions_json_sha256": _sha256_file(base / "predictions/ensemble_validation_predictions.json"),
+            "locked_validation_threshold_sha256": _sha256_file(base / "metrics/locked_validation_threshold.json"),
+        }
     return entries
 
 
@@ -117,7 +149,7 @@ def verify_lock_still_valid(root: Path) -> tuple[bool, list[str]]:
     problems = []
     current = build_experiment_matrix_manifest(root)
     for key, recorded in manifest.items():
-        if key == "schema_version":
+        if key == "schema_version" or key.endswith("_manifest.json_sha256"):
             continue
         if current.get(key) != recorded:
             problems.append(f"{key} changed since lock: recorded={recorded} current={current.get(key)}")
@@ -129,13 +161,20 @@ def verify_lock_still_valid(root: Path) -> tuple[bool, list[str]]:
             problems.append("test dataset changed since lock (test.csv sha256 mismatch)")
         if current_test["patient_id_set_sha256"] != test_manifest["patient_id_set_sha256"]:
             problems.append("test patient set changed since lock")
+        if current_test.get("image_signatures_sha256") != test_manifest.get("image_signatures_sha256"):
+            problems.append("test image content changed since lock (a test PNG was modified, "
+                             "added, or removed even though test.csv itself did not change)")
 
     checkpoints = json.loads((lock_dir / "primary_finalists_checkpoints.json").read_text())
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
     current_checkpoints = build_finalist_checkpoint_manifest(root, matrix, list(checkpoints.keys()))
     for eid, recorded in checkpoints.items():
-        if current_checkpoints.get(eid, {}).get("checkpoint_sha256") != recorded.get("checkpoint_sha256"):
-            problems.append(f"checkpoint for {eid} changed or is missing since lock")
+        if current_checkpoints.get(eid) != recorded:
+            problems.append(f"checkpoint or locked seed artefacts for {eid} changed, are missing, or are unverifiable")
+    for name in ("primary_finalists_manifest.json", "primary_panel_manifest.json", "secondary_panel_manifest.json", "ablation_panel_manifest.json"):
+        recorded = manifest.get(name + "_sha256")
+        if recorded and _sha256_file(lock_dir / name) != recorded:
+            problems.append(f"{name} changed since lock")
 
     return (len(problems) == 0), problems
 
@@ -169,13 +208,20 @@ def finalize(root: Path) -> dict:
     all_locked_ids = sorted(set(primary_seed_ids) | set(secondary_panel["experiment_ids"]) |
                             set(ablation_panel["experiment_ids"]))
     checkpoints = build_finalist_checkpoint_manifest(root, matrix, all_locked_ids)
+    missing = [eid for eid, entry in checkpoints.items() if entry.get("checkpoint_sha256") is None or not entry.get("checkpoint_verified") or
+               entry.get("ensemble_predictions_csv_sha256") is None or entry.get("locked_validation_threshold_sha256") is None]
+    if missing:
+        raise RuntimeError(f"cannot lock incomplete finalist seed artifacts: {missing}")
 
-    (lock_dir / "experiment_matrix_manifest.json").write_text(json.dumps(experiment_matrix_manifest, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "test_dataset_manifest.json").write_text(json.dumps(test_dataset_manifest, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "secondary_panel_manifest.json").write_text(json.dumps(secondary_panel, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "primary_panel_manifest.json").write_text(json.dumps({"schema_version": 2, "experiment_ids": primary_ids}, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "ablation_panel_manifest.json").write_text(json.dumps(ablation_panel, ensure_ascii=False, indent=1) + "\n")
     (lock_dir / "primary_finalists_checkpoints.json").write_text(json.dumps(checkpoints, ensure_ascii=False, indent=1) + "\n")
+
+    for name in ("primary_finalists_manifest.json", "primary_panel_manifest.json", "secondary_panel_manifest.json", "ablation_panel_manifest.json"):
+        experiment_matrix_manifest[name + "_sha256"] = _sha256_file(lock_dir / name)
+    (lock_dir / "experiment_matrix_manifest.json").write_text(json.dumps(experiment_matrix_manifest, ensure_ascii=False, indent=1) + "\n")
 
     lock_signature = _sha256_json({**experiment_matrix_manifest, **test_dataset_manifest, "checkpoints": checkpoints})
     marker_payload = {"locked_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "lock_signature": lock_signature,

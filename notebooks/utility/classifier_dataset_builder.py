@@ -37,17 +37,55 @@ def _real_files_by_class(root: Path) -> dict[str, list[dict]]:
     return by_class
 
 
-def _augmented_files_by_class(root: Path) -> dict[str, list[str]]:
-    directory = root / AUGMENTED_DIR
-    by_class: dict[str, list[str]] = {k: [] for k in CLASS_LABEL}
-    if not directory.is_dir():
-        return by_class
+class AugmentationProvenanceError(RuntimeError):
+    """Raised when an augmented file cannot be traced to a real train-split source image."""
+
+
+def _real_train_patient_ids(root: Path) -> set[str]:
+    metadata = root / "data/processed/metadata/train.csv"
+    with metadata.open(newline="", encoding="utf-8") as fh:
+        return {row["patient_id"] for row in csv.DictReader(fh)}
+
+
+def _augmented_files_by_class(root: Path) -> dict[str, list[dict]]:
+    """Read data/real_augmented/metadata.csv (written by
+    notebooks/1_preprocessing/02_Data_Augmentation_Trad.ipynb), which already links every
+    augmented file to its real source patient_id/image_id and original_processed_path.
+
+    Never falls back to inferring provenance from the filename alone: an augmented file with
+    no traceable, train-split source patient is rejected outright rather than silently
+    included as an unprovenanced image (spec: "il runtime deve rifiutare augmented prive di
+    provenance o provenienti da validation/test").
+    """
     label_to_class = {v: k for k, v in CLASS_LABEL.items()}
-    for path in sorted(directory.glob("*.png")):
-        for label, klass in label_to_class.items():
-            if f"_label{label}_" in path.name:
-                by_class[klass].append(f"{AUGMENTED_DIR}/{path.name}")
-                break
+    by_class: dict[str, list[dict]] = {k: [] for k in CLASS_LABEL}
+    manifest = root / AUGMENTED_DIR / "metadata.csv"
+    if not manifest.is_file():
+        return by_class
+    train_patients = _real_train_patient_ids(root)
+    with manifest.open(newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    for row in rows:
+        if row.get("source") == "real":
+            continue  # metadata.csv also re-lists the real source rows; only augmented here
+        klass = label_to_class.get(row.get("label"))
+        if klass is None:
+            continue
+        patient_id = row.get("patient_id")
+        original_path = row.get("original_processed_path", "")
+        if not patient_id or patient_id not in train_patients:
+            raise AugmentationProvenanceError(
+                f"augmented file {row.get('file_name')} has no train-split source patient "
+                f"(patient_id={patient_id!r}): refusing to include it")
+        if "/processed/train/" not in original_path.replace("\\", "/"):
+            raise AugmentationProvenanceError(
+                f"augmented file {row.get('file_name')} traces to a non-train source "
+                f"({original_path!r}): refusing to include it")
+        by_class[klass].append({
+            "path": row["file_name"], "patient_id": patient_id, "image_id": row.get("image_id"),
+            "augmentation_type": row.get("source"), "source_split": "train",
+            "source_original_path": original_path,
+        })
     return by_class
 
 
@@ -122,7 +160,8 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
     for klass in CLASS_LABEL:
         entries = [{**p, "source": "real"} if isinstance(p, dict) else {"path": p, "source": "real"}
                    for p in real.get(klass, [])]
-        entries += [{"path": p, "source": "augmented"} for p in augmented.get(klass, [])]
+        entries += [{**p, "source": "augmented"} if isinstance(p, dict) else {"path": p, "source": "augmented"}
+                    for p in augmented.get(klass, [])]
         entries += [{"path": p, "source": "synthetic"} for p in synthetic.get(klass, [])]
         files[klass] = entries
     return files

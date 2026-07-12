@@ -131,7 +131,9 @@ def finalize_stage2_panels(root: Path) -> dict:
     rows = load_completed_validations(root, stage=2)
     # Required baselines and Stage-1 RS/positive-only panels remain eligible comparators even
     # though Stage 2 itself only schedules RAS/S_ONLY variants.
-    for path in sorted((root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")):
+    new_paths = (root / "results/classifiers_matrix").glob("*/*/*/ensemble/manifests/ensemble_validation_manifest.json")
+    legacy_paths = (root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")
+    for path in sorted([*new_paths, *legacy_paths]):
         payload = json.loads(path.read_text())
         vid = payload["dataset_variant_id"]
         if not (vid in ("R", "RA") or vid.startswith(("RSB_CONTROLLED_", "RSB_FULL_", "RSP_"))):
@@ -165,9 +167,14 @@ def finalize_stage2_panels(root: Path) -> dict:
             selected[name] = (max(candidates, key=lambda r: (r["pr_auc"] or -1)) if candidates
                               else {"status": "missing_preregistered_validation"})
         primary_finalists[architecture] = selected
-    secondary_panel = sorted({seed_id for row in rows for seed_id in row.get("seed_experiment_ids", [])})
+    # One *logical* ensemble id per (architecture, dataset_variant) - never the three flattened
+    # seed_experiment_ids, which made locked_matrix_inference.run_locked() infer and write the
+    # same three-seed ensemble three times under three different output names.
+    secondary_panel = sorted({row["experiment_id"] for row in rows if row.get("experiment_id")})
+    seed_ids_by_logical = {row["experiment_id"]: row.get("seed_experiment_ids", []) for row in rows if row.get("experiment_id")}
     payload = {"schema_version": 2, "primary_finalists": primary_finalists,
-               "secondary_locked_panel": secondary_panel, "ablation_panel": [],
+               "secondary_locked_panel": secondary_panel, "seed_experiment_ids_by_logical": seed_ids_by_logical,
+               "ablation_panel": [],
                "n_completed_jobs_considered": len(rows), "test_data_used": False}
     payload["signature"] = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
     return payload

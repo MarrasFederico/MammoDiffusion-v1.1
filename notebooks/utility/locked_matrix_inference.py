@@ -38,20 +38,43 @@ def run_locked(root: Path, predictor_fn=None) -> dict:
     import finalize_locked_test_stage as lock
     valid,problems=lock.verify_lock_still_valid(root)
     if not valid: raise PermissionError("locked matrix is unavailable: "+"; ".join(problems))
-    lock_dir=root/lock.LOCK_DIR; done=lock_dir/"LOCKED_TEST_COMPLETED"
-    if done.is_file(): raise PermissionError("locked test is one-shot and has already completed")
+    lock_dir=root/lock.LOCK_DIR; started=lock_dir/"LOCKED_TEST_STARTED"; done=lock_dir/"LOCKED_TEST_COMPLETE"
+    if started.is_file() or done.is_file() or (lock_dir/"LOCKED_TEST_COMPLETED").is_file():
+        raise PermissionError("locked test is one-shot: a prior start/complete marker requires explicit incident review")
+    # Crash policy: this marker is durable before the first test CSV read and deliberately
+    # blocks automatic re-entry. A partial run must be reviewed, never silently overwritten.
+    _atomic_json(started,{"status":"started","policy":"crash_requires_manual_incident_review"})
     test_csv=root/"data/processed/metadata/test.csv"; test_rows=_rows(test_csv)
+    # processed_path in test.csv may be relative; resolve it against the project root
+    # explicitly so the locked dataloader never depends on the caller's current working
+    # directory (a notebook launched from a different cwd would otherwise silently miss files).
+    for row in test_rows:
+        rel = row.get("processed_path")
+        if rel and not Path(rel).is_absolute():
+            row["processed_path"] = str((root / rel).resolve())
     matrix=json.loads((root/"configs/classifier_experiment_matrix.json").read_text()); jobs=matrix["jobs"]
     protocols=json.loads((root/"configs/classifier_training_protocols.json").read_text())["policies"]
     outputs=[]
     for panel,ids in _panel_ids(lock_dir).items():
+        seen_stems=set()
         for logical in ids:
-            selected=[j for j in jobs if j["experiment_id"]==logical or j["experiment_id"].startswith(logical+"__seed")]
-            if len(selected)==1:
-                stem=selected[0]["experiment_id"].rsplit("__seed",1)[0]
-                selected=[j for j in jobs if j["experiment_id"].startswith(stem+"__seed")]
+            # Accept either the canonical logical ensemble id ("arch__variant__ensemble") or,
+            # defensively, a bare stem/individual seed id - always resolved to one *logical
+            # stem* per configuration, so a panel that (still) lists the same configuration
+            # more than once under different names infers and writes it only once.
+            if logical.endswith("__ensemble"):
+                stem=logical[:-len("__ensemble")]
+            elif "__seed" in logical:
+                stem=logical.rsplit("__seed",1)[0]
+            else:
+                stem=logical
+            if stem in seen_stems:
+                continue
+            seen_stems.add(stem)
+            selected=[j for j in jobs if j["experiment_id"].startswith(stem+"__seed")]
             by_seed={int(j["seed"]):j for j in selected}
-            if set(by_seed)!={17,42,73}: raise RuntimeError(f"{logical}: locked ensemble requires seeds 17/42/73")
+            canonical=stem+"__ensemble"
+            if set(by_seed)!={17,42,73}: raise RuntimeError(f"{canonical}: locked ensemble requires seeds 17/42/73")
             seed_probs=[]
             for seed in (17,42,73):
                 job=by_seed[seed]; checkpoint=root/job["checkpoint_path"]
@@ -72,10 +95,10 @@ def run_locked(root: Path, predictor_fn=None) -> dict:
                     "prob_seed_17":seed_probs[0][index],"prob_seed_42":seed_probs[1][index],"prob_seed_73":seed_probs[2][index],
                     "prob_ensemble":ensemble,"predicted_label":int(ensemble>=threshold),"threshold":threshold})
             if len({(r["patient_id"],r["image_id"]) for r in out_rows})!=len(out_rows): raise RuntimeError("duplicate locked patient/image key")
-            out=lock_dir/"predictions"/panel/f"{logical}.csv"; out.parent.mkdir(parents=True,exist_ok=True)
+            out=lock_dir/"predictions"/panel/f"{canonical}.csv"; out.parent.mkdir(parents=True,exist_ok=True)
             with out.open("w",newline="",encoding="utf-8") as stream:
                 writer=csv.DictWriter(stream,list(out_rows[0]),lineterminator="\n"); writer.writeheader(); writer.writerows(out_rows)
-            outputs.append({"panel":panel,"experiment_id":logical,"path":str(out.relative_to(root)),"sha256":_sha(out)})
+            outputs.append({"panel":panel,"experiment_id":canonical,"path":str(out.relative_to(root)),"sha256":_sha(out)})
     manifest={"schema_version":1,"test_csv_sha256":_sha(test_csv),"outputs":outputs,"one_shot":True}
     _atomic_json(lock_dir/"locked_test_predictions_manifest.json",manifest); _atomic_json(done,{"manifest_sha256":_sha(lock_dir/"locked_test_predictions_manifest.json")})
     return manifest

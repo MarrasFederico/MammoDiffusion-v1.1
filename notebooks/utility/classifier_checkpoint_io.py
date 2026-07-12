@@ -75,12 +75,18 @@ def read_resume_checkpoint(path: Path) -> dict:
 
 
 def save_resume_checkpoint(run: Path, payload: dict, *, best: bool = False) -> Path:
-    """Rotate only after the existing latest has been deserialized successfully."""
+    """Rotate a valid latest; quarantine a corrupt one before publishing the replacement."""
     latest = resume_checkpoint_path(run)
     previous = resume_checkpoint_path(run, "checkpoint_previous")
     if latest.is_file():
-        read_resume_checkpoint(latest)
-        os.replace(latest, previous)
+        try:
+            read_resume_checkpoint(latest)
+        except Exception:
+            corrupt = latest.with_name(latest.name + ".corrupt")
+            if corrupt.exists(): corrupt.unlink()
+            os.replace(latest, corrupt)
+        else:
+            os.replace(latest, previous)
     normalized = {"schema_version": 2, **payload}
     atomic_pickle(latest, normalized)
     if best:

@@ -554,7 +554,7 @@ def check_no_split_overlap(splits: dict) -> None:
 def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None,
                          grad_clip_norm: Optional[float] = None, accumulation_steps: int = 1,
                          start_batch: int = 0, global_step: int = 0, max_optimizer_updates: int | None = None,
-                         on_optimizer_step=None) -> dict:
+                         on_optimizer_step=None, on_before_optimizer_step=None) -> dict:
     from sklearn.metrics import roc_auc_score
 
     model.train()
@@ -578,6 +578,9 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
 
         is_last_batch = (step + 1) == len(loader)
         if (step + 1) % accumulation_steps == 0 or is_last_batch:
+            next_step = global_step + 1
+            if on_before_optimizer_step is not None:
+                on_before_optimizer_step(next_step, step)
             if grad_clip_norm is not None:
                 if scaler is not None:
                     scaler.unscale_(optimizer)
@@ -635,22 +638,33 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
                 use_amp: bool = True, grad_clip_norm: Optional[float] = 1.0,
                 accumulation_steps: int = 1, start_epoch: int = 1, start_batch: int = 0,
                 global_step: int = 0, max_optimizer_updates: int | None = None,
-                scaler=None, on_optimizer_step=None, on_epoch_end=None) -> History:
+                scaler=None, on_optimizer_step=None, on_before_optimizer_step=None,
+                on_epoch_begin=None, on_epoch_end=None, resume_history: dict | None = None) -> History:
     """Training loop stile Keras (fit) con AMP + gradient clipping + gradient accumulation.
 
     Non duplica `maxvit_utils.fit`: qui serve gestire esplicitamente le BatchNorm2d
     dell'encoder EfficientNet (assenti nei backbone ViT usati da MammoDINO/RAD-DINO) oltre
     ad AMP/accumulo del gradiente.
+
+    `resume_history`, se presente, riempie la history con le epoche di un segmento
+    precedente (resume), cosi' un checkpoint periodico o finale non perde mai le metriche
+    gia' registrate prima dell'interruzione.
     """
     history = History()
+    if resume_history:
+        for key, values in resume_history.items():
+            history.history[key] = list(values)
     scaler = scaler or (torch.amp.GradScaler("cuda") if (use_amp and device.type == "cuda") else None)
 
     for epoch in range(start_epoch, epochs + 1):
+        if on_epoch_begin is not None:
+            on_epoch_begin(epoch)
         train_metrics = train_one_epoch_amp(
             model, train_loader, optimizer, criterion, device,
             scaler=scaler, grad_clip_norm=grad_clip_norm, accumulation_steps=accumulation_steps,
-            start_batch=start_batch if epoch == start_epoch else 0, global_step=global_step,
+                start_batch=start_batch if epoch == start_epoch else 0, global_step=global_step,
             max_optimizer_updates=max_optimizer_updates, on_optimizer_step=on_optimizer_step,
+            on_before_optimizer_step=on_before_optimizer_step,
         )
         global_step = train_metrics.pop("global_step")
         val_metrics = evaluate_amp(model, val_loader, criterion, device)
@@ -668,13 +682,16 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
             checkpoint.step(val_metrics["auc"], model)
         if lr_scheduler is not None:
             lr_scheduler.step(val_metrics["auc"])
+        improved = False
         if early_stopping is not None:
+            before = early_stopping.best
             early_stopping.step(val_metrics["auc"], model)
-            if early_stopping.stop:
-                print(f"Early stopping all'epoca {epoch} (best val_auc={early_stopping.best:.4f})")
-                break
+            improved = early_stopping.best != before
         if on_epoch_end is not None:
-            on_epoch_end(epoch, global_step, scaler, history)
+            on_epoch_end(epoch, global_step, scaler, history, val_metrics, improved)
+        if early_stopping is not None and early_stopping.stop:
+            print(f"Early stopping all'epoca {epoch} (best val_auc={early_stopping.best:.4f})")
+            break
         if max_optimizer_updates is not None and global_step >= max_optimizer_updates:
             break
 

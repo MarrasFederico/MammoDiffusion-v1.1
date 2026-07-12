@@ -26,7 +26,7 @@ def build_resnet50_model(input_size=(224, 224), pretrained=True):
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dense(256)(x)
     x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.LeakyReLU(negative_slope=0.1)(x)
+    x = tf.keras.layers.LeakyReLU(alpha=0.1)(x)
     x = tf.keras.layers.Dropout(0.5)(x)
     outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)
     return tf.keras.Model(inputs, outputs, name="matrix_resnet50"), backbone

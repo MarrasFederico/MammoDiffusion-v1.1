@@ -1,0 +1,2211 @@
+{
+  "schema_version": 1,
+  "split": "test",
+  "n_patients": 438,
+  "n_positive": 73,
+  "n_negative": 365,
+  "patient_ids_hash": "715cf0a5f767594c4d3eaf75a183fa62cc3aeb56194b6010c05956356788fc1f",
+  "csv_signature": {
+    "algorithm": "sha256",
+    "sha256": "27c94a76f0dcc92684c8c009e8ae3ef06c960620e720764cd2b664dad9eb4902",
+    "size_bytes": 82073
+  },
+  "image_signatures": {
+    "data/processed/test/0/7400_1313640696_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1296ced60a0f81af561b94aa59dc813b9322054bb2e6c2afb93bdb34211e6c4c",
+      "size_bytes": 92432
+    },
+    "data/processed/test/0/17622_1976237692_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "988c72ebea2d95efc2961f85b027e79c4f2524055c4c5b10cf00dbb8137db9e2",
+      "size_bytes": 45299
+    },
+    "data/processed/test/0/47787_1508162632_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "41957d65d4a82039f8a1dd9b384723795d1adf538854d80b32642790eac3f21b",
+      "size_bytes": 64418
+    },
+    "data/processed/test/0/23982_1584070570_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0e5cd08ef8b9478b9987650dc1a9bef109afdaccdedff7aa0922c3d4ed2c7ed0",
+      "size_bytes": 101564
+    },
+    "data/processed/test/1/39611_177448093_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fba386661804722898e4322d3030265509a9699a8e98c63726838e28f9ecc618",
+      "size_bytes": 68764
+    },
+    "data/processed/test/0/46381_1369765233_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ee6fb68179676682ef53e4de584ac84a819de41a907a505a1d3cf7d21510ad71",
+      "size_bytes": 59444
+    },
+    "data/processed/test/1/3568_1291878323_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7d0716a6e131909c9d5789b0e8b52de8bcba547f7ef24d884d7402e0608518a1",
+      "size_bytes": 97236
+    },
+    "data/processed/test/0/25231_1302840789_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "450d56a11d52b8643ac036eb74686d1cd8efc9ea1bbfde3330fd0f0ca72f773b",
+      "size_bytes": 62076
+    },
+    "data/processed/test/0/55602_844521692_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "df3a7b9d47cbe94561f58dc8abc3f56013f61468b20e3a0da7523c35a92996f4",
+      "size_bytes": 56623
+    },
+    "data/processed/test/0/18815_1943371840_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0f684e986386335d36bd26da743cef79197f594a5188dc960611e01a7c45d92f",
+      "size_bytes": 79865
+    },
+    "data/processed/test/0/62570_1069925281_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "372f0ff6eaceb39ee16335911c4991e6808974a2d456d9ccb7b7efbc2484dfd7",
+      "size_bytes": 91941
+    },
+    "data/processed/test/0/30122_481655335_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6d7318e583efcd6c8e457858fe513b56ad5291659bd45f956fdc6bb4a2c98ecc",
+      "size_bytes": 114636
+    },
+    "data/processed/test/0/4510_708837098_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d5d4837ed1578e1f6a4d2e2133c3b657abfc1866492a7ece7e5bfb718aff18c1",
+      "size_bytes": 75800
+    },
+    "data/processed/test/0/46565_438346932_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "47b2f747528be5945beb981ebb3405ed749bb69da0635b9f5d9e25306514cc03",
+      "size_bytes": 69490
+    },
+    "data/processed/test/1/49316_2061693834_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0b98e9e16a1e1204d2b533415cd0eabbdec49ecaa17e7f70062eb62e5bb0e107",
+      "size_bytes": 49792
+    },
+    "data/processed/test/0/27089_994443548_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "09cdaf8ebd34297581f40a857a403520cd58ab6975721c15759bff29e8f756d0",
+      "size_bytes": 86074
+    },
+    "data/processed/test/0/36204_1950720213_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f7314e09a06744a363785f5b1d8881793a799bbaf51a2161bdf003128eca30c9",
+      "size_bytes": 126232
+    },
+    "data/processed/test/0/5558_280436274_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f66ed2640ea44b802aacac5f1ed929c1f31e4e41925c2d2033f03eaa5804972c",
+      "size_bytes": 50125
+    },
+    "data/processed/test/0/47565_1240184030_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "56785506a51118caced1fa8140ae94ad7a56b28cf482f272aebca03031f1604d",
+      "size_bytes": 65494
+    },
+    "data/processed/test/0/49643_1365336360_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "908772aeb6f12c8cfb7b2d4bdcbd9b7df667316c1e846e7326e96fd580e1e700",
+      "size_bytes": 70463
+    },
+    "data/processed/test/0/38766_1182134905_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "214fcb8d64e11967dd4add03d7ccc9268688955aac64a71b0ae7e2dc746d0f44",
+      "size_bytes": 90347
+    },
+    "data/processed/test/0/7541_1853153034_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "af5fddca670ddf2dc8adbb60f00267cc60c68c0b25f16302381291de125992ef",
+      "size_bytes": 105806
+    },
+    "data/processed/test/0/36566_985840000_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ab6e2324205e46c3f8f99e74f45cd3bcc1c91ffb43ef0a5d65bedbb207b79e3f",
+      "size_bytes": 87240
+    },
+    "data/processed/test/0/38627_1232952227_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a4e2de772ff4d20de6c599a839650574049bb8ab91e29fae437b0fa0b2154099",
+      "size_bytes": 85399
+    },
+    "data/processed/test/0/65084_656154678_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4084cfd5fbacdce101199fe8da7148b1515ef72e2726a0612dd4e46832fd64de",
+      "size_bytes": 63513
+    },
+    "data/processed/test/0/25334_1050236963_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ad363b02ce962656007dec1c072ba8a58cd3f261fe66e275ebeac3506ba9f853",
+      "size_bytes": 63864
+    },
+    "data/processed/test/0/28284_156995672_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0c07291882645651fbba9e2e7ea78822e5e181c74040f32145d7dac1d044ceec",
+      "size_bytes": 74467
+    },
+    "data/processed/test/0/42467_1007172500_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "06073643b6e4ab83f2d022e099aec66ea874f4c499b8b93dd1cdcab4bdef914d",
+      "size_bytes": 47578
+    },
+    "data/processed/test/0/13144_2125397655_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "395aa7c47150ee03c19364c9d0337b57e41a550e508de620d565fdd4120f9484",
+      "size_bytes": 108664
+    },
+    "data/processed/test/0/10995_879216785_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "bf6de09ca67f36af0a08267fce76224808992d919ba07d29c63a0178bcde2165",
+      "size_bytes": 105668
+    },
+    "data/processed/test/0/59559_1100137976_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "897d00cb09510201d60584ded823f477ff47f68288c2181bdf0b2c81df140495",
+      "size_bytes": 65117
+    },
+    "data/processed/test/0/6708_691603917_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "99f82b84b0760736ef6896bd205ac8c9699d736dc143e4f16c0ae3d8ba9b372c",
+      "size_bytes": 81248
+    },
+    "data/processed/test/1/57525_550007476_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "62df0f187bf4e3be44eebbb17a4fd984765a34ee607f726bb0a567489b14db95",
+      "size_bytes": 98226
+    },
+    "data/processed/test/0/62778_892498048_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a9a622b89d2c7cbdb8e98c906ce81505627f614c83218a278c9ce6e154ec91c1",
+      "size_bytes": 87999
+    },
+    "data/processed/test/0/33957_346547072_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6ef85db905ca8fbe4003a81a1b20a85e7e58db0a36a67a311eec6f37dda6db47",
+      "size_bytes": 50267
+    },
+    "data/processed/test/0/38342_1524382603_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7d63dcf4bd7b1e65ea64235826e4c8d75cfe7d9314bee523caa873c6a48321c1",
+      "size_bytes": 76813
+    },
+    "data/processed/test/0/28382_1532237234_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "37c01332dc0d4d1d3f0ff6fd77151ae0474b37563707f37a1afac69d38b346d8",
+      "size_bytes": 28598
+    },
+    "data/processed/test/0/9162_1992030782_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1f499d42cc5aa2be99f2ca618ad57d9b8e5c93f47cba8f45069f07d0fc4e0b6e",
+      "size_bytes": 92086
+    },
+    "data/processed/test/0/45461_1788790964_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ba7756e3413c1df4ffe22558512a966c98228e195cfbf419cb4014fd334af63a",
+      "size_bytes": 84415
+    },
+    "data/processed/test/0/15281_376290448_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "8f8644edb8416aeca19403aecd16cc7aa46d252d96d9f43373eb6409af854ef5",
+      "size_bytes": 55648
+    },
+    "data/processed/test/0/16364_2068865780_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "89c00a7cc6e51c3620459cec0886fc46d8c6e7856f29e4e2ded28fe8ebb8face",
+      "size_bytes": 71547
+    },
+    "data/processed/test/0/21969_1853018019_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5cb9139018a19bf91042ff7362ed4cec341ff50f6f4a316dd1e98ef4fd9f1549",
+      "size_bytes": 102158
+    },
+    "data/processed/test/0/27054_1343576322_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b7dce7d7c4f435e61b5762a91031ab5b4acf36060624cdc292b46dbc36fbe647",
+      "size_bytes": 30282
+    },
+    "data/processed/test/0/27507_620245866_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "848145949f669e0f76e54d7beebce924d54836a57f58b364d5f4c00863826044",
+      "size_bytes": 76032
+    },
+    "data/processed/test/0/57364_1139492314_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b4e130dd8358d33e6d7472b97b20251d7630806d0e86205cab152a3187c88f37",
+      "size_bytes": 67362
+    },
+    "data/processed/test/0/58276_2033601050_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2a2ec9f476285128fc58629966116541c2f9989aeed41b73dd7c0c4ca8d1c1d3",
+      "size_bytes": 90969
+    },
+    "data/processed/test/1/42160_684267184_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2dadf37c297468724e411f8a8029f24c4ed9652ba2a780f29f208e42167f09e9",
+      "size_bytes": 95543
+    },
+    "data/processed/test/0/9188_1770568420_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "55afa23126cdae19fde228721ce0a5620754b1efda3115c0e4e6026d2758f459",
+      "size_bytes": 100757
+    },
+    "data/processed/test/0/53014_1562669306_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c751f6a61a35c983782b5a86f18f36b8adc249bf484ddc408c260c45b39e6073",
+      "size_bytes": 81855
+    },
+    "data/processed/test/1/6668_218465248_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "080800abdd0092a4afaa7077364365af36b37c7a91dee387477e14c27f562e2a",
+      "size_bytes": 58255
+    },
+    "data/processed/test/0/25210_1469010007_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "587d8b163a25c85626349a0a3fbbfab554fd1f6ad2ac956df2df61848f44bc6e",
+      "size_bytes": 67135
+    },
+    "data/processed/test/1/36660_1456616206_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9c3ba8f3f7a5bdc04c1edb41086d2bef4b7f15feec60983e72dcfab6c3553dc7",
+      "size_bytes": 38634
+    },
+    "data/processed/test/0/16432_146746856_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0b5210e2519620fff521639d504786a8c4e1c50d0924f5f2c832d8f712507988",
+      "size_bytes": 62438
+    },
+    "data/processed/test/1/14941_303808170_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ed7451115f62f000e69a0ec7d271255956ae57bda4051fd0ed398b2b0435d5c1",
+      "size_bytes": 63060
+    },
+    "data/processed/test/0/60907_1556970029_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "54c950bd37bb957c1aaecf2499b42521bf8b1bf1877d60c59e5b3fc526a25830",
+      "size_bytes": 72106
+    },
+    "data/processed/test/1/60629_306442803_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "8c94bc9b50e516dad467c8a44addc03ede11b709820d68576e48d2d1c34eb32b",
+      "size_bytes": 79687
+    },
+    "data/processed/test/0/19352_1858889947_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a14c2e126ef81eec9af7228763e3d136b6b179282c78ff202a960ea2fca8887f",
+      "size_bytes": 104680
+    },
+    "data/processed/test/1/16703_1930741343_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b0c156ff339a8d3c2dcd5a2a61fb081a4361d1b67f421eb969d4c32e7d32df5d",
+      "size_bytes": 77300
+    },
+    "data/processed/test/0/18153_491723183_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f47f53033005d29fc6d3d6174a220a21c963def167e50e17c9109d82f2624ab7",
+      "size_bytes": 75042
+    },
+    "data/processed/test/0/2313_2091042421_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a622aaa84cae2b2bbf285370661158c843862786e1b591d9cb6a1236d00935d1",
+      "size_bytes": 95627
+    },
+    "data/processed/test/0/50257_1160852877_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5ab22af2b489d436120903004de9730cd3fadabd011fac8386581e5a9023f5c1",
+      "size_bytes": 111225
+    },
+    "data/processed/test/0/58614_620147849_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9e64f7dbdb98e774e742e1f2818de86a76cb7b72c8d14f50c645e4c20b7c8f88",
+      "size_bytes": 46013
+    },
+    "data/processed/test/0/39244_926443376_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a36e6045338fc02a56ab3390d84f4a4004374b013fb73640f265885efc7a369d",
+      "size_bytes": 76561
+    },
+    "data/processed/test/0/34604_1875026606_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "28ca023e5e5c530a34ea39715e0fbf8e2988274c739337f6664a6fde9e5cb913",
+      "size_bytes": 108791
+    },
+    "data/processed/test/0/27794_605563852_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "72f7d6d6ebf7be15a1181c85a64afccf2e54cf97a57181b7cdbaaec06432c988",
+      "size_bytes": 117375
+    },
+    "data/processed/test/0/12734_1390034646_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b5e8520efab34b0f84cf90d35ae3c570e51cd6625913f4890841220e0ce15bfb",
+      "size_bytes": 53358
+    },
+    "data/processed/test/0/57313_1917810465_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ba19aa323cc326131ef252900c0471474e3b21cfb0854bdd2f2789a01aaa8d8f",
+      "size_bytes": 49285
+    },
+    "data/processed/test/1/4696_2042369465_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9de1f6036cede3ab8d9771ab838174154648a60f78f5f9082df0511b63f8a624",
+      "size_bytes": 53882
+    },
+    "data/processed/test/0/59623_1504734245_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d26e728c799ac321237c2407af4eb8103630348fd305a6265dcd5f1d78b87b5b",
+      "size_bytes": 37171
+    },
+    "data/processed/test/0/21788_339798382_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5e211b9f96638336a04155ebd5bf7c580cbb2784f4423efe39c88e08faffbdeb",
+      "size_bytes": 72973
+    },
+    "data/processed/test/0/32562_322247780_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d54317408c04cb6179493a50a0d54bfbb1f207cf03c75c167f6398cd3bc413e5",
+      "size_bytes": 96329
+    },
+    "data/processed/test/0/53219_986665960_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "26eeaea60e3fc41701175d9c6a591aefc22061637a45579fa7bffbd523f98249",
+      "size_bytes": 91811
+    },
+    "data/processed/test/0/18243_275252810_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c0ada3ca1d1f00b144531430f3f052d5a263e64878e0791fa197a15223684a9e",
+      "size_bytes": 61181
+    },
+    "data/processed/test/1/64437_526841535_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "24bec83423a83d4a67965bfa650d64fb61f577b6a5ae4a745c5dfef5f61e9969",
+      "size_bytes": 86290
+    },
+    "data/processed/test/1/17222_637984831_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4ce2f3425c11e68e76aa23850d236b4ec6818eee870d1a2083c4e7c68dd3e58a",
+      "size_bytes": 40163
+    },
+    "data/processed/test/0/9726_165975207_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "639c589408e265d4ca332f3175cad4e40efb05dae9552cb9ccd4688bdd01cdae",
+      "size_bytes": 62667
+    },
+    "data/processed/test/0/1765_514858133_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "62b7667ece5e7c280621385036179066182f086d86147517c782b214a26eb221",
+      "size_bytes": 37908
+    },
+    "data/processed/test/0/259_391410545_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1f71d0aea18e3b3906ed0344264c86bc1d7e44c136452c5dd869f381e3e70735",
+      "size_bytes": 36278
+    },
+    "data/processed/test/0/34606_321382595_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b775590bf646574d68dc7895df71477009d54949938074144064bffffe19f608",
+      "size_bytes": 96913
+    },
+    "data/processed/test/0/19137_23824111_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4cf92867cbe024e96b543efaf371a9ff06e7daabf0fbe4e1517ac9cfbe6e6b61",
+      "size_bytes": 87492
+    },
+    "data/processed/test/0/12452_1300553092_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1261a9368a0ca7ac33868d84f7d3ebf0642370e468a39f6cc6bbd2f1b3e84497",
+      "size_bytes": 79849
+    },
+    "data/processed/test/1/36174_144780883_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "97ba6f982599170fd07973380c9ba988f9665a41960f00dea01e94a6e14d982d",
+      "size_bytes": 76733
+    },
+    "data/processed/test/0/23238_377714113_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c2e336154f8c50519730d502c6f73693a2d7aacecd647278518dc341d6de62c5",
+      "size_bytes": 71141
+    },
+    "data/processed/test/0/53708_563884259_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b642bd819403b870ea637e19ceb519bdbc0ff792f02ded281e2396ecdbfd0549",
+      "size_bytes": 72913
+    },
+    "data/processed/test/0/54575_1701002627_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4a3a3115b354c4bc471e19f4730be0dd5a701e97afd2b1db8677cd4b0cbd9d51",
+      "size_bytes": 66598
+    },
+    "data/processed/test/0/37841_447219079_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "66576c25fcd1d6ab16416d0ff88d7454e22465bf757cf9953c9683e1d6d2ea60",
+      "size_bytes": 85977
+    },
+    "data/processed/test/0/32678_1020839868_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a4a1af288c9c69f890586dad17e31e6d358cdc73227b4a5e1d397f2975941d25",
+      "size_bytes": 70393
+    },
+    "data/processed/test/0/25626_1610977796_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d377ab2d305ba835a04e72434885bcd964285acfb68ada0566de8b46158f04c5",
+      "size_bytes": 73743
+    },
+    "data/processed/test/0/31623_236967335_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e4e216c8722b1a9a0167801999f44818d2f8d57bb70a6f9e39e5a5947884e3e8",
+      "size_bytes": 115425
+    },
+    "data/processed/test/1/50583_863276520_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f7d9e9c3fd7808def2c6fff191a063c2483dc97fe2826f08d56abf345d54dd3e",
+      "size_bytes": 78866
+    },
+    "data/processed/test/0/62316_2012821382_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c4ef01afef8d7b8a6136f51dfd7d90c88127f9bf2e3630339589eee0fff8fc5f",
+      "size_bytes": 41264
+    },
+    "data/processed/test/0/31561_1061461510_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "381807400616bd943c891aed038367fa18b6336a73e1faf1b31d351908cec2aa",
+      "size_bytes": 37375
+    },
+    "data/processed/test/0/3989_200099050_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "357cff7f62edb2f039a3608259987e2566719b9bcf11e945e6efbab71aaab00a",
+      "size_bytes": 112367
+    },
+    "data/processed/test/0/17904_2122440964_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "12713eea713ff2ac0844adeaf5635533f14ec2d353c75b1badb3ea9a911d8c2a",
+      "size_bytes": 99779
+    },
+    "data/processed/test/0/48342_774199576_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b9c9c06ca4a209b49785c7b60b1f0adeb302c6c547c1e567de802daec100989a",
+      "size_bytes": 89486
+    },
+    "data/processed/test/0/17675_1250831238_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "077e71b459329bceb6089b561a4e3bd29ad8913dfa5f3cd119f8ee8a0f7dba5e",
+      "size_bytes": 73414
+    },
+    "data/processed/test/0/29076_1664386744_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e7f0fbaa05ebd2d560f425972b41270a5e0f6c981ffd5c5d996a8341465dfb42",
+      "size_bytes": 62714
+    },
+    "data/processed/test/0/13995_1054093159_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4498f08b15b3b8c7db9408c4ebe081d380438303d29c920349ef293798c113a7",
+      "size_bytes": 64851
+    },
+    "data/processed/test/0/47846_1146736806_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7d9f042f85a07a983fa6362088288e3fa97ed7834666c037627927d227012ffd",
+      "size_bytes": 56410
+    },
+    "data/processed/test/0/15222_1628623837_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "985bc5d7b90156b00fd00519e2431ebb063e44864bb0f959febe1fac83e70f56",
+      "size_bytes": 49436
+    },
+    "data/processed/test/0/54112_1196068601_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "964e294ea3172a2f8f078bac193c5d93fa278d07dae50d82cdbbed4f239de9d2",
+      "size_bytes": 58355
+    },
+    "data/processed/test/1/34991_1060947010_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "8731eed5704b7913dd01b46bd6d6675fe4aed3c9f09eb48b6570844f66d0af6a",
+      "size_bytes": 61818
+    },
+    "data/processed/test/0/18722_1289166870_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fc68f95a4b2b066db1a97d2ba8faba546c55bb6727ffa8b1ce52a00cbe940be6",
+      "size_bytes": 118591
+    },
+    "data/processed/test/0/42963_1997906022_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "15f22beeeeedf8f0dc757fbfbe4b81da2d1068b2daa8b22ec547a93112d76887",
+      "size_bytes": 55363
+    },
+    "data/processed/test/0/49574_1839229020_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0d9b3dfdc37ed60ed704aeba843719e42e9a4a7d8cbf59cf634cf47cf39551ae",
+      "size_bytes": 77177
+    },
+    "data/processed/test/0/34855_222315332_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d4e62049dfec8fed69ef9cc811ceab60db9114773b46170c9912e4e211a26d88",
+      "size_bytes": 93086
+    },
+    "data/processed/test/0/32072_935314869_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7137ef59c75c34b832f0bdef719b6166933fafae95e561ff848b7fa867070570",
+      "size_bytes": 66451
+    },
+    "data/processed/test/0/27467_1391975097_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "93135563aa3b04f8d7bff0d8f481bea5c3759b8cc73bfe0eb317cb5c95e35e8c",
+      "size_bytes": 50760
+    },
+    "data/processed/test/0/27550_539564092_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "349c38ae072504c8427e98b8921cd666babc362b066369f8a2e7c5aa11dc2713",
+      "size_bytes": 73305
+    },
+    "data/processed/test/0/42028_218556986_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "16e10f07cc0704f6da196e2050696ff6c6e9e1c3fefec16a74b963d138a522d0",
+      "size_bytes": 80644
+    },
+    "data/processed/test/1/50741_970290638_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "36c4ad72f60163343a38efb23957f9ea5977e1c1c7abf4ea9b4429e92250c65b",
+      "size_bytes": 95690
+    },
+    "data/processed/test/0/41898_126964056_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "779a57006f23f1dd97085e56474202ad6f81b9907a75961d021fc54f2d3c19bb",
+      "size_bytes": 68270
+    },
+    "data/processed/test/0/3537_1030119168_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "71b980fadeaf29805f1104327bbda9090e1b69785d3cf07d23c6c23bf25f21c7",
+      "size_bytes": 105002
+    },
+    "data/processed/test/0/60739_149313625_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "618522885a7cc7b5f7cdc45e9d87593a2198d6997599407186488367b6bc9a30",
+      "size_bytes": 107937
+    },
+    "data/processed/test/0/38411_684859384_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2a061babf52fc6cd3c09b56dc25f56480f32054545f833dca2750b20e52d6774",
+      "size_bytes": 96409
+    },
+    "data/processed/test/0/16555_20500925_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3a710e3dce551eb0ec4a789ac8db41919a91131cc37dd5c89e17e36a2f9f3b49",
+      "size_bytes": 57359
+    },
+    "data/processed/test/0/45127_1271239514_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ad80aca230bd2e8e9d878041289efcb1bfee8034e5f9c4873eec278404aa7fcb",
+      "size_bytes": 109680
+    },
+    "data/processed/test/0/11723_41321230_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1f6a2e355433fd5232ddf6fdbc4ca5d0143e8d080cb4abee958e6ab1a07819a2",
+      "size_bytes": 76629
+    },
+    "data/processed/test/0/4590_23302241_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a4bf4b8d834587ef4fe72e3266136698d4b292b3cbb4667b4a55e5ad192b3a5b",
+      "size_bytes": 80411
+    },
+    "data/processed/test/1/27275_1280544598_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3867bee107b0cdfca777eeebb9aeb04c985df18c2acc0b80bfb3c57416270e88",
+      "size_bytes": 86246
+    },
+    "data/processed/test/0/3089_826929833_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b9408bc0b743c8be2e1ca8e48c6ef89c7360e607c8c607c8ab563de68de1c579",
+      "size_bytes": 51585
+    },
+    "data/processed/test/0/55810_1210436113_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5de6e4f4d8f3d000dabe80b5eb94e886854025fc0e133f733a2780c47d45aaf6",
+      "size_bytes": 64418
+    },
+    "data/processed/test/1/5608_908319767_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "37a5c3b2c2339cb6df4fadfa3715129d750be9978337bd34839ec5f24b0f4243",
+      "size_bytes": 103701
+    },
+    "data/processed/test/0/4922_883010131_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2cb033f4cc1fc7d61e4f83ae7f45b123a00a6224228d399999b173a175001c1a",
+      "size_bytes": 60854
+    },
+    "data/processed/test/0/4356_641379266_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d787f58118fdf2cba30cc47e2f5f5b5950e0f4d8331e46ef147b8aceb6c41c0f",
+      "size_bytes": 66342
+    },
+    "data/processed/test/0/43106_1364637496_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2347fb099c2ba11eb8372e84689696a5d6d15d9833964baabc59fd9006fa7afb",
+      "size_bytes": 83781
+    },
+    "data/processed/test/0/28518_1903880000_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1fa6aeb62e2bb88fd320092bf1f317a22c32c2b5d85f6dc3503803155f5d613d",
+      "size_bytes": 53852
+    },
+    "data/processed/test/0/24046_1733881855_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6e47833ca8e6b25678a967383744c673b7faefe652e5c7c49e01f35250d95cce",
+      "size_bytes": 71938
+    },
+    "data/processed/test/0/33025_320214871_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ea1eb11b17559ee104aa92439f108f42c8556922482a1938afef93d181c95d23",
+      "size_bytes": 60222
+    },
+    "data/processed/test/0/51739_1783145310_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4001ce7273486fa535a0bf3cd288deb5f08b23f49bb23ea434788040d1a9dcff",
+      "size_bytes": 65998
+    },
+    "data/processed/test/0/62634_687638835_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "029697ae8db7561bd914d4e5f2bb8d46569cf4508f1bd8c03f9811c9e1082157",
+      "size_bytes": 73414
+    },
+    "data/processed/test/0/11296_1194520536_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a30040bec5e1b4361cc41e5b11608a523033bbaea800df1e78dbc264657715d7",
+      "size_bytes": 48121
+    },
+    "data/processed/test/1/39920_993630484_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6b1e67dfec7bb5dceeb0e512c6ce4f0f0d4c137003feae615bb839a721734e2f",
+      "size_bytes": 33152
+    },
+    "data/processed/test/0/10366_1780242012_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d9d0360ae74d1333bc09457ba00b98423386c06b60bac5a927c289d321aea8f5",
+      "size_bytes": 66599
+    },
+    "data/processed/test/0/2612_1802348073_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7a67d03a685e8136720a80eecec486658e03f94e266e4c64abc80df83c4fff31",
+      "size_bytes": 70501
+    },
+    "data/processed/test/0/23388_2016619119_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a96d2b94859089e09f7d7ece15e23dd387b1a186fb271fbc6e0c70b107ddf17f",
+      "size_bytes": 30259
+    },
+    "data/processed/test/0/35860_1132612078_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0dab179da10ce4af6c64efb5ebe22b1c1640843a90b29da98d34748d062c1437",
+      "size_bytes": 76610
+    },
+    "data/processed/test/0/43486_719580034_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0a53b8ce667b77d9d92b6a818c2ac75b583e1a76c06c53f400f34ab9f116d52d",
+      "size_bytes": 102358
+    },
+    "data/processed/test/1/50328_788501336_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6746b717e7f204b1b85bad5f7a428b5d6fd7f46f233b254aaa759076896c7d7f",
+      "size_bytes": 33347
+    },
+    "data/processed/test/0/13325_1605939398_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "634e90a700481cd7adf9970065287cb281e348615027351e0c13cd1bf3747d38",
+      "size_bytes": 58932
+    },
+    "data/processed/test/0/18227_838516813_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "841f2cce79589c9309858762d886672da9d42ddd69bccb41b13ca27dc22c2e9a",
+      "size_bytes": 77875
+    },
+    "data/processed/test/0/50896_275888297_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "38f0bac39ad46bfa7de6879a9556327acebe601dfdd080a948c69d24d91beebd",
+      "size_bytes": 60878
+    },
+    "data/processed/test/0/36582_1297440580_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "84113321166a277ea7571f97cf5e8613e80362f86d30ce4ef581859222bfdca6",
+      "size_bytes": 111074
+    },
+    "data/processed/test/0/29235_405461838_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "be25166641565581d0615fc1b3c0400215cf0b9dcf266d1709999043af27d364",
+      "size_bytes": 68674
+    },
+    "data/processed/test/0/13462_1452820456_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9ac75bf144833b70e6f5c1c8807eb0df3cf5346a2068b05b97e7043467c4cb9a",
+      "size_bytes": 75312
+    },
+    "data/processed/test/1/26974_592583896_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "aa28a3ae1192c3f445879f6e2964cb4c2d0b7307cf7d44cc54796d2aea43a1dd",
+      "size_bytes": 75729
+    },
+    "data/processed/test/1/52056_2072547254_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b3ab55676842b4966ec8a584b1fb9782e3537e03e4f9d7a88980b74e573ddb43",
+      "size_bytes": 45791
+    },
+    "data/processed/test/1/9840_111786935_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a16f53c14ba45c14da8a32d921455925a8245e3ab7189f1eb1b40f37eb328ae7",
+      "size_bytes": 79651
+    },
+    "data/processed/test/0/63306_2029490666_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "948164c25ff276e30f6ddf067702a2817965156a1bfbc692d468d46da76bfc1a",
+      "size_bytes": 58163
+    },
+    "data/processed/test/1/7196_1650195108_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1173300872d7ff86f49f7285ce03f63cea2b2898109cec9721ab51159581ba8a",
+      "size_bytes": 34325
+    },
+    "data/processed/test/0/56477_406356589_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7bc6d549571ed035b96b5dd5a4a238075d6d76c429312cbe31457e9f3eb2dc5f",
+      "size_bytes": 55652
+    },
+    "data/processed/test/1/41359_1030582639_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b85f2f59d0cb5a29e5f08714db1c6a911277ed79f4c6da9eae0356194365353f",
+      "size_bytes": 141198
+    },
+    "data/processed/test/0/42209_1477573832_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "783c93bf19d0628b897b7c86d8ed8236c88b550380e103bca3885d9d316f4883",
+      "size_bytes": 78187
+    },
+    "data/processed/test/0/14406_604517018_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1b8c5e4c95e5e9826c4c65675a258d23d713dc88326158f3e482204508c92518",
+      "size_bytes": 64232
+    },
+    "data/processed/test/0/64714_473468870_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "853b1a715b7d9f01751852b1bbffe488b6a625f72ad95213642a9c189af5228a",
+      "size_bytes": 87592
+    },
+    "data/processed/test/1/46309_70960365_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2d317523551d1eb825f5bbadb7e124e558f71a1eecadb76545aaeb8e0b16808a",
+      "size_bytes": 110888
+    },
+    "data/processed/test/0/31174_430792991_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "bc5b5fa66e486b801607ece04ec2999a210fed484b62d86d1ee7597c748cfa49",
+      "size_bytes": 78756
+    },
+    "data/processed/test/0/53890_1023583630_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "dc4c8e1eb51383aa8edf4dbf09bf92c04be6c94371373c3677a8ace00ffd4957",
+      "size_bytes": 59159
+    },
+    "data/processed/test/0/51582_102513107_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c5c95d7a20c3ab1db04239eb347b09cf495a2b394f7a0098cf04c27a374e557d",
+      "size_bytes": 113287
+    },
+    "data/processed/test/0/15911_484480_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "da612e7ac79e579c6c1b75d26dc7afbf97e556769d60d2ef217594a0bad504a6",
+      "size_bytes": 85866
+    },
+    "data/processed/test/0/17922_15601792_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7082de47a24c125f781f58b36235753122791d3e425153d13a9d40bf95278216",
+      "size_bytes": 85565
+    },
+    "data/processed/test/0/30106_576670604_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "82d2769fde6cd3758628863cff57c6e98b8ba0710be8ec2d81f526eaee5773b4",
+      "size_bytes": 43994
+    },
+    "data/processed/test/0/4516_1417624845_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "03dbfbf599db5d367628f05509229dfc67b42137e250df870659a4cde3103e6e",
+      "size_bytes": 79715
+    },
+    "data/processed/test/0/15525_779163252_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d9fdd83fe7f17266e86351003df37ef20f922424e6e0e6730050853c7f7df1a0",
+      "size_bytes": 70466
+    },
+    "data/processed/test/0/26745_1589781600_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5b82ccd9f73784d8156c8f24f5a62f432a9f1f5bd378ced778b9a7f842da24ca",
+      "size_bytes": 73795
+    },
+    "data/processed/test/0/13058_189570205_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "824dd58be4793f14669e23d4154898152b0717af6d3682205a6588e11e566238",
+      "size_bytes": 73986
+    },
+    "data/processed/test/0/46455_708109743_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "233fdcdb62559385a5d2049bc43bda222be21e6b4765a4342337c91377823e50",
+      "size_bytes": 111598
+    },
+    "data/processed/test/0/51921_780860894_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c1ac4a424537c9cfe9a0303bc2a9d5ec4ec5846157749e1e660c2e6c4821b568",
+      "size_bytes": 64835
+    },
+    "data/processed/test/0/4865_1808060892_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9400e6ee0d67ca0b304bb1a1cb560b8f1aa62e581faa2027a48d6f56e5487304",
+      "size_bytes": 81166
+    },
+    "data/processed/test/0/39816_1289459819_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "838c75be53ace79cc92150c448d95c99e46f992d8ebff38a08e0f6d21487c6a0",
+      "size_bytes": 102628
+    },
+    "data/processed/test/0/45005_820538925_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "316cfe03358ceefd8305684a93fd3d4884a9589227098ca3c84c068cb53ac67b",
+      "size_bytes": 81467
+    },
+    "data/processed/test/1/41610_1957729736_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "25a97da59f7ed2d675639ea0c00d3ecb40d189d870a9e4441ccaeea540f41be4",
+      "size_bytes": 86383
+    },
+    "data/processed/test/0/65534_1888933323_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b8d493aa958eda27faba30b552adf9d42c8dcc1255bac4a00e5bb802ca03bfc7",
+      "size_bytes": 117319
+    },
+    "data/processed/test/0/28390_404747639_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "16f2ad248e04ca10878792ea6b2c09eb98fb5fb16fe6ca9cf965691905d0675b",
+      "size_bytes": 68090
+    },
+    "data/processed/test/0/15843_1438473485_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "146196c38861528bd848cb1e4e9d8e99741d1f36d2ce9b011e7505eb478ed329",
+      "size_bytes": 60636
+    },
+    "data/processed/test/1/39401_253372914_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6a94a1b78267467a278ee061a4ca3d90c23e4c9d383ebc4f0cfcb3151c1829d0",
+      "size_bytes": 77498
+    },
+    "data/processed/test/0/35260_1296553466_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b633d01a4d8e5581a0422aa175ee0a2eec9e33e7418ee47032120f762f291219",
+      "size_bytes": 61116
+    },
+    "data/processed/test/0/12842_290329428_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0f1d0c03ab6568e7ece9d80c7bfc473bf4dee106c33adb1c6e5b322f925adbc4",
+      "size_bytes": 78299
+    },
+    "data/processed/test/0/43322_2017601255_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fce9b45974e023174f959032b1bcd0598d20e14891aba38ae6dbdfe199710e8e",
+      "size_bytes": 136389
+    },
+    "data/processed/test/1/41530_2029361541_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "117b3343caa7403c403e4461b37cd6057bba81b54554a9731c87dcf1edb2ec29",
+      "size_bytes": 125110
+    },
+    "data/processed/test/0/44486_360895496_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "752c87f60b5a527f0386ab853de00cc99fc1dd12487dacafa1af953315364a8c",
+      "size_bytes": 43635
+    },
+    "data/processed/test/0/21307_990717163_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e738f7be0be0ff9400a0d63988756b8d6941c62ccaca0ba378352a6a089269e0",
+      "size_bytes": 82184
+    },
+    "data/processed/test/0/48506_964225592_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a334121cc2a9fa883fcd7bcf0305c1a00bd382c99c66a872c7104fb928b69c85",
+      "size_bytes": 69914
+    },
+    "data/processed/test/0/37466_1654238757_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "78fec57deb19067a9ec4597abd241f946dc92f156fba72e6b8617234574ebabf",
+      "size_bytes": 99139
+    },
+    "data/processed/test/0/46929_10248870_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1ba13d69ec50530c65d5c60d3f35277774ca3506135209119667a8750af6411f",
+      "size_bytes": 66836
+    },
+    "data/processed/test/0/47264_2134370019_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "71a4d7a672025f5efbd3dae893fcfba839b1c82018b350bc19d673be72261840",
+      "size_bytes": 73048
+    },
+    "data/processed/test/0/60213_497094239_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7479e5b3d274f79a70a2e07fccb6a1415cbd65b1083ea53b19df6c32891ad6bb",
+      "size_bytes": 89021
+    },
+    "data/processed/test/0/28665_2036565035_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4637bdf167ceb27c0150a8c84682aa7ab00ddddf788f133678a54df8668f8bc3",
+      "size_bytes": 104767
+    },
+    "data/processed/test/0/28522_493471814_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "51082d233087f9596c30b894f8a55911f0cfd5b48880d7f4e4969e58b7090ce1",
+      "size_bytes": 62030
+    },
+    "data/processed/test/0/15717_1131366927_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7288a0f4d19c47ebe08437debf87e8c415aceaee7f2c0539e9b97bf126eb7edf",
+      "size_bytes": 83907
+    },
+    "data/processed/test/0/25977_1851386126_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0d73c7c37c32c168761223c1328bd7942651344000f991eb014396dfde045d56",
+      "size_bytes": 82485
+    },
+    "data/processed/test/0/41537_182808013_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d23a07879c9e27356146337f7aa194d48e8a24edc8835b9debba95d5ec132649",
+      "size_bytes": 96094
+    },
+    "data/processed/test/1/25909_512561149_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "04f23ea24b837db994b7840c4198daafe2f74a8b529e2234e65ffa8bd64ecb90",
+      "size_bytes": 77624
+    },
+    "data/processed/test/0/53435_296617579_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "21fd380fc0422eba67721382232f7600b0786951b6e17a01ad113e22c42460eb",
+      "size_bytes": 64734
+    },
+    "data/processed/test/1/6853_572494260_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "39b5e565b3478ae77304532ecc4d0658df71d4539a4e167bd38cef581cde62c4",
+      "size_bytes": 118060
+    },
+    "data/processed/test/0/51419_291535633_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "57664d95e3e8f6e77a69869e237fc492d60cf62783b840f302280bb49340a31a",
+      "size_bytes": 45869
+    },
+    "data/processed/test/0/5423_391169011_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1e4ed0c7bd06fa3b55ee4d9931479806d8a46317faac2353117ae87de00acc6f",
+      "size_bytes": 51169
+    },
+    "data/processed/test/0/53378_256426384_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ca167d75b898612a062ce08e73f5fc6c66ce01a1f890d4a8088e19418e730ff6",
+      "size_bytes": 63989
+    },
+    "data/processed/test/0/43170_1341953327_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "40bc7cbb223b7cdbf8928b14a1428421c05feea5035195f037724062d6e5a39b",
+      "size_bytes": 72608
+    },
+    "data/processed/test/0/44236_658418940_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b4b4f64ab8918cd545f0aa056e0d76e15f1e4e43f5cbaa0365ef461f24526fa7",
+      "size_bytes": 102893
+    },
+    "data/processed/test/0/3029_1469522683_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b567d5230481c915bd7be89e123b44d21e54bbcd5accecdfa804292e8a7bf886",
+      "size_bytes": 71079
+    },
+    "data/processed/test/0/41219_824310278_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b7dff164dd68dd15fd0c5dab27d1f1832688d4c35ae86695b70b637677093573",
+      "size_bytes": 34091
+    },
+    "data/processed/test/0/35074_1017036049_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0ea3faf6ecd0e71f6c20125d12cb96afa48ee682e2c1ebc4ded06a103710f6cd",
+      "size_bytes": 59443
+    },
+    "data/processed/test/1/26664_1982155258_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "588f71ef33c55270dfedae5cee225ae72d8361b1d8ec9743c9dd9e781aab3387",
+      "size_bytes": 83326
+    },
+    "data/processed/test/0/64443_1844015473_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "98d516a90d85d6a3c5f455e83a69f30ed53b22b6092228a03242f11d8dab46b5",
+      "size_bytes": 40419
+    },
+    "data/processed/test/0/8583_1978752168_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "18fa05f47e5647aed989663502e19a7a80d4a90876f6b72e62df9f0b7f303f40",
+      "size_bytes": 58129
+    },
+    "data/processed/test/0/29605_933587745_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0d253837d2ef39bff85655fa4b9258971ec167d9afe004ec757498d779a2f14c",
+      "size_bytes": 67982
+    },
+    "data/processed/test/0/55557_1212204634_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6f960f78f2bf8af062d841ab38a8f3477346e7f8ae302873623818f9d7da0f20",
+      "size_bytes": 110043
+    },
+    "data/processed/test/0/57336_588457276_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b356a63e8cc2bd1f175cc25658a3a627dfb83f8c246b7bb3596b86b6e5fb2a69",
+      "size_bytes": 77709
+    },
+    "data/processed/test/1/64534_453797042_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "486cc03b9326e783babcc3f60562e181cae152606b042d131a70e0d8e458ccf7",
+      "size_bytes": 53635
+    },
+    "data/processed/test/0/63431_1214964201_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f4669c56f899efdbcbdc77b57901a08447546e75260425262810d9a2d4a4633e",
+      "size_bytes": 97607
+    },
+    "data/processed/test/0/59367_1263573546_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "41db64bc6ae85cfd75638a506028f3c3e956a398047551735c0ab83a9e9469d1",
+      "size_bytes": 101504
+    },
+    "data/processed/test/0/63106_1160059412_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6431c485f74495f8fab440cc699487f03b556d86847b4dbe694c6e54f49b2832",
+      "size_bytes": 66514
+    },
+    "data/processed/test/0/25201_197233170_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "13c8110cbfa99aa412aeebe2d4f74353aac5f178cd12953c79d603cbaab84ec6",
+      "size_bytes": 61140
+    },
+    "data/processed/test/0/20891_1108140993_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5cd369a03f05ca068e2fd0e9fc257efdbacb1ac3934aa6426847ae3f3e746311",
+      "size_bytes": 36219
+    },
+    "data/processed/test/0/61022_2096142013_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "62fe4a0a8c3d96a53af58636bf42bb97c5ede7be153c2dff8053ca7de53757d6",
+      "size_bytes": 63135
+    },
+    "data/processed/test/0/55300_776168541_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "04a7b56f1af176100da780ac61a81e3278703f858d48221b41230e2169d2ab0f",
+      "size_bytes": 71636
+    },
+    "data/processed/test/0/27776_718382238_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "627738c7971fad672241bcb8c73c40ecfa5c51c13aa139f9749d01485f00965b",
+      "size_bytes": 95862
+    },
+    "data/processed/test/0/8260_1641873139_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a68c08aa8ebdac34a18a4489d8e65a2247ef57f8b3b75120e0e3a7e852e495ca",
+      "size_bytes": 73749
+    },
+    "data/processed/test/0/35878_218038523_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "dcabf57f268382a00a44d9af4f0db9e6b9013da5ef70dc2041d3b45b529eac27",
+      "size_bytes": 61502
+    },
+    "data/processed/test/0/7212_125520777_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "af347f81fccfb4aed82938af1d3f7f1161185ffa1541461798e22b276e236582",
+      "size_bytes": 88323
+    },
+    "data/processed/test/0/5373_2003881321_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5d491bcd811713fca7db56a3db68be8bad8e349a5b9b70f92720ff6311d24cfc",
+      "size_bytes": 44754
+    },
+    "data/processed/test/0/44202_46002641_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "977ac74dbe07460c86872aad09c28b3faec304b73d3a850ec8df9f015055df44",
+      "size_bytes": 57454
+    },
+    "data/processed/test/1/38040_336602586_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1b2103ce830f05c45a81f541eec86cb33bde48a29457e44c901618d9b56605db",
+      "size_bytes": 77831
+    },
+    "data/processed/test/0/54291_480335888_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "181a7e0adf3663d5b6e03be347ee85893b39738620b73a5fe1640338c5cf70b2",
+      "size_bytes": 109817
+    },
+    "data/processed/test/1/46014_1205666736_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "02f98fbcc3fac84272586f46b9262397beb14bcc6833b1305b1a97b456caf9ef",
+      "size_bytes": 72954
+    },
+    "data/processed/test/0/52907_632252400_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4943a6e35473a8faeb18e50a078521da01e57893794e31fae70370f5e3b62b9d",
+      "size_bytes": 69175
+    },
+    "data/processed/test/0/19915_268253278_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f392359e61f002824154082361553f6f167fbea82f98cd29a097f65397adf6db",
+      "size_bytes": 69091
+    },
+    "data/processed/test/0/29338_922113762_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a8c03a666b3e2c7176dc209f859a3254cd33f8e566b8c0813ce258e35442914a",
+      "size_bytes": 85275
+    },
+    "data/processed/test/0/5566_790479936_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "32da5398ad45c6fad451c1ec2370f99c264452f7f74a5f7064195d1b1fbd3f7f",
+      "size_bytes": 82810
+    },
+    "data/processed/test/0/54676_1533665332_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "db473f2a4cb6ff147bbf87b0bbf328e31be7b13ecbd960adc0d10b825e56793b",
+      "size_bytes": 81340
+    },
+    "data/processed/test/1/21880_2124340393_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "eb756edbd246377d671d875ecf04a35ae86cc3d7ce76f320586f4308a3843d3b",
+      "size_bytes": 75450
+    },
+    "data/processed/test/1/25523_449544592_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7f17b8b16ea63bf810ad034fce9daabc7202614b3dd925984e9a7b262194b167",
+      "size_bytes": 55980
+    },
+    "data/processed/test/0/1834_924616801_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "81d79971c014a8ebe883fe1ea27cb4f40cf06b030be5a2912fd7cf04e29bef52",
+      "size_bytes": 117822
+    },
+    "data/processed/test/0/557_2118159102_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a2d0eb150bfe2813d6e5eaa6140b5cfe032ed91b8146bc07dfb3e00c8adebdd0",
+      "size_bytes": 79146
+    },
+    "data/processed/test/0/65360_42289317_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c0e12e4c4088cda4b746b1d344e02955b6215b0af768be66c3c268657307db40",
+      "size_bytes": 70927
+    },
+    "data/processed/test/0/61302_949479140_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d30a59ba1f9e6e9eaec3c48a1ddd3a176178dd4632f8082aed8fa842c0e63ff2",
+      "size_bytes": 83070
+    },
+    "data/processed/test/0/15409_1596026020_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "8e75cc555ae5f0c57bfa036278f1fbba615a6faa847122c230d0d2bbfc0e3101",
+      "size_bytes": 80530
+    },
+    "data/processed/test/0/12920_1883674110_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a26f45c8cb2c2111d9c10b04c22fcc5a9e4e44fd56b8e890bb64d656a0681d5a",
+      "size_bytes": 72744
+    },
+    "data/processed/test/0/30742_981003474_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e8c535635226a394b9d7a46b489f4a779eaa7611c65fd86a9d0143228cfbdaff",
+      "size_bytes": 71181
+    },
+    "data/processed/test/1/15078_1719011144_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6e400da43f42c1ed983afffeb099adcebafff58cc6b4413341d04ae32a7267cd",
+      "size_bytes": 75840
+    },
+    "data/processed/test/0/64056_1251843355_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "bffb0da3ff64deef22a64fbd62ff24f381ee0c6a33a06586cf3aacf93fbc857d",
+      "size_bytes": 102557
+    },
+    "data/processed/test/1/19182_1872087937_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ec5a1e9b56ac0309f2fbeaef91cf916c3dec67a6dc333db812e2c7677b08fb08",
+      "size_bytes": 67307
+    },
+    "data/processed/test/1/10130_1672636630_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "468fb72461a7f60f0234e6d9a951d230fd237d68657be0996341b41fb81568dc",
+      "size_bytes": 83827
+    },
+    "data/processed/test/0/6104_925133109_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e0ebee7f94387a679633b1f59b76d1ba75cd6ae5d3b1f028f87ec33c3e9fa0d5",
+      "size_bytes": 44799
+    },
+    "data/processed/test/0/25411_1062297493_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "68211dfe2dbaf38dbd679226ee4e18784517b94ee16f0dfc5a75c073772bd886",
+      "size_bytes": 123445
+    },
+    "data/processed/test/1/17535_952275239_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0035847e6212ecf6c255361a64b03414e9743823fd48210ef4976aa2f3e42c31",
+      "size_bytes": 99261
+    },
+    "data/processed/test/0/21036_221110006_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "eb9b3cf4840474fa8be7ebcf8039dd4b45a501cec8712079f168efdbcac8f55b",
+      "size_bytes": 66677
+    },
+    "data/processed/test/0/7865_156213485_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "31ab7d21bd6434ef30c3d6055886d1d2ed7b904e36f581b21b56fc0278098d5b",
+      "size_bytes": 118638
+    },
+    "data/processed/test/0/46999_1617443109_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "54582267f2a7e455d18dee2ee996b0b4583166614afc0c4b0f2515323544f924",
+      "size_bytes": 104944
+    },
+    "data/processed/test/0/20583_216250015_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fc2211e16c00c328c47acf2d08c6ba0478bd2ec4e081becbd10d9c42e56afeb9",
+      "size_bytes": 60869
+    },
+    "data/processed/test/0/21094_873023360_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7de2a643dc5c65e0a2e55948b2a0dbf5fc4672cdb57356e1d8c1dde75151ee05",
+      "size_bytes": 87617
+    },
+    "data/processed/test/1/30262_1595178275_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7b69ea6f25ac4a33d35ac26aa505e893c15b07680ede0e211ec87136a097a23e",
+      "size_bytes": 89460
+    },
+    "data/processed/test/0/28132_2083676894_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "57fdc7ecb5395b7fca0dfd877e6aa8ece15cc3b2f027771dfed39577303dd45e",
+      "size_bytes": 139858
+    },
+    "data/processed/test/0/44621_957797562_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b7796a3749d188e111b6a28ae1f76de5663bc29cf2a494e348019cc2d70a06ed",
+      "size_bytes": 105118
+    },
+    "data/processed/test/0/55457_1522897219_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e862dc5195e0c5327a9521bed0332b4a302f74f14256a01222d94a4fa9cb467a",
+      "size_bytes": 70266
+    },
+    "data/processed/test/0/41142_241993179_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9f9d6b76bb3814701a39dcf8a2b6cbc2ccdcde2fc668af27327779d69487de07",
+      "size_bytes": 112793
+    },
+    "data/processed/test/0/55721_218768923_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "924cd430be52286a6a182d7e5adaedadd8e94c4c56a385fc45ce522cabb1416f",
+      "size_bytes": 64858
+    },
+    "data/processed/test/0/36157_1015793353_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0bb5acfc309c48b42c42ca89058d326ea719abdf6c36c51d0bd1015748a0e206",
+      "size_bytes": 48584
+    },
+    "data/processed/test/1/26232_892289164_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9b3fd132a2fdc7332d98e100dabdb336df6d5bcda175ef9d927743713397a681",
+      "size_bytes": 83023
+    },
+    "data/processed/test/0/39594_782973152_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9d94f121c3659ce704c03b0e063c9dd6086378d3568ff2698fc04f5da47e7ee6",
+      "size_bytes": 117775
+    },
+    "data/processed/test/0/55969_2120282229_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "65520416d617fd00b74ba993a530ea86c076b11f25cf086a9695184f75ced02a",
+      "size_bytes": 89285
+    },
+    "data/processed/test/0/61588_871968322_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6cbe87c8816fa9a663aece1d5bd3069b5897b50066a8d15472bf03da90853bf8",
+      "size_bytes": 50809
+    },
+    "data/processed/test/0/59724_880223243_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a877cf0a7a5e13bbd38ecb32a50c1f14aa2cfb3f1b729274a11501f7ff359b04",
+      "size_bytes": 89912
+    },
+    "data/processed/test/0/16016_1355596210_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b24fdb84c1f8288c850a0db11d399a6eb78b5e2fd1b2aded5e6450f811b6ca96",
+      "size_bytes": 90588
+    },
+    "data/processed/test/0/42509_1900780018_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "038c9a40994d698768c3093a8f81ed3bff6b02e2766cc8d9451dd423312baff4",
+      "size_bytes": 87744
+    },
+    "data/processed/test/0/59410_1641493797_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "05557e9555b49eacdb34b71382a9e23808a7d22d4a843f8bb7a5cb3f52d80b6f",
+      "size_bytes": 67748
+    },
+    "data/processed/test/0/11934_639571312_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0767081db630929fb6fba5e0220725ee25a4caf1643e6c382b77db8a97c038cb",
+      "size_bytes": 69884
+    },
+    "data/processed/test/0/56069_1923543940_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2660ea17cac931845b896b5fce332ff028f211a36358918cb90da700ec6eadca",
+      "size_bytes": 79006
+    },
+    "data/processed/test/0/54869_1495473005_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "bdd6b6090f9eed00a27131d9bd89966d4d62494a4ccf31758ceeedbd88c72d01",
+      "size_bytes": 109696
+    },
+    "data/processed/test/0/55675_186049516_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4a65b9f96ee2f7777063d284aedbae2d285c317d64c2dedc727e1c4495a06db6",
+      "size_bytes": 25446
+    },
+    "data/processed/test/1/28747_650006359_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "635421db23c86e9d9b63a841a7de6688c80459c08a6d1357e6bba5afd968caf3",
+      "size_bytes": 89530
+    },
+    "data/processed/test/0/45573_1581726511_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "de38e0fb8e72b02a03243882562085c375bbc350b4f22d27b2692726974f5d8e",
+      "size_bytes": 52499
+    },
+    "data/processed/test/0/15985_1633913664_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "745699c24e274c258efe6a4cfe77d595cbbf193dd0879eab29a17b2e72382411",
+      "size_bytes": 75155
+    },
+    "data/processed/test/0/19081_960131174_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "342a3c05ce4f357b2b3a3eaa7a7865de981936329e6a2c59cb0a6cfbec103367",
+      "size_bytes": 79980
+    },
+    "data/processed/test/0/9954_403809542_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "8aee9e0ea48178f0b51633b956c2fd4511be873bf5fdad51a928a4bce56461ff",
+      "size_bytes": 92448
+    },
+    "data/processed/test/0/34483_1370091506_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0c551951f272bbf8d27c9be6dca53ff1ccfa7b265203d334809f029ae16fcf76",
+      "size_bytes": 61108
+    },
+    "data/processed/test/0/58514_1840809266_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "55f62b9564b548180f08f9a5beeeb0f8d7c26461df831c6893f23f6d42f238f2",
+      "size_bytes": 73442
+    },
+    "data/processed/test/0/13538_417478453_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a1ff1b67577a9c98430898fb0ec3c72b458d10dd54d7a01eee4b94dc41f5ddf3",
+      "size_bytes": 46171
+    },
+    "data/processed/test/0/28271_518091930_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "00d50909cf558871d32912f5ffce775e0919193b3e9248658ed2356404b1db14",
+      "size_bytes": 89605
+    },
+    "data/processed/test/1/3021_1557228175_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "78847890f086b8d5fdf49d0206dc9458427493cf6881b90373a94870d85e1c5e",
+      "size_bytes": 74583
+    },
+    "data/processed/test/0/34964_70816557_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e3f3f0f67774d9e77d054e1e68373f8c3d4ab9a936a5f9f911de695891c26e9e",
+      "size_bytes": 78943
+    },
+    "data/processed/test/1/28344_1940528865_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ae1fb7832ab9188495d91bbc65c63fd940c79711f16a6fb6cb792827d5d13af7",
+      "size_bytes": 53439
+    },
+    "data/processed/test/1/31745_1974157960_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0ffe1d6d294b443ca56422e5deecd97b75a7c73cd5a4b3d96ddff136e2dc7468",
+      "size_bytes": 136298
+    },
+    "data/processed/test/0/34959_1476441779_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e1f53e4169523c2332fc85bcde54844c351a83bffcb05416b8992d220a7be6a6",
+      "size_bytes": 95772
+    },
+    "data/processed/test/1/37213_221096123_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "363a1a11cfc06c3685fd9f5addce0bb2bbb02d7253ce3b90efa9d12b25cfb2f9",
+      "size_bytes": 80102
+    },
+    "data/processed/test/1/43595_1413491372_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "03a640c2e3cdaea4bb844285fae212f6ad8c57b0f4db49f67846ae95fd20f21c",
+      "size_bytes": 45866
+    },
+    "data/processed/test/0/11745_1185186309_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "cc38d29e6cd243e5a0430b89b6918ead8a69a9575b0106e3e4b4e46d82af384d",
+      "size_bytes": 78688
+    },
+    "data/processed/test/0/18635_2009478519_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4840e537f85616e21dd0417d9df3fa4dd86b3f1ebeb01ad46e712211a96d7bc2",
+      "size_bytes": 99604
+    },
+    "data/processed/test/0/47493_2140030781_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "38c3e1fe1ebf2d18de3ebc9386bf7807008f6ab6909326e4835e93f6f923fc94",
+      "size_bytes": 47823
+    },
+    "data/processed/test/0/25915_552485684_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f97b707321d3c6e9dc0f5d3eb2d3ba7306bb3dbab2aef13f38c3674714263d21",
+      "size_bytes": 72644
+    },
+    "data/processed/test/0/21805_1509139440_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c277cfe4d7745787868656e688deb043c56064e05a2a437becab0b2c66de1b5a",
+      "size_bytes": 104799
+    },
+    "data/processed/test/0/21796_1545218000_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e4c86fe354b871acd8eab240201bc2800c2ff1b65d38a517e214e583f25d4f16",
+      "size_bytes": 87627
+    },
+    "data/processed/test/0/14862_67851918_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fb36d717742c01232dbe5e18076016b25f73a140e6c4c5391fd2562247f9fad3",
+      "size_bytes": 80294
+    },
+    "data/processed/test/0/29082_1180557171_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2984960cd6adf4ab346de02689189917d0bd8a593978cbd66c67300113325947",
+      "size_bytes": 109232
+    },
+    "data/processed/test/1/40163_468017207_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3508aa7979e04fd292ebc7002e93c4f7be51367709172a07b80d2716dcc61df6",
+      "size_bytes": 131828
+    },
+    "data/processed/test/0/17214_1471829726_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "08ea091acace93abbdd6a4218db79343947cf840c907320c71056818d01a11ae",
+      "size_bytes": 81680
+    },
+    "data/processed/test/0/52985_1566577384_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9183557d33cc2362d9c22dc9945a056513fa959962740840cba9a3fc322a6695",
+      "size_bytes": 57630
+    },
+    "data/processed/test/0/9471_588080066_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "283c2f0026366499c92824ae33d3f99d7edad42c4dc343de177bc9c30833e6fd",
+      "size_bytes": 113011
+    },
+    "data/processed/test/0/61054_1803964055_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c94bddfb3427ef0ed364e9f86ab5424d32eb11f2c8e4bd14ddc5bf4119a5c35b",
+      "size_bytes": 102179
+    },
+    "data/processed/test/0/19341_570368185_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "aa4b2e3da7d77077e234e835edc5d236002c6843a61c8c284c9886ce3b5c8f2b",
+      "size_bytes": 106142
+    },
+    "data/processed/test/1/62955_2074666305_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "92d0e426e5afb80ceddad694468962809e758a22462565f9a1fd898c94a9e942",
+      "size_bytes": 84609
+    },
+    "data/processed/test/0/8916_631916621_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "52db8b1cb9bcf6daba8e3cc9c1f1733d41b2a6aba4fbfae5fe13a76f08ffb5b7",
+      "size_bytes": 72266
+    },
+    "data/processed/test/0/14197_793911503_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "657888f83c3a5759b189a15e8c6664400ff3e53f785baf7c2f557e7fb368569d",
+      "size_bytes": 107116
+    },
+    "data/processed/test/0/20319_1663270834_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "639b7c3be5496ffd82931a31119aa259df08279967009e66c28e209767fc75e6",
+      "size_bytes": 88313
+    },
+    "data/processed/test/0/2964_1193133563_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "689d0ba95709d361820c7241b57671908ec4b9fe446314bf590b847047f78828",
+      "size_bytes": 81415
+    },
+    "data/processed/test/0/30378_582924582_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "90432745b8fd89a78380deba10b59fd5688f16fee3e181b53699bffb3634c2c4",
+      "size_bytes": 82810
+    },
+    "data/processed/test/0/46039_1240935700_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ce2cc57e8b475b8f782e5ab6872f7ef3af65cdc7629f4b94c785721c3d8f2054",
+      "size_bytes": 66688
+    },
+    "data/processed/test/0/50156_1976168333_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "dfbb99569c89d7fdaa675ea202b43b6e3b0cf6e6fbffca23cd402974298d5585",
+      "size_bytes": 98348
+    },
+    "data/processed/test/0/25413_989947701_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c29335a3be5bdd5a6bc75b21a81adb64aebb6895533c45fbebaf2620022720fc",
+      "size_bytes": 44316
+    },
+    "data/processed/test/0/11476_176672465_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "42c33ded8c248fb43ac51c068d57746aa36e1ed284134934c9d9e28c1c3ef9ad",
+      "size_bytes": 54435
+    },
+    "data/processed/test/0/32722_1933547936_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "400bf8760d7c334890411c06a625e0a189ef6964a89456ba2a8a25b41019fdb3",
+      "size_bytes": 80639
+    },
+    "data/processed/test/0/10232_678220517_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "78b793413bc46c0465d6d3c32d99174af03955a48d91d473137a7209f44602b8",
+      "size_bytes": 67458
+    },
+    "data/processed/test/1/16639_1663628589_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4a5abaa9536c76fc7448823b592b0c2838ed04b8a88a850e42ac7da9353baffb",
+      "size_bytes": 65567
+    },
+    "data/processed/test/1/60410_1597116280_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "da3bee9c524eabc05eb01109a43a6945977a37c0367b683d0ec62255c32ccca2",
+      "size_bytes": 73682
+    },
+    "data/processed/test/1/54085_234391345_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c2f7ddc1b2480beb767e58ac573d16d38f405f9f3801442e2c4a0b150d1f8a1e",
+      "size_bytes": 85609
+    },
+    "data/processed/test/0/4835_1624411246_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9f3533c285d237e4a6b9c40dcbb0a33bc0aa63d157b4480f58ac7ddc6ec6a1b8",
+      "size_bytes": 60133
+    },
+    "data/processed/test/0/43950_465474300_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2070fb456ad39f8cf7b0019890167e08588d0362dcf6f94b0bba5a199a4b3ec3",
+      "size_bytes": 106940
+    },
+    "data/processed/test/0/50052_2134182724_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9ae27452a7c5b97007466d17741afaa01a7404ef3eb48ecdb8d0d1b77f162e77",
+      "size_bytes": 98797
+    },
+    "data/processed/test/0/52175_1893523390_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b43e90241a9400386b220b72f12767f5a0892c375c95ccd4886a81752340e38a",
+      "size_bytes": 66620
+    },
+    "data/processed/test/0/55907_221919075_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d156d090ec79faf9937b6922bc719cceb452da16f442b747cf85c2948cae91f4",
+      "size_bytes": 144992
+    },
+    "data/processed/test/1/1109_1869230850_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4714860800e591a55c3f5b72a43ac815db81b1d68928863329e0181c90e02993",
+      "size_bytes": 94968
+    },
+    "data/processed/test/0/22406_238487252_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a09ccf7e3aa4d109fca2e8476747dbf9046ef09d6606c1fcedf3e695bf3f71b3",
+      "size_bytes": 62783
+    },
+    "data/processed/test/0/61323_840759159_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7210bbf86164b0ee59c1061ba6c5f3b655ad78c1710ed223e821cda34122fd45",
+      "size_bytes": 64523
+    },
+    "data/processed/test/0/61348_721704154_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6348538a083b0303f64218eb7dfd9426c0518a72edf25445e843612fbd0707a2",
+      "size_bytes": 74896
+    },
+    "data/processed/test/1/47212_1191410967_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e873c6301ca41153020345d356f2466a854adf399abf4682db23d4c5f7968e47",
+      "size_bytes": 91886
+    },
+    "data/processed/test/1/16518_442815464_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e23bf948294b8f4940cdd03b4d3466258d950297e2c52676426544dd0700e27f",
+      "size_bytes": 100007
+    },
+    "data/processed/test/0/56357_1045352063_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d51ce95311d7a0dc63f070dc7856b02114fed0510c3d57d910299fe5055339cd",
+      "size_bytes": 71864
+    },
+    "data/processed/test/0/2657_775216627_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "56775a456e48594427f3bcb8c0e4f844ca1ea18b3118929c8f25a0a1ad63401a",
+      "size_bytes": 81339
+    },
+    "data/processed/test/1/65077_94523874_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "068b7c80b860b77253d0cca76208617dd5cfca53235f4c76ad7424d2428db2a1",
+      "size_bytes": 142759
+    },
+    "data/processed/test/1/21445_468265579_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e6cb8ce0487f1c7d23475a76c7923d292663042f13db114f4fabe505069c68e2",
+      "size_bytes": 92262
+    },
+    "data/processed/test/0/40980_549672323_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "23716cd28c7db0bef24aaadfbcee2b357b6548f1c0df3f688a4d3c42de456c1f",
+      "size_bytes": 65329
+    },
+    "data/processed/test/0/31985_1382000129_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c6e2c410df174fb21ed8cf35dbe1d17b684486c0dfc5be368f827569f0c818e4",
+      "size_bytes": 102433
+    },
+    "data/processed/test/0/7765_243790099_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f5e51c92f4f6940cc7c9815e717e7f824820fd756e39897a317f751391c874a2",
+      "size_bytes": 76904
+    },
+    "data/processed/test/0/36160_1068438219_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "11ed3ba43aeab6d99ba54810cdbc9936eb818a97ae965c1d474a31d93a66d945",
+      "size_bytes": 55188
+    },
+    "data/processed/test/0/49740_1079956622_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fb57ae09bc659163ba665153bf342614e9a96ce261255e88cebb34bfceddb40b",
+      "size_bytes": 85698
+    },
+    "data/processed/test/0/22042_656167971_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4e0ccc818d985078b849f3f821eb8e76289b3b5cbb9455bbe9173f9db74c72a1",
+      "size_bytes": 92990
+    },
+    "data/processed/test/1/40774_1246979925_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "453554343f6e060e8bc9e813912f559bdf4348d2a35488076ac4ee9791853fb6",
+      "size_bytes": 92363
+    },
+    "data/processed/test/0/53852_29403298_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7f4fbf39b83bc3f4fec205f651048560f4d8220bc7845c418b4592ca804281e3",
+      "size_bytes": 77818
+    },
+    "data/processed/test/0/12771_774922205_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "6449646616d70519209279636716ad903c4abfbe75b8f18c06bdf964e5e02605",
+      "size_bytes": 90286
+    },
+    "data/processed/test/0/1528_1717063908_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fb64eb507bec223b15b02d1b72fefa7680d83e63b1d5c53db8c230d41902fa09",
+      "size_bytes": 66428
+    },
+    "data/processed/test/0/8604_547378819_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7a51ce1bd4ffedcadc011d0ec68446b901d2faa44ee9dab200f14aed50f88886",
+      "size_bytes": 82285
+    },
+    "data/processed/test/0/64789_2079200727_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "97205bf5e561398ec893f9f0748eed664280550327f680d92303dcf3c12e11c1",
+      "size_bytes": 51399
+    },
+    "data/processed/test/0/21362_84638393_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "897af271c75f5d8ac853dc2f79cacf13156e915af290e1497c776e39a70843aa",
+      "size_bytes": 79708
+    },
+    "data/processed/test/0/30712_118935992_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7017a2d1b5a662705c08e67a5edfc27dd88abde74ceba455c5f293c7bb837624",
+      "size_bytes": 42543
+    },
+    "data/processed/test/0/49005_216524465_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "473040bc23867127efd0cc1f9d85580165aacc9f3afaf7c659b490caa7881540",
+      "size_bytes": 93989
+    },
+    "data/processed/test/1/32881_1524699538_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5fc228b5c3c52d799244d71bfb875328cc3a73640e4217f62a9edfeea0f9b677",
+      "size_bytes": 77548
+    },
+    "data/processed/test/0/53419_564701679_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "59ef976de176deb52f796e395da437c72dcc189e6b7b62c203fa2c596b31050d",
+      "size_bytes": 64321
+    },
+    "data/processed/test/1/10226_461614796_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9b7b4ee9874ba68243a6cdf8a6014c1c8b7402a8b4f5a5c7f150dc76c747e0a6",
+      "size_bytes": 65396
+    },
+    "data/processed/test/0/20611_347270920_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "940007c6e33361baf85df8d0a82a08371007c7669f1dc850ba2f1c0b0ead4e18",
+      "size_bytes": 74402
+    },
+    "data/processed/test/0/19053_1430186181_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d321df6f000cb3ede0d69af574c9ec43dbfc0083222f91de1d63131bb0a2252e",
+      "size_bytes": 53534
+    },
+    "data/processed/test/0/19047_1083275629_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "640021d29f17fa24d9fccc676de9051a1b518bfa95045c965e609a11194a5d7b",
+      "size_bytes": 44157
+    },
+    "data/processed/test/0/15285_1427597966_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "387b692dd8658f5b1124a2f91a5386016ce54f4d6ecb2eabab493cee8b39a5e5",
+      "size_bytes": 101707
+    },
+    "data/processed/test/0/10185_2099794251_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "83147c10bb879e40ff1a3a9ee6c38cdf5d2f1d855c43c2a3d7307e04c20b74b3",
+      "size_bytes": 69173
+    },
+    "data/processed/test/0/12141_357438135_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1ca79d08202ae8b5164c96b00bdd51d9ef835d3ae852f790172e90b8bef6444b",
+      "size_bytes": 52995
+    },
+    "data/processed/test/0/25629_938792567_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c4c3d946d58c4f12f75ececac83e1a5bb632c9f0828a3f40aa5f33fe717c93ae",
+      "size_bytes": 90263
+    },
+    "data/processed/test/0/23557_1807838375_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3c9579fe55993cebf5812e88f00320a81099c9e64b2a318c7f28e405c54dbd94",
+      "size_bytes": 59010
+    },
+    "data/processed/test/0/53517_861944717_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "bbdb71a29923f17f31dca8bf15bfd0ec945800b0ee1f5ee6519ec59ec69a1f84",
+      "size_bytes": 99840
+    },
+    "data/processed/test/0/61418_721308175_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e4beef1de8efd3f65378defcaf76439c558fe50ad48681876a82bd70906776f4",
+      "size_bytes": 77466
+    },
+    "data/processed/test/1/41584_943062334_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "63c335fdf9cc796ef5409fed4ec3474c4112e70b62809678121c816d5ea94f05",
+      "size_bytes": 59404
+    },
+    "data/processed/test/0/42828_563742492_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "17aa9e1152f0fbe267eb86cf1374f4ab43eb8eea03224911651df349731074ba",
+      "size_bytes": 65819
+    },
+    "data/processed/test/0/61143_959552536_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "94452bf272ff0e8e69d5ab9e1871737ecaaf9fa0cbb5e98e293dc3a460e3cee6",
+      "size_bytes": 132115
+    },
+    "data/processed/test/0/59398_1707535651_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ca0ebfd215dba52cd99ccea602fc01e40b8dc729f815759ef1da2de3a28bb683",
+      "size_bytes": 64696
+    },
+    "data/processed/test/0/21982_1734670471_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a04b77fe570c9e8acb8021e612ac68cd1ff87b9cc8f1abbb887f1be89fc9c427",
+      "size_bytes": 39519
+    },
+    "data/processed/test/1/500_1923583324_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "cb271d46f32d30f77bdb63ff6dc8800f0c106e094a2897de88258228ea4803aa",
+      "size_bytes": 70130
+    },
+    "data/processed/test/0/24695_411886595_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1669d68248ab995baa9bf6e51127b7a94c42b53a11471e685de043bfab526b97",
+      "size_bytes": 99572
+    },
+    "data/processed/test/0/34902_1077950421_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c12cde70e8fac2e93de30b51b2fb0487e8a26a6fd065fb32a0b6afd0ed8a8a11",
+      "size_bytes": 104560
+    },
+    "data/processed/test/0/42779_280623956_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b733ad4e2e7889684dfb4fdbacef4d31344de87f643083b6626653d1dd58660b",
+      "size_bytes": 67412
+    },
+    "data/processed/test/0/22563_1460544879_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "fae0d71e57d78e19d206c4092f9560b89d3c606ce61fb9b65e347ab0348187c2",
+      "size_bytes": 66515
+    },
+    "data/processed/test/0/63985_535735917_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e4401f17be4be797f709eae39682e745f725e3e644708f1955b5332d0da3a66e",
+      "size_bytes": 75008
+    },
+    "data/processed/test/1/27344_2060786840_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d32462f2d41ff8fdfab1de40ae8c7191822e8255d21fb53247b3dcd4042d9795",
+      "size_bytes": 96710
+    },
+    "data/processed/test/0/59276_1762485764_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4f2ea1f4809556b15dcc598e41109ec362f538576b6b55d09d83062e88c66373",
+      "size_bytes": 76305
+    },
+    "data/processed/test/0/45171_1133338818_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3eaeaf2ef6993467ab028025843528a47b5ad340fa67d5d6847f839640730dda",
+      "size_bytes": 76271
+    },
+    "data/processed/test/0/50995_1028648535_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c07034a0f9cdf157ec399caac3ec4a58865d663ce63525e470f5093319a5ff4d",
+      "size_bytes": 70381
+    },
+    "data/processed/test/0/29432_710662530_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4ff442ef3a59acd1c84a115579e3f0c20eb0af22fcbdaf792a9a6722ecadb37b",
+      "size_bytes": 70093
+    },
+    "data/processed/test/1/39748_643456285_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "bb6885bb4ab7e39d1b3e78045f0a6a9843c14d26ed629dece637f1998f7901cb",
+      "size_bytes": 56528
+    },
+    "data/processed/test/0/41277_788858525_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "cf4df4516adfaaf59d8c6cc4dd8d1a53b5a00ef5e94abed9b39a4f597ff80f17",
+      "size_bytes": 74379
+    },
+    "data/processed/test/0/3391_397720063_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "cb48b2ea5b3c554f125a9f621e385b370978c3b8641f5065679a2df9afcfc1e6",
+      "size_bytes": 89756
+    },
+    "data/processed/test/0/49063_1446563917_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "411a49eb96805f67f5f5e15dbf5bf504d28938624c11c3842098daf6c4c06eec",
+      "size_bytes": 118734
+    },
+    "data/processed/test/0/21209_476821110_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "ab2fdda50e08b8468c45e6a54179a67f755c20a82c9937e78e8f44946c181b99",
+      "size_bytes": 57253
+    },
+    "data/processed/test/0/40472_1685193800_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "b90510d3303f485b852d637e216ca1c9b43cce4cf1381233c2f0ebaca094a0c9",
+      "size_bytes": 60315
+    },
+    "data/processed/test/0/3215_1189234375_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "104f24c9831e64436f6794278492b81aa07c1e51ed021fd817457c23fa4de10b",
+      "size_bytes": 68681
+    },
+    "data/processed/test/0/20390_1158721094_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "15df08c626fb1fe83f947e05c5379cef2ede7aedf755b68d7330196d8d5c8c01",
+      "size_bytes": 74891
+    },
+    "data/processed/test/0/35849_1536811764_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f8d032264efcdfd5964548726bec2907f109618867c0d837176d887acba9038b",
+      "size_bytes": 118687
+    },
+    "data/processed/test/0/11960_1190180041_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f38ada7bb05eefc0a74ccb0d76908fd7d50ae73ec89d46666c88635e881a5a93",
+      "size_bytes": 71969
+    },
+    "data/processed/test/0/44580_156483566_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2c2ded9466bf8fde1935de04b802e9ea253e6f710bc01c6b84a2575f84143d38",
+      "size_bytes": 70442
+    },
+    "data/processed/test/0/34225_1574761373_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "8eec768d7a1a09baffc5d8bc5944b418e045a3aa92b66e991fc76e56a9e13152",
+      "size_bytes": 102971
+    },
+    "data/processed/test/0/27388_1627140172_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5a11759e9de2923f60f090716347b1d244a19754598ac7b253f2d082af243fab",
+      "size_bytes": 36526
+    },
+    "data/processed/test/0/39060_1828190438_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "519fd1d7d93a48f66124a8c17b1f899a04306b491049a59053317e219cfbdeac",
+      "size_bytes": 62152
+    },
+    "data/processed/test/0/12968_1192341934_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "714b426e23aedf015a3f06a14ed10fab0d58909d98b8cd621060dc95cdc75d93",
+      "size_bytes": 37490
+    },
+    "data/processed/test/0/61464_462514906_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5e40753fe974c6307bf92d4ef96f5176e4eb076e765e56c4e7059daf78b23c5f",
+      "size_bytes": 111205
+    },
+    "data/processed/test/0/26707_824933760_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "57e6b89cc5cde90044b6f98bc45698036d3111a6653de4392b9fcfa72e1e8719",
+      "size_bytes": 93272
+    },
+    "data/processed/test/0/42620_886577544_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "540288f6fc934deef2e7639649675d2b7f987a04bd29dff74d3ba316a9f0ad40",
+      "size_bytes": 78195
+    },
+    "data/processed/test/0/37408_577864644_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5cc60946d2f9578d183ebaef61c40db473e4eef2fdfbfc8a265c110474eea62e",
+      "size_bytes": 51730
+    },
+    "data/processed/test/0/24480_1029358803_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "63ac7db0e7764639aa87c621eca2aac992b01731efd69a2f7fbaabf7ba91266b",
+      "size_bytes": 78106
+    },
+    "data/processed/test/0/44591_1795050440_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "a1998a76d65bcbe1b9828cd18356c0287728e611d6ea9d21e42a3091297e2d83",
+      "size_bytes": 68570
+    },
+    "data/processed/test/1/28996_2064191295_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1147a24c79d46505e2d3dfabbdc83e8295a06aee844fa9728a9983c6aa7c4c5a",
+      "size_bytes": 85466
+    },
+    "data/processed/test/1/15268_1398189039_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e5fe94adb9154a4a83b5ced864dfc9511e5e85cb216c285565ec0a9f74ce5f2f",
+      "size_bytes": 85228
+    },
+    "data/processed/test/0/6162_70954857_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3dbe3eba577ef076be715e8134f9d9a87c79fcaaabdcbddf3bb96b6d71fd7d4d",
+      "size_bytes": 60834
+    },
+    "data/processed/test/0/30452_1893255958_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e3e32842f98c7b72637d0261d86dc62fcaa9ec5679ea32a39c248a3e2e9baa0a",
+      "size_bytes": 44930
+    },
+    "data/processed/test/0/12839_599809899_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "97a3cad425162e392c19d2fc9c3664fc3a6f63f91015d6ba9739d91041d470c9",
+      "size_bytes": 32508
+    },
+    "data/processed/test/0/281_1292600692_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "033a815033357c97fc598d9f05110d3636af584f937322f6afab017470865546",
+      "size_bytes": 68581
+    },
+    "data/processed/test/0/27648_491213538_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e406f186884f92eb1c88aa0d75e1455bb4be02293fe2d53c84155d1ab83f0ef1",
+      "size_bytes": 106151
+    },
+    "data/processed/test/0/2814_1247957281_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "256e9c655c794340e0304d22587a54eaa99066653360ce891e96e18190d27747",
+      "size_bytes": 91085
+    },
+    "data/processed/test/1/25323_361875956_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d14fb5aab86b112feefaaa7af7145d05135e5b11a61a5df64ab38aac7f6b476c",
+      "size_bytes": 69852
+    },
+    "data/processed/test/0/30402_1818081176_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4f0aac5eb8d9f91dbc2063ecdb8cbe1cefea152ebda50f224254c4bae9aa0a9a",
+      "size_bytes": 70565
+    },
+    "data/processed/test/0/53136_768397337_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "cfeddce5dee3477cb7c629954bb8bb5b8dded7805b9d8afeab32220465c626ec",
+      "size_bytes": 95769
+    },
+    "data/processed/test/0/52637_1290636254_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "f729bd9557ae61be6b035b765ac2bcb6c7962bee86614536762448f662d07ced",
+      "size_bytes": 97403
+    },
+    "data/processed/test/0/21310_1775075022_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5e980f909f6445088ae29e32b02e2f9d717745aa8541458db47a3dce373ca242",
+      "size_bytes": 79811
+    },
+    "data/processed/test/0/64182_838840460_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "079bbb03be182ac47c834107892b7ae41459b8dcc2c7d94d0fc136bf021bf75d",
+      "size_bytes": 65725
+    },
+    "data/processed/test/0/38077_1708521824_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "285a33fa3a5f089c521854194f03ed0aa18da833317b84f78a1345b4baca9910",
+      "size_bytes": 92217
+    },
+    "data/processed/test/0/36925_1149706223_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4f6bc2ffb303fd97c0f6e3e64d524fb829f16582f14acdbef08604e55cc9ee20",
+      "size_bytes": 75964
+    },
+    "data/processed/test/1/32087_1919147280_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "29f4e58dc4f7dfac824ba9061c5e2435804c94e222a06036af4a101054cdc845",
+      "size_bytes": 89205
+    },
+    "data/processed/test/0/1045_1019464609_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0359d9b4ecbfb9fc061c883a371dbf74c3719fd86958e8c096d9619c40bb3925",
+      "size_bytes": 115364
+    },
+    "data/processed/test/0/34862_368313075_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3d0d127d726de02633fe5bd33088b27f5f7beac171decef111ed6d94053e31f9",
+      "size_bytes": 59383
+    },
+    "data/processed/test/0/52369_478425079_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4310944c44513fee7a0bdb4821f92b1534aef46ecd5a51769432103c91b803fb",
+      "size_bytes": 60018
+    },
+    "data/processed/test/0/61625_91689979_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "5eb4891c8aafa87ca41f0a3e256891f30b3d471d1c5af2bbaa02e65c67798bf9",
+      "size_bytes": 55023
+    },
+    "data/processed/test/0/5817_58179226_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e10b71e89093a716aaa6711042f0accf7d42c3dc97129b6ce7f37a63b0f6f846",
+      "size_bytes": 55803
+    },
+    "data/processed/test/1/40496_1462467771_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "7dc384bfb02c7063dc120961f386250f6b850945d82cfd10fdf1366b10e8d66a",
+      "size_bytes": 83443
+    },
+    "data/processed/test/0/30191_730389650_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e453a502fdf0fc104453f6712e54f44c3e73ee6a6571bd482c2142ad2da5e194",
+      "size_bytes": 37143
+    },
+    "data/processed/test/0/821_278141206_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "575ce449334a61eb5e318e1af18c28f67f1c46befde8c0fbad347df3c0f77547",
+      "size_bytes": 31334
+    },
+    "data/processed/test/0/54382_482422144_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "d37c2a034be35c3c2f3776af9ecc991bf5d563218e515d339ea1a89ae324e671",
+      "size_bytes": 65419
+    },
+    "data/processed/test/0/22194_32478934_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "1af845d7cfab6873a94d319c7de26f410e6eb44bfdd6cba392107c49a2f8edd6",
+      "size_bytes": 64949
+    },
+    "data/processed/test/0/4019_1092089778_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "4f383f7b6c8456904f93542a8f3d845bdc64054845348254ca8839fdaa714ab8",
+      "size_bytes": 50804
+    },
+    "data/processed/test/0/63280_943062273_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "c949cdada023e554a05cd28b5ae7832851090f4a2163890df401d60cb523097b",
+      "size_bytes": 52192
+    },
+    "data/processed/test/0/23221_1257685849_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "402a20ca66e6f305e474a36746ea882ee6fecf63235b594fa362619132689f2a",
+      "size_bytes": 52562
+    },
+    "data/processed/test/0/49102_1139379765_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "0f7bf442f5f5017ec58fa3fc6edc4c4385f2c98c4f4d7f985556f96343c64310",
+      "size_bytes": 88378
+    },
+    "data/processed/test/0/3267_1572006981_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "54b4509a75a072551682b3796719584a76393d673f1d04f85caf0bfc463e2b92",
+      "size_bytes": 64063
+    },
+    "data/processed/test/0/60829_140731164_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "50437e0ee630cd1c1cd7ff512047320fa380767417d33071426c8cd186ff6f26",
+      "size_bytes": 65527
+    },
+    "data/processed/test/0/52805_1475531444_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "da440d3ea6c256655d9761f4b735f6fee2be07696f1bf7633e414880976101c0",
+      "size_bytes": 132295
+    },
+    "data/processed/test/0/7157_58381226_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "e404ed80f2834d4552580bbbb7f46bc49d8337f9480909b5141104309fb50b25",
+      "size_bytes": 135337
+    },
+    "data/processed/test/1/62608_344315857_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "815a23825a8a8debc0fd5c87442a36143d41041a5fac0c0c1ff46437155e8745",
+      "size_bytes": 41774
+    },
+    "data/processed/test/0/1380_413533045_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "228de84c3f14cd0308fb894b720a74dcdf709962931cc76b6f20e039b866ce6b",
+      "size_bytes": 56638
+    },
+    "data/processed/test/0/16384_465826610_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "2b512e012a792e977d878226fc78d03bacc338056158640a676eda2cd3d2a46f",
+      "size_bytes": 110976
+    },
+    "data/processed/test/0/44756_1438951400_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "cdde80db793f2d12f5d588415c939ea09fad464a128b205c8ae51e3bb4d59be5",
+      "size_bytes": 75693
+    },
+    "data/processed/test/0/6880_1545185676_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "3635570720b39aca54d62b18b319770c7a35ebdfbc815d55342529b61519f699",
+      "size_bytes": 84226
+    },
+    "data/processed/test/0/35683_1501450310_R_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "90e72cdf91824ea731bd607b56a2d8cf2d10de3f1af02f58ca68e6134245f229",
+      "size_bytes": 73756
+    },
+    "data/processed/test/0/55695_1086715165_L_MLO.png": {
+      "algorithm": "sha256",
+      "sha256": "9e2d52079215ee8e1f3a68b881a5bcef242d1821fbc88ff3bdfb3c168537ee93",
+      "size_bytes": 65771
+    }
+  },
+  "preprocessing": {
+    "view": "MLO",
+    "resolution": 512,
+    "grayscale": true,
+    "right_breast_mirrored": true
+  }
+}

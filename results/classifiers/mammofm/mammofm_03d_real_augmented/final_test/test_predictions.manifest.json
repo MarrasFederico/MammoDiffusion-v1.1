@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "experiment_id": "mammofm_03d_real_augmented",
+  "architecture": "Mammo-FM",
+  "dataset_variant": "real_plus_augmented",
+  "synthetic_source": "none",
+  "training_mode": "partial_finetuning",
+  "training_notebook": "notebooks/3_classifiers/03d_MammoFM_RealAugmented.ipynb",
+  "checkpoint_path": "experiments/classifiers/mammofm/03d_real_augmented/exp_mammofm_real_augmented_final_best.pt",
+  "checkpoint_signature": {
+    "algorithm": "sha256",
+    "sha256": "5a925ee6728fe59a67f051470fd102229427402bdddae4b2083375db09d2fb27",
+    "size_bytes": 114423315
+  },
+  "validation_metrics_path": "experiments/classifiers/mammofm/03d_real_augmented/val_metrics.json",
+  "validation_metrics_signature": {
+    "algorithm": "sha256",
+    "sha256": "006271785036d61c9691303aa4c71a0d7f314db366a16b53e2389b88267648ee",
+    "size_bytes": 1021
+  },
+  "validation_threshold": 0.4227,
+  "threshold_method": "youden_validation",
+  "test_csv": "data/processed/metadata/test.csv",
+  "test_csv_signature": {
+    "algorithm": "sha256",
+    "sha256": "27c94a76f0dcc92684c8c009e8ae3ef06c960620e720764cd2b664dad9eb4902",
+    "size_bytes": 82073
+  },
+  "test_dataset_manifest_signature": {
+    "algorithm": "sha256",
+    "sha256": "65644a12b64427e626229b969a817e8622451da1fa178a39282c13faa9b2261f",
+    "size_bytes": 89624
+  },
+  "patient_ids_hash": "715cf0a5f767594c4d3eaf75a183fa62cc3aeb56194b6010c05956356788fc1f",
+  "n_patients": 438,
+  "n_positive": 73,
+  "n_negative": 365,
+  "preprocessing": {
+    "view": "MLO",
+    "resolution": 512,
+    "grayscale": true,
+    "right_breast_mirrored": true
+  },
+  "model_config": {
+    "legacy_predictions_normalized_without_reinference": true
+  },
+  "legacy_prediction_signature": {
+    "algorithm": "sha256",
+    "sha256": "676d7fd24597f285871124a28d3800e54c5dedb29c7cda9164ac7a65b43445dc",
+    "size_bytes": 53754
+  },
+  "legacy_source_path": "experiments/classifiers/mammofm/03d_real_augmented/test_predictions.csv",
+  "provenance_level": "legacy_normalized_unverified",
+  "pipeline_schema_version": 1,
+  "checkpoint_link_verified": false,
+  "original_prediction_manifest_path": null,
+  "test_used_for_selection": false,
+  "prediction_file_signature": {
+    "algorithm": "sha256",
+    "sha256": "b6606901e4918e1d19c778f46ae5125b75b5532dc19f2965245e16853ade78e7",
+    "size_bytes": 126976
+  },
+  "created_at": "2026-07-11T23:49:35.932740+00:00"
+}

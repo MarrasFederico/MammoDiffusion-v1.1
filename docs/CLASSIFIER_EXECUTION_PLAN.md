@@ -35,3 +35,11 @@ Current terminal state is intentionally not “complete”: `final_aggregation_c
 and 04z real-runs remain pending. Training is not required for the eight ready finalists, while any
 new dataset/classifier combination must first be justified as validation screening rather than an
 automatic Cartesian sweep.
+# Stato operativo v2 (notebook-first)
+
+Il runner CLI non richiede più un `train_fn`: risolve l'adapter registrato per ResNet-50,
+MaxViT-512, Mammo-FM o RAD-DINO. `auto` esegue training/reuse, validation reale, metriche e
+ensemble dei seed 17/42/73. La dependency injection resta disponibile esclusivamente nei test.
+
+La matrice Stage 1 contiene 300 job eseguibili (25 varianti risolte × 4 architetture × 3 seed);
+le tre varianti bloccate sono documentate nei notebook e nell'inventario ma non schedulate.

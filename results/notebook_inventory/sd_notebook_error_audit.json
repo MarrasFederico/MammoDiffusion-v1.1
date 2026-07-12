@@ -1,0 +1,12 @@
+{
+ "schema_version": 1,
+ "notebook_1_error": "resolved",
+ "shared_risk_checked": [
+  "01_SD21_Baseline_50steps.ipynb",
+  "02_SD21_Filtered_100steps.ipynb",
+  "03_SD21_VAE_FineTuned.ipynb",
+  "04_SD21_LoRA.ipynb"
+ ],
+ "fix_scope": "shared utility; notebooks 01-04",
+ "files_deleted": false
+}

@@ -74,3 +74,9 @@ mapping for variants without an explicit, evidence-backed cross-reference.
 
 Steps 8-9 are the only steps that touch the test set, and only after every earlier step is
 complete and the lock signature has been written.
+# Aggiornamento notebook-first
+
+Stage 1 comprende 28 varianti documentate: 25 risolte producono 300 job seed-level; tre sono
+`BLOCKED` (G04 full e due G05) e rimangono rappresentate nell'inventario notebook. Lo screening
+primario usa soltanto ensemble `RSB_CONTROLLED` e PR-AUC validation; full e positive-only non
+vengono più mediati nello stesso ranking.

@@ -197,3 +197,8 @@ Gli inventari esaustivi e i package temporanei sono conservati localmente fuori 
 | Samuele Nonnis | [@SamueleNonnis](https://github.com/SamueleNonnis) |
 
 Progetto sviluppato per l'insegnamento di Deep Learning, annualita 2026, Corso di Laurea in Informatica Applicata e Data Analytics dell'Universita degli Studi di Cagliari.
+# Classifier matrix v2 notebook-first
+
+I 112 notebook Stage 1 dedicati sono in `notebooks/3_classifiers_matrix/`. Notebook e scheduler
+usano lo stesso runner e gli stessi adapter reali; consultare `docs/NOTEBOOK_MATRIX.md` per
+inventario, blocker e flusso Stage 2.

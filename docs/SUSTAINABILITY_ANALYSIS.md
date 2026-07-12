@@ -20,7 +20,7 @@ missing`. NaN energy/CO2/elapsed values are rejected at write time, not silently
 
 Deduplication (`deduplicate_canonical_events`): only `canonical=true`, non-`reused`,
 `status=completed` events count toward the reproducible pipeline; a duplicate `run_id` keeps only
-its latest entry. `actual_vs_canonical` reports two numbers side by side, always: 
+its latest entry. `actual_vs_canonical` reports two numbers side by side, always:
 `actual_project_energy` (every real attempt, including failures, deduplicated only by exact
 repeated log lines) and `canonical_pipeline_energy` (the reproducible cost) — the code asserts
 canonical never exceeds actual via test coverage, and the difference is reported as

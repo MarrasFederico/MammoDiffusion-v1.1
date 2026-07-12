@@ -181,7 +181,7 @@ def write_outputs(root: Path, registry: dict | None = None) -> dict:
             fieldnames = sorted({k for r in rows for k in r})
             csv_path = out_dir / "tables" / f"{name}.csv"
             with csv_path.open("w", newline="", encoding="utf-8") as fh:
-                writer = csv.DictWriter(fh, fieldnames=fieldnames)
+                writer = csv.DictWriter(fh, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
                 for row in rows:
                     writer.writerow({k: row.get(k, "") for k in fieldnames})

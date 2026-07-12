@@ -43,6 +43,14 @@ def notebook(architecture: str, variant: dict, dataset_status: str, blocker: str
     key = f"{architecture}__{vid}"
     regime = variant.get("budget_regime", "not_applicable")
     generator = variant.get("synthetic_generator_id") or "none"
+    has_synthetic = bool(variant.get("synthetic_generator_id"))
+    has_augmented = vid == "RA" or "RAS" in vid
+    attribution_method = {
+        "resnet50": "Grad-CAM sulla feature map convoluzionale finale",
+        "maxvit512": "Grad-CAM gradient-weighted sull'ultimo stage MaxViT con reshape spaziale",
+        "mammofm": "attribuzione gradient-weighted token/spaziale risolta dal backbone reale",
+        "raddino": "attribuzione gradient-weighted dei patch token (non semplice attention map)",
+    }[architecture]
     sources = [
         ("markdown", f"# {prefix} · {vid}\n\n**Domanda sperimentale:** effetto di `{vid}` su {display}, "
                      "con confronto validation-only e tre seed indipendenti. Questo notebook non può leggere il test locked."),
@@ -62,6 +70,7 @@ PROJECT_ROOT = find_project_root()
 sys.path.insert(0, str(PROJECT_ROOT / "notebooks/utility"))
 import classifier_experiment_runner as runner
 import classifier_dataset_builder as datasets
+import classifier_reporting as reporting
 
 ARCHITECTURE = {architecture!r}
 DATASET_VARIANT_ID = {vid!r}
@@ -70,12 +79,18 @@ MODE = "auto"  # plan | auto | train | validate | metrics-only
 RUN_SEEDS = [17, 42, 73]
 ALLOW_RETRAIN = False
 ALLOW_OVERWRITE_VERIFIED = False
+RESUME = True
+GENERATE_GRADCAM = True
+GRADCAM_NUM_REAL_SAMPLES = 8
+GRADCAM_NUM_SYNTHETIC_SAMPLES = 8
 TINY_SMOKE = os.environ.get("MAMMO_CLASSIFIER_TINY") == "1"
 DATASET_STATUS = {dataset_status!r}
 DATASET_BLOCKER = {blocker!r}
 assert MODE != "locked-test"
-print(EXPERIMENT_ID, MODE, RUN_SEEDS, "tiny=", TINY_SMOKE)'''),
-        ("markdown", "## 6–9 · Provenance, conteggi, firme e split pazienti\n\n"
+RESULTS_DIR = PROJECT_ROOT / "results/classifiers_matrix" / ARCHITECTURE / DATASET_VARIANT_ID / f"{{ARCHITECTURE}}_standard"
+print(EXPERIMENT_ID, MODE, RUN_SEEDS, "resume=", RESUME, "tiny=", TINY_SMOKE)
+print("results:", RESULTS_DIR)'''),
+        ("markdown", "## 4 — Provenance e configurazione\n\n"
                      "La cella seguente risolve i file canonici, firma il manifest e carica esclusivamente la validation reale. "
                      "Le varianti bloccate restano documentate e non avviano training."),
         ("code", '''registry = runner.load_dataset_variant_registry(PROJECT_ROOT)
@@ -91,14 +106,21 @@ else:
         "validation_signature": dataset_manifest["validation_signature"],
         "validation_sources": sorted({row["source"] for row in validation_rows}),
     }
+    reporting.persist_dataset_summary(RESULTS_DIR, train_rows, validation_rows, dataset_manifest)
 print(json.dumps(dataset_summary, indent=1))'''),
-        ("markdown", "## 10–13 · Protocollo, seed, piano auto e resume\n\n"
+        ("markdown", "## 5 — Composizione del dataset\n\nTabelle source × classe, conteggi e percentuali sono salvati in `results/.../dataset/`. Validation è esclusivamente reale."),
+        ("markdown", "## 6 — Esempi visivi del training set\n\nLa griglia usa un campionamento deterministico, senza selezione manuale degli esempi."),
+        ("code", f'''if DATASET_STATUS != "BLOCKED":
+    plan_figures = reporting.persist_plan_figures(RESULTS_DIR, has_synthetic={has_synthetic!r}, has_augmented={has_augmented!r})
+    print(*plan_figures, sep="\\n")'''),
+        ("markdown", "## 7 — Piano e stato resume\n\n"
                      "Il protocollo è unico per architettura. `auto` riusa un checkpoint verificato, altrimenti addestra, "
                      "poi esegue validation e metriche. Ogni seed usa directory e checkpoint distinti."),
         ("code", '''policy = runner.load_training_protocols(PROJECT_ROOT)["policies"][ARCHITECTURE]
 plans = [runner.plan(PROJECT_ROOT, ARCHITECTURE, DATASET_VARIANT_ID, seed) for seed in RUN_SEEDS]
 print(json.dumps({"policy": policy, "plans": plans}, indent=1))'''),
-        ("markdown", "## 14–18 · Curve, validation, metriche seed, ensemble e soglia\n\n"
+        ("markdown", "## 8 — Costruzione modello\n\nIl runner salva `model_summary.txt` e `model_architecture.json`; parametri trainable/frozen e input shape sono riportati senza dump verbosi."),
+        ("markdown", "## 9 — Training dei seed\n\n"
                      "Questa è l’unica cella operativa. Notebook e scheduler chiamano la stessa funzione condivisa. "
                      "L’ensemble è la media delle probabilità dei seed 17/42/73 e la soglia è scelta sull’ensemble validation."),
         ("code", '''if DATASET_STATUS == "BLOCKED":
@@ -109,8 +131,15 @@ else:
         mode=MODE, run_seeds=RUN_SEEDS, tiny=TINY_SMOKE,
     )
 print(json.dumps(run_results, indent=1, default=str))'''),
-        ("markdown", "## 19 · Consumi\n\nI consumi per seed sono registrati nella registry di sostenibilità durante le esecuzioni reali; "
-                     "la modalità tiny è sempre identificata come smoke e non entra nel consuntivo scientifico."),
+        ("markdown", "## 10 — Curve di training\n\nLoss, ROC-AUC, PR-AUC, learning rate, precision e recall sono salvati per seed e aggregati sotto `figures/`; le storie restano CSV."),
+        ("markdown", "## 11 — Validation per seed\n\nLe predizioni includono `patient_id`, `image_id`, label e probabilità. Nessuna cella importa il test."),
+        ("markdown", "## 12 — Ensemble validation\n\nMedia delle probabilità dei seed 17/42/73 dopo verifica rigorosa dell'allineamento; soglia congelata dalla validation."),
+        ("markdown", "## 13 — Metriche e risultati\n\nROC-AUC, PR-AUC, F1, sensitivity, specificity, PPV, NPV, balanced accuracy, MCC, accuracy, Brier, ECE e confusion matrix."),
+        ("markdown", "## 14 — Grafici validation\n\nROC, PR, calibration, confusion matrix e distribuzione delle probabilità sono visualizzati e salvati."),
+        ("markdown", "## 15 — Analisi degli errori\n\nFP, FN, TP e TN sono selezionati deterministicamente dalla validation e salvati in CSV e figura."),
+        ("markdown", f"## 16 — Grad-CAM / Gradient-based attribution\n\nTecnica: **{attribution_method}**. "
+                     f"Campioni reali sempre presenti; sintetici: **{has_synthetic}**; augmented: **{has_augmented}**. "
+                     "Per campione vengono salvate mappe normalizzate per seed e media ensemble. Il manifest reale condiviso è `configs/interpretability_validation_samples.json`."),
         ("code", '''policy_name = f"{ARCHITECTURE}_standard"
 ensemble_path = (PROJECT_ROOT / "results/classifiers_matrix" / ARCHITECTURE /
                  DATASET_VARIANT_ID / policy_name / "ensemble_validation_manifest.json")
@@ -118,9 +147,9 @@ print("ensemble:", ensemble_path, "exists=", ensemble_path.is_file())
 for seed in RUN_SEEDS:
     run_dir = runner.resolve_job(PROJECT_ROOT, ARCHITECTURE, DATASET_VARIANT_ID, seed)["run_dir"]
     print(seed, run_dir, sorted(p.name for p in run_dir.glob("*.json")) if run_dir.exists() else [])'''),
-        ("markdown", "## 20 · Riepilogo e output\n\n"
+        ("markdown", "## 17 — Riepilogo finale\n\n"
                      "Output canonici: `experiments/classifiers_matrix/<arch>/<variant>/<policy>/seed_<seed>/` "
-                     "e `results/classifiers_matrix/<arch>/<variant>/<policy>/ensemble_validation_manifest.json`. "
+                     "e `results/classifiers_matrix/<arch>/<variant>/<policy>/`. Durata e picco VRAM sono diagnostiche operative; energia e CO₂ dei nuovi classificatori non sono tracciate. "
                      "Il test locked non è importato né accessibile da questo notebook."),
     ]
     return {"cells": [cell(kind, source, key, i) for i, (kind, source) in enumerate(sources)],
@@ -194,7 +223,7 @@ def generate(root: Path) -> list[dict]:
                 "regime": variant.get("budget_regime"), "generator": variant.get("synthetic_generator_id"),
                 "training_policy": f"{architecture}_standard", "seeds": ",".join(map(str, SEEDS)),
                 "dataset_status": status, "checkpoint_legacy_available": legacy,
-                "training_required": not legacy, "validation_available": False, "test_allowed": False,
+                "training_required": True, "validation_available": False, "test_allowed": False,
                 "compile_status": "PASS", "dry_run_status": "PLAN_PASS" if status == "READY" else "BLOCKED",
                 "generator_ownership": "scripts/create_classifier_matrix_notebooks.py", "note_blocker": blocker,
             })

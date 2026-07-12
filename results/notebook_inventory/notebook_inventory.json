@@ -516,7 +516,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "resnet50_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -536,7 +536,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "resnet50_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -556,7 +556,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "resnet50_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -1076,7 +1076,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "maxvit512_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -1096,7 +1096,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "maxvit512_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -1116,7 +1116,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "maxvit512_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -1636,7 +1636,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "mammofm_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {
@@ -2196,7 +2196,7 @@
   "stage": 1,
   "test_allowed": false,
   "training_policy": "raddino_standard",
-  "training_required": false,
+  "training_required": true,
   "validation_available": false
  },
  {

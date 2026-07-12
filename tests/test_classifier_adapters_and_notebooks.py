@@ -41,6 +41,20 @@ class AdapterContractTests(unittest.TestCase):
 
 
 class NotebookGeneratorTests(unittest.TestCase):
+    def test_notebooks_are_standalone_and_have_required_reporting_sections(self):
+        required = [f"## {i} —" for i in range(4, 18)]
+        for path in (ROOT / "notebooks/3_classifiers_matrix").glob("*/*.ipynb"):
+            text = path.read_text()
+            for heading in required:
+                self.assertIn(heading, text, f"{path}: {heading}")
+            self.assertIn("Grad-CAM / Gradient-based attribution", text)
+            self.assertIn("RESUME = True", text)
+            self.assertNotIn("CodeCarbon", text)
+
+    def test_real_only_notebook_has_no_synthetic_attribution_section(self):
+        text = (ROOT / "notebooks/3_classifiers_matrix/resnet50/R50_R.ipynb").read_text()
+        self.assertIn("sintetici: **False**", text)
+
     @classmethod
     def setUpClass(cls):
         spec = importlib.util.spec_from_file_location("matrix_notebooks", ROOT / "scripts/create_classifier_matrix_notebooks.py")

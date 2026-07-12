@@ -75,7 +75,8 @@ def main() -> None:
             })
     fields = list(rows[0]) if rows else []
     with (ROOT / "legacy_recovery_inventory.csv").open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields); writer.writeheader(); writer.writerows(rows)
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+        writer.writeheader(); writer.writerows(rows)
     counts = {name: sum(row["action"] == name for row in rows) for name in sorted({r["action"] for r in rows})}
     lines = ["# Legacy recovery inventory", "", f"Legacy root (read-only): `{legacy}`", "",
              f"Files examined: **{len(rows)}**.", "", "| Classification | Count |", "|---|---:|"]

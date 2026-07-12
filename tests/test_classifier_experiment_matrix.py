@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json, sys, tempfile, unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
@@ -27,6 +28,15 @@ def build_fixture_project(root: Path) -> None:
 
 
 class BuildMatrixTests(unittest.TestCase):
+    def test_stage2_build_persists_variants_for_runner_resolution(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); build_fixture_project(root)
+            with patch.object(build_matrix, "build_stage2_variants", return_value=[{
+                "dataset_variant_id": "RAS_CONTROLLED_gA", "regime": "stage2_advanced", "status": "ready"
+            }]):
+                build_matrix.build_and_write(root, stage=2, selected_union=["gA"])
+            registry = json.loads((root / "configs/dataset_variant_registry.json").read_text())
+            self.assertIn("RAS_CONTROLLED_gA", {v["dataset_variant_id"] for v in registry["variants"]})
     def test_stage1_builds_one_job_per_architecture_variant_seed(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); build_fixture_project(root)

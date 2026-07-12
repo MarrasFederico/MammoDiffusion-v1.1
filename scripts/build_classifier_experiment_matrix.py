@@ -95,6 +95,14 @@ def build_jobs(root: Path, stage: int, selected_union: list[str] | None = None) 
 
 
 def build_and_write(root: Path, stage: int, selected_union: list[str] | None = None) -> dict:
+    if stage == 2:
+        if selected_union is None:
+            raise ValueError("Stage 2 requires a signed selected generator union")
+        registry_path = root / "configs/dataset_variant_registry.json"
+        registry = json.loads(registry_path.read_text())
+        stage2_variants = build_stage2_variants(root, selected_union)
+        registry["variants"] = [v for v in registry["variants"] if v.get("regime") != "stage2_advanced"] + stage2_variants
+        registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=1) + "\n")
     jobs = build_jobs(root, stage, selected_union)
     out_path = root / "configs/classifier_experiment_matrix.json"
     existing = {"schema_version": 1, "jobs": []}

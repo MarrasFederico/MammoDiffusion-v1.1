@@ -19,7 +19,7 @@ AUGMENTED_DIR = "data/real_augmented"
 VALIDATION_METADATA = "data/processed/metadata/val.csv"
 
 
-def _real_files_by_class(root: Path) -> dict[str, list[str]]:
+def _real_files_by_class(root: Path) -> dict[str, list[dict]]:
     metadata = root / "data/processed/metadata/train.csv"
     with metadata.open(newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
@@ -30,7 +30,10 @@ def _real_files_by_class(root: Path) -> dict[str, list[str]]:
         if klass is None:
             continue
         processed_path = row.get("processed_path")
-        by_class[klass].append(processed_path if processed_path else f"{REAL_TRAIN_DIR}/{row['label']}/{row['image_id']}.png")
+        by_class[klass].append({
+            "path": processed_path if processed_path else f"{REAL_TRAIN_DIR}/{row['label']}/{row['image_id']}.png",
+            "patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+        })
     return by_class
 
 
@@ -117,7 +120,8 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
 
     files = {}
     for klass in CLASS_LABEL:
-        entries = [{"path": p, "source": "real"} for p in real.get(klass, [])]
+        entries = [{**p, "source": "real"} if isinstance(p, dict) else {"path": p, "source": "real"}
+                   for p in real.get(klass, [])]
         entries += [{"path": p, "source": "augmented"} for p in augmented.get(klass, [])]
         entries += [{"path": p, "source": "synthetic"} for p in synthetic.get(klass, [])]
         files[klass] = entries
@@ -165,7 +169,9 @@ def rows_from_file_list(root: Path, file_list: dict) -> list[dict]:
             if key in seen:
                 raise ValueError(f"duplicate dataset file: {path}")
             seen.add(key)
-            rows.append({"processed_path": key, "label": int(label), "source": entry["source"]})
+            rows.append({"processed_path": key, "label": int(label), "source": entry["source"],
+                         "patient_id": entry.get("patient_id"),
+                         "image_id": entry.get("image_id") or path.stem})
     return rows
 
 
@@ -220,6 +226,9 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
             "\n".join(f"{r.get('patient_id')}|{r.get('image_id')}|{r['label']}|{r['processed_path']}" for r in val_rows).encode()
         ).hexdigest(),
         "files": file_list,
+        "train_patient_ids": sorted(train_patients),
+        "validation_patient_ids": sorted(val_patients),
+        "patient_overlap": [],
     }
     return train_rows, val_rows, manifest_payload
 

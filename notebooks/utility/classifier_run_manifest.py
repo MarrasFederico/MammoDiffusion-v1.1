@@ -68,8 +68,9 @@ def reconstruct_state(run: Path, framework: str) -> dict:
             return {"state": "FAILED_RETRYABLE", "reason": f"stale lock, checkpoint not verified: {reason}"}
         return {"state": "PENDING", "reason": reason}
 
-    validation_metrics = run / "validation_metrics.json"
-    if not validation_metrics.is_file():
+    validation_marker = run / "validation_complete.json"
+    legacy_validation_metrics = run / "validation_metrics.json"
+    if not validation_marker.is_file() and not legacy_validation_metrics.is_file():
         return {"state": "TRAINED", "reason": "checkpoint verified, validation metrics missing"}
 
     ensemble_ready_marker = run.parent / "ensemble_complete.json"

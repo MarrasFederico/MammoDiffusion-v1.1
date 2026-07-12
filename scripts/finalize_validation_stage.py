@@ -39,7 +39,9 @@ def load_completed_validations(root: Path, stage: int) -> list[dict]:
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
     if stage in (1, 2):
         rows = []
-        for path in sorted((root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")):
+        new_paths = (root / "results/classifiers_matrix").glob("*/*/*/ensemble/manifests/ensemble_validation_manifest.json")
+        legacy_paths = (root / "results/classifiers_matrix").glob("*/*/*/ensemble_validation_manifest.json")
+        for path in sorted([*new_paths, *legacy_paths]):
             payload = json.loads(path.read_text())
             vid = payload["dataset_variant_id"]
             is_stage1 = bool(_generator_of(vid))
@@ -59,7 +61,8 @@ def load_completed_validations(root: Path, stage: int) -> list[dict]:
         if job["stage"] != stage or job["status"] not in ("VALIDATED", "COMPLETE"):
             continue
         metrics_path = root / job["validation_predictions_path"]
-        vmetrics_path = metrics_path.parent / "validation_metrics.json"
+        seed = job["seed"]
+        vmetrics_path = metrics_path.parent / f"validation_metrics_seed_{seed}.json"
         if not vmetrics_path.is_file():
             continue
         metrics = json.loads(vmetrics_path.read_text())

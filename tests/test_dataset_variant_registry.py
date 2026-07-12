@@ -118,6 +118,16 @@ class DatasetVariantRegistryTests(unittest.TestCase):
                 if v["synthetic_generator_id"] == "gC_positive_only":
                     self.assertNotIn("negative", v["classes"])
 
+    def test_positive_only_synthetic_keeps_both_real_classes(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); build_fixture_project(root)
+            registry = dvr.build_stage1_registry(root)
+            variants = [v for v in registry["variants"] if v["synthetic_generator_id"] == "gC_positive_only"]
+            self.assertTrue(variants)
+            for variant in variants:
+                self.assertEqual(variant["real_count_by_class"], {"negative": 60, "positive": 20})
+                self.assertNotIn("negative", variant["synthetic_count_by_class"])
+
     def test_no_duplicate_variant_ids(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); build_fixture_project(root)

@@ -223,7 +223,7 @@ class RunnerPlanTests(unittest.TestCase):
             self.assertEqual(len(dirs), 3)
 
     def _tiny_bundle(self):
-        rows = [{"processed_path": "synthetic-fixture", "label": label, "image_id": str(i)}
+        rows = [{"processed_path": "synthetic-fixture", "label": label, "image_id": str(i), "patient_id": f"p{i}"}
                 for i, label in enumerate((0, 1, 0, 1))]
         return rows, rows, {"signature": "tiny-dataset-signature"}
 
@@ -236,6 +236,15 @@ class RunnerPlanTests(unittest.TestCase):
             job = runner.resolve_job(root, "maxvit512", "R", 17)
             state = manifest.read_manifest(job["run_dir"])
             self.assertEqual(state["state"], "TRAINED")
+            payload, source = ckio.load_resume_checkpoint(job["run_dir"], {
+                "architecture": "maxvit512", "experiment_id": "maxvit512__R__seed17",
+                "dataset_variant_id": "R", "training_policy": "maxvit512_standard", "seed": 17,
+                "config_signature": runner._signature(job["policy"]), "dataset_signature": "tiny-dataset-signature"})
+            self.assertEqual(source, "checkpoint_latest"); self.assertEqual(payload["global_step"], 1)
+            runner.run_train(root, "maxvit512", "R", 17, tiny=True, dataset_bundle=self._tiny_bundle())
+            resumed, _ = ckio.load_resume_checkpoint(job["run_dir"], {k: payload[k] for k in (
+                "architecture", "experiment_id", "dataset_variant_id", "training_policy", "seed", "config_signature", "dataset_signature")})
+            self.assertGreater(resumed["global_step"], payload["global_step"])
 
     def test_train_mode_with_injected_train_fn_writes_trained_state(self):
         with tempfile.TemporaryDirectory() as t:
@@ -269,11 +278,16 @@ class RunnerPlanTests(unittest.TestCase):
                 result = runner.run_auto(root, "maxvit512", "R", seed, tiny=True,
                                          dataset_bundle=self._tiny_bundle())
                 self.assertEqual(result["status"], "validated")
-            ensemble = root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard/ensemble_validation_manifest.json"
+            ensemble = root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard/ensemble/manifests/ensemble_validation_manifest.json"
             payload = json.loads(ensemble.read_text())
             self.assertEqual(payload["seeds"], [17, 42, 73])
             self.assertEqual(payload["aggregation"], "mean_probability")
             self.assertFalse(payload["test_access"])
+            prediction_csv = root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_17/validation_predictions_seed_17.csv"
+            self.assertIn("patient_id,image_id,label,probability", prediction_csv.read_text().splitlines()[0])
+            import classifier_reporting as reporting
+            figures = reporting.render_complete_report(root / "results/classifiers_matrix/maxvit512/R/maxvit512_standard")
+            self.assertTrue(figures["validation_figures"])
 
     def test_cli_refuses_locked_test_mode(self):
         with tempfile.TemporaryDirectory() as t:

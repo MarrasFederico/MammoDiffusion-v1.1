@@ -88,7 +88,9 @@ def build_jobs(root: Path, stage: int, selected_union: list[str] | None = None) 
                     "estimated_vram_mb": None,
                     "gpu_eligibility": _gpu_eligibility(profile),
                     "checkpoint_path": str(ckio.checkpoint_path(run, policy["framework"]).relative_to(root)),
-                    "validation_predictions_path": str((run / "validation_predictions.json").relative_to(root)),
+                    "validation_predictions_path": str((ckio.results_dir(
+                        root, architecture, variant["dataset_variant_id"], training_policy_name, seed) /
+                        f"validation_predictions_seed_{seed}.json").relative_to(root)),
                     "manifest_path": str(crm.manifest_path(run).relative_to(root)),
                 })
     return jobs

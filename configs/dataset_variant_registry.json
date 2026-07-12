@@ -254,7 +254,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -265,7 +265,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -462,7 +462,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -473,7 +473,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -670,7 +670,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -681,7 +681,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -860,7 +860,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -871,7 +871,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -1068,7 +1068,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -1079,7 +1079,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -1276,7 +1276,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -1287,7 +1287,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -1484,7 +1484,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -1495,7 +1495,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -1542,7 +1542,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -1553,7 +1553,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",
@@ -1590,7 +1590,7 @@
    ],
    "train_only": true,
    "real_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 340
    },
    "augmented_count_by_class": {
@@ -1601,7 +1601,7 @@
     "positive": 1361
    },
    "total_count_by_class": {
-    "negative": 0,
+    "negative": 1701,
     "positive": 1701
    },
    "patient_policy": "train_split_only_no_val_test_leakage",

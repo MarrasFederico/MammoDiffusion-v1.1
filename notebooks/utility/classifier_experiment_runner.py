@@ -11,6 +11,8 @@ import json
 import os
 import signal
 import sys
+import csv
+import copy
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -37,6 +39,18 @@ def _atomic_json(path: Path, payload: dict) -> Path:
     return path
 
 
+def _write_csv(path: Path, rows: list[dict]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields = list(rows[0]) if rows else ["patient_id", "image_id", "label", "probability"]
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fields, extrasaction="ignore", lineterminator="\n")
+        writer.writeheader(); writer.writerows(rows)
+        stream.flush(); os.fsync(stream.fileno())
+    os.replace(tmp, path)
+    return path
+
+
 def _signature(payload) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
@@ -59,9 +73,16 @@ def resolve_job(root: Path, architecture: str, dataset_variant_id: str, seed: in
         raise ValueError(f"unknown architecture policy: {architecture}")
     if seed not in tuple(protocols[architecture].get("seeds", SEEDS)):
         raise ValueError(f"seed {seed} is not registered for {architecture}")
-    policy = protocols[architecture]
+    policy = copy.deepcopy(protocols[architecture])
     training_policy_name = f"{architecture}_standard"
     run = ckio.run_dir(root, architecture, dataset_variant_id, training_policy_name, seed)
+    override = run / "oom_override.json"
+    if override.is_file():
+        payload = json.loads(override.read_text())
+        policy["physical_batch_size"] = int(payload["physical_batch_size"])
+        policy["gradient_accumulation_steps"] = int(payload["gradient_accumulation_steps"])
+        if policy["physical_batch_size"] * policy["gradient_accumulation_steps"] != policy["effective_batch_size"]:
+            raise RuntimeError("OOM override changes the registered effective batch")
     results = ckio.results_dir(root, architecture, dataset_variant_id, training_policy_name, seed)
     return {"variant": variant, "policy": policy, "training_policy_name": training_policy_name,
             "run_dir": run, "results_dir": results}
@@ -157,9 +178,21 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
             produced = Path(train_fn(run, job["policy"], job["variant"], seed))
             checkpoint = produced
         else:
-            result = adapter.train(train_rows, validation_rows, checkpoint, seed=seed)
+            result = adapter.train(
+                train_rows, validation_rows, checkpoint, seed=seed, run_dir=run,
+                architecture=architecture, experiment_id=ckio.experiment_id(architecture, dataset_variant_id, seed),
+                dataset_variant_id=dataset_variant_id, training_policy=job["training_policy_name"],
+                config_signature=_signature(job["policy"]), dataset_signature=dataset_payload["signature"],
+            )
             checkpoint = Path(result["checkpoint"])
-            _atomic_json(run / "training_history.json", result)
+            _atomic_json(job["results_dir"] / "training_history.json", result)
+            history = result.get("history", {})
+            if isinstance(history, dict):
+                keys = list(history)
+                length = max((len(v) for v in history.values() if isinstance(v, list)), default=0)
+                _write_csv(job["results_dir"] / f"training_history_seed_{seed}.csv", [
+                    {"epoch": index + 1, **{key: history[key][index] if isinstance(history[key], list) and index < len(history[key]) else None for key in keys}}
+                    for index in range(length)])
         if not checkpoint.is_file():
             raise RuntimeError(f"adapter did not create checkpoint: {checkpoint}")
         # Injected legacy tests may have already written compatible metadata.
@@ -180,12 +213,12 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
 def run_metrics_only(root: Path, architecture: str, dataset_variant_id: str, seed: int) -> dict:
     import classifier_metrics as metrics
     job = resolve_job(root, architecture, dataset_variant_id, seed)
-    predictions_path = job["run_dir"] / "validation_predictions.json"
+    predictions_path = job["results_dir"] / f"validation_predictions_seed_{seed}.json"
     if not predictions_path.is_file():
         raise RuntimeError(f"cannot recompute metrics: missing {predictions_path}")
     predictions = json.loads(predictions_path.read_text())
     report = metrics.full_report(predictions["labels"], predictions["probabilities"])
-    _atomic_json(job["run_dir"] / "validation_metrics.json", report)
+    _atomic_json(job["results_dir"] / f"validation_metrics_seed_{seed}.json", report)
     return report
 
 
@@ -205,10 +238,19 @@ def run_validate(root: Path, architecture: str, dataset_variant_id: str, seed: i
         predictions = adapter.predict_validation(checkpoint, validation_rows, seed=seed)
         if len(predictions["labels"]) != len(validation_rows) or len(predictions["probabilities"]) != len(validation_rows):
             raise RuntimeError("validation prediction count does not match validation manifest")
-        predictions.update({"schema_version": 1, "architecture": architecture,
+        rows = [{"patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+                 "label": int(label), "probability": float(probability)}
+                for row, label, probability in zip(validation_rows, predictions["labels"], predictions["probabilities"])]
+        if any(not row["patient_id"] or not row["image_id"] for row in rows):
+            raise RuntimeError("validation predictions require patient_id and image_id")
+        predictions.update({"schema_version": 2, "architecture": architecture,
                             "dataset_variant_id": dataset_variant_id, "seed": seed, "split": "validation"})
-        _atomic_json(job["run_dir"] / "validation_predictions.json", predictions)
+        predictions["rows"] = rows
+        _atomic_json(job["results_dir"] / f"validation_predictions_seed_{seed}.json", predictions)
+        _write_csv(job["results_dir"] / f"validation_predictions_seed_{seed}.csv", rows)
         report = run_metrics_only(root, architecture, dataset_variant_id, seed)
+        _atomic_json(job["run_dir"] / "validation_complete.json", {
+            "results_dir": str(job["results_dir"]), "metrics_signature": _signature(report)})
         manifest.write_state(job["run_dir"], "VALIDATED", metrics=report)
         ensemble = build_ensemble_if_ready(root, architecture, dataset_variant_id)
         return {"status": "validated", "metrics": report, "ensemble": ensemble}
@@ -225,31 +267,39 @@ def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: s
     payloads = []
     for seed in SEEDS:
         run = ckio.run_dir(root, architecture, dataset_variant_id, policy_name, seed)
-        path = run / "validation_predictions.json"
+        result = ckio.results_dir(root, architecture, dataset_variant_id, policy_name, seed)
+        path = result / f"validation_predictions_seed_{seed}.json"
         if not path.is_file():
             return {"status": "waiting_for_seeds", "missing_seed": seed}
         payloads.append(json.loads(path.read_text()))
-    sample_ids = payloads[0].get("sample_ids")
+    keys = [(row["patient_id"], row["image_id"]) for row in payloads[0]["rows"]]
     labels = payloads[0]["labels"]
-    if any(p["labels"] != labels or p.get("sample_ids") != sample_ids for p in payloads[1:]):
+    if any(p["labels"] != labels or [(row["patient_id"], row["image_id"]) for row in p["rows"]] != keys for p in payloads[1:]):
         raise RuntimeError("seed validation predictions are not aligned")
     probabilities = metrics.ensemble_probabilities([p["probabilities"] for p in payloads])
     report = metrics.full_report(labels, probabilities)
-    seed_reports = [json.loads((ckio.run_dir(root, architecture, dataset_variant_id, policy_name, seed) /
-                                "validation_metrics.json").read_text()) for seed in SEEDS]
+    seed_reports = [json.loads((ckio.results_dir(root, architecture, dataset_variant_id, policy_name, seed) /
+                                f"validation_metrics_seed_{seed}.json").read_text()) for seed in SEEDS]
     manifest_payload = {
         "schema_version": 1, "architecture": architecture, "dataset_variant_id": dataset_variant_id,
         "training_policy": policy_name, "seeds": list(SEEDS), "aggregation": "mean_probability",
         "threshold_source": "ensemble_validation_youden", "metrics": report,
         "seed_stability": {name: metrics.seed_stability([row[name] for row in seed_reports])
                            for name in ("pr_auc", "roc_auc")},
-        "validation_predictions": {"labels": labels, "sample_ids": sample_ids, "probabilities": probabilities},
+        "validation_predictions": {"labels": labels, "keys": keys, "probabilities": probabilities},
         "test_access": False,
     }
     manifest_payload["signature"] = _signature(manifest_payload)
-    out = (root / "results/classifiers_matrix" / architecture / dataset_variant_id / policy_name /
-           "ensemble_validation_manifest.json")
+    ensemble_dir = root / "results/classifiers_matrix" / architecture / dataset_variant_id / policy_name / "ensemble"
+    out = ensemble_dir / "manifests/ensemble_validation_manifest.json"
     _atomic_json(out, manifest_payload)
+    ensemble_rows = [{"patient_id": patient_id, "image_id": image_id, "label": label, "probability": probability}
+                     for (patient_id, image_id), label, probability in zip(keys, labels, probabilities)]
+    _write_csv(ensemble_dir / "predictions/ensemble_validation_predictions.csv", ensemble_rows)
+    _atomic_json(ensemble_dir / "predictions/ensemble_validation_predictions.json", {"rows": ensemble_rows})
+    _atomic_json(ensemble_dir / "metrics/ensemble_validation_metrics.json", report)
+    _atomic_json(ensemble_dir / "metrics/locked_validation_threshold.json", {
+        "threshold": report["threshold"], "source": "ensemble_validation", "test_access": False})
     for seed in SEEDS:
         run = ckio.run_dir(root, architecture, dataset_variant_id, policy_name, seed)
         _atomic_json(run.parent / "ensemble_complete.json", {"manifest": str(out.relative_to(root)),

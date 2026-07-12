@@ -214,8 +214,10 @@ def _synthetic_variant(variant_id: str, display_name: str, regime: str, budget_r
                         real: dict, augmented: dict, synthetic: dict, gid: str, synth_classes: tuple[str, ...],
                         source_precisions: dict, seed: int = SAMPLING_SEED, include_real: bool = True,
                         include_augmented: bool = False) -> dict:
-    used_real = {k: (real.get(k, 0) if include_real and k in synth_classes else 0) for k in TWO_CLASS}
-    used_aug = {k: (augmented.get(k, 0) if include_augmented and k in synth_classes else 0) for k in TWO_CLASS}
+    # ``synth_classes`` constrains synthetic labels only. RSP/RAS positive-only variants still
+    # contain the complete real (and, when requested, augmented) binary training split.
+    used_real = {k: (real.get(k, 0) if include_real else 0) for k in TWO_CLASS}
+    used_aug = {k: (augmented.get(k, 0) if include_augmented else 0) for k in TWO_CLASS}
     total = {k: used_real.get(k, 0) + used_aug.get(k, 0) + synthetic.get(k, 0) for k in TWO_CLASS}
     unresolved = [k for k in synth_classes if source_precisions.get(k) == "unresolved"]
     status = "invalid" if unresolved else "ready"

@@ -16,7 +16,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/R/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -34,7 +34,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/R/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -52,7 +52,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/R/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/R/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -70,7 +70,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RA/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -88,7 +88,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RA/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -106,7 +106,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RA/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RA/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -124,7 +124,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -142,7 +142,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -160,7 +160,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -178,7 +178,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -196,7 +196,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -214,7 +214,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_01_sd21_baseline_50steps/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -232,7 +232,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -250,7 +250,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -268,7 +268,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_01_sd21_baseline_50steps/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -286,7 +286,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -304,7 +304,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -322,7 +322,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -340,7 +340,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -358,7 +358,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -376,7 +376,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_02_sd21_filtered_100steps/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -394,7 +394,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -412,7 +412,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -430,7 +430,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_02_sd21_filtered_100steps/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -448,7 +448,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -466,7 +466,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -484,7 +484,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -502,7 +502,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -520,7 +520,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -538,7 +538,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_03_sd21_vae_finetuned/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -556,7 +556,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -574,7 +574,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -592,7 +592,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_03_sd21_vae_finetuned/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -610,7 +610,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -628,7 +628,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -646,7 +646,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -664,7 +664,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -682,7 +682,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -700,7 +700,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_04_sd21_lora/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -718,7 +718,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -736,7 +736,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -754,7 +754,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -772,7 +772,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -790,7 +790,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -808,7 +808,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -826,7 +826,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -844,7 +844,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -862,7 +862,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -880,7 +880,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -898,7 +898,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -916,7 +916,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -934,7 +934,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -952,7 +952,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -970,7 +970,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -988,7 +988,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1006,7 +1006,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1024,7 +1024,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_07_ldm_sdvae_extra1361/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1042,7 +1042,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1060,7 +1060,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1078,7 +1078,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1096,7 +1096,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1114,7 +1114,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1132,7 +1132,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSB_FULL_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1150,7 +1150,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1168,7 +1168,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1186,7 +1186,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1204,7 +1204,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1222,7 +1222,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1240,7 +1240,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RS_PARTIAL_G02/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1258,7 +1258,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1276,7 +1276,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1294,7 +1294,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/RS_FULL_G02/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1312,7 +1312,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_17/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_17/run_manifest.json"
   },
   {
@@ -1330,7 +1330,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_42/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_42/run_manifest.json"
   },
   {
@@ -1348,7 +1348,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_73/model.keras",
-   "validation_predictions_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/resnet50/SYNTHETIC_ONLY_PARTIAL_G02/resnet50_standard/seed_73/run_manifest.json"
   },
   {
@@ -1365,7 +1365,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1382,7 +1382,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1399,7 +1399,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/R/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1416,7 +1416,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1433,7 +1433,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1450,7 +1450,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RA/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1467,7 +1467,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1484,7 +1484,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1501,7 +1501,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1518,7 +1518,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1535,7 +1535,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1552,7 +1552,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_01_sd21_baseline_50steps/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1569,7 +1569,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1586,7 +1586,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1603,7 +1603,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_01_sd21_baseline_50steps/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1620,7 +1620,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1637,7 +1637,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1654,7 +1654,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1671,7 +1671,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1688,7 +1688,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1705,7 +1705,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_02_sd21_filtered_100steps/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1722,7 +1722,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1739,7 +1739,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1756,7 +1756,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_02_sd21_filtered_100steps/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1773,7 +1773,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1790,7 +1790,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1807,7 +1807,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1824,7 +1824,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1841,7 +1841,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1858,7 +1858,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_03_sd21_vae_finetuned/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1875,7 +1875,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1892,7 +1892,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1909,7 +1909,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_03_sd21_vae_finetuned/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1926,7 +1926,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1943,7 +1943,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -1960,7 +1960,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -1977,7 +1977,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -1994,7 +1994,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2011,7 +2011,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_04_sd21_lora/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2028,7 +2028,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2045,7 +2045,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2062,7 +2062,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2079,7 +2079,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2096,7 +2096,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2113,7 +2113,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2130,7 +2130,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2147,7 +2147,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2164,7 +2164,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2181,7 +2181,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2198,7 +2198,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2215,7 +2215,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2232,7 +2232,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2249,7 +2249,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2266,7 +2266,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2283,7 +2283,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2300,7 +2300,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2317,7 +2317,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_07_ldm_sdvae_extra1361/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2334,7 +2334,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2351,7 +2351,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2368,7 +2368,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2385,7 +2385,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2402,7 +2402,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2419,7 +2419,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSB_FULL_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2436,7 +2436,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2453,7 +2453,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2470,7 +2470,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2487,7 +2487,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2504,7 +2504,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2521,7 +2521,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RS_PARTIAL_G02/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2538,7 +2538,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2555,7 +2555,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2572,7 +2572,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/RS_FULL_G02/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2589,7 +2589,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_17/run_manifest.json"
   },
   {
@@ -2606,7 +2606,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_42/run_manifest.json"
   },
   {
@@ -2623,7 +2623,7 @@
     "rtx_5060_ti_16gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/maxvit512/SYNTHETIC_ONLY_PARTIAL_G02/maxvit512_standard/seed_73/run_manifest.json"
   },
   {
@@ -2641,7 +2641,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/R/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2659,7 +2659,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/R/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -2677,7 +2677,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/R/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/R/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -2695,7 +2695,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RA/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2713,7 +2713,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RA/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -2731,7 +2731,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RA/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RA/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -2749,7 +2749,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2767,7 +2767,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -2785,7 +2785,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -2803,7 +2803,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2821,7 +2821,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -2839,7 +2839,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_01_sd21_baseline_50steps/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -2857,7 +2857,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2875,7 +2875,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -2893,7 +2893,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_01_sd21_baseline_50steps/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -2911,7 +2911,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2929,7 +2929,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -2947,7 +2947,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -2965,7 +2965,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -2983,7 +2983,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3001,7 +3001,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_02_sd21_filtered_100steps/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3019,7 +3019,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3037,7 +3037,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3055,7 +3055,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_02_sd21_filtered_100steps/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3073,7 +3073,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3091,7 +3091,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3109,7 +3109,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3127,7 +3127,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3145,7 +3145,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3163,7 +3163,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_03_sd21_vae_finetuned/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3181,7 +3181,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3199,7 +3199,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3217,7 +3217,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_03_sd21_vae_finetuned/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3235,7 +3235,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3253,7 +3253,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3271,7 +3271,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3289,7 +3289,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3307,7 +3307,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3325,7 +3325,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_04_sd21_lora/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3343,7 +3343,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3361,7 +3361,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3379,7 +3379,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3397,7 +3397,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3415,7 +3415,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3433,7 +3433,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3451,7 +3451,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3469,7 +3469,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3487,7 +3487,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3505,7 +3505,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3523,7 +3523,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3541,7 +3541,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3559,7 +3559,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3577,7 +3577,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3595,7 +3595,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3613,7 +3613,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3631,7 +3631,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3649,7 +3649,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_07_ldm_sdvae_extra1361/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3667,7 +3667,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3685,7 +3685,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3703,7 +3703,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3721,7 +3721,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3739,7 +3739,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3757,7 +3757,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSB_FULL_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3775,7 +3775,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3793,7 +3793,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3811,7 +3811,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3829,7 +3829,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3847,7 +3847,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3865,7 +3865,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RS_PARTIAL_G02/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3883,7 +3883,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3901,7 +3901,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3919,7 +3919,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/RS_FULL_G02/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3937,7 +3937,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_17/run_manifest.json"
   },
   {
@@ -3955,7 +3955,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_42/run_manifest.json"
   },
   {
@@ -3973,7 +3973,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/mammofm/SYNTHETIC_ONLY_PARTIAL_G02/mammofm_standard/seed_73/run_manifest.json"
   },
   {
@@ -3991,7 +3991,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/R/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4009,7 +4009,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/R/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4027,7 +4027,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/R/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/R/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4045,7 +4045,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RA/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4063,7 +4063,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RA/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4081,7 +4081,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RA/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RA/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4099,7 +4099,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4117,7 +4117,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4135,7 +4135,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4153,7 +4153,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4171,7 +4171,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4189,7 +4189,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_01_sd21_baseline_50steps/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4207,7 +4207,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4225,7 +4225,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4243,7 +4243,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_01_sd21_baseline_50steps/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4261,7 +4261,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4279,7 +4279,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4297,7 +4297,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4315,7 +4315,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4333,7 +4333,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4351,7 +4351,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_02_sd21_filtered_100steps/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4369,7 +4369,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4387,7 +4387,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4405,7 +4405,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_02_sd21_filtered_100steps/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4423,7 +4423,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4441,7 +4441,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4459,7 +4459,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4477,7 +4477,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4495,7 +4495,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4513,7 +4513,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_03_sd21_vae_finetuned/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4531,7 +4531,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4549,7 +4549,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4567,7 +4567,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_03_sd21_vae_finetuned/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4585,7 +4585,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4603,7 +4603,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4621,7 +4621,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4639,7 +4639,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4657,7 +4657,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4675,7 +4675,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_04_sd21_lora/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4693,7 +4693,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4711,7 +4711,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4729,7 +4729,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4747,7 +4747,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4765,7 +4765,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4783,7 +4783,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4801,7 +4801,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4819,7 +4819,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4837,7 +4837,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_06_ldm_extra1361_fromscratch/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4855,7 +4855,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4873,7 +4873,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4891,7 +4891,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4909,7 +4909,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4927,7 +4927,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4945,7 +4945,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_07_ldm_sdvae_extra1361/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -4963,7 +4963,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -4981,7 +4981,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -4999,7 +4999,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_07_ldm_sdvae_extra1361/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -5017,7 +5017,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -5035,7 +5035,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -5053,7 +5053,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -5071,7 +5071,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -5089,7 +5089,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -5107,7 +5107,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSB_FULL_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -5125,7 +5125,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -5143,7 +5143,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -5161,7 +5161,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RSP_CONTROLLED_08_ldm_v3_sdvae_fromscratch/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -5179,7 +5179,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -5197,7 +5197,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -5215,7 +5215,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RS_PARTIAL_G02/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -5233,7 +5233,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -5251,7 +5251,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -5269,7 +5269,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/RS_FULL_G02/raddino_standard/seed_73/run_manifest.json"
   },
   {
@@ -5287,7 +5287,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_17/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_17/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_17/validation_predictions_seed_17.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_17/run_manifest.json"
   },
   {
@@ -5305,7 +5305,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_42/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_42/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_42/validation_predictions_seed_42.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_42/run_manifest.json"
   },
   {
@@ -5323,7 +5323,7 @@
     "rtx_3060_12gb"
    ],
    "checkpoint_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_73/model.pt",
-   "validation_predictions_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_73/validation_predictions.json",
+   "validation_predictions_path": "results/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_73/validation_predictions_seed_73.json",
    "manifest_path": "experiments/classifiers_matrix/raddino/SYNTHETIC_ONLY_PARTIAL_G02/raddino_standard/seed_73/run_manifest.json"
   }
  ]

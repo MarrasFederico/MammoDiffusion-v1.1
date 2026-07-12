@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -26,26 +27,29 @@ sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 def _probe_pytorch(architecture: str, policy: dict, n_batches: int) -> dict:
     import torch
+    os.environ.setdefault("HF_HUB_OFFLINE", "1"); os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
     if not torch.cuda.is_available():
         return {"error": "CUDA not available in this process"}
     device = torch.device("cuda")
 
+    from classifier_architecture_adapters import ArchitectureAdapter
+    adapter = ArchitectureAdapter(architecture, policy, ROOT)
+    model = adapter.build_model(pretrained=True)
     if architecture == "maxvit512":
-        from maxvit_utils import build_maxvit_model
-        model = build_maxvit_model(num_classes=1, pretrained=True)
+        import maxvit_utils as common
+        common.freeze_all(model); common.unfreeze_head(model)
+        if hasattr(model, "stages"): common.unfreeze_stages_from(model, max(0, len(model.stages)-2))
     elif architecture == "mammofm":
-        from mammofm_utils import build_mammofm_model
-        model = build_mammofm_model()[0]
+        import mammofm_utils as common
+        common.freeze_backbone_all(model); common.unfreeze_head(model); common.unfreeze_last_n_blocks(model, 2)
     elif architecture == "raddino":
-        from medfoundation_utils import build_medfoundation_model
-        model = build_medfoundation_model()[0]
-    else:
-        return {"error": f"no pytorch builder registered for {architecture}"}
+        import medfoundation_utils as common
+        common.freeze_backbone_all(model); common.unfreeze_head(model); common.unfreeze_last_n_blocks(model, 2)
 
     model = model.to(device)
     model.train()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=policy["training_phases"][0]["learning_rate"])
+    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=policy["training_phases"][0]["learning_rate"])
     criterion = torch.nn.BCEWithLogitsLoss()
 
     batch_size = policy["physical_batch_size"]
@@ -86,11 +90,8 @@ def _probe_resnet50(policy: dict, n_batches: int) -> dict:
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
 
-    model = tf.keras.applications.ResNet50(weights="imagenet", include_top=False, pooling="avg",
-                                            input_shape=(*policy["input_size"], 3))
-    head = tf.keras.Sequential([model, tf.keras.layers.Dense(256), tf.keras.layers.BatchNormalization(),
-                                 tf.keras.layers.LeakyReLU(), tf.keras.layers.Dropout(0.5),
-                                 tf.keras.layers.Dense(1, activation="sigmoid")])
+    from classifier_architecture_adapters import ArchitectureAdapter
+    head = ArchitectureAdapter("resnet50", policy, ROOT).build_model(pretrained=True)
     head.compile(optimizer=tf.keras.optimizers.Adam(policy["training_phases"][0]["learning_rate"]), loss="binary_crossentropy")
 
     batch_size = policy["physical_batch_size"]

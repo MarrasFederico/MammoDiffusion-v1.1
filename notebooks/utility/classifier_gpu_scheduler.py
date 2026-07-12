@@ -166,6 +166,12 @@ class Scheduler:
             results.append({"experiment_id": job["experiment_id"], **self.try_admit(job)})
         return results
 
+    def preview_batch(self, jobs: list[dict]) -> list[dict]:
+        """Return admission decisions without consuming slots in this scheduler instance."""
+        preview = Scheduler([{key: value for key, value in gpu.items() if key != "gpu_key"} for gpu in self.gpus],
+                            self.vram_profiles)
+        return preview.schedule_batch(jobs)
+
 
 def load_vram_profiles(path) -> dict:
     from pathlib import Path

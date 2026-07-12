@@ -89,13 +89,20 @@ def persist_plan_figures(base: Path, has_synthetic: bool, has_augmented: bool) -
     return []
 
 
+def _read_seed_history(base: Path, seed: int) -> list[dict] | None:
+    path = base / f"seed_{seed}" / f"training_history_seed_{seed}.csv"
+    if not path.is_file():
+        return None
+    with path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    return rows or None
+
+
 def render_training_curves(base: Path, seeds=(17, 42, 73)) -> list[Path]:
     import matplotlib.pyplot as plt
     made = []
     for seed in seeds:
-        path = base / f"seed_{seed}" / f"training_history_seed_{seed}.csv"
-        if not path.is_file(): continue
-        with path.open(newline="", encoding="utf-8") as stream: rows = list(csv.DictReader(stream))
+        rows = _read_seed_history(base, seed)
         if not rows: continue
         fig, axes = plt.subplots(1, 2, figsize=(12, 4))
         for key in ("loss", "val_loss"):
@@ -110,8 +117,55 @@ def render_training_curves(base: Path, seeds=(17, 42, 73)) -> list[Path]:
     return made
 
 
-def render_validation_figures(base: Path) -> list[Path]:
-    """Build real ROC/PR/calibration/confusion/probability/error plots from ensemble CSV."""
+def render_training_curves_all_seeds(base: Path, seeds=(17, 42, 73)) -> Path | None:
+    """Real overlaid/aggregated per-seed curves - never a text listing of filenames."""
+    import matplotlib.pyplot as plt
+    by_seed = {seed: rows for seed in seeds if (rows := _read_seed_history(base, seed))}
+    if not by_seed:
+        return None
+    panels = (
+        ("loss", "train loss"), ("val_loss", "val loss"), ("val_auc", "val AUC"),
+        ("val_pr_auc", "val PR-AUC"), ("pr_auc", "PR-AUC (train)"), ("lr", "learning rate"),
+    )
+    present = [(key, title) for key, title in panels if any(key in rows[0] for rows in by_seed.values())]
+    if not present:
+        return None
+    fig, axes = plt.subplots(1, len(present), figsize=(4.5 * len(present), 4))
+    axes = [axes] if len(present) == 1 else list(axes)
+    colors = {17: "tab:blue", 42: "tab:orange", 73: "tab:green"}
+    for ax, (key, title) in zip(axes, present):
+        for seed, rows in by_seed.items():
+            if key not in rows[0]:
+                continue
+            values = [float(r[key]) for r in rows if r.get(key) not in (None, "")]
+            if values:
+                ax.plot(values, label=f"seed {seed}", color=colors.get(seed))
+        ax.set_title(title); ax.grid(alpha=.25)
+        if ax.lines: ax.legend(fontsize=8)
+    fig.suptitle(f"Training curves — all seeds ({', '.join(str(s) for s in by_seed)})")
+    fig.tight_layout()
+    out = base / "ensemble/figures/training_curves_all_seeds.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=140); plt.close(fig)
+    return out
+
+
+def _read_seed_predictions(base: Path, seed: int) -> list[dict] | None:
+    path = base / f"seed_{seed}" / f"validation_predictions_seed_{seed}.csv"
+    if not path.is_file():
+        return None
+    with path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    return rows or None
+
+
+def render_validation_figures(base: Path, seeds=(17, 42, 73)) -> list[Path]:
+    """Build real ROC/PR/calibration/confusion/probability/error plots.
+
+    ROC/PR overlay every seed's own predictions plus the ensemble, all labelled, on one
+    figure - not the ensemble alone. Error examples show the real validation image per case,
+    not just a text listing.
+    """
     import matplotlib.pyplot as plt
     import numpy as np
     from sklearn.calibration import calibration_curve
@@ -123,23 +177,96 @@ def render_validation_figures(base: Path) -> list[Path]:
     y = np.array([int(r["label"]) for r in rows]); p = np.array([float(r["probability"]) for r in rows])
     threshold = float(json.loads(metrics_path.read_text())["threshold"]); yp = (p >= threshold).astype(int)
     figures = base / "ensemble/figures"; figures.mkdir(parents=True, exist_ok=True); made=[]
-    fpr,tpr,_=roc_curve(y,p); precision,recall,_=precision_recall_curve(y,p)
-    for name,x,z,xlabel,ylabel in (("roc_curve_all_seeds_and_ensemble.png",fpr,tpr,"FPR","TPR"),
-                                   ("pr_curve_all_seeds_and_ensemble.png",recall,precision,"Recall","Precision")):
-        fig,ax=plt.subplots(); ax.plot(x,z); ax.set(xlabel=xlabel,ylabel=ylabel); ax.grid(alpha=.25); fig.tight_layout(); out=figures/name; fig.savefig(out,dpi=140); plt.close(fig); made.append(out)
+
+    series = [("ensemble", y, p, "black", 2.0)]
+    colors = {17: "tab:blue", 42: "tab:orange", 73: "tab:green"}
+    for seed in seeds:
+        seed_rows = _read_seed_predictions(base, seed)
+        if not seed_rows: continue
+        sy = np.array([int(r["label"]) for r in seed_rows]); sp = np.array([float(r["probability"]) for r in seed_rows])
+        series.append((f"seed {seed}", sy, sp, colors.get(seed), 1.0))
+
+    fpr_tpr = [(label, *roc_curve(sy, sp)[:2], color, lw) for label, sy, sp, color, lw in series]
+    pr = [(label, *precision_recall_curve(sy, sp)[1::-1], color, lw) for label, sy, sp, color, lw in series]
+    for name, curves, xlabel, ylabel in (("roc_curve_all_seeds_and_ensemble.png", fpr_tpr, "FPR", "TPR"),
+                                          ("pr_curve_all_seeds_and_ensemble.png", pr, "Recall", "Precision")):
+        fig, ax = plt.subplots()
+        for label, x, z, color, lw in curves:
+            ax.plot(x, z, label=label, color=color, linewidth=lw)
+        ax.set(xlabel=xlabel, ylabel=ylabel); ax.grid(alpha=.25); ax.legend(fontsize=8)
+        fig.tight_layout(); out = figures / name; fig.savefig(out, dpi=140); plt.close(fig); made.append(out)
+
     fig,ax=plt.subplots(); ConfusionMatrixDisplay(confusion_matrix(y,yp)).plot(ax=ax); out=figures/"confusion_matrix_ensemble.png"; fig.savefig(out,dpi=140); plt.close(fig); made.append(out)
     true,prob=calibration_curve(y,p,n_bins=10); fig,ax=plt.subplots(); ax.plot(prob,true,marker="o"); ax.plot([0,1],[0,1],"--"); out=figures/"calibration_curve_ensemble.png"; fig.savefig(out,dpi=140); plt.close(fig); made.append(out)
     fig,ax=plt.subplots(); ax.hist(p[y==0],alpha=.6,label="negative"); ax.hist(p[y==1],alpha=.6,label="positive"); ax.legend(); out=figures/"probability_distribution_ensemble.png"; fig.savefig(out,dpi=140); plt.close(fig); made.append(out)
+
     cases=[]
     for row,predicted in zip(rows,yp): cases.append({**row,"prediction":int(predicted),"case":("TP" if int(row["label"]) and predicted else "FN" if int(row["label"]) else "FP" if predicted else "TN")})
     cases=sorted(cases,key=lambda r:(r["case"],-abs(float(r["probability"])-threshold)))
-    write_csv(base/"ensemble/validation_error_cases.csv",cases)
+    write_csv(base/"ensemble/validation_error_cases.csv",cases)  # kept regardless of image availability
+
+    from PIL import Image
+    per_case = {}
+    for case in cases:
+        per_case.setdefault(case["case"], []).append(case)
+    kinds = [k for k in ("TP", "TN", "FP", "FN") if per_case.get(k)]
+    if kinds:
+        columns = 4
+        fig, axes = plt.subplots(len(kinds), columns, figsize=(3 * columns, 3.2 * len(kinds)), squeeze=False)
+        for row_idx, kind in enumerate(kinds):
+            examples = per_case[kind][:columns]
+            for col_idx in range(columns):
+                ax = axes[row_idx][col_idx]; ax.axis("off")
+                if col_idx >= len(examples):
+                    continue
+                case = examples[col_idx]
+                image_path = case.get("processed_path")
+                caption = (f"{kind}  label={case['label']} pred={case['prediction']}\n"
+                           f"p={float(case['probability']):.3f}  {case['patient_id']}/{case['image_id']}")
+                if image_path and Path(image_path).is_file():
+                    ax.imshow(Image.open(image_path).convert("L"), cmap="gray")
+                else:
+                    ax.text(.5, .5, "image path\nunavailable", ha="center", va="center", fontsize=8)
+                ax.set_title(caption, fontsize=7)
+            axes[row_idx][0].set_ylabel(kind, fontsize=10)
+        fig.tight_layout()
+        out = figures / "validation_error_examples.png"
+        fig.savefig(out, dpi=140, bbox_inches="tight"); plt.close(fig); made.append(out)
     return made
 
 
+def persist_summary(base: Path) -> dict:
+    rows=[]
+    for seed in (17,42,73):
+        path=base/f"seed_{seed}"/f"validation_metrics_seed_{seed}.json"
+        if path.is_file(): rows.append({"kind":f"seed_{seed}",**json.loads(path.read_text())})
+    ensemble=base/"ensemble/metrics/ensemble_validation_metrics.json"
+    if ensemble.is_file(): rows.append({"kind":"ensemble",**json.loads(ensemble.read_text())})
+    if rows:
+        write_csv(base/"ensemble/metrics_summary.csv",rows); atomic_json(base/"ensemble/metrics_summary.json",{"rows":rows})
+    curves=render_training_curves(base)
+    render_training_curves_all_seeds(base)
+    payload={"metrics_rows":len(rows),"results_dir":str(base),"complete":bool(rows)}
+    atomic_json(base/"notebook/execution_summary.json",payload)
+    return payload
+
+
 def render_complete_report(base: Path) -> dict:
-    return {"training_curves": [str(p) for p in render_training_curves(base)],
-            "validation_figures": [str(p) for p in render_validation_figures(base)]}
+    result = {"training_curves": [str(p) for p in render_training_curves(base)],
+              "validation_figures": [str(p) for p in render_validation_figures(base)],
+              "summary": persist_summary(base)}
+    # Notebook callers invoke this one function: show the saved scientific artefacts directly,
+    # while retaining a no-op fallback for CLI/test environments without IPython.
+    try:
+        from IPython.display import Image, display
+        images = [Path(path) for key in ("training_curves", "validation_figures") for path in result[key]]
+        images += [base / "dataset" / name for name in ("dataset_class_distribution.png", "dataset_source_distribution.png", "dataset_source_by_class.png", "training_samples_grid.png")]
+        images += sorted((base / "ensemble" / "interpretability" / "real").glob("*.png"))
+        for image in images:
+            if image.is_file(): display(Image(filename=str(image)))
+    except Exception:
+        pass
+    return result
 
 
 ATTRIBUTION_METHODS = {

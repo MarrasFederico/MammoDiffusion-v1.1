@@ -13,6 +13,7 @@ import signal
 import sys
 import csv
 import copy
+import inspect
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -155,9 +156,14 @@ def import_legacy_checkpoint(root, job, architecture, dataset_variant_id, seed, 
 
 
 def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int, train_fn=None,
-              adapter=None, dataset_bundle=None, tiny=False) -> dict:
+              adapter=None, dataset_bundle=None, tiny=False, allow_retrain=False, resume=True) -> dict:
     job = resolve_job(root, architecture, dataset_variant_id, seed)
     run = job["run_dir"]
+    verified, _reason = ckio.checkpoint_is_verified(run, job["policy"]["framework"])
+    if verified and not allow_retrain:
+        return {"status": "skipped_verified", "reason": "ALLOW_RETRAIN is false", "checkpoint": str(ckio.checkpoint_path(run, job["policy"]["framework"]))}
+    if not resume and (ckio.resume_checkpoint_path(run).is_file() or ckio.resume_checkpoint_path(run, "checkpoint_previous").is_file()):
+        return {"status": "resume_disabled", "reason": "RESUME is false; refusing to discard resumable state"}
     if not manifest.acquire_claim(run, worker_id=f"pid{os.getpid()}", pid=os.getpid()):
         return {"status": "not_claimed", "reason": "another worker holds a live claim on this run"}
     previous_handlers = {}
@@ -239,7 +245,8 @@ def run_validate(root: Path, architecture: str, dataset_variant_id: str, seed: i
         if len(predictions["labels"]) != len(validation_rows) or len(predictions["probabilities"]) != len(validation_rows):
             raise RuntimeError("validation prediction count does not match validation manifest")
         rows = [{"patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
-                 "label": int(label), "probability": float(probability)}
+                 "label": int(label), "probability": float(probability),
+                 "processed_path": row.get("processed_path")}
                 for row, label, probability in zip(validation_rows, predictions["labels"], predictions["probabilities"])]
         if any(not row["patient_id"] or not row["image_id"] for row in rows):
             raise RuntimeError("validation predictions require patient_id and image_id")
@@ -273,6 +280,7 @@ def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: s
             return {"status": "waiting_for_seeds", "missing_seed": seed}
         payloads.append(json.loads(path.read_text()))
     keys = [(row["patient_id"], row["image_id"]) for row in payloads[0]["rows"]]
+    paths = [row.get("processed_path") for row in payloads[0]["rows"]]
     labels = payloads[0]["labels"]
     if any(p["labels"] != labels or [(row["patient_id"], row["image_id"]) for row in p["rows"]] != keys for p in payloads[1:]):
         raise RuntimeError("seed validation predictions are not aligned")
@@ -293,8 +301,9 @@ def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: s
     ensemble_dir = root / "results/classifiers_matrix" / architecture / dataset_variant_id / policy_name / "ensemble"
     out = ensemble_dir / "manifests/ensemble_validation_manifest.json"
     _atomic_json(out, manifest_payload)
-    ensemble_rows = [{"patient_id": patient_id, "image_id": image_id, "label": label, "probability": probability}
-                     for (patient_id, image_id), label, probability in zip(keys, labels, probabilities)]
+    ensemble_rows = [{"patient_id": patient_id, "image_id": image_id, "label": label, "probability": probability,
+                      "processed_path": path}
+                     for (patient_id, image_id), label, probability, path in zip(keys, labels, probabilities, paths)]
     _write_csv(ensemble_dir / "predictions/ensemble_validation_predictions.csv", ensemble_rows)
     _atomic_json(ensemble_dir / "predictions/ensemble_validation_predictions.json", {"rows": ensemble_rows})
     _atomic_json(ensemble_dir / "metrics/ensemble_validation_metrics.json", report)
@@ -309,7 +318,7 @@ def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: s
 
 
 def run_auto(root: Path, architecture: str, dataset_variant_id: str, seed: int, adapter=None,
-             dataset_bundle=None, tiny=False) -> dict:
+             dataset_bundle=None, tiny=False, allow_retrain=False, resume=True) -> dict:
     current = plan(root, architecture, dataset_variant_id, seed)
     if current["action"] == "error":
         return {"status": "blocked", **current}
@@ -322,8 +331,10 @@ def run_auto(root: Path, architecture: str, dataset_variant_id: str, seed: int, 
         import_legacy_checkpoint(root, job, architecture, dataset_variant_id, seed, adapter,
                                  current["legacy_checkpoint_alias"], dataset_payload)
     elif current["action"] in ("train", "resume_training"):
-        run_train(root, architecture, dataset_variant_id, seed, adapter=adapter,
-                  dataset_bundle=dataset_bundle, tiny=tiny)
+        trained = run_train(root, architecture, dataset_variant_id, seed, adapter=adapter,
+                            dataset_bundle=dataset_bundle, tiny=tiny, allow_retrain=allow_retrain, resume=resume)
+        if trained.get("status") in ("interrupted_resumable", "resume_disabled"):
+            return trained
     if plan(root, architecture, dataset_variant_id, seed)["needs_validation"]:
         return run_validate(root, architecture, dataset_variant_id, seed, adapter=adapter,
                             dataset_bundle=dataset_bundle, tiny=tiny)
@@ -331,13 +342,20 @@ def run_auto(root: Path, architecture: str, dataset_variant_id: str, seed: int, 
 
 
 def execute_configuration(root: Path, architecture: str, dataset_variant_id: str, mode="auto",
-                          run_seeds=SEEDS, tiny=False) -> list[dict]:
+                          run_seeds=SEEDS, tiny=False, allow_retrain=None, allow_overwrite_verified=None, resume=None) -> list[dict]:
     """Notebook entrypoint: one thin call handles all requested independent seeds."""
+    # Generated notebooks from earlier revisions call this API without forwarding their
+    # top-level flags. Read those caller globals for backwards-compatible, real enforcement.
+    caller = inspect.currentframe().f_back.f_globals
+    allow_retrain = bool(caller.get("ALLOW_RETRAIN", False)) if allow_retrain is None else bool(allow_retrain)
+    allow_overwrite_verified = bool(caller.get("ALLOW_OVERWRITE_VERIFIED", False)) if allow_overwrite_verified is None else bool(allow_overwrite_verified)
+    resume = bool(caller.get("RESUME", True)) if resume is None else bool(resume)
     results = []
     for seed in run_seeds:
         if mode == "plan": result = plan(root, architecture, dataset_variant_id, seed)
-        elif mode == "auto": result = run_auto(root, architecture, dataset_variant_id, seed, tiny=tiny)
-        elif mode == "train": result = run_train(root, architecture, dataset_variant_id, seed, tiny=tiny)
+        elif mode == "auto": result = run_auto(root, architecture, dataset_variant_id, seed, tiny=tiny, allow_retrain=allow_retrain, resume=resume)
+        elif mode == "train": result = run_train(root, architecture, dataset_variant_id, seed, tiny=tiny,
+                                                   allow_retrain=allow_retrain or allow_overwrite_verified, resume=resume)
         elif mode == "validate": result = run_validate(root, architecture, dataset_variant_id, seed, tiny=tiny)
         elif mode == "metrics-only": result = run_metrics_only(root, architecture, dataset_variant_id, seed)
         else: raise PermissionError("locked test cannot be executed from a configuration notebook")

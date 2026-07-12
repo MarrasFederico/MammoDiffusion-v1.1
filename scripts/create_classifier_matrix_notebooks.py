@@ -151,7 +151,12 @@ print("ensemble:", ensemble_path, "exists=", ensemble_path.is_file())
 if GENERATE_GRADCAM and MODE != "plan" and ensemble_path.is_file() and not TINY_SMOKE:
     attribution_status = interpretability.generate_configuration_attributions(
         PROJECT_ROOT, ARCHITECTURE, DATASET_VARIANT_ID, policy,
-        seeds=RUN_SEEDS, limit=GRADCAM_NUM_REAL_SAMPLES)
+        seeds=RUN_SEEDS, real_limit=GRADCAM_NUM_REAL_SAMPLES,
+        synthetic_limit=GRADCAM_NUM_SYNTHETIC_SAMPLES)
+    # generate_configuration_attributions() displays its own newly-created overlays inline
+    # (display=True by default) as soon as they exist, rather than relying on cell 10's
+    # earlier reporting.render_complete_report() call to have found them - which it never
+    # could, since that cell runs before this one generates anything.
     print(json.dumps(attribution_status, indent=1))
 for seed in RUN_SEEDS:
     run_dir = runner.resolve_job(PROJECT_ROOT, ARCHITECTURE, DATASET_VARIANT_ID, seed)["run_dir"]

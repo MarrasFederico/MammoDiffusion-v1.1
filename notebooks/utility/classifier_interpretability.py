@@ -48,10 +48,14 @@ def torch_spatial_gradcam(model, image_batch, target_module):
 def mammofm_gradcam(model, image_batch):
     """Mammo-FM attribution uses EfficientNet spatial features before global pooling."""
     encoder = getattr(model, "image_encoder", None) or getattr(model, "backbone", None)
-    if encoder is None or not hasattr(encoder, "extract_features"):
-        raise TypeError("Mammo-FM encoder must expose EfficientNet.extract_features()")
+    # The production MammoFMImageEncoder wraps EfficientNet in ``.model``.  Keep direct
+    # EfficientNet support for compact fixtures, but never assume the wrapper itself exposes
+    # ``extract_features``.
+    backbone = getattr(encoder, "model", encoder)
+    if backbone is None or not hasattr(backbone, "extract_features"):
+        raise TypeError("Mammo-FM image encoder must wrap an EfficientNet with extract_features()")
     # The final convolution is the feature-producing module used by extract_features.
-    target = getattr(encoder, "_conv_head", None)
+    target = getattr(backbone, "_conv_head", None)
     if target is None: raise TypeError("Mammo-FM EfficientNet has no _conv_head")
     return torch_spatial_gradcam(model, image_batch, target)
 
@@ -103,9 +107,40 @@ def _last_spatial_torch_module(model):
     return modules[-1]
 
 
+def display_new_attributions(paths: list[str], root: Path) -> None:
+    """Show just-created overlay PNGs inline, right where they were generated - independent
+    of whatever order a notebook happens to call this vs. reporting.render_complete_report()
+    (which only globs+displays files that already existed at the time *it* ran).
+    """
+    try:
+        from IPython.display import Image as IPImage, display
+    except Exception:
+        return
+    for rel in paths:
+        candidate = Path(root) / rel
+        if candidate.is_file():
+            display(IPImage(filename=str(candidate)))
+
+
+def _persist_fallback_selection(shared_path: Path, selected: list[dict]) -> None:
+    """The deterministic lexicographic fallback must be written once, not silently
+    re-derived on every call with nothing durable to inspect or reuse.
+    """
+    shared_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"schema_version": 1, "policy": "deterministic_lexicographic_fallback_persisted_once",
+               "samples": [{"patient_id": row["patient_id"], "image_id": row["image_id"]} for row in selected]}
+    shared_path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
 def generate_configuration_attributions(root: Path, architecture: str, dataset_variant_id: str,
-                                        policy: dict, seeds=(17,42,73), limit: int=8) -> dict:
-    """Generate per-seed and ensemble validation maps from real checkpoints."""
+                                        policy: dict, seeds=(17,42,73), real_limit: int=8,
+                                        synthetic_limit: int=8, display: bool=True) -> dict:
+    """Generate per-seed and ensemble validation maps from real checkpoints.
+
+    `real_limit` (shared/cross-model validation panel) and `synthetic_limit` (this model's own
+    synthetic/augmented error-specific panel) are independent - GRADCAM_NUM_SYNTHETIC_SAMPLES
+    must actually reach this function, not be silently dropped in favor of one shared limit.
+    """
     import csv
     import numpy as np
     from PIL import Image
@@ -119,14 +154,24 @@ def generate_configuration_attributions(root: Path, architecture: str, dataset_v
     for row in predictions:
         truth=int(row["label"]); predicted=float(row["probability"])>=float(threshold)
         row["category"]="TP" if truth and predicted else "FN" if truth else "FP" if predicted else "TN"
-    selected=[]
-    for category in ("TP","TN","FP","FN"):
-        selected.extend(sorted((r for r in predictions if r["category"]==category),key=lambda r:(r["patient_id"],r["image_id"]))[:max(1,limit//4)])
-    selected=selected[:limit]
+    shared_path=Path(root)/"configs/interpretability_validation_samples.json"
+    shared=json.loads(shared_path.read_text()) if shared_path.is_file() else {"samples": []}
+    requested=[(str(item.get("patient_id")),str(item.get("image_id"))) for item in shared.get("samples",[]) if item.get("patient_id") and item.get("image_id")]
+    by_key={(str(row["patient_id"]),str(row["image_id"])):row for row in predictions}
+    selected=[by_key[key] for key in requested if key in by_key][:real_limit]
+    if not selected:
+        # The same lexicographic fallback is independent of each model's errors and therefore
+        # remains comparable until the tracked shared manifest is populated deliberately - and
+        # is now persisted so it becomes *the* recorded choice rather than being re-derived
+        # (and only implicitly reproducible) on every future call.
+        selected=sorted(predictions,key=lambda row:(row["patient_id"],row["image_id"]))[:real_limit]
+        if not shared_path.is_file() or not shared.get("samples"):
+            _persist_fallback_selection(shared_path, selected)
     # Resolve canonical validation paths without touching test.
     import classifier_dataset_builder as datasets
     validation={(str(r["patient_id"]),str(r["image_id"])):r for r in datasets.validation_rows(Path(root))}
     seed_maps={}
+    new_pngs: list[str] = []
     for seed in seeds:
         adapter=get_adapter(architecture,policy,root)
         if isinstance(adapter,TinyAdapter): continue
@@ -142,8 +187,14 @@ def generate_configuration_attributions(root: Path, architecture: str, dataset_v
                 if architecture=="mammofm": heat=mammofm_gradcam(model,image_batch)
                 elif architecture=="raddino": heat=raddino_token_attribution(model,image_batch)
                 else: heat=torch_spatial_gradcam(model,image_batch,_last_spatial_torch_module(model))
-            maps.append(heat); target=base/f"seed_{seed}/interpretability/real/{sample['patient_id']}_{sample['image_id']}.npy"
+            maps.append(heat)
+            target=base/f"seed_{seed}/interpretability/real/{sample['patient_id']}_{sample['image_id']}.npy"
             target.parent.mkdir(parents=True,exist_ok=True); np.save(target,heat)
+            # Per-seed overlay PNG too, not just the .npy, so a user can inspect a single
+            # seed's attribution from the notebook without recomputing the ensemble.
+            seed_png = target.with_suffix(".png")
+            seed_image=np.asarray(Image.open(row["processed_path"]).convert("L"))
+            save_overlay(seed_image,heat,seed_png,title=f"seed {seed}  {sample['category']}")
         seed_maps[seed]=maps
     if len(seed_maps)!=len(tuple(seeds)): raise RuntimeError("attribution requires all three real seed models")
     manifest=[]
@@ -151,7 +202,7 @@ def generate_configuration_attributions(root: Path, architecture: str, dataset_v
         heat=ensemble_heatmaps([seed_maps[seed][index] for seed in seeds]); row=validation[(sample["patient_id"],sample["image_id"])]
         image=np.asarray(Image.open(row["processed_path"]).convert("L")); out=base/"ensemble/interpretability/real"/f"{sample['patient_id']}_{sample['image_id']}.png"
         save_overlay(image,heat,out,title=f"{sample['category']} p={float(sample['probability']):.3f}")
-        np.save(out.with_suffix(".npy"),heat); manifest.append({**sample,"path":str(out.relative_to(root))})
+        np.save(out.with_suffix(".npy"),heat); rel=str(out.relative_to(root)); manifest.append({**sample,"path":rel}); new_pngs.append(rel)
     write_manifest(base/"ensemble/interpretability/real/manifest.json",architecture=architecture,samples=manifest,
                    method={"resnet50":"Grad-CAM final convolution","maxvit512":"Grad-CAM final spatial convolution",
                            "mammofm":"EfficientNet extract_features Grad-CAM","raddino":"gradient-weighted patch tokens"}[architecture])
@@ -160,7 +211,7 @@ def generate_configuration_attributions(root: Path, architecture: str, dataset_v
     variant=next(v for v in registry["variants"] if v["dataset_variant_id"]==dataset_variant_id)
     train_rows,_,_=datasets.build_training_and_validation_rows(Path(root),variant)
     for kind in ("synthetic","augmented"):
-        picked=sorted((r for r in train_rows if r.get("source")==kind),key=lambda r:r["processed_path"])[:limit]
+        picked=sorted((r for r in train_rows if r.get("source")==kind),key=lambda r:r["processed_path"])[:synthetic_limit]
         if not picked: continue
         kind_maps={}
         for seed in seeds:
@@ -175,11 +226,16 @@ def generate_configuration_attributions(root: Path, architecture: str, dataset_v
                           raddino_token_attribution(model,image_batch) if architecture=="raddino" else
                           torch_spatial_gradcam(model,image_batch,_last_spatial_torch_module(model)))
                 maps.append(heat); target=base/f"seed_{seed}/interpretability/{kind}/{Path(row['processed_path']).stem}.npy"; target.parent.mkdir(parents=True,exist_ok=True); np.save(target,heat)
+                seed_image=np.asarray(Image.open(row["processed_path"]).convert("L"))
+                save_overlay(seed_image,heat,target.with_suffix(".png"),title=f"seed {seed}  {kind}")
             kind_maps[seed]=maps
         kind_manifest=[]
         for index,row in enumerate(picked):
             heat=ensemble_heatmaps([kind_maps[seed][index] for seed in seeds]); image=np.asarray(Image.open(row["processed_path"]).convert("L")); out=base/f"ensemble/interpretability/{kind}/{Path(row['processed_path']).stem}.png"
-            save_overlay(image,heat,out,title=f"{kind} y={row['label']}"); np.save(out.with_suffix(".npy"),heat); kind_manifest.append({"image_id":row.get("image_id"),"label":row["label"],"source":kind,"path":str(out.relative_to(root))})
+            save_overlay(image,heat,out,title=f"{kind} y={row['label']}"); np.save(out.with_suffix(".npy"),heat)
+            rel=str(out.relative_to(root)); kind_manifest.append({"image_id":row.get("image_id"),"label":row["label"],"source":kind,"path":rel}); new_pngs.append(rel)
         write_manifest(base/f"ensemble/interpretability/{kind}/manifest.json",architecture=architecture,samples=kind_manifest,method="same gradient-based architecture adapter as validation")
         extra[kind]=len(kind_manifest)
+    if display:
+        display_new_attributions(new_pngs, root)
     return {"status":"complete","real_samples":len(manifest),**extra}

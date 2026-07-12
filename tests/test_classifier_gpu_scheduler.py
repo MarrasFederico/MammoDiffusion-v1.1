@@ -108,11 +108,13 @@ class OomStateMachineTests(unittest.TestCase):
         self.assertFalse(state.forced_exclusive)
         self.assertTrue(state.should_retry())
 
-    def test_second_oom_forces_exclusive_and_stops_retrying(self):
+    def test_second_oom_forces_one_exclusive_retry(self):
         state = sched.OomState(physical_batch_size=16, gradient_accumulation_steps=1, effective_batch_size=16)
         state.record_oom()
         state.record_oom()
         self.assertTrue(state.forced_exclusive)
+        self.assertTrue(state.should_retry())
+        state.record_oom()
         self.assertFalse(state.should_retry())
 
     def test_oom_history_is_never_silent(self):

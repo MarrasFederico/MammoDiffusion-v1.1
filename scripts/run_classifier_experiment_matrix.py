@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
-from classifier_gpu_scheduler import GPU_TARGETS, Scheduler, load_vram_profiles, query_gpus_live  # noqa: E402
+from classifier_gpu_scheduler import GPU_TARGETS, OomState, Scheduler, load_vram_profiles, query_gpus_live  # noqa: E402
 import classifier_run_manifest as run_manifest  # noqa: E402
 import classifier_checkpoint_io as checkpoint_io  # noqa: E402
 
@@ -71,6 +71,7 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
         return {"mode": mode, "dry_run": True, "gpus": [g["name"] for g in gpus], "plan": plan}
 
     completed = []
+    oom_states = {}
     while jobs:
         batch_plan = scheduler.schedule_batch(jobs)
         processes: dict[str, tuple[subprocess.Popen, str, dict]] = {}
@@ -90,6 +91,28 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
                 time.sleep(poll_interval)
                 for experiment_id, (proc, gpu_key, job) in list(processes.items()):
                     if proc.poll() is not None:
+                        run_dir = checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"], job["training_policy"], job["seed"])
+                        state_payload = run_manifest.read_manifest(run_dir) or {}
+                        error = str(state_payload.get("error", "")).lower()
+                        is_oom = proc.returncode != 0 and ("out of memory" in error or "resourceexhausted" in error)
+                        if is_oom:
+                            protocol = json.loads((root / "configs/classifier_training_protocols.json").read_text())["policies"][job["architecture"]]
+                            oom = oom_states.setdefault(experiment_id, OomState(
+                                physical_batch_size=int(job.get("physical_batch_size", protocol["physical_batch_size"])),
+                                gradient_accumulation_steps=int(job.get("gradient_accumulation_steps", protocol["gradient_accumulation_steps"])),
+                                effective_batch_size=int(job.get("effective_batch_size", protocol["effective_batch_size"]))))
+                            oom.record_oom()
+                            override = {"physical_batch_size": oom.physical_batch_size,
+                                        "gradient_accumulation_steps": oom.gradient_accumulation_steps,
+                                        "effective_batch_size": oom.effective_batch_size,
+                                        "oom_count": oom.oom_count, "forced_exclusive": oom.forced_exclusive,
+                                        "history": oom.history}
+                            (run_dir / "oom_override.json").write_text(json.dumps(override, indent=2) + "\n")
+                            if oom.should_retry():
+                                job.update(override)
+                                if oom.forced_exclusive: job["resource_profile"] = "exclusive"
+                            else:
+                                run_manifest.write_state(run_dir, "FAILED_FINAL", error="OOM retry limit exhausted", oom=override)
                         completed.append({"experiment_id": experiment_id, "returncode": proc.returncode,
                                           "state": run_manifest.reconstruct_state(
                                               checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
@@ -104,8 +127,16 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
             for proc, _gpu_key, _job in processes.values(): proc.wait(timeout=60)
             return {"mode": mode, "interrupted": True, "message": "children stopped; rerun the same command to resume"}
         jobs = pending_jobs(root, stage)
+        for job in jobs:
+            oom = oom_states.get(job["experiment_id"])
+            if oom:
+                job.update({"physical_batch_size": oom.physical_batch_size,
+                            "gradient_accumulation_steps": oom.gradient_accumulation_steps,
+                            "effective_batch_size": oom.effective_batch_size})
+                if oom.forced_exclusive: job["resource_profile"] = "exclusive"
         # A failed job remains retryable for resume/OOM handling; do not spin forever here.
-        jobs = [job for job in jobs if job["experiment_id"] not in attempted_ids]
+        jobs = [job for job in jobs if job["experiment_id"] not in attempted_ids or
+                (job["experiment_id"] in oom_states and oom_states[job["experiment_id"]].should_retry())]
     return {"mode": mode, "dry_run": False, "gpus": [g["name"] for g in gpus], "plan": plan, "completed": completed}
 
 

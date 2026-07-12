@@ -552,7 +552,9 @@ def check_no_split_overlap(splits: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None,
-                         grad_clip_norm: Optional[float] = None, accumulation_steps: int = 1) -> dict:
+                         grad_clip_norm: Optional[float] = None, accumulation_steps: int = 1,
+                         start_batch: int = 0, global_step: int = 0, max_optimizer_updates: int | None = None,
+                         on_optimizer_step=None) -> dict:
     from sklearn.metrics import roc_auc_score
 
     model.train()
@@ -562,6 +564,8 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
     optimizer.zero_grad(set_to_none=True)
 
     for step, (imgs, labels) in enumerate(loader):
+        if step < start_batch:
+            continue
         imgs, labels = imgs.to(device), labels.to(device)
         with torch.autocast(device_type=device.type, enabled=(scaler is not None and device.type == "cuda")):
             logits = model(imgs).squeeze(-1)
@@ -584,6 +588,11 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
             else:
                 optimizer.step()
             optimizer.zero_grad(set_to_none=True)
+            global_step += 1
+            if on_optimizer_step is not None:
+                on_optimizer_step(global_step, step)
+            if max_optimizer_updates is not None and global_step >= max_optimizer_updates:
+                break
 
         total_loss += loss.item() * accumulation_steps * imgs.size(0)
         n_seen += imgs.size(0)
@@ -594,7 +603,7 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
         auc = float(roc_auc_score(y_true, y_prob))
     except ValueError:
         auc = float("nan")
-    return {"loss": total_loss / max(n_seen, 1), "auc": auc}
+    return {"loss": total_loss / max(n_seen, 1), "auc": auc, "global_step": global_step, "last_batch": step}
 
 
 @torch.no_grad()
@@ -624,7 +633,9 @@ def evaluate_amp(model, loader, criterion, device) -> dict:
 def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: int, device,
                 early_stopping=None, checkpoint=None, csv_logger=None, lr_scheduler=None,
                 use_amp: bool = True, grad_clip_norm: Optional[float] = 1.0,
-                accumulation_steps: int = 1) -> History:
+                accumulation_steps: int = 1, start_epoch: int = 1, start_batch: int = 0,
+                global_step: int = 0, max_optimizer_updates: int | None = None,
+                scaler=None, on_optimizer_step=None, on_epoch_end=None) -> History:
     """Training loop stile Keras (fit) con AMP + gradient clipping + gradient accumulation.
 
     Non duplica `maxvit_utils.fit`: qui serve gestire esplicitamente le BatchNorm2d
@@ -632,13 +643,16 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
     ad AMP/accumulo del gradiente.
     """
     history = History()
-    scaler = torch.amp.GradScaler("cuda") if (use_amp and device.type == "cuda") else None
+    scaler = scaler or (torch.amp.GradScaler("cuda") if (use_amp and device.type == "cuda") else None)
 
-    for epoch in range(1, epochs + 1):
+    for epoch in range(start_epoch, epochs + 1):
         train_metrics = train_one_epoch_amp(
             model, train_loader, optimizer, criterion, device,
             scaler=scaler, grad_clip_norm=grad_clip_norm, accumulation_steps=accumulation_steps,
+            start_batch=start_batch if epoch == start_epoch else 0, global_step=global_step,
+            max_optimizer_updates=max_optimizer_updates, on_optimizer_step=on_optimizer_step,
         )
+        global_step = train_metrics.pop("global_step")
         val_metrics = evaluate_amp(model, val_loader, criterion, device)
         history.append(train_metrics, val_metrics)
 
@@ -659,9 +673,15 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
             if early_stopping.stop:
                 print(f"Early stopping all'epoca {epoch} (best val_auc={early_stopping.best:.4f})")
                 break
+        if on_epoch_end is not None:
+            on_epoch_end(epoch, global_step, scaler, history)
+        if max_optimizer_updates is not None and global_step >= max_optimizer_updates:
+            break
 
     if early_stopping is not None:
         early_stopping.restore(model)
+    history.global_step = global_step
+    history.scaler = scaler
     return history
 
 

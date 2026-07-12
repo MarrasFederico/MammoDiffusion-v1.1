@@ -95,7 +95,8 @@ class OomState:
         return self
 
     def should_retry(self) -> bool:
-        return self.oom_count <= 1
+        # first retry uses smaller physical batch; second retry is exclusive; third is final.
+        return self.oom_count <= 2
 
 
 class Scheduler:

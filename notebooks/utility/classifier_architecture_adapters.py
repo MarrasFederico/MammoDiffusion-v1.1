@@ -10,6 +10,7 @@ import json
 import math
 import os
 import random
+import hashlib
 from pathlib import Path
 
 
@@ -73,12 +74,26 @@ class TinyAdapter:
             return False, str(exc)
         return True, "compatible"
 
-    def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **_):
+    def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **context):
+        import classifier_checkpoint_io as ckio
         labels = [int(row["label"]) for row in train_rows]
         prevalence = sum(labels) / max(len(labels), 1)
         model = {"bias": prevalence + (int(seed) % 7) * 1e-4}
+        if context.get("run_dir"):
+            expected = {key: context[key] for key in ("architecture", "experiment_id", "dataset_variant_id",
+                        "training_policy", "config_signature", "dataset_signature")}; expected["seed"] = int(seed)
+            prior, source = ckio.load_resume_checkpoint(Path(context["run_dir"]), expected)
+            global_step = int((prior or {}).get("global_step", 0)) + 1
+            ckio.save_resume_checkpoint(Path(context["run_dir"]), {**expected, "model_state_dict": model,
+                "optimizer_state_dict": {"step": global_step}, "scheduler_state_dict": {"step": global_step},
+                "scaler_state_dict": None, "epoch": global_step, "batch_index": -1, "global_step": global_step,
+                "best_metric": prevalence, "best_epoch": global_step, "early_stopping_counter": 0,
+                "history": {"loss": [0.0]}, "rng_states": {"python": random.getstate()},
+                "resume_segment_id": f"tiny-{global_step}"}, best=True)
         self.save_checkpoint(model, checkpoint_path)
-        return {"checkpoint": str(checkpoint_path), "history": {"loss": [0.0]}, "optimizer_updates": 1}
+        return {"checkpoint": str(checkpoint_path), "history": {"loss": [0.0]},
+                "optimizer_updates": global_step if context.get("run_dir") else 1,
+                "resumed_from": source if context.get("run_dir") and prior else None}
 
     def predict_validation(self, checkpoint_path, validation_rows, **_):
         model = self.load_checkpoint(checkpoint_path)
@@ -108,21 +123,31 @@ class ArchitectureAdapter:
     def build_model(self, pretrained=True, seed=42):
         random.seed(seed)
         if self.architecture == "resnet50":
+            weights = Path.home() / ".keras/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
+            if pretrained and not weights.is_file():
+                raise RuntimeError("ResNet50 ImageNet weights are not cached locally; downloads in workers are disabled")
             from resnet50_utils import build_resnet50_model
             return build_resnet50_model(tuple(self.policy["input_size"]), pretrained=pretrained)[0]
         if self.architecture == "maxvit512":
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
             import maxvit_utils as utils
             return utils.build_maxvit_model(num_classes=1, pretrained=pretrained)
         if self.architecture == "mammofm":
             import mammofm_utils as utils
             local = os.environ.get("MAMMOFM_LOCAL_CHECKPOINT_PATH")
+            if not local or not Path(local).is_file():
+                raise RuntimeError("MAMMO-FM matrix training requires MAMMOFM_LOCAL_CHECKPOINT_PATH; downloads in workers are disabled")
             return utils.build_mammofm_model(
                 hf_repo=os.environ.get("MAMMOFM_HF_REPO", utils.DEFAULT_HF_REPO),
                 checkpoint_name=os.environ.get("MAMMOFM_CHECKPOINT_NAME", utils.DEFAULT_CHECKPOINT_NAME),
                 use_local_checkpoint=bool(local), local_checkpoint_path=local,
             )[0]
         import medfoundation_utils as utils
-        return utils.build_medfoundation_model(os.environ.get("RADDINO_MODEL_PATH", utils.DEFAULT_MODEL_NAME))[0]
+        local = os.environ.get("RADDINO_MODEL_PATH")
+        if not local or not Path(local).is_dir():
+            raise RuntimeError("RAD-DINO matrix training requires a local RADDINO_MODEL_PATH; downloads in workers are disabled")
+        os.environ.setdefault("HF_HUB_OFFLINE", "1"); os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        return utils.build_medfoundation_model(local)[0]
 
     def build_train_dataloaders(self, train_rows, validation_rows, seed=42):
         train_df, val_df = _dataframes(train_rows, validation_rows)
@@ -190,8 +215,29 @@ class ArchitectureAdapter:
         return min(int(self.policy.get("max_epochs_secondary_limit", 60)),
                    max(1, math.ceil(int(self.policy["max_optimizer_updates"]) * accumulation / batches)))
 
-    def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **_):
+    def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **context):
+        import classifier_checkpoint_io as ckio
+        run_dir = Path(context["run_dir"])
+        expected = {key: context[key] for key in (
+            "architecture", "experiment_id", "dataset_variant_id", "training_policy",
+            "config_signature", "dataset_signature")}
+        expected["seed"] = int(seed)
+        resume, resume_source = ckio.load_resume_checkpoint(run_dir, expected)
         model = self.build_model(pretrained=True, seed=seed)
+        results_dir = Path(context.get("run_dir", run_dir))
+        if context.get("run_dir"):
+            # Mirror the run layout under results while keeping checkpoints operational-only.
+            project_root = self.root
+            results_dir = (project_root / "results/classifiers_matrix" / self.architecture /
+                           context["dataset_variant_id"] / context["training_policy"] / f"seed_{seed}")
+            results_dir.mkdir(parents=True, exist_ok=True)
+            if self.architecture == "resnet50":
+                params = int(model.count_params()); trainable = sum(int(v.shape.num_elements()) for v in model.trainable_weights)
+            else:
+                params = sum(p.numel() for p in model.parameters()); trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            (results_dir / "model_summary.txt").write_text(f"architecture: {self.architecture}\nparameters: {params}\ntrainable_before_policy: {trainable}\n")
+            (results_dir / "model_architecture.json").write_text(json.dumps({"architecture":self.architecture,"parameters":params,
+                "trainable_before_policy":trainable,"input_size":self.policy["input_size"]},indent=2)+"\n")
         train_loader, val_loader = self.build_train_dataloaders(train_rows, validation_rows, seed)
         epochs = self._epochs(len(train_rows))
         if self.architecture == "resnet50":
@@ -205,12 +251,41 @@ class ArchitectureAdapter:
             head_epochs = max(1, epochs // 5)
             h1 = model.fit(train_loader, validation_data=val_loader, epochs=head_epochs, verbose=2)
             set_fine_tuning(backbone)
-            model.compile(tf.keras.optimizers.Adam(1e-5),
+            optimizer = tf.keras.optimizers.Adam(1e-5)
+            model.compile(optimizer,
                           tf.keras.losses.BinaryFocalCrossentropy(gamma=2.0, alpha=0.75),
                           metrics=[tf.keras.metrics.AUC(name="auc")])
-            h2 = model.fit(train_loader, validation_data=val_loader, epochs=max(1, epochs-head_epochs), verbose=2,
-                           callbacks=[tf.keras.callbacks.EarlyStopping(monitor="val_auc", mode="max", patience=10,
-                                                                      restore_best_weights=True)])
+            start_epoch = 0
+            if resume:
+                model.set_weights(resume["model_state"])
+                # Optimizer slots are materialized before set_weights on recent Keras versions.
+                if hasattr(optimizer, "build"): optimizer.build(model.trainable_variables)
+                for variable, value in zip(optimizer.variables, resume["optimizer_state"]): variable.assign(value)
+                start_epoch = int(resume.get("epoch", 0))
+            class DurableResume(tf.keras.callbacks.Callback):
+                def __init__(self): super().__init__(); self.global_step = int((resume or {}).get("global_step", 0))
+                def payload(self, epoch, batch):
+                    return {**expected, "model_state": model.get_weights(), "optimizer_state": [v.numpy() for v in optimizer.variables],
+                            "scheduler_state": {}, "scaler_state": None, "epoch": int(epoch), "batch_index": int(batch),
+                            "global_step": self.global_step, "best_metric": None, "best_epoch": None,
+                            "early_stopping_counter": 0, "history": {}, "rng_states": {"python": random.getstate()},
+                            "resume_segment_id": hashlib.sha256(os.urandom(16)).hexdigest()[:16]}
+                def on_train_batch_end(self, batch, logs=None):
+                    self.global_step += 1
+                    if self.global_step % self.interval == 0:
+                        ckio.save_resume_checkpoint(run_dir, self.payload(self.params.get("epochs", 0), batch))
+                    if self.global_step >= int(self.max_updates): self.model.stop_training = True
+                def on_epoch_end(self, epoch, logs=None): ckio.save_resume_checkpoint(run_dir, self.payload(epoch + 1, -1))
+            durable = DurableResume()
+            durable.interval = int(self.policy.get("checkpoint_interval_updates", 250))
+            durable.max_updates = int(self.policy["max_optimizer_updates"])
+            reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(**self.policy["scheduler_params"])
+            early_cb = tf.keras.callbacks.EarlyStopping(monitor="val_auc", mode="max", patience=10, restore_best_weights=True)
+            labels = [int(row["label"]) for row in train_rows]
+            positives, negatives = sum(labels), len(labels) - sum(labels)
+            class_weight = {0: len(labels) / max(2 * negatives, 1), 1: len(labels) / max(2 * positives, 1)}
+            h2 = model.fit(train_loader, validation_data=val_loader, initial_epoch=start_epoch, class_weight=class_weight,
+                           epochs=max(1, epochs-head_epochs), verbose=2, callbacks=[durable, reduce_lr, early_cb])
             history = {key: list(h1.history.get(key, [])) + list(h2.history.get(key, []))
                        for key in set(h1.history) | set(h2.history)}
         else:
@@ -236,15 +311,53 @@ class ArchitectureAdapter:
             # accumulation missing from the older MaxViT loop; using it keeps the registered
             # effective batch size unchanged for all three torch families.
             import mammofm_utils as amp_utils
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode="max", factor=float(self.policy["scheduler_params"]["factor"]),
+                patience=int(self.policy["scheduler_params"]["patience"]),
+                min_lr=float(self.policy["scheduler_params"]["min_lr"]))
+            scaler = torch.amp.GradScaler("cuda") if bool(self.policy.get("amp")) and device.type == "cuda" else None
+            start_epoch, start_batch, global_step = 1, 0, 0
+            if resume:
+                model.load_state_dict(resume["model_state_dict"], strict=True)
+                optimizer.load_state_dict(resume["optimizer_state_dict"])
+                scheduler.load_state_dict(resume["scheduler_state_dict"])
+                if scaler is not None and resume.get("scaler_state_dict"): scaler.load_state_dict(resume["scaler_state_dict"])
+                start_epoch, start_batch = int(resume["epoch"]), int(resume.get("batch_index", -1)) + 1
+                global_step = int(resume["global_step"])
+                if hasattr(early, "counter"): early.counter = int(resume.get("early_stopping_counter", 0))
+                if resume.get("best_metric") is not None: early.best = float(resume["best_metric"])
+                if resume.get("rng_states", {}).get("python"): random.setstate(resume["rng_states"]["python"])
+                if resume.get("rng_states", {}).get("torch") is not None: torch.set_rng_state(resume["rng_states"]["torch"])
+            segment = hashlib.sha256(os.urandom(16)).hexdigest()[:16]
+            def save_torch(step, batch, epoch=start_epoch, history=None, best=False):
+                payload = {**expected, "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(), "scaler_state_dict": scaler.state_dict() if scaler else None,
+                    "epoch": epoch, "batch_index": batch, "global_step": step,
+                    "best_metric": getattr(early, "best", None), "best_epoch": None,
+                    "early_stopping_counter": getattr(early, "counter", 0), "history": history or {},
+                    "rng_states": {"python": random.getstate(), "torch": torch.get_rng_state()}, "resume_segment_id": segment}
+                ckio.save_resume_checkpoint(run_dir, payload, best=best)
+            interval = int(self.policy.get("checkpoint_interval_updates", 250))
+            warmup = int(self.policy.get("warmup_updates", 0))
+            target_lr = float(self.policy["training_phases"][0]["learning_rate"])
+            def periodic(step, batch):
+                if warmup and step <= warmup:
+                    for group in optimizer.param_groups: group["lr"] = target_lr * step / warmup
+                if step % interval == 0: save_torch(step, batch)
+            def epoch_end(epoch, step, _scaler, hist):
+                scheduler.step(hist.history["val_auc"][-1]); save_torch(step, -1, epoch + 1, hist.history, best=True)
             history_obj = amp_utils.fit_mammofm(
                 model, train_loader, val_loader, optimizer, criterion, epochs, device,
                 early_stopping=early, use_amp=bool(self.policy.get("amp", False)),
                 grad_clip_norm=self.policy.get("gradient_clipping"),
                 accumulation_steps=int(self.policy.get("gradient_accumulation_steps", 1)),
+                lr_scheduler=None, start_epoch=start_epoch, start_batch=start_batch, global_step=global_step,
+                max_optimizer_updates=int(self.policy["max_optimizer_updates"]), scaler=scaler,
+                on_optimizer_step=periodic, on_epoch_end=epoch_end,
             )
             history = history_obj.history if hasattr(history_obj, "history") else vars(history_obj)
         self.save_checkpoint(model, Path(checkpoint_path))
-        return {"checkpoint": str(checkpoint_path), "history": history,
+        return {"checkpoint": str(checkpoint_path), "history": history, "resumed_from": resume_source if resume else None,
                 "optimizer_updates_limit": int(self.policy["max_optimizer_updates"]), "epochs": epochs}
 
     def predict_validation(self, checkpoint_path, validation_rows, seed=42, **_):

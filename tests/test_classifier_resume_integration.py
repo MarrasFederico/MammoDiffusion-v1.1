@@ -20,6 +20,7 @@ import copy
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -153,21 +154,6 @@ class TensorFlowAdapterResumeTests(unittest.TestCase):
                 "dataset_variant_id": "TEST", "training_policy": "resnet50_standard",
                 "config_signature": "cfg-sig", "dataset_signature": "data-sig"}
 
-    def _train_tolerating_unrelated_save_bug(self, adapter, rows, checkpoint_path, run_dir):
-        """adapter.train() ends with model.save(path); on this TF/Keras build, saving *this*
-        ResNet50 application in the native .keras format fails with an unrelated
-        "Cannot serialize object Ellipsis" error from inside Keras's own serializer, after all
-        resume/transition/best-checkpoint logic under test has already run to completion and
-        written its checkpoints. Only that specific, known, separate error is swallowed here;
-        anything else (i.e. a real regression) still fails the test.
-        """
-        try:
-            return adapter.train(rows, rows, checkpoint_path, seed=17, **self._context(run_dir))
-        except TypeError as exc:
-            if "Ellipsis" not in str(exc):
-                raise
-            return None
-
     def test_head_interruption_then_resume_does_not_retrain_completed_head(self):
         rows = _real_rows(2)
         with tempfile.TemporaryDirectory() as t:
@@ -177,11 +163,11 @@ class TensorFlowAdapterResumeTests(unittest.TestCase):
             # and (with the fix) persists phase="transition" to disk before finetune starts.
             policy = _tiny_policy("resnet50", checkpoint_interval_updates=1, max_optimizer_updates=1)
             adapter = self.caa.ArchitectureAdapter("resnet50", policy, ROOT)
-            self._train_tolerating_unrelated_save_bug(adapter, rows, run_dir / "final.keras", run_dir)
+            adapter.train(rows, rows, run_dir / "final.keras", seed=17, **self._context(run_dir))
 
             import classifier_checkpoint_io as ckio
             latest = ckio.read_resume_checkpoint(ckio.resume_checkpoint_path(run_dir, "checkpoint_latest"))
-            self.assertIn(latest["phase"], ("finetune", "transition", "complete"))
+            self.assertEqual(latest["phase"], "complete")
 
     def test_finetune_optimizer_never_receives_head_optimizer_state(self):
         # Regression guard at the unit level for the exact reported failure mode: calling
@@ -197,7 +183,7 @@ class TensorFlowAdapterResumeTests(unittest.TestCase):
             # fix, the transition from head to finetune attempted to assign head-shaped
             # optimizer slot variables onto the finetune optimizer's differently-sized variable
             # list, which raised well before ever reaching the final model.save() call.
-            self._train_tolerating_unrelated_save_bug(adapter, rows, run_dir / "final.keras", run_dir)
+            adapter.train(rows, rows, run_dir / "final.keras", seed=17, **self._context(run_dir))
 
             import classifier_checkpoint_io as ckio
             self.assertTrue(ckio.resume_checkpoint_path(run_dir, "checkpoint_latest").is_file())
@@ -208,7 +194,7 @@ class TensorFlowAdapterResumeTests(unittest.TestCase):
             run_dir = Path(t) / "run"
             policy = _tiny_policy("resnet50", checkpoint_interval_updates=1, max_optimizer_updates=1)
             adapter = self.caa.ArchitectureAdapter("resnet50", policy, ROOT)
-            self._train_tolerating_unrelated_save_bug(adapter, rows, run_dir / "final.keras", run_dir)
+            adapter.train(rows, rows, run_dir / "final.keras", seed=17, **self._context(run_dir))
 
             import classifier_checkpoint_io as ckio
             best_path = ckio.resume_checkpoint_path(run_dir, "checkpoint_best")
@@ -216,6 +202,40 @@ class TensorFlowAdapterResumeTests(unittest.TestCase):
             best = ckio.read_resume_checkpoint(best_path)
             self.assertIsNotNone(best.get("best_metric"))
             self.assertIsNotNone(best.get("model_state"))
+
+    def test_transition_checkpoint_restores_head_weights_in_new_process_then_finetunes(self):
+        rows = _real_rows(2)
+        with tempfile.TemporaryDirectory() as t:
+            temp = Path(t); run_dir = temp / "run"
+            config = temp / "config.json"
+            config.write_text(json.dumps({"root": str(ROOT), "run_dir": str(run_dir), "rows": rows,
+                                          "policy": _tiny_policy("resnet50", checkpoint_interval_updates=1,
+                                                                  max_optimizer_updates=1)}))
+            common = ("import json,sys; from pathlib import Path; c=json.loads(Path(sys.argv[1]).read_text()); "
+                      "sys.path.insert(0,str(Path(c['root'])/'notebooks/utility')); "
+                      "import classifier_architecture_adapters as caa; "
+                      "a=caa.ArchitectureAdapter('resnet50',c['policy'],Path(c['root'])); "
+                      "ctx={'run_dir':Path(c['run_dir']),'architecture':'resnet50',"
+                      "'experiment_id':'resnet50__TEST__seed17','dataset_variant_id':'TEST',"
+                      "'training_policy':'resnet50_standard','config_signature':'cfg-sig',"
+                      "'dataset_signature':'data-sig'}; ")
+            first = common + ("\ntry: a.train(c['rows'],c['rows'],Path(c['run_dir'])/'final.keras',seed=17,"
+                              "stop_after_transition=True,**ctx)\nexcept caa.TransitionCheckpointReady: pass")
+            env = {**os.environ, "CUDA_VISIBLE_DEVICES": ""}
+            subprocess.run([sys.executable, "-c", first, str(config)], check=True, env=env)
+
+            import classifier_checkpoint_io as ckio
+            import classifier_architecture_adapters as caa
+            transition = ckio.read_resume_checkpoint(ckio.resume_checkpoint_path(run_dir))
+            self.assertEqual(transition["phase"], "transition")
+            transition_hash = caa._numpy_weights_sha256(transition["model_state"])
+
+            second = common + ("a.train(c['rows'],c['rows'],Path(c['run_dir'])/'final.keras',seed=17,"
+                               f"expected_transition_weights_sha256='{transition_hash}',**ctx)")
+            subprocess.run([sys.executable, "-c", second, str(config)], check=True, env=env)
+            complete = ckio.read_resume_checkpoint(ckio.resume_checkpoint_path(run_dir))
+            self.assertEqual(complete["phase"], "complete")
+            self.assertTrue((run_dir / "final.keras").is_file())
 
 
 if __name__ == "__main__":

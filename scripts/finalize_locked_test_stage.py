@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -87,20 +88,33 @@ def build_test_dataset_manifest(root: Path) -> dict:
     import csv
     with test_csv.open(newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
-    patient_ids = sorted({r["patient_id"] for r in rows})
+    required_fields = ("patient_id", "image_id", "label", "processed_path")
+    patient_ids = sorted({r.get("patient_id", "") for r in rows if r.get("patient_id")})
+    keys = [(r.get("patient_id"), r.get("image_id")) for r in rows]
 
     image_records = []
     for row in sorted(rows, key=lambda r: (r.get("patient_id", ""), r.get("image_id", ""))):
         rel = row.get("processed_path")
-        image_path = (root / rel) if rel else None
-        if image_path is None or not image_path.is_file():
+        image_path = ((root / rel) if rel else None)
+        resolved = image_path.resolve() if image_path is not None else None
+        inside_root = False
+        if resolved is not None:
+            try:
+                resolved.relative_to(root.resolve())
+            except ValueError:
+                pass
+            else:
+                inside_root = True
+        readable = bool(resolved and resolved.is_file() and os.access(resolved, os.R_OK))
+        if not inside_root or not readable:
+            status = "outside_project_root" if resolved is not None and not inside_root else "missing_or_unreadable"
             image_records.append({"patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
                                    "label": row.get("label"), "relative_path": rel,
-                                   "file_size": None, "sha256": None, "status": "missing"})
+                                   "file_size": None, "sha256": None, "status": status})
             continue
         image_records.append({"patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
                                "label": row.get("label"), "relative_path": rel,
-                               "file_size": image_path.stat().st_size, "sha256": _sha256_file(image_path),
+                               "file_size": resolved.stat().st_size, "sha256": _sha256_file(resolved),
                                "status": "ok"})
     image_signatures_sha256 = hashlib.sha256(
         json.dumps(image_records, sort_keys=True).encode("utf-8")).hexdigest()
@@ -110,8 +124,22 @@ def build_test_dataset_manifest(root: Path) -> dict:
         "n_rows": len(rows), "n_unique_patients": len(patient_ids),
         "patient_id_set_sha256": hashlib.sha256("\n".join(patient_ids).encode("utf-8")).hexdigest(),
         "image_signatures_sha256": image_signatures_sha256,
-        "n_images_missing": sum(1 for r in image_records if r["status"] == "missing"),
+        "n_images_missing": sum(1 for r in image_records if r["status"] == "missing_or_unreadable"),
+        "n_images_outside_project_root": sum(1 for r in image_records if r["status"] == "outside_project_root"),
+        "n_duplicate_patient_image_keys": len(keys) - len(set(keys)),
+        "required_fields_present": all(all(row.get(field) not in (None, "") for field in required_fields) for row in rows),
     }
+
+
+def validate_test_dataset_manifest_for_lock(manifest: dict) -> None:
+    problems = []
+    if manifest.get("n_rows", 0) <= 0: problems.append("test dataset has no rows")
+    if not manifest.get("required_fields_present"): problems.append("patient_id/image_id/label/processed_path must be present")
+    if manifest.get("n_duplicate_patient_image_keys", 0): problems.append("patient_id+image_id keys must be unique")
+    if manifest.get("n_images_missing", 0): problems.append("all test images must exist and be readable")
+    if manifest.get("n_images_outside_project_root", 0): problems.append("all test images must be inside project root")
+    if problems:
+        raise RuntimeError("cannot lock invalid test dataset: " + "; ".join(problems))
 
 
 def build_finalist_checkpoint_manifest(root: Path, matrix: dict, experiment_ids: list[str]) -> dict:
@@ -188,6 +216,7 @@ def finalize(root: Path) -> dict:
 
     experiment_matrix_manifest = build_experiment_matrix_manifest(root)
     test_dataset_manifest = build_test_dataset_manifest(root)
+    validate_test_dataset_manifest_for_lock(test_dataset_manifest)
     secondary_panel = {"schema_version": 2, "experiment_ids": finalists.get("secondary_locked_panel", [])}
     ablation_panel = {"schema_version": 1, "experiment_ids": finalists.get("ablation_panel", [])}
     primary_ids = []
@@ -205,8 +234,23 @@ def finalize(root: Path) -> dict:
                 primary_ids.append(category["experiment_id"])
                 primary_seed_ids.extend(category.get("seed_experiment_ids", []))
     primary_ids = sorted(set(primary_ids))
-    all_locked_ids = sorted(set(primary_seed_ids) | set(secondary_panel["experiment_ids"]) |
-                            set(ablation_panel["experiment_ids"]))
+    logical_to_seeds = finalists.get("seed_experiment_ids_by_logical", {})
+    def expand_for_checkpoint_signing(experiment_ids):
+        expanded = []
+        for experiment_id in experiment_ids:
+            mapped = logical_to_seeds.get(experiment_id)
+            if mapped:
+                expanded.extend(mapped)
+            elif not experiment_id.endswith("__ensemble"):
+                expanded.append(experiment_id)  # backward-compatible seed-level panel entry
+        return expanded
+    secondary_seed_ids = expand_for_checkpoint_signing(secondary_panel["experiment_ids"])
+    ablation_seed_ids = expand_for_checkpoint_signing(ablation_panel["experiment_ids"])
+    unmapped = [logical_id for logical_id in secondary_panel["experiment_ids"] + ablation_panel["experiment_ids"]
+                if logical_id.endswith("__ensemble") and not logical_to_seeds.get(logical_id)]
+    if unmapped:
+        raise RuntimeError(f"cannot lock logical ensembles without seed mapping: {sorted(set(unmapped))}")
+    all_locked_ids = sorted(set(primary_seed_ids) | set(secondary_seed_ids) | set(ablation_seed_ids))
     checkpoints = build_finalist_checkpoint_manifest(root, matrix, all_locked_ids)
     missing = [eid for eid, entry in checkpoints.items() if entry.get("checkpoint_sha256") is None or not entry.get("checkpoint_verified") or
                entry.get("ensemble_predictions_csv_sha256") is None or entry.get("locked_validation_threshold_sha256") is None]

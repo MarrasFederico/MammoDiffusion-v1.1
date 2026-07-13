@@ -133,13 +133,17 @@ class Scheduler:
             return {"admitted": False, "reason": f"host_max_concurrent_jobs ({HOST_MAX_CONCURRENT_JOBS}) reached"}
 
         if job["resource_profile"] == "exclusive":
-            for g in self.eligible_gpus_for(job):
-                if self._running[g["gpu_key"]]:
-                    return {"admitted": False, "reason": f"exclusive job requires an idle GPU; {g['gpu_key']} is busy"}
+            idle = [g for g in self.eligible_gpus_for(job) if not self._running[g["gpu_key"]]]
+            if not idle:
+                return {"admitted": False, "reason": "exclusive job requires one fully idle eligible GPU"}
 
         estimated = self._estimated_peak_mb(job)
         candidates = []
         for g in self.eligible_gpus_for(job):
+            if job["resource_profile"] == "exclusive" and self._running[g["gpu_key"]]:
+                continue
+            if any(running["resource_profile"] == "exclusive" for running in self._running[g["gpu_key"]]):
+                continue
             jobs_on_gpu = len(self._running[g["gpu_key"]])
             used = sum(self._estimated_peak_mb(j) for j in self._running[g["gpu_key"]])
             free = max(0.0, g["free_vram_mb"] - used)

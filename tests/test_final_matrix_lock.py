@@ -32,7 +32,14 @@ def build_lockable_project(root: Path) -> None:
     }))
 
     (root / "data/processed/metadata").mkdir(parents=True)
-    (root / "data/processed/metadata/test.csv").write_text("patient_id,label\n1,0\n2,1\n")
+    (root / "data/processed/test/0").mkdir(parents=True)
+    (root / "data/processed/test/1").mkdir(parents=True)
+    (root / "data/processed/test/0/1_i1.png").write_bytes(b"negative-test-image")
+    (root / "data/processed/test/1/2_i2.png").write_bytes(b"positive-test-image")
+    (root / "data/processed/metadata/test.csv").write_text(
+        "patient_id,image_id,label,processed_path\n"
+        "1,i1,0,data/processed/test/0/1_i1.png\n"
+        "2,i2,1,data/processed/test/1/2_i2.png\n")
 
     matrix_path = root / "configs/classifier_experiment_matrix.json"
     matrix = json.loads(matrix_path.read_text())

@@ -17,6 +17,24 @@ from dataset_variant_registry import CLASS_LABEL, deterministic_sample_signature
 REAL_TRAIN_DIR = "data/processed/train"
 AUGMENTED_DIR = "data/real_augmented"
 VALIDATION_METADATA = "data/processed/metadata/val.csv"
+_FILE_HASH_CACHE: dict[tuple[str, int, int, int], str] = {}
+
+
+def _sha256_file_cached(path: Path) -> str:
+    stat = path.stat()
+    # ctime prevents a same-size edit with a deliberately restored mtime from reusing stale
+    # bytes during long notebook-generation processes.
+    key = (str(path), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    cached = _FILE_HASH_CACHE.get(key)
+    if cached is not None:
+        return cached
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    value = digest.hexdigest()
+    _FILE_HASH_CACHE[key] = value
+    return value
 
 
 def _real_files_by_class(root: Path) -> dict[str, list[dict]]:
@@ -167,12 +185,48 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
     return files
 
 
-def dataset_manifest_signature(file_list: dict) -> str:
-    flat = []
+def _content_aware_record(root: Path, *, klass: str, entry: dict) -> dict:
+    """Canonical scientific identity for one image and its provenance."""
+    path = resolve_project_path(root, entry["path"])
+    if not path.is_file():
+        raise FileNotFoundError(f"dataset file does not exist: {path}")
+    try:
+        relative_path = path.relative_to(root.resolve()).as_posix()
+    except ValueError as exc:
+        raise ValueError(f"dataset file is outside project root: {path}") from exc
+    return {
+        "relative_path": relative_path,
+        "file_size": path.stat().st_size,
+        "sha256": _sha256_file_cached(path),
+        "label": int(CLASS_LABEL[klass]),
+        "source": entry.get("source"),
+        "patient_id": entry.get("patient_id"),
+        "image_id": entry.get("image_id") or path.stem,
+        "augmentation_type": entry.get("augmentation_type"),
+        "augmentation_source_split": entry.get("source_split"),
+        "source_original_path": entry.get("source_original_path"),
+    }
+
+
+def dataset_manifest_signature(root: Path, file_list: dict) -> str:
+    records = []
     for klass in sorted(file_list):
-        for entry in sorted(file_list[klass], key=lambda e: e["path"]):
-            flat.append(f"{klass}|{entry['source']}|{entry['path']}")
-    return hashlib.sha256("\n".join(flat).encode("utf-8")).hexdigest()
+        for entry in sorted(file_list[klass], key=lambda value: value["path"]):
+            records.append(_content_aware_record(Path(root), klass=klass, entry=entry))
+    canonical = json.dumps(records, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def validation_manifest_signature(root: Path, rows: list[dict]) -> str:
+    records = []
+    for row in sorted(rows, key=lambda value: (str(value.get("patient_id")), str(value.get("image_id")), value["processed_path"])):
+        klass = next(name for name, label in CLASS_LABEL.items() if int(label) == int(row["label"]))
+        records.append(_content_aware_record(Path(root), klass=klass, entry={
+            "path": row["processed_path"], "source": row.get("source", "real_validation"),
+            "patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+        }))
+    canonical = json.dumps(records, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def resolve_project_path(root: Path, value: str) -> Path:
@@ -256,14 +310,18 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
     overlap = train_patients & val_patients
     if overlap:
         raise RuntimeError(f"patient leakage between train and validation: {sorted(overlap)[:10]}")
+    training_signature = dataset_manifest_signature(root, file_list)
+    validation_signature = validation_manifest_signature(root, val_rows)
+    combined_signature = hashlib.sha256(json.dumps({
+        "training_signature": training_signature, "validation_signature": validation_signature,
+    }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     manifest_payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "dataset_variant_id": variant["dataset_variant_id"],
         "counts": {klass: len(entries) for klass, entries in file_list.items()},
-        "signature": dataset_manifest_signature(file_list),
-        "validation_signature": hashlib.sha256(
-            "\n".join(f"{r.get('patient_id')}|{r.get('image_id')}|{r['label']}|{r['processed_path']}" for r in val_rows).encode()
-        ).hexdigest(),
+        "signature": combined_signature,
+        "training_signature": training_signature,
+        "validation_signature": validation_signature,
         "files": file_list,
         "train_patient_ids": sorted(train_patients),
         "validation_patient_ids": sorted(val_patients),
@@ -277,7 +335,7 @@ def write_dataset_manifest(root: Path, variant: dict, file_list: dict, out_path:
         "schema_version": 1,
         "dataset_variant_id": variant["dataset_variant_id"],
         "counts": {k: len(v) for k, v in file_list.items()},
-        "signature": dataset_manifest_signature(file_list),
+        "signature": dataset_manifest_signature(root, file_list),
         "files": file_list,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)

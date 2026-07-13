@@ -18,6 +18,25 @@ from pathlib import Path
 ARCHITECTURES = ("resnet50", "maxvit512", "mammofm", "raddino")
 
 
+class TransitionCheckpointReady(RuntimeError):
+    """Test seam used to emulate a process exit immediately after the durable TF transition."""
+
+
+def _pytorch_resume_position(payload: dict) -> tuple[int, int]:
+    """Safe restart policy when the local DataLoader generator was not checkpointed."""
+    return int(payload["epoch"]), 0
+
+
+def _numpy_weights_sha256(weights) -> str:
+    digest = hashlib.sha256()
+    for weight in weights:
+        array = np.asarray(weight)
+        digest.update(str(array.dtype).encode("ascii"))
+        digest.update(str(array.shape).encode("ascii"))
+        digest.update(array.tobytes(order="C"))
+    return digest.hexdigest()
+
+
 def _dataframes(train_rows, validation_rows):
     import pandas as pd
     return pd.DataFrame(train_rows), pd.DataFrame(validation_rows)
@@ -184,7 +203,11 @@ class ArchitectureAdapter:
     def save_checkpoint(self, model, path):
         path.parent.mkdir(parents=True, exist_ok=True)
         if self.architecture == "resnet50":
-            model.save(path)
+            # TF/Keras 2.15 cannot serialize the ResNet application through its native
+            # `.keras` writer (the config contains an Ellipsis object).  A single-file HDF5
+            # model without optimizer state is stable, reloadable in a fresh process, and can
+            # still keep the canonical `model.keras` filename used by the matrix layout.
+            model.save(path, save_format="h5", include_optimizer=False)
         else:
             import torch
             torch.save({"schema_version": 1, "architecture": self.architecture,
@@ -267,6 +290,13 @@ class ArchitectureAdapter:
             class_weight = {0: len(labels) / max(2 * negatives, 1), 1: len(labels) / max(2 * positives, 1)}
             global_step = int((resume or {}).get("global_step", 0))
 
+            if phase == "complete":
+                model.set_weights(resume["model_state"])
+                self.save_checkpoint(model, Path(checkpoint_path))
+                return {"checkpoint": str(checkpoint_path), "history": prior_history,
+                        "resumed_from": resume_source, "optimizer_updates_limit": int(self.policy["max_optimizer_updates"]),
+                        "epochs": epochs, "best_epoch": resume.get("best_epoch")}
+
             def configure(current_phase):
                 if current_phase == "head":
                     set_head_training(backbone); optimizer = tf.keras.optimizers.Adam(1e-3); loss = "binary_crossentropy"
@@ -276,9 +306,12 @@ class ArchitectureAdapter:
                 model.compile(optimizer, loss, metrics=[tf.keras.metrics.AUC(name="auc")])
                 return optimizer
 
-            def restore(optimizer):
+            def restore_model_state():
                 if not resume: return
                 model.set_weights(resume["model_state"])
+
+            def restore_optimizer_state(optimizer):
+                if not resume: return
                 if hasattr(optimizer, "build"): optimizer.build(model.trainable_variables)
                 for variable, value in zip(optimizer.variables, resume.get("optimizer_state", [])): variable.assign(value)
                 states = resume.get("rng_states", {})
@@ -329,7 +362,15 @@ class ArchitectureAdapter:
             def fit_phase(current_phase, start, stop):
                 optimizer=configure(current_phase)
                 resume_phase = (resume or {}).get("phase")
-                if resume and resume_phase == current_phase: restore(optimizer)
+                if resume_phase in (current_phase, "transition"):
+                    restore_model_state()
+                expected_transition = context.get("expected_transition_weights_sha256")
+                if resume_phase == "transition" and expected_transition:
+                    actual_transition = _numpy_weights_sha256(model.get_weights())
+                    if actual_transition != expected_transition:
+                        raise RuntimeError("transition model weights were not restored before fine-tuning")
+                if resume_phase == current_phase:
+                    restore_optimizer_state(optimizer)
                 reduce=tf.keras.callbacks.ReduceLROnPlateau(**self.policy["scheduler_params"])
                 durable=DurableResume(optimizer,current_phase,start); durable.reduce=reduce
                 durable.interval=int(self.policy.get("checkpoint_interval_updates",250)); durable.max_updates=int(self.policy["max_optimizer_updates"])
@@ -353,8 +394,12 @@ class ArchitectureAdapter:
                 # receive incompatible head-phase slot variables. Persisted to disk (not just
                 # the local variable) so a crash between head completion and the first
                 # fine-tuning batch can never re-train an already-complete head on resume.
-                resume = {**(resume or {}), "phase": "transition", "epoch": 0}
+                resume = {**(resume or {}), "model_state": model.get_weights(),
+                          "optimizer_state": [], "scheduler_state": {}, "phase": "transition",
+                          "epoch": 0, "batch_index": -1, "early_stopping_counter": 0}
                 ckio.save_resume_checkpoint(run_dir, resume)
+                if context.get("stop_after_transition"):
+                    raise TransitionCheckpointReady("transition checkpoint written before fine-tuning")
             phase = "finetune"
             h2 = fit_phase("finetune", int((resume or {}).get("epoch",0)) if (resume or {}).get("phase")=="finetune" else 0, epochs)
             history = prior_history
@@ -372,6 +417,13 @@ class ArchitectureAdapter:
                 if best_payload is not None and best_payload.get("model_state") is not None:
                     model.set_weights(best_payload["model_state"])
                     best_epoch = best_payload.get("best_epoch")
+            latest_payload, _ = ckio.load_resume_checkpoint(run_dir, expected)
+            complete_base = latest_payload or resume or {}
+            ckio.save_resume_checkpoint(run_dir, {**complete_base, **expected,
+                "model_state": model.get_weights(), "optimizer_state": [], "scheduler_state": {},
+                "phase": "complete", "epoch": epochs, "batch_index": -1,
+                "global_step": int(complete_base.get("global_step", global_step)),
+                "best_epoch": best_epoch, "history": history})
         else:
             import torch
             import maxvit_utils as common
@@ -407,7 +459,11 @@ class ArchitectureAdapter:
                 optimizer.load_state_dict(resume["optimizer_state_dict"])
                 scheduler.load_state_dict(resume["scheduler_state_dict"])
                 if scaler is not None and resume.get("scaler_state_dict"): scaler.load_state_dict(resume["scaler_state_dict"])
-                start_epoch, start_batch = int(resume["epoch"]), int(resume.get("batch_index", -1)) + 1
+                start_epoch, start_batch = _pytorch_resume_position(resume)
+                # The DataLoader owns a locally-seeded generator whose sampler state is not
+                # serialized.  Resume conservatively at the start of an incomplete epoch;
+                # completed epochs and optimizer state are retained, and at most this one
+                # epoch is repeated.
                 global_step = int(resume["global_step"])
                 # EarlyStopping's real patience-counter attribute is `wait`, not `counter` -
                 # restoring the wrong name silently restored nothing on every resume.

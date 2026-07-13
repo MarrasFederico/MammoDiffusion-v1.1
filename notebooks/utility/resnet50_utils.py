@@ -16,8 +16,10 @@ def configure_tensorflow() -> None:
 def build_resnet50_model(input_size=(224, 224), pretrained=True):
     import tensorflow as tf
     configure_tensorflow()
+    cached_weights = Path.home() / ".keras/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
+    weights = str(cached_weights) if pretrained and cached_weights.is_file() else ("imagenet" if pretrained else None)
     backbone = tf.keras.applications.ResNet50(
-        include_top=False, weights="imagenet" if pretrained else None,
+        include_top=False, weights=weights,
         input_shape=tuple(input_size) + (3,),
     )
     inputs = tf.keras.Input(shape=tuple(input_size) + (3,))

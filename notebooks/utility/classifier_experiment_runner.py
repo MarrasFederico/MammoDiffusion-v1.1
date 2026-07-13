@@ -338,7 +338,11 @@ def run_auto(root: Path, architecture: str, dataset_variant_id: str, seed: int, 
     if plan(root, architecture, dataset_variant_id, seed)["needs_validation"]:
         return run_validate(root, architecture, dataset_variant_id, seed, adapter=adapter,
                             dataset_bundle=dataset_bundle, tiny=tiny)
-    return {"status": "complete_or_validated", "plan": plan(root, architecture, dataset_variant_id, seed)}
+    final_plan = plan(root, architecture, dataset_variant_id, seed)
+    if final_plan["state"] == "VALIDATED":
+        ensemble = build_ensemble_if_ready(root, architecture, dataset_variant_id)
+        return {"status": "ensemble_recovery", "ensemble": ensemble, "plan": final_plan}
+    return {"status": "complete_or_validated", "plan": final_plan}
 
 
 def execute_configuration(root: Path, architecture: str, dataset_variant_id: str, mode="auto",

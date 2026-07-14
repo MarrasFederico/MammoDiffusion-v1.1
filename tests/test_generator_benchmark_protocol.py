@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import sys
 import tempfile
@@ -7,90 +8,109 @@ import unittest
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-
 import generator_benchmark as gb  # noqa: E402
-
-
-def metric_row(generator_id: str, family: str, kid: float = 0.1) -> dict:
-    summary = lambda value: {"mean": value, "median": value, "standard_deviation": 0.01,
-                             "percentile_2_5": value - 0.01, "percentile_97_5": value + 0.01}
-    return {
-        "generator_id": generator_id, "scientific_family": family,
-        "exact_duplicate_rate": 0.0, "perceptual_hash_duplicate_rate": 0.0,
-        "memorization_flag_rate": 0.0, "filter_acceptance_rate": 0.9,
-        "corrupted_file_rate": 0.0, "valid_positive_images": 1361,
-        "test_access": False, "lineage_verified": True, "provenance_verified": True,
-        "metrics_complete": True, "bootstrap_stability": 0.99,
-        "rad_dino": {"filtered": {"kid": summary(kid), "coverage": summary(0.8),
-                                    "precision": summary(0.7), "fid": summary(4.0)}},
-        "inception_v3": {"filtered": {"kid": summary(0.2)}},
-    }
 
 
 class GeneratorBenchmarkTests(unittest.TestCase):
     def setUp(self):
         self.protocol = gb.load_protocol(ROOT)
+        self.registry = gb.load_registry(ROOT)
+
+    def test_1361_synthetic_and_73_real_is_valid_with_subset_73(self):
+        self.assertEqual(gb.evaluation_subset_size(1361, 73, 1361), 73)
+
+    def test_real_reference_may_be_smaller_than_synthetic_pool(self):
+        self.assertEqual(gb.evaluation_subset_size(2000, 41, 1361), 41)
+
+    def test_synthetic_pool_below_target_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "below target"):
+            gb.evaluation_subset_size(1360, 73, 1361)
 
     def test_protocol_forbids_test_reference(self):
-        broken = json.loads(json.dumps(self.protocol))
+        broken = copy.deepcopy(self.protocol)
         broken["reference_sets"]["distribution_metrics"] = "data/test.csv"
-        with self.assertRaises(ValueError):
-            gb.validate_protocol(broken)
+        with self.assertRaises(ValueError): gb.validate_protocol(broken)
 
-    def test_raw_and_filtered_are_separate_registered_representations(self):
-        self.assertEqual(tuple(self.protocol["representations"]), ("raw", "filtered"))
-        self.assertIn("never mix", self.protocol["comparison_rule"].lower())
-
-    def test_deterministic_sampling_is_order_independent(self):
-        paths = [f"x/{index}.png" for index in range(20)]
-        self.assertEqual(gb.deterministic_sample(paths, 8, 17), gb.deterministic_sample(reversed(paths), 8, 17))
-        self.assertEqual(len(gb.deterministic_sample(paths, 8, 17)), 8)
-
-    def test_sampling_never_duplicates_to_fill_shortfall(self):
-        with self.assertRaises(ValueError):
-            gb.deterministic_sample(["a.png"], 2, 17)
-
-    def test_duplicate_detection_exact_and_perceptual(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            array = np.arange(64 * 64, dtype=np.uint8).reshape(64, 64)
-            Image.fromarray(array).save(root / "a.png")
-            Image.fromarray(array).save(root / "b.png")
-            result = gb.duplicate_diagnostics([root / "a.png", root / "b.png"])
-            self.assertEqual(result["exact_duplicate_items"], 1)
-            self.assertGreater(result["perceptual_hash_duplicate_rate"], 0)
-
-    def test_bootstrap_is_deterministic(self):
-        rng = np.random.default_rng(3)
-        real, synthetic = rng.normal(size=(20, 4)), rng.normal(size=(20, 4))
-        first = gb.bootstrap_distribution_metrics(real, synthetic, iterations=4, sample_size=12, seed=9)
-        second = gb.bootstrap_distribution_metrics(real, synthetic, iterations=4, sample_size=12, seed=9)
+    def test_prdc_balancing_is_without_replacement_and_deterministic(self):
+        first = gb.balanced_subsample_indices(73, 1361, 73, 4, 17, nearest_neighbour_k=5)
+        second = gb.balanced_subsample_indices(73, 1361, 73, 4, 17, nearest_neighbour_k=5)
         self.assertEqual(first, second)
+        for row in first:
+            self.assertFalse(row["replace"])
+            self.assertEqual(len(row["real_indices"]), len(row["synthetic_indices"]))
+            self.assertEqual(len(set(row["synthetic_indices"])), 73)
 
-    def test_nearest_neighbour_rejects_test_pool(self):
-        values = np.eye(2)
-        with self.assertRaises(PermissionError):
-            gb.nearest_neighbours(values, values, ["a", "b"], ["c", "d"], "real_test_positive")
+    def test_prdc_k_must_be_smaller_than_subset(self):
+        with self.assertRaisesRegex(ValueError, "exceed"):
+            gb.balanced_subsample_indices(5, 10, 5, 1, 17, nearest_neighbour_k=5)
 
-    def test_family_specific_selection(self):
-        rows = [metric_row("ft_b", "finetuned", 0.2), metric_row("ft_a", "finetuned", 0.1),
-                metric_row("fs_a", "from_scratch", 0.3)]
-        result = gb.select_generators(rows, self.protocol)
-        self.assertEqual(result["selected"], {"finetuned": "ft_a", "from_scratch": "fs_a"})
+    def test_fid_repetitions_are_independent_and_small(self):
+        cfg = self.protocol["resampling"]
+        self.assertNotEqual(cfg["fid_repetitions"], cfg["kid_repetitions"])
+        self.assertLessEqual(cfg["fid_repetitions"], 10)
+        ranking = [row["metric"] for row in self.protocol["selection"]["ranking"]]
+        self.assertEqual(ranking[0], "rad_dino.filtered.kid.mean")
+        self.assertFalse(any("fid" in metric for metric in ranking))
 
-    def test_eligibility_gate_excludes_missing_metrics(self):
-        row = metric_row("ft", "finetuned"); row["metrics_complete"] = False
-        self.assertIn("metrics_complete", gb.eligibility_failures(row, self.protocol["eligibility_gates"]))
+    def test_repeated_metrics_use_metric_specific_repetition_counts(self):
+        protocol = copy.deepcopy(self.protocol)
+        protocol["synthetic_pool_target"] = 20
+        protocol["resampling"].update(kid_repetitions=3, prdc_repetitions=2, fid_repetitions=1, nearest_neighbour_k=3)
+        rng = np.random.default_rng(9)
+        rows, summary = gb.repeated_distribution_metrics(rng.normal(size=(10, 4)), rng.normal(size=(20, 4)), protocol)
+        self.assertEqual({name: sum(row["metric_group"] == name for row in rows) for name in ("kid", "prdc", "fid")},
+                         {"kid": 3, "prdc": 2, "fid": 1})
+        self.assertEqual(summary["evaluation_subset_size"], 10)
 
-    def test_tie_break_is_generator_id_deterministic(self):
-        rows = [metric_row("z", "finetuned"), metric_row("a", "finetuned"), metric_row("fs", "from_scratch")]
-        result = gb.select_generators(rows, self.protocol)
-        self.assertEqual(result["selected"]["finetuned"], "a")
+    def test_similarity_categories_are_separate(self):
+        result = gb.similarity_summaries(
+            [{"embedding_distance": .1, "memorization_flag": True, "exact_hash_match": False}],
+            [{"embedding_distance": .01, "ssim": .999, "similarity_flag": True}],
+            [{"embedding_distance": .2, "duplicate_flag": False, "perceptual_hash_duplicate": True}],
+        )
+        self.assertEqual(result["train_memorization_rate"], 1.0)
+        self.assertEqual(result["validation_similarity_rate"], 1.0)
+        self.assertEqual(result["synthetic_duplicate_rate"], 0.0)
+
+    def test_registry_roles_keep_ablation_and_descriptive_baseline_visible_but_ineligible(self):
+        by_id = {entry["id"]: entry for entry in self.registry["generators"]}
+        sd50 = by_id["01_sd21_baseline_50steps"]
+        ldm = by_id["05_ldm_basic_fromscratch"]
+        self.assertEqual((sd50["candidate_role"], sd50["sampling_steps"]), ("sampling_ablation", 50))
+        self.assertFalse(sd50["eligible_for_downstream_selection"])
+        self.assertEqual(ldm["candidate_role"], "descriptive_baseline")
+        self.assertFalse(ldm["eligible_for_downstream_selection"])
+        self.assertTrue(sd50["benchmark"]["enabled"] and ldm["benchmark"]["enabled"])
+
+    def _result(self, generator_id, count=1361):
+        return {"generator_id": generator_id, "metrics_complete": True, "valid_positive_images": count,
+                "test_access": False, "technical_gates_passed": True}
+
+    def test_manual_selection_accepts_simple_json_shape(self):
+        selected = gb.validate_selected_generators("02_sd21_filtered_100steps", "06_ldm_extra1361_fromscratch",
+            self.registry, [self._result("02_sd21_filtered_100steps"), self._result("06_ldm_extra1361_fromscratch")])
+        self.assertEqual(selected, {"finetuned": "02_sd21_filtered_100steps", "from_scratch": "06_ldm_extra1361_fromscratch"})
+
+    def test_wrong_family_and_ineligible_selection_are_rejected(self):
+        rows = [self._result("02_sd21_filtered_100steps"), self._result("06_ldm_extra1361_fromscratch"),
+                self._result("01_sd21_baseline_50steps")]
+        with self.assertRaisesRegex(ValueError, "wrong family"):
+            gb.validate_selected_generators("06_ldm_extra1361_fromscratch", "02_sd21_filtered_100steps", self.registry, rows)
+        with self.assertRaisesRegex(ValueError, "not selection-eligible"):
+            gb.validate_selected_generators("01_sd21_baseline_50steps", "06_ldm_extra1361_fromscratch", self.registry, rows)
+
+    def test_embedding_cache_requires_and_round_trips_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "features.npy"
+            metadata = {"image_ids": ["a", "b"], "image_paths": ["a.png", "b.png"], "extractor": "rad_dino",
+                        "preprocessing": "x", "dimension": 3, "code_version": "abc", "source_manifest": "m.json"}
+            gb.write_embedding_cache(path, np.ones((2, 3)), metadata)
+            features, restored = gb.load_embedding_cache(path)
+            np.testing.assert_array_equal(features, np.ones((2, 3)))
+            self.assertEqual(restored, metadata)
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == "__main__": unittest.main()

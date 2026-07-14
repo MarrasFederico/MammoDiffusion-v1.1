@@ -1,10 +1,15 @@
 {
-  "schema_version": 1,
-  "pipeline_namespace": "mammodiffusion.generator_registry.v1",
+  "schema_version": 2,
+  "pipeline_namespace": "mammodiffusion.generator_registry.v2",
   "note": "Runtime audit, not registry labels alone, determines eligibility. No test-derived metric or path is used by generator selection.",
   "generators": [
     {
       "id": "01_sd21_baseline_50steps",
+      "model_family": "sd21_full_finetuning",
+      "model_variant": "baseline_checkpoint_sampling_50",
+      "sampling_steps": 50,
+      "candidate_role": "sampling_ablation",
+      "eligible_for_downstream_selection": false,
       "scientific_family": "finetuned",
       "subtype": "full_finetuning_baseline",
       "classes": [
@@ -29,6 +34,11 @@
     },
     {
       "id": "02_sd21_filtered_100steps",
+      "model_family": "sd21_full_finetuning",
+      "model_variant": "canonical_sampling_100",
+      "sampling_steps": 100,
+      "candidate_role": "primary_candidate",
+      "eligible_for_downstream_selection": true,
       "scientific_family": "finetuned",
       "subtype": "full_finetuning",
       "classes": [
@@ -52,6 +62,11 @@
     },
     {
       "id": "03_sd21_vae_finetuned",
+      "model_family": "sd21_vae_finetuned",
+      "model_variant": "canonical_sampling",
+      "sampling_steps": 100,
+      "candidate_role": "primary_candidate",
+      "eligible_for_downstream_selection": true,
       "scientific_family": "finetuned",
       "subtype": "full_finetuning_finetuned_vae",
       "classes": [
@@ -75,6 +90,11 @@
     },
     {
       "id": "04_sd21_lora",
+      "model_family": "sd21_lora",
+      "model_variant": "canonical_sampling",
+      "sampling_steps": 100,
+      "candidate_role": "primary_candidate",
+      "eligible_for_downstream_selection": true,
       "scientific_family": "finetuned",
       "subtype": "lora",
       "classes": [
@@ -101,6 +121,11 @@
     },
     {
       "id": "05_ldm_basic_fromscratch",
+      "model_family": "ldm_from_scratch",
+      "model_variant": "historical_basic",
+      "sampling_steps": null,
+      "candidate_role": "descriptive_baseline",
+      "eligible_for_downstream_selection": false,
       "scientific_family": "from_scratch",
       "subtype": "baseline_ldm",
       "classes": [
@@ -128,6 +153,11 @@
     },
     {
       "id": "06_ldm_extra1361_fromscratch",
+      "model_family": "ldm_from_scratch",
+      "model_variant": "custom_vae_extra1361",
+      "sampling_steps": null,
+      "candidate_role": "primary_candidate",
+      "eligible_for_downstream_selection": true,
       "scientific_family": "from_scratch",
       "subtype": "improved_ldm_custom_vae",
       "classes": [
@@ -150,6 +180,11 @@
     },
     {
       "id": "07_ldm_sdvae_extra1361",
+      "model_family": "ldm_from_scratch",
+      "model_variant": "sdvae_extra1361",
+      "sampling_steps": null,
+      "candidate_role": "primary_candidate",
+      "eligible_for_downstream_selection": true,
       "scientific_family": "from_scratch",
       "subtype": "ldm_sd_vae",
       "classes": [
@@ -172,6 +207,11 @@
     },
     {
       "id": "08_ldm_v3_sdvae_fromscratch",
+      "model_family": "ldm_from_scratch",
+      "model_variant": "v3_sdvae",
+      "sampling_steps": null,
+      "candidate_role": "primary_candidate",
+      "eligible_for_downstream_selection": true,
       "scientific_family": "from_scratch",
       "subtype": "improved_ldm_v_prediction_min_snr_sd_vae",
       "classes": [

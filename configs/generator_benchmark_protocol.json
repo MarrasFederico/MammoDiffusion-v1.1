@@ -1,72 +1,64 @@
 {
-  "schema_version": 1,
-  "pipeline_namespace": "mammodiffusion.generator_benchmark.v1",
-  "study_question": "RQ1: Which fine-tuned generator and which from-scratch generator provide the best balance of fidelity, diversity, coverage, and absence of memorization?",
+  "schema_version": 2,
+  "pipeline_namespace": "mammodiffusion.generator_benchmark.v2",
+  "study_question": "RQ1: Which eligible fine-tuned generator and which eligible from-scratch generator provide the best balance of fidelity, diversity, coverage, efficiency, and absence of train memorization?",
   "primary_class": "positive",
-  "canonical_sample_count": 1361,
+  "synthetic_pool_target": 1361,
+  "real_reference_count": "all_available_validation_positives",
+  "evaluation_subset_size": "min(real_reference_count, synthetic_pool_count)",
   "sampling": {
     "seed": 20260714,
     "without_replacement": true,
-    "record_selected_paths": true
+    "record_selected_ids": true
   },
   "reference_sets": {
     "distribution_metrics": "data/processed/metadata/val.csv:positive_only",
-    "memorization_train": "data/processed/metadata/train.csv:positive_only",
-    "memorization_validation": "data/processed/metadata/val.csv:positive_only",
-    "forbidden_splits": ["test", "locked_test"]
+    "train_memorization": "data/processed/metadata/train.csv:positive_only",
+    "validation_similarity": "data/processed/metadata/val.csv:positive_only",
+    "forbidden_splits": ["test", "historical_internal_test"]
   },
   "representations": ["raw", "filtered"],
   "comparison_rule": "Compare raw only with raw and filtered only with filtered; never mix representations in one ranking table.",
   "feature_spaces": {
     "inception_v3": {
-      "role": "standard continuity and general generative literature",
-      "metrics": ["fid", "kid", "precision", "recall", "density", "coverage"],
-      "inception_score_role": "legacy_only"
+      "role": "secondary standard-literature continuity",
+      "metrics": ["fid", "kid", "precision", "recall", "density", "coverage"]
     },
     "rad_dino": {
-      "role": "independent frozen medical-image encoder",
+      "role": "primary frozen medical-image feature extractor",
       "metrics": ["fid", "kid", "precision", "recall", "density", "coverage"],
       "frozen": true,
       "downstream_classifier": false,
       "limitation": "RAD-DINO is radiology-specific, not mammography-specific."
     }
   },
-  "diversity_metrics": [
-    "nearest_neighbour_synthetic_to_synthetic_distance",
-    "lpips_diversity",
-    "ms_ssim",
-    "exact_duplicate_rate",
-    "perceptual_hash_duplicate_rate"
-  ],
-  "technical_metrics": [
-    "corrupted_file_rate",
-    "near_black_rate",
-    "nonblack_ratio",
-    "invalid_dynamic_range_rate",
-    "unexpected_dimensions_rate",
-    "duplicate_filename_rate",
-    "duplicate_content_rate",
-    "filter_acceptance_rate"
-  ],
-  "memorization": {
-    "neighbour_pools": ["real_train_positive", "real_validation_positive", "synthetic_same_candidate"],
-    "forbidden_pool": "test",
-    "record_fields": ["embedding_distance", "ssim", "perceptual_hash_distance", "source_id", "synthetic_id"],
-    "panel_selection": "deterministic_by_nearest_distance_then_synthetic_id",
-    "flag_rule": {"ssim_gte": 0.98, "perceptual_hash_distance_lte": 2}
-  },
-  "bootstrap": {
-    "iterations": 200,
-    "seed": 20260714,
-    "sample_size": 1361,
+  "resampling": {
+    "kid_repetitions": 200,
+    "prdc_repetitions": 100,
+    "fid_repetitions": 1,
+    "nearest_neighbour_k": 5,
+    "replace": false,
     "percentiles": [2.5, 97.5],
-    "report": ["mean", "median", "standard_deviation", "percentile_2_5", "percentile_97_5", "valid_repetitions", "failed_repetitions"]
+    "report": ["mean", "median", "standard_deviation", "percentile_2_5", "percentile_97_5", "valid_repetitions"]
+  },
+  "embedding_cache": {
+    "root": "results/publication_v2/generator_benchmark/embedding_cache",
+    "key_fields": ["generator_id", "representation", "extractor"],
+    "metadata_fields": ["image_ids", "image_paths", "extractor", "preprocessing", "dimension", "code_version", "source_manifest"]
+  },
+  "memorization": {
+    "train_pool": "real_train_positive",
+    "validation_pool": "real_validation_positive",
+    "synthetic_pool": "synthetic_same_candidate",
+    "forbidden_pool": "test",
+    "flag_rule": {"ssim_gte": 0.98, "perceptual_hash_distance_lte": 2},
+    "gate_uses_train_only": true
   },
   "eligibility_gates": {
     "minimum_valid_positive_images": 1361,
     "maximum_exact_duplicate_rate": 0.01,
     "maximum_perceptual_duplicate_rate": 0.02,
-    "maximum_memorization_flag_rate": 0.01,
+    "maximum_train_memorization_rate": 0.01,
     "minimum_rad_dino_coverage": 0.5,
     "minimum_filter_acceptance_rate": 0.5,
     "maximum_corrupted_file_rate": 0.0,
@@ -77,24 +69,22 @@
   },
   "selection": {
     "one_per_family": ["finetuned", "from_scratch"],
+    "primary_metric": "rad_dino.filtered.kid.mean",
+    "fid_role": "secondary_descriptive",
     "weighted_composite_score": false,
     "ranking": [
       {"metric": "rad_dino.filtered.kid.mean", "direction": "min"},
       {"metric": "rad_dino.filtered.coverage.mean", "direction": "max"},
       {"metric": "rad_dino.filtered.precision.mean", "direction": "max"},
-      {"metric": "rad_dino.filtered.fid.mean", "direction": "min"},
       {"metric": "inception_v3.filtered.kid.mean", "direction": "min"},
-      {"metric": "bootstrap_stability", "direction": "max"},
       {"metric": "generator_id", "direction": "lexicographic"}
     ],
-    "overlap_statement_required": true,
-    "automatic_output_is_proposal_only": true
+    "manual_selection_required": true
   },
   "outputs": {
-    "manifest": "results/generator_benchmark/generator_benchmark_manifest.json",
-    "metrics": "results/generator_benchmark/generator_metrics.csv",
-    "bootstrap": "results/generator_benchmark/generator_metrics_bootstrap.csv",
-    "proposal": "results/generator_benchmark/generator_selection_proposal.json",
-    "report": "results/generator_benchmark/generator_selection_report.md"
+    "root": "results/publication_v2/generator_benchmark",
+    "manifest": "results/publication_v2/generator_benchmark/benchmark_manifest.json",
+    "metrics": "results/publication_v2/generator_benchmark/generator_metrics.csv",
+    "resampling": "results/publication_v2/generator_benchmark/repeated_subsampling.csv"
   }
 }

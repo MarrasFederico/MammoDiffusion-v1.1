@@ -1,20 +1,7 @@
-# Canonical experimental protocol
+# Experimental protocol summary
 
-The canonical design is [`publication_experimental_design.md`](publication_experimental_design.md). It addresses RQ1 (generator quality), RQ2 (downstream utility), and RQ3 (robustness across MaxViT-512 and Mammo-FM).
+RQ1 is answered by the validation-only unified generator benchmark. The real reference count is all available validation positives; 1,361 is the synthetic pool target. KID and PRDC use balanced repeated subsampling without replacement, FID is secondary, and train memorization is separate from validation similarity.
 
-The executable sequence is:
+RQ2 and RQ3 use MaxViT-512 and Mammo-FM across four conditions and seeds 17, 42 and 73. The 24 experiments share a fixed optimizer-update budget within architecture. Checkpointing, early stopping and scheduling use validation PR-AUC.
 
-1. dataset preprocessing;
-2. traditional positive augmentation;
-3. generator training and generation;
-4. unified generator benchmark;
-5. one proposed winner per generator family;
-6. explicit generator approval;
-7. 24 downstream validation jobs;
-8. eight three-seed ensembles;
-9. validation finalization and protocol freeze;
-10. one-shot locked test;
-11. patient-level statistics;
-12. publication report.
-
-Generator selection is validation-only. The test is not a generator reference, nearest-neighbour pool, checkpoint-selection set, or threshold-selection set.
+The three-seed mean-probability ensembles and condition comparisons use validation only and patient-level statistics. Eight primary PR-AUC comparisons receive Holm correction. Final evaluation is optional, guarded by a visible Boolean and readiness checklist, and documented by a plain protocol snapshot. Historical reuse of the prior internal test is disclosed.

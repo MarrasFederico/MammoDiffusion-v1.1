@@ -1,29 +1,28 @@
-# Minimal execution guide
+# Manual notebook execution guide
 
-Commands that evaluate images or train models are shown for later use; none are part of repository refactoring.
+No script launches or replaces a scientific notebook.
 
-```bash
-# 1–3. Benchmark, inspect, approve
-python scripts/run_generator_benchmark.py --execute --confirm
-less results/generator_benchmark/generator_selection_report.md
-python scripts/approve_generator_selection.py --proposal results/generator_benchmark/generator_selection_proposal.json --confirm
+1. Run generator notebooks only when candidate outputs are missing.
+2. Open and execute `05_Unified_Generator_Benchmark.ipynb`.
+3. Review RAW/FILTERED tables, repeated-subsampling intervals, duplication, train memorization, validation similarity and efficiency.
+4. Open `06_Generator_Selection.ipynb`, enter one eligible ID per family, validate and save the selection.
+5. Open `07_MaxViT512_Downstream.ipynb`, set `CONDITION`, `SEED`, `GPU`, and `RESUME`, then run all cells. Repeat its 12 combinations.
+6. Repeat the same procedure with `08_MammoFM_Downstream.ipynb`.
+7. Execute `09_Downstream_Validation_Comparison.ipynb` after all 24 prediction files exist.
+8. Freeze selections, thresholds and comparisons on validation.
+9. Identify an honest final-evaluation dataset and execute `10_Final_Evaluation_and_Report.ipynb` only when ready.
 
-# 4. List exactly 24 manual jobs
-python scripts/list_downstream_jobs.py
+## The 24 manual combinations
 
-# 5. Optional smoke, no certificate chain
-python scripts/smoke_downstream_classifier.py --architecture maxvit512 --gpu 0
-python scripts/smoke_downstream_classifier.py --architecture mammofm --gpu 0
+| Architecture | Condition | Seeds |
+|---|---|---|
+| MaxViT-512 | `real_only` | 17, 42, 73 |
+| MaxViT-512 | `real_augmented` | 17, 42, 73 |
+| MaxViT-512 | `real_plus_best_finetuned_positive` | 17, 42, 73 |
+| MaxViT-512 | `real_plus_best_fromscratch_positive` | 17, 42, 73 |
+| Mammo-FM | `real_only` | 17, 42, 73 |
+| Mammo-FM | `real_augmented` | 17, 42, 73 |
+| Mammo-FM | `real_plus_best_finetuned_positive` | 17, 42, 73 |
+| Mammo-FM | `real_plus_best_fromscratch_positive` | 17, 42, 73 |
 
-# 6. Run jobs individually (repeat only for the listed architecture/condition/seed)
-python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_only --seed 17 --gpu 0
-
-# 7–11. Ensemble, finalize validation, freeze, one-shot test, report
-python scripts/build_downstream_ensembles.py
-python scripts/finalize_downstream_validation.py
-python scripts/lock_downstream_test.py --confirm
-python scripts/run_downstream_locked_test.py --confirm
-python scripts/finalize_publication_report.py
-```
-
-Use either `--gpu` or `CUDA_VISIBLE_DEVICES`, never both. Synthetic conditions fail until approval exists. Checkpoint/resume is automatic per experiment; a live process claim only prevents duplicate concurrent execution of the same experiment ID.
+Each row represents three manual runs. Synthetic conditions require `configs/selected_generators.json`. Do not tune one condition differently, and do not consult a final-evaluation split while choosing models or thresholds.

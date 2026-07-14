@@ -1,9 +1,27 @@
-# Compact downstream classifier protocol
+# Downstream classifier protocol
 
-This protocol addresses RQ2 and RQ3 with MaxViT-512 and Mammo-FM only. RAD-DINO is reserved for generator evaluation; ResNet-50 is a historical V1 baseline.
+## Fixed design
 
-Four conditions—real-only, real plus traditional positive augmentation, real plus approved fine-tuned positive synthetics, and real plus approved from-scratch positive synthetics—are crossed with two architectures and seeds 17, 42, and 73. The exact primary inventory is 24 unique jobs in `configs/downstream_classifier_jobs.json`.
+The publication protocol contains only MaxViT-512 and Mammo-FM, four data conditions, and seeds 17, 42 and 73: exactly 24 logical experiments. RAD-DINO is not a downstream classifier and ResNet-50 remains historical V1 material.
 
-Within an architecture, conditions differ only in added training data. The fixed maximum optimizer-update policy prevents a larger dataset from receiving a larger training budget. The real validation set, loss, sampler/weighting policy, preprocessing, schedule, early stopping, checkpoint criterion, and evaluation remain fixed.
+## Notebook execution
 
-PR-AUC is primary. Three-seed mean probability is the primary model output. Validation thresholds are frozen before patient-level, one-shot test inference. Eight within-architecture comparisons use paired patient bootstrap and Holm correction.
+`07_MaxViT512_Downstream.ipynb` and `08_MammoFM_Downstream.ipynb` expose configuration, environment, selected generators, dataset construction and audit, model loading, trainable parameters, training policy, resume state, training, curves, best checkpoint, validation inference, metrics, calibration, error analysis, interpretability and saved artifacts.
+
+Each run writes beneath `results/publication_v2/downstream/<architecture>/<condition>/seed_<seed>/`:
+
+- `configuration.json`;
+- `dataset_summary.json`;
+- checkpoint and resume files;
+- `training_history.csv`;
+- `validation_predictions.csv`;
+- `validation_metrics.json`;
+- `interpretability/` when produced.
+
+## Selection and fairness
+
+The best checkpoint maximises validation PR-AUC. Early stopping and ReduceLROnPlateau monitor the same value. An equal PR-AUC uses lower validation loss; a further tie uses the earlier epoch. ROC-AUC is reported but never selects the primary checkpoint.
+
+Within an architecture, every condition uses at most 6,400 optimizer updates, the same effective batch size, loss, class weighting, real-image online augmentation, validation manifest and validation frequency. The notebook reports samples seen by source, optimizer updates and effective epochs over each source. No hidden oversampling is permitted.
+
+The validation comparison requires all three seeds, identical patient/image keys and labels, no duplicates or missing values, finite probabilities, and the same validation manifest. Ensemble probabilities are averaged, then metrics and bootstrap are computed patient-level.

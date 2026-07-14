@@ -1,16 +1,13 @@
-# Struttura dei notebook
+# Notebook structure
 
-La migrazione da `notebooks2/` e' stata completata. La cartella `notebooks/` e' ora
-la sorgente ufficiale; la precedente struttura piatta e' conservata localmente in
-`old/` ed e' esclusa da Git.
+- `1_preprocessing/`: split-safe preprocessing and traditional augmentation.
+- `2_diffusers/`: generator training, generation and filtering notebooks.
+- `3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb`: validation-only benchmark.
+- `3_generator_benchmark/06_Generator_Selection.ipynb`: transparent manual family selection.
+- `4_downstream_classifiers/07_MaxViT512_Downstream.ipynb`: one of 12 MaxViT jobs per execution.
+- `4_downstream_classifiers/08_MammoFM_Downstream.ipynb`: one of 12 Mammo-FM jobs per execution.
+- `4_downstream_classifiers/09_Downstream_Validation_Comparison.ipynb`: eight seed ensembles and validation comparisons.
+- `4_downstream_classifiers/10_Final_Evaluation_and_Report.ipynb`: optional final evaluation and factual report.
+- `utility/`: reusable logic imported directly by notebooks.
 
-## Convenzioni
-
-- `1_preprocessing/`: preparazione e augmentation dei dati.
-- `2_diffusers/`: esperimenti generativi numerati in ordine evolutivo.
-- `3_generator_benchmark/`: benchmark unificato e selezione per famiglia.
-- `4_downstream_classifiers/`: MaxViT-512, Mammo-FM, confronto validation e test locked.
-- `utility/`: helper condivisi importati da tutti i notebook tramite bootstrap.
-
-I notebook downstream sono parametrizzati con `condition` e `seed`; non esiste un notebook per
-ognuno dei 24 job. Il runner canonico è `scripts/run_downstream_classifier.py`.
+No Python file launches notebooks, and no scientific notebook invokes a subprocess wrapper.

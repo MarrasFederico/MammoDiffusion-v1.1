@@ -1,8 +1,4 @@
-"""Canonical experiment/results directory layout and checkpoint provenance for the classifier
-experiment matrix (spec section 8). Never breaks the pre-existing legacy layout under
-experiments/classifiers/<arch>/...; legacy runs are only ever linked via
-dataset_variant `legacy_experiment_ids`, never overwritten.
-"""
+"""Checkpoint/resume provenance for one compact downstream experiment."""
 from __future__ import annotations
 
 import hashlib
@@ -13,8 +9,8 @@ from pathlib import Path
 
 from classifier_pipeline_contracts import PIPELINE_NAMESPACE, atomic_json, value_signature
 
-EXPERIMENTS_ROOT = "experiments/classifiers_matrix"
-RESULTS_ROOT = "results/classifiers_matrix"
+EXPERIMENTS_ROOT = "experiments/downstream_classifiers"
+RESULTS_ROOT = "results/downstream_classifiers"
 RESUME_NAMES = ("checkpoint_latest", "checkpoint_previous", "checkpoint_best")
 
 

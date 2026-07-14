@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "pipeline_namespace": "mammodiffusion.downstream_validation.v1",
+  "note": "Exactly 24 primary job definitions. Synthetic conditions are unresolved templates until configs/approved_generators.json exists and passes signature validation.",
+  "architectures": [
+    "maxvit512",
+    "mammofm"
+  ],
+  "conditions": [
+    "real_only",
+    "real_augmented",
+    "real_plus_best_finetuned_positive",
+    "real_plus_best_fromscratch_positive"
+  ],
+  "seeds": [
+    17,
+    42,
+    73
+  ],
+  "jobs": [
+    {
+      "experiment_id": "maxvit512__real_only__seed17",
+      "architecture": "maxvit512",
+      "condition": "real_only",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_only --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_only__seed42",
+      "architecture": "maxvit512",
+      "condition": "real_only",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_only --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_only__seed73",
+      "architecture": "maxvit512",
+      "condition": "real_only",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_only --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_augmented__seed17",
+      "architecture": "maxvit512",
+      "condition": "real_augmented",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_augmented --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_augmented__seed42",
+      "architecture": "maxvit512",
+      "condition": "real_augmented",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_augmented --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_augmented__seed73",
+      "architecture": "maxvit512",
+      "condition": "real_augmented",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_augmented --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_plus_best_finetuned_positive__seed17",
+      "architecture": "maxvit512",
+      "condition": "real_plus_best_finetuned_positive",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_plus_best_finetuned_positive --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_plus_best_finetuned_positive__seed42",
+      "architecture": "maxvit512",
+      "condition": "real_plus_best_finetuned_positive",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_plus_best_finetuned_positive --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_plus_best_finetuned_positive__seed73",
+      "architecture": "maxvit512",
+      "condition": "real_plus_best_finetuned_positive",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_plus_best_finetuned_positive --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_plus_best_fromscratch_positive__seed17",
+      "architecture": "maxvit512",
+      "condition": "real_plus_best_fromscratch_positive",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_plus_best_fromscratch_positive --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_plus_best_fromscratch_positive__seed42",
+      "architecture": "maxvit512",
+      "condition": "real_plus_best_fromscratch_positive",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_plus_best_fromscratch_positive --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "maxvit512__real_plus_best_fromscratch_positive__seed73",
+      "architecture": "maxvit512",
+      "condition": "real_plus_best_fromscratch_positive",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture maxvit512 --condition real_plus_best_fromscratch_positive --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_only__seed17",
+      "architecture": "mammofm",
+      "condition": "real_only",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_only --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_only__seed42",
+      "architecture": "mammofm",
+      "condition": "real_only",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_only --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_only__seed73",
+      "architecture": "mammofm",
+      "condition": "real_only",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_only --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_augmented__seed17",
+      "architecture": "mammofm",
+      "condition": "real_augmented",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_augmented --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_augmented__seed42",
+      "architecture": "mammofm",
+      "condition": "real_augmented",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_augmented --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_augmented__seed73",
+      "architecture": "mammofm",
+      "condition": "real_augmented",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": false,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_augmented --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_plus_best_finetuned_positive__seed17",
+      "architecture": "mammofm",
+      "condition": "real_plus_best_finetuned_positive",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_plus_best_finetuned_positive --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_plus_best_finetuned_positive__seed42",
+      "architecture": "mammofm",
+      "condition": "real_plus_best_finetuned_positive",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_plus_best_finetuned_positive --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_plus_best_finetuned_positive__seed73",
+      "architecture": "mammofm",
+      "condition": "real_plus_best_finetuned_positive",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_plus_best_finetuned_positive --seed 73 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_plus_best_fromscratch_positive__seed17",
+      "architecture": "mammofm",
+      "condition": "real_plus_best_fromscratch_positive",
+      "seed": 17,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_plus_best_fromscratch_positive --seed 17 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_plus_best_fromscratch_positive__seed42",
+      "architecture": "mammofm",
+      "condition": "real_plus_best_fromscratch_positive",
+      "seed": 42,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_plus_best_fromscratch_positive --seed 42 --gpu 0"
+    },
+    {
+      "experiment_id": "mammofm__real_plus_best_fromscratch_positive__seed73",
+      "architecture": "mammofm",
+      "condition": "real_plus_best_fromscratch_positive",
+      "seed": 73,
+      "status": "PENDING",
+      "approval_required": true,
+      "suggested_command": "python scripts/run_downstream_classifier.py --architecture mammofm --condition real_plus_best_fromscratch_positive --seed 73 --gpu 0"
+    }
+  ]
+}

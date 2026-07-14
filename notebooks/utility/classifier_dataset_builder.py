@@ -1,8 +1,4 @@
-"""Resolves a dataset_variant registry entry into an actual, signed, deterministic file list
-for classifier training (spec section 8). Real/augmented files are enumerated directly;
-synthetic files are drawn with dataset_variant_registry.deterministic_sample_signature so the
-same variant always yields the same picks regardless of filesystem enumeration order.
-"""
+"""Resolve one publication-protocol condition into signed train/validation file lists."""
 from __future__ import annotations
 
 import csv
@@ -12,8 +8,19 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from dataset_variant_registry import CLASS_LABEL, deterministic_sample_signature  # noqa: E402
 from classifier_pipeline_contracts import PIPELINE_NAMESPACE, value_signature  # noqa: E402
+
+CLASS_LABEL = {"negative": 0, "positive": 1}
+
+
+def deterministic_sample_signature(paths: list[str], count: int, seed: int) -> dict:
+    import random
+    canonical = sorted(paths)
+    if len(canonical) < count:
+        raise ValueError(f"need {count} synthetic files, found {len(canonical)}")
+    picked = sorted(random.Random(seed).sample(canonical, count))
+    signature = hashlib.sha256("\n".join(picked).encode("utf-8")).hexdigest()
+    return {"picked": picked, "count": count, "seed": seed, "sha256": signature}
 
 REAL_TRAIN_DIR = "data/processed/train"
 AUGMENTED_DIR = "data/real_augmented"
@@ -121,9 +128,15 @@ def _synthetic_candidate_files(root: Path, generator_entry: dict, klass: str) ->
     1361/class subset, the current directory holds 2722/class) — a pre-existing ambiguity this
     function does not silently resolve. Callers must check the returned precision tag.
     """
-    from dataset_variant_registry import _reroot_under_project  # noqa: PLC0415
-
     gid = generator_entry["id"]
+    registered = (generator_entry.get("samples") or {}).get(f"filtered_{klass}")
+    if registered:
+        scan_dir = root / registered
+        if scan_dir.is_dir():
+            found = sorted(str(p.relative_to(root)) for p in scan_dir.rglob("*")
+                           if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"})
+            if found:
+                return found, "approved_generator_registry_filtered_path"
     metrics_rel = generator_entry.get("metrics")
     if metrics_rel:
         path = root / metrics_rel
@@ -135,7 +148,12 @@ def _synthetic_candidate_files(root: Path, generator_entry: dict, klass: str) ->
             per_class_dir = ((payload.get("per_class") or {}).get(klass) or {}).get("generated_dir")
             synth_dir = per_class_dir or (payload.get("config") or {}).get("synthetic_dir") or (payload.get("input_signature") or {}).get("filtered_dir")
             if synth_dir:
-                base = _reroot_under_project(synth_dir, root)
+                raw = Path(synth_dir)
+                if raw.is_absolute():
+                    marker = next((name for name in ("data", "experiments", "results") if name in raw.parts), None)
+                    base = root.joinpath(*raw.parts[raw.parts.index(marker):]) if marker else raw
+                else:
+                    base = root / raw
                 scan_dir = (base.parent / klass) if base.name in CLASS_LABEL else base
                 if scan_dir.is_dir():
                     found = sorted(str(p.relative_to(root)) for p in scan_dir.glob("*.png"))
@@ -155,13 +173,14 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
     """Return {"negative": [{"path":..., "source":...}, ...], "positive": [...]} for one variant."""
     real = _real_files_by_class(root) if variant.get("real_source") else {k: [] for k in CLASS_LABEL}
     augmented = _augmented_files_by_class(root) if variant.get("augmentation_source") else {k: [] for k in CLASS_LABEL}
+    allowed_augmented = set(variant.get("augmentation_classes") or CLASS_LABEL)
+    augmented = {klass: values if klass in allowed_augmented else [] for klass, values in augmented.items()}
 
     synthetic: dict[str, list[str]] = {k: [] for k in CLASS_LABEL}
     gid = variant.get("synthetic_generator_id")
     if gid and variant.get("synthetic_count_by_class"):
         if generator_registry is None:
-            from dataset_variant_registry import load_generator_registry  # noqa: PLC0415
-            generator_registry = load_generator_registry(root)
+            generator_registry = json.loads((root / "configs/generator_registry.json").read_text())
         entry = next((g for g in generator_registry["generators"] if g["id"] == gid), None)
         if entry is None:
             raise ValueError(f"generator {gid} referenced by variant {variant['dataset_variant_id']} not found in registry")
@@ -315,6 +334,7 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
     validation_signature = validation_manifest_signature(root, val_rows)
     combined_signature = hashlib.sha256(json.dumps({
         "training_signature": training_signature, "validation_signature": validation_signature,
+        "approved_generator_signature": variant.get("approved_generator_signature"),
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     manifest_payload = {
         "schema_version": 3,
@@ -325,6 +345,7 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
         "signature": combined_signature,
         "training_signature": training_signature,
         "validation_signature": validation_signature,
+        "approved_generator_signature": variant.get("approved_generator_signature"),
         "files": file_list,
         "train_patient_ids": sorted(train_patients),
         "validation_patient_ids": sorted(val_patients),

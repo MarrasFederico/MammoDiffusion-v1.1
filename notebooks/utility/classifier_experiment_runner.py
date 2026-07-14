@@ -1,7 +1,7 @@
-"""Executable train/validation pipeline for one classifier matrix seed.
+"""Executable train/validation pipeline for one of the 24 downstream jobs.
 
-The normal runner never exposes locked-test data.  The same functions are called by generated
-notebooks and by the GPU scheduler, so both paths create identical artifacts.
+The runner never exposes locked-test data and uses only a per-experiment process claim. GPU
+assignment is controlled by the thin CLI wrapper, not by a cluster scheduler.
 """
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ import os
 import signal
 import sys
 import csv
-import copy
 import inspect
 import math
+import platform
 import time
 from pathlib import Path
 
@@ -28,7 +28,7 @@ from classifier_pipeline_contracts import (  # noqa: E402
     PIPELINE_NAMESPACE, REQUIRED_SEEDS, code_revision, sha256_file, signed_payload, value_signature,
     verify_signed_payload,
 )
-from dataset_variant_registry import load_classifier_registry  # noqa: E402
+from downstream_protocol import resolve_job as resolve_protocol_job  # noqa: E402
 
 MODES = ("plan", "auto", "train", "validate", "locked-test", "metrics-only")
 SEEDS = (17, 42, 73)
@@ -75,44 +75,11 @@ def _retryable_failure(exc: BaseException) -> bool:
         any(token in message for token in transient_tokens)
 
 
-def load_dataset_variant_registry(root: Path) -> dict:
-    payload = json.loads((root / "configs/dataset_variant_registry.json").read_text())
-    matrix_path = root / "configs/classifier_experiment_matrix.json"
-    if matrix_path.is_file() and json.loads(matrix_path.read_text()).get("pipeline_namespace") == PIPELINE_NAMESPACE \
-       and payload.get("pipeline_namespace") != PIPELINE_NAMESPACE:
-        raise ValueError("legacy dataset registry cannot be used by classifier-matrix v2")
-    return payload
-
-
-def load_training_protocols(root: Path) -> dict:
-    payload = json.loads((root / "configs/classifier_training_protocols.json").read_text())
-    matrix_path = root / "configs/classifier_experiment_matrix.json"
-    if matrix_path.is_file() and json.loads(matrix_path.read_text()).get("pipeline_namespace") == PIPELINE_NAMESPACE \
-       and payload.get("pipeline_namespace") != PIPELINE_NAMESPACE:
-        raise ValueError("legacy training protocols cannot be used by classifier-matrix v2")
-    return payload
-
-
 def resolve_job(root: Path, architecture: str, dataset_variant_id: str, seed: int) -> dict:
-    variants = {v["dataset_variant_id"]: v for v in load_dataset_variant_registry(root)["variants"]}
-    variant = variants.get(dataset_variant_id)
-    if variant is None:
-        raise ValueError(f"unknown dataset_variant_id: {dataset_variant_id}")
-    protocols = load_training_protocols(root)["policies"]
-    if architecture not in protocols:
-        raise ValueError(f"unknown architecture policy: {architecture}")
-    if seed not in tuple(protocols[architecture].get("seeds", SEEDS)):
-        raise ValueError(f"seed {seed} is not registered for {architecture}")
-    policy = copy.deepcopy(protocols[architecture])
-    training_policy_name = f"{architecture}_standard"
+    resolved = resolve_protocol_job(root, architecture, dataset_variant_id, seed)
+    variant, policy = resolved["variant"], resolved["policy"]
+    training_policy_name = resolved["training_policy_name"]
     run = ckio.run_dir(root, architecture, dataset_variant_id, training_policy_name, seed)
-    override = run / "oom_override.json"
-    if override.is_file():
-        payload = json.loads(override.read_text())
-        policy["physical_batch_size"] = int(payload["physical_batch_size"])
-        policy["gradient_accumulation_steps"] = int(payload["gradient_accumulation_steps"])
-        if policy["physical_batch_size"] * policy["gradient_accumulation_steps"] != policy["effective_batch_size"]:
-            raise RuntimeError("OOM override changes the registered effective batch")
     results = ckio.results_dir(root, architecture, dataset_variant_id, training_policy_name, seed)
     return {"variant": variant, "policy": policy, "training_policy_name": training_policy_name,
             "run_dir": run, "results_dir": results}
@@ -125,8 +92,7 @@ def plan(root: Path, architecture: str, dataset_variant_id: str, seed: int) -> d
         return {"action": "error", "reason": f"dataset_variant {dataset_variant_id} is {variant.get('status')}: "
                 f"{variant.get('blocker') or variant.get('invalid_reason')}"}
     state = manifest.reconstruct_state(run, policy["framework"])
-    # Definitive v2 policy: all matrix seeds are trained homogeneously from scratch.  Legacy
-    # artifacts remain historical baselines and are never copied into seed 17/42/73 runs.
+    # All seeds use the fixed publication protocol. Historical V1 checkpoints are never copied.
     legacy_id = None
     if state["state"] in ("FAILED_FINAL", "BLOCKED", "INVALIDATED"):
         action = "blocked_terminal"
@@ -171,30 +137,6 @@ def _write_checkpoint_metadata(job, architecture, dataset_variant_id, seed, chec
     )
 
 
-def _legacy_entry(root, alias):
-    registry = load_classifier_registry(root)
-    return next((entry for entry in registry.get("experiments", []) if entry["experiment_id"] == alias), None)
-
-
-def import_legacy_checkpoint(root, job, architecture, dataset_variant_id, seed, adapter, alias, dataset_payload):
-    entry = _legacy_entry(root, alias)
-    if not entry or not entry.get("checkpoint_path"):
-        raise RuntimeError(f"legacy alias {alias} has no checkpoint path")
-    source = root / entry["checkpoint_path"]
-    if not source.is_file():
-        raise RuntimeError(f"legacy checkpoint is missing: {source}")
-    destination = ckio.checkpoint_path(job["run_dir"], job["policy"]["framework"])
-    model = adapter.load_checkpoint(source, strict=True)
-    adapter.save_checkpoint(model, destination)
-    _write_checkpoint_metadata(job, architecture, dataset_variant_id, seed, destination, dataset_payload)
-    _atomic_json(job["run_dir"] / "legacy_import_manifest.json", {
-        "schema_version": 1, "legacy_experiment_id": alias,
-        "source_signature": ckio.checkpoint_signature(source),
-        "normalized_checkpoint_signature": ckio.checkpoint_signature(destination),
-    })
-    return destination
-
-
 def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int, train_fn=None,
               adapter=None, dataset_bundle=None, tiny=False, allow_retrain=False, resume=True) -> dict:
     job = resolve_job(root, architecture, dataset_variant_id, seed)
@@ -226,7 +168,11 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
             train_rows, validation_rows, dataset_payload = _dataset_bundle(root, job, dataset_bundle)
         experiment = ckio.experiment_id(architecture, dataset_variant_id, seed)
         config_signature = _signature(job["policy"])
-        from classifier_gpu_gate import environment_signature
+        environment_signature = {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+        }
         _atomic_json(run / "run_metadata.json", _signed_artifact("classifier_run_metadata",
             experiment_id=experiment, architecture=architecture, dataset_variant_id=dataset_variant_id,
             training_policy=job["training_policy_name"], seed=int(seed), code_revision=code_revision(root)))
@@ -235,7 +181,7 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
             dataset_signature=dataset_payload["signature"],
             validation_signature=dataset_payload.get("validation_signature", dataset_payload["signature"])))
         _atomic_json(run / "environment_manifest.json", _signed_artifact("classifier_environment",
-            experiment_id=experiment, environment_signature=environment_signature(job["policy"]),
+            experiment_id=experiment, environment_signature=environment_signature,
             code_revision=code_revision(root)))
         adapter = adapter or get_adapter(architecture, job["policy"], root, tiny=tiny)
         checkpoint = ckio.checkpoint_path(run, job["policy"]["framework"])
@@ -268,7 +214,7 @@ def run_train(root: Path, architecture: str, dataset_variant_id: str, seed: int,
         _atomic_json(job["results_dir"] / "resource_usage.json", _signed_artifact("classifier_resource_usage",
             experiment_id=experiment, elapsed_seconds=time.time() - started_at,
             gpu_metrics_available=False, gpu_metrics=None,
-            note="GPU peak metrics are supplied by the signed scheduler/profile artifacts"))
+            note="Peak GPU metrics are optional runtime metadata; no scheduler certificate is required."))
         manifest.write_state(run, "TRAINED", checkpoint=str(checkpoint))
         return {"status": "trained", "checkpoint": str(checkpoint)}
     except TrainingInterrupted as exc:
@@ -365,7 +311,7 @@ def run_validate(root: Path, architecture: str, dataset_variant_id: str, seed: i
 
 def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: str) -> dict:
     import classifier_metrics as metrics
-    policy_name = f"{architecture}_standard"
+    policy_name = f"{architecture}_fixed_protocol"
     payloads, source_signatures = [], []
     common_validation_signature = common_dataset_signature = None
     canonical_by_seed = []
@@ -381,8 +327,8 @@ def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: s
                     "split": "validation"}
         mismatches = {key: (payload.get(key), value) for key, value in expected.items() if payload.get(key) != value}
         if mismatches: raise RuntimeError(f"seed {seed} validation artifact mismatch: {mismatches}")
-        verified, reason = ckio.checkpoint_is_verified(run, json.loads(
-            (root / "configs/classifier_training_protocols.json").read_text())["policies"][architecture]["framework"], {
+        framework = json.loads((root / "configs/downstream_classifier_protocol.json").read_text())["architectures"][architecture]["framework"]
+        verified, reason = ckio.checkpoint_is_verified(run, framework, {
                 "architecture": architecture, "dataset_variant_id": dataset_variant_id,
                 "training_policy": policy_name, "seed": int(seed)})
         if not verified: raise RuntimeError(f"seed {seed} checkpoint is not verified: {reason}")
@@ -431,7 +377,7 @@ def build_ensemble_if_ready(root: Path, architecture: str, dataset_variant_id: s
         "dataset_signature": common_dataset_signature, "validation_signature": common_validation_signature,
         "source_artifacts": source_signatures, "test_access": False,
     })
-    ensemble_dir = root / "results/classifiers_matrix" / architecture / dataset_variant_id / policy_name / "ensemble"
+    ensemble_dir = root / "results/downstream_classifiers" / architecture / dataset_variant_id / policy_name / "ensemble"
     out = ensemble_dir / "manifests/ensemble_validation_manifest.json"
     if out.is_file():
         try:
@@ -489,11 +435,7 @@ def run_auto(root: Path, architecture: str, dataset_variant_id: str, seed: int, 
         return {"status": "blocked_terminal_requires_explicit_reset", **current}
     job = resolve_job(root, architecture, dataset_variant_id, seed)
     adapter = adapter or get_adapter(architecture, job["policy"], root, tiny=tiny)
-    if current["action"] == "reuse_legacy_checkpoint":
-        _, _, dataset_payload = _dataset_bundle(root, job, dataset_bundle)
-        import_legacy_checkpoint(root, job, architecture, dataset_variant_id, seed, adapter,
-                                 current["legacy_checkpoint_alias"], dataset_payload)
-    elif current["action"] in ("train", "resume_training"):
+    if current["action"] in ("train", "resume_training"):
         trained = run_train(root, architecture, dataset_variant_id, seed, adapter=adapter,
                             dataset_bundle=dataset_bundle, tiny=tiny, allow_retrain=allow_retrain, resume=resume)
         if trained.get("status") in ("interrupted_resumable", "resume_disabled"):

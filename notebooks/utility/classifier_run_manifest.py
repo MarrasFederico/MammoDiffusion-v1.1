@@ -1,4 +1,4 @@
-"""State machine + atomic locking for classifier experiment matrix jobs (spec section 9).
+"""State reconstruction and a single-process lock for downstream classifier jobs.
 
 State is always reconstructible from on-disk artifacts (checkpoint, validation predictions,
 metrics files) — the manifest file is a cache of that reconstruction, never the sole truth.
@@ -32,7 +32,7 @@ def write_state(run: Path, state: str, *, explicit_reset: bool = False, **fields
     previous_manifest = read_manifest(run)
     previous = previous_manifest.get("state", "PENDING") if previous_manifest else "PENDING"
     require_transition(previous, state, explicit_reset=explicit_reset)
-    payload = signed_payload({"schema_version": 2, "pipeline_namespace": "mammodiffusion.classifier_matrix.v2",
+    payload = signed_payload({"schema_version": 2, "pipeline_namespace": "mammodiffusion.downstream_validation.v1",
                "state": state, "previous_state": previous, "updated_at": time.time(), **fields}
     )
     _atomic_write(manifest_path(run), payload)
@@ -73,11 +73,11 @@ def reconstruct_state(run: Path, framework: str) -> dict:
     expected = None
     strict_v2 = False
     for parent in run.parents:
-        matrix_path = parent / "configs/classifier_experiment_matrix.json"
+        matrix_path = parent / "configs/downstream_classifier_jobs.json"
         if matrix_path.is_file():
             try:
                 strict_v2 = json.loads(matrix_path.read_text()).get("pipeline_namespace") == \
-                    "mammodiffusion.classifier_matrix.v2"
+                    "mammodiffusion.downstream_validation.v1"
             except (OSError, json.JSONDecodeError):
                 strict_v2 = False
             break

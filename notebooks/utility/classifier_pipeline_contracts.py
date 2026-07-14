@@ -1,4 +1,4 @@
-"""Shared, dependency-free contracts for the classifier-matrix v2 lifecycle.
+"""Shared, dependency-free contracts for the compact downstream lifecycle.
 
 This module is intentionally safe to import in static preflight and status commands: it never
 imports a ML framework, opens the locked test split, or creates runtime directories.
@@ -12,10 +12,10 @@ import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
-PIPELINE_NAMESPACE = "mammodiffusion.classifier_matrix.v2"
+PIPELINE_NAMESPACE = "mammodiffusion.downstream_validation.v1"
 CONTRACT_SCHEMA_VERSION = 2
 REQUIRED_SEEDS = (17, 42, 73)
-ARCHITECTURES = ("resnet50", "maxvit512", "mammofm", "raddino")
+ARCHITECTURES = ("maxvit512", "mammofm")
 
 STATES = (
     "PENDING", "ADMITTED", "CLAIMED", "RUNNING", "INTERRUPTED_RESUMABLE",
@@ -77,7 +77,7 @@ def signed_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
 def verify_signed_payload(payload: Mapping[str, Any], *, namespace: str = PIPELINE_NAMESPACE,
                           schema_version: int = CONTRACT_SCHEMA_VERSION) -> None:
     if payload.get("pipeline_namespace") != namespace:
-        raise ValueError("artifact is not in the classifier-matrix v2 namespace")
+        raise ValueError("artifact is not in the downstream-validation namespace")
     if int(payload.get("schema_version", -1)) != schema_version:
         raise ValueError(f"unsupported classifier artifact schema: {payload.get('schema_version')}")
     signature = payload.get("signature")
@@ -130,31 +130,31 @@ def atomic_json(path: Path, payload: Any) -> Path:
     return path
 
 
-def validate_matrix(payload: Mapping[str, Any], *, expected_stage1_jobs: int | None = None) -> list[dict]:
+def validate_matrix(payload: Mapping[str, Any], *, expected_jobs: int | None = 24) -> list[dict]:
     if int(payload.get("schema_version", -1)) not in (1, 2):
-        raise ValueError("unsupported classifier matrix schema")
+        raise ValueError("unsupported downstream job schema")
     if payload.get("pipeline_namespace") not in (None, PIPELINE_NAMESPACE):
-        raise ValueError("legacy/foreign matrix cannot be used by classifier-matrix v2")
+        raise ValueError("foreign job inventory cannot be used by downstream validation")
     jobs = payload.get("jobs")
     if not isinstance(jobs, list):
-        raise ValueError("classifier matrix jobs must be a list")
+        raise ValueError("downstream jobs must be a list")
     ids, scientific_keys = set(), set()
     for job in jobs:
-        required = {"experiment_id", "stage", "architecture", "dataset_variant_id", "training_policy", "seed", "status"}
+        required = {"experiment_id", "architecture", "condition", "seed", "status"}
         missing = required - set(job)
         if missing:
-            raise ValueError(f"matrix job lacks fields: {sorted(missing)}")
+            raise ValueError(f"downstream job lacks fields: {sorted(missing)}")
         if job["architecture"] not in ARCHITECTURES or int(job["seed"]) not in REQUIRED_SEEDS:
             raise ValueError(f"invalid architecture/seed in {job['experiment_id']}")
         if job["experiment_id"] in ids:
             raise ValueError(f"duplicate experiment_id: {job['experiment_id']}")
-        key = (int(job["stage"]), job["architecture"], job["dataset_variant_id"], int(job["seed"]))
+        key = (job["architecture"], job["condition"], int(job["seed"]))
         if key in scientific_keys:
             raise ValueError(f"duplicate scientific job key: {key}")
         canonical_state(job["status"])
         ids.add(job["experiment_id"]); scientific_keys.add(key)
-    if expected_stage1_jobs is not None and sum(int(job["stage"]) == 1 for job in jobs) != expected_stage1_jobs:
-        raise ValueError(f"Stage 1 matrix must contain exactly {expected_stage1_jobs} jobs")
+    if expected_jobs is not None and len(jobs) != expected_jobs:
+        raise ValueError(f"downstream protocol must contain exactly {expected_jobs} jobs")
     return jobs
 
 

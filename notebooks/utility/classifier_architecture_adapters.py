@@ -15,7 +15,7 @@ import numpy as np
 from pathlib import Path
 
 
-ARCHITECTURES = ("resnet50", "maxvit512", "mammofm", "raddino")
+ARCHITECTURES = ("maxvit512", "mammofm")
 
 
 class TransitionCheckpointReady(RuntimeError):
@@ -129,8 +129,10 @@ class TinyAdapter:
         return {"labels": labels, "probabilities": probs,
                 "sample_ids": [row.get("image_id", str(i)) for i, row in enumerate(validation_rows)]}
 
-    def predict_locked_test(self, *_args, **_kwargs):
-        raise PermissionError("locked test is not available through classifier adapters")
+    def predict_locked_test(self, checkpoint_path, test_rows, *, lock_verified=False, **kwargs):
+        if not lock_verified:
+            raise PermissionError("a verified downstream test lock is required")
+        return self.predict_validation(checkpoint_path, test_rows, **kwargs)
 
     def estimate_memory_profile(self, **_):
         return {"mode": "tiny", "estimated_peak_mb": 32}
@@ -268,7 +270,7 @@ class ArchitectureAdapter:
         if context.get("run_dir"):
             # Mirror the run layout under results while keeping checkpoints operational-only.
             project_root = self.root
-            results_dir = (project_root / "results/classifiers_matrix" / self.architecture /
+            results_dir = (project_root / "results/downstream_classifiers" / self.architecture /
                            context["dataset_variant_id"] / context["training_policy"] / f"seed_{seed}")
             results_dir.mkdir(parents=True, exist_ok=True)
             if self.architecture == "resnet50":
@@ -558,8 +560,10 @@ class ArchitectureAdapter:
         return {"labels": labels, "probabilities": probabilities,
                 "sample_ids": [row.get("image_id", str(i)) for i, row in enumerate(validation_rows)]}
 
-    def predict_locked_test(self, *_args, **_kwargs):
-        raise PermissionError("locked test is not available through the normal classifier runner")
+    def predict_locked_test(self, checkpoint_path, test_rows, *, lock_verified=False, **kwargs):
+        if not lock_verified:
+            raise PermissionError("a verified downstream test lock is required")
+        return self.predict_validation(checkpoint_path, test_rows, **kwargs)
 
     def estimate_memory_profile(self, **_):
         return {"resource_profile": self.policy.get("expected_vram_profile"),

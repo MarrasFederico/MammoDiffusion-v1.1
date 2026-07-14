@@ -1,4 +1,4 @@
-"""Validation/test metric suite for the classifier experiment matrix.
+"""Validation/test metric suite for compact downstream classification.
 
 Implemented with numpy + stdlib only (no scipy/sklearn/statsmodels) so it can be imported and
 unit-tested in the lightweight `base` conda env, matching this project's existing convention of
@@ -107,6 +107,23 @@ def expected_calibration_error(labels: Sequence[int], probabilities: Sequence[fl
     return float(ece)
 
 
+def sensitivity_at_fixed_specificity(labels: Sequence[int], probabilities: Sequence[float],
+                                     target_specificity: float = 0.90) -> dict:
+    """Highest sensitivity among thresholds meeting the preregistered specificity target."""
+    y, p = _as_array(labels), _as_array(probabilities)
+    candidates = np.unique(np.concatenate(([1.0 + np.finfo(float).eps], p)))
+    feasible = []
+    for threshold in candidates:
+        counts = confusion_counts(y, p, float(threshold))
+        sensitivity = counts["tp"] / (counts["tp"] + counts["fn"]) if counts["tp"] + counts["fn"] else 0.0
+        specificity = counts["tn"] / (counts["tn"] + counts["fp"]) if counts["tn"] + counts["fp"] else 0.0
+        if specificity >= target_specificity:
+            feasible.append((sensitivity, specificity, float(threshold)))
+    sensitivity, specificity, threshold = max(feasible, default=(0.0, 1.0, 1.0), key=lambda row: (row[0], row[1], row[2]))
+    return {"target_specificity": target_specificity, "sensitivity": sensitivity,
+            "achieved_specificity": specificity, "threshold": threshold}
+
+
 def metrics_at_threshold(labels: Sequence[int], probabilities: Sequence[float], threshold: float) -> dict:
     c = confusion_counts(labels, probabilities, threshold)
     tp, tn, fp, fn = c["tp"], c["tn"], c["fp"], c["fn"]
@@ -137,6 +154,7 @@ def full_report(labels: Sequence[int], probabilities: Sequence[float], threshold
     report["pr_auc"] = pr_auc(labels, probabilities)
     report["brier_score"] = brier_score(labels, probabilities)
     report["ece"] = expected_calibration_error(labels, probabilities)
+    report["sensitivity_at_specificity_0_90"] = sensitivity_at_fixed_specificity(labels, probabilities, 0.90)
     return report
 
 

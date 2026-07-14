@@ -22,6 +22,26 @@ class TransitionCheckpointReady(RuntimeError):
     """Test seam used to emulate a process exit immediately after the durable TF transition."""
 
 
+class _FixedBatchLoader:
+    """Repeat a loader deterministically so every condition validates after the same update budget."""
+
+    def __init__(self, loader, batch_count):
+        self.loader, self.batch_count = loader, int(batch_count)
+
+    def __len__(self):
+        return self.batch_count
+
+    def __iter__(self):
+        emitted = 0
+        while emitted < self.batch_count:
+            cycle_count = 0
+            for batch in self.loader:
+                yield batch
+                emitted += 1; cycle_count += 1
+                if emitted >= self.batch_count: return
+            if cycle_count == 0: raise RuntimeError("training loader is empty")
+
+
 def _pytorch_resume_position(payload: dict) -> tuple[int, int]:
     """Safe restart policy when the local DataLoader generator was not checkpointed."""
     return int(payload["epoch"]), 0
@@ -104,12 +124,12 @@ class TinyAdapter:
         if context.get("run_dir"):
             expected = {key: context[key] for key in ("architecture", "experiment_id", "dataset_variant_id",
                         "training_policy", "config_signature", "dataset_signature")}; expected["seed"] = int(seed)
-            prior, source = ckio.load_resume_checkpoint(Path(context["run_dir"]), expected)
+            prior, source = ckio.load_resume_checkpoint(Path(context["run_dir"]), expected) if context.get("resume", True) else (None, "resume disabled")
             global_step = int((prior or {}).get("global_step", 0)) + 1
             ckio.save_resume_checkpoint(Path(context["run_dir"]), {**expected, "model_state_dict": model,
                 "optimizer_state_dict": {"step": global_step}, "scheduler_state_dict": {"step": global_step},
                 "scaler_state_dict": None, "epoch": global_step, "batch_index": -1, "global_step": global_step,
-                "best_metric": prevalence, "best_epoch": global_step, "early_stopping_counter": 0,
+                "checkpoint_metric": "val_pr_auc", "best_metric": prevalence, "best_epoch": global_step, "early_stopping_counter": 0,
                 "history": {"loss": [0.0]}, "rng_states": {"python": random.getstate()},
                 "resume_segment_id": f"tiny-{global_step}"}, best=True)
         self.save_checkpoint(model, checkpoint_path)
@@ -240,10 +260,9 @@ class ArchitectureAdapter:
         return True, "compatible"
 
     def _epochs(self, train_size):
-        batches = max(1, math.ceil(train_size / int(self.policy["physical_batch_size"])))
-        accumulation = int(self.policy.get("gradient_accumulation_steps", 1))
         return min(int(self.policy.get("max_epochs_secondary_limit", 60)),
-                   max(1, math.ceil(int(self.policy["max_optimizer_updates"]) * accumulation / batches)))
+                   max(1, math.ceil(int(self.policy["max_optimizer_updates"]) /
+                                    int(self.policy["validation_interval_updates"]))))
 
     def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **context):
         import classifier_checkpoint_io as ckio
@@ -252,7 +271,7 @@ class ArchitectureAdapter:
             "architecture", "experiment_id", "dataset_variant_id", "training_policy",
             "config_signature", "dataset_signature")}
         expected["seed"] = int(seed)
-        resume, resume_source = ckio.load_resume_checkpoint(run_dir, expected)
+        resume, resume_source = ckio.load_resume_checkpoint(run_dir, expected) if context.get("resume", True) else (None, "resume disabled")
         if resume is None and resume_source != "no resume checkpoint":
             # A resume file existed (checkpoint_latest and/or checkpoint_previous) but every
             # one was corrupted or scientifically incompatible - silently falling through to
@@ -281,6 +300,8 @@ class ArchitectureAdapter:
             (results_dir / "model_architecture.json").write_text(json.dumps({"architecture":self.architecture,"parameters":params,
                 "trainable_before_policy":trainable,"input_size":self.policy["input_size"]},indent=2)+"\n")
         train_loader, val_loader = self.build_train_dataloaders(train_rows, validation_rows, seed)
+        accumulation = int(self.policy.get("gradient_accumulation_steps", 1))
+        train_loader = _FixedBatchLoader(train_loader, int(self.policy["validation_interval_updates"]) * accumulation)
         epochs = self._epochs(len(train_rows))
         best_epoch = None
         if self.architecture == "resnet50":
@@ -352,7 +373,7 @@ class ArchitectureAdapter:
                     return {**expected, "model_state": model.get_weights(), "optimizer_state": [v.numpy() for v in self.optimizer.variables],
                             "scheduler_state": scheduler_state, "scaler_state": None, "phase": self.phase,
                             "epoch": int(self.epoch), "batch_index": int(batch), "global_step": self.global_step,
-                            "best_metric": self.best, "best_epoch": self.best_epoch, "early_stopping_counter": self.wait,
+                            "checkpoint_metric": "val_pr_auc", "best_metric": self.best, "best_epoch": self.best_epoch, "early_stopping_counter": self.wait,
                             "history": self.history, "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "tensorflow": tf_rng},
                             "resume_segment_id": hashlib.sha256(os.urandom(16)).hexdigest()[:16]}
                 def on_train_batch_end(self, batch, logs=None):
@@ -494,7 +515,7 @@ class ArchitectureAdapter:
                 payload = {**expected, "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(), "scaler_state_dict": scaler.state_dict() if scaler else None,
                     "epoch": epoch, "batch_index": batch, "global_step": step,
-                    "best_metric": getattr(early, "best", None),
+                    "checkpoint_metric": "val_pr_auc", "best_metric": getattr(early, "best", None),
                     "best_validation_loss": getattr(early, "best_secondary", None),
                     "best_epoch": current["best_epoch"] if best_epoch is None else best_epoch,
                     "early_stopping_counter": getattr(early, "wait", 0), "history": history or {},
@@ -513,6 +534,8 @@ class ArchitectureAdapter:
                 if step % interval == 0: save_torch(step, batch)
             def epoch_end(epoch, step, _scaler, hist, metrics, improved):
                 current["epoch"] = epoch
+                hist.history.setdefault("learning_rate", []).append(float(optimizer.param_groups[0]["lr"]))
+                hist.history.setdefault("optimizer_steps", []).append(int(step))
                 current["history"] = hist.history
                 if improved: current["best_epoch"] = epoch
                 scheduler.step(metrics["pr_auc"])

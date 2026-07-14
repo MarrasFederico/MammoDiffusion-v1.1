@@ -14,7 +14,7 @@
       "weight_decay": 0.01, "scheduler": "ReduceLROnPlateau",
       "scheduler_params": {"monitor": "val_pr_auc", "mode": "max", "factor": 0.5, "patience": 3, "min_lr": 1e-07},
       "warmup_updates": 200, "physical_batch_size": 8, "gradient_accumulation_steps": 2, "effective_batch_size": 16,
-      "amp": true, "gradient_clipping": 1.0, "max_optimizer_updates": 6400, "checkpoint_interval_updates": 250,
+      "amp": true, "gradient_clipping": 1.0, "max_optimizer_updates": 6400, "validation_interval_updates": 250, "checkpoint_interval_updates": 250,
       "max_epochs_secondary_limit": 60,
       "early_stopping": {"monitor": "val_pr_auc", "mode": "max", "patience": 10, "restore_best_weights": true},
       "checkpoint_criterion": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",
@@ -29,7 +29,7 @@
       "weight_decay": 0.01, "scheduler": "ReduceLROnPlateau",
       "scheduler_params": {"monitor": "val_pr_auc", "mode": "max", "factor": 0.5, "patience": 3, "min_lr": 1e-07},
       "warmup_updates": 200, "physical_batch_size": 8, "gradient_accumulation_steps": 2, "effective_batch_size": 16,
-      "amp": true, "gradient_clipping": 1.0, "max_optimizer_updates": 6400, "checkpoint_interval_updates": 250,
+      "amp": true, "gradient_clipping": 1.0, "max_optimizer_updates": 6400, "validation_interval_updates": 250, "checkpoint_interval_updates": 250,
       "max_epochs_secondary_limit": 60,
       "early_stopping": {"monitor": "val_pr_auc", "mode": "max", "patience": 10, "restore_best_weights": true},
       "checkpoint_criterion": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",
@@ -45,7 +45,7 @@
   },
   "seeds": [17, 42, 73],
   "fairness": {
-    "training_budget_policy": "fixed_maximum_optimizer_updates", "maximum_optimizer_updates": 6400,
+    "training_budget_policy": "fixed_maximum_optimizer_updates", "maximum_optimizer_updates": 6400, "validation_interval_optimizer_updates": 250,
     "validation_manifest": "data/processed/metadata/val.csv", "primary_checkpoint_metric": "validation_pr_auc",
     "tie_break": ["minimum_validation_loss", "earliest_epoch"], "real_image_augmentation_policy": "identical_within_architecture",
     "source_accounting": ["samples_seen_by_source", "optimizer_steps", "effective_epochs_by_source"]

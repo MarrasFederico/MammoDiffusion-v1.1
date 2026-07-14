@@ -20,6 +20,7 @@ except ImportError:
     from downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
 
 PUBLICATION_RESULTS = Path("results/publication_v2/downstream")
+ENSEMBLE_RESULTS = Path("results/publication_v2/downstream_ensembles")
 
 
 def result_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
@@ -31,10 +32,18 @@ def discover_experiments(root: Path) -> list[dict[str, Any]]:
     output = []
     for job in logical_experiments():
         directory = result_dir(root, job["architecture"], job["condition"], job["seed"])
-        required = [directory / "configuration.json", directory / "dataset_summary.json",
-                    directory / "validation_predictions.csv", directory / "validation_metrics.json"]
-        output.append({**job, "directory": str(directory), "complete": all(path.is_file() for path in required),
-                       "missing": [path.name for path in required if not path.is_file()]})
+        configuration = directory / "configuration.json"; dataset = directory / "dataset_summary.json"
+        predictions = directory / "validation_predictions.csv"; validation_metrics = directory / "validation_metrics.json"
+        checkpoint = any(path.suffix in {".pt", ".pth", ".keras", ".h5"} for path in directory.glob("checkpoint_best.*"))
+        training_complete = configuration.is_file() and dataset.is_file() and checkpoint
+        output.append({**job, "directory": str(directory), "training complete": training_complete,
+                       "validation predictions present": predictions.is_file(),
+                       "validation metrics present": validation_metrics.is_file(), "checkpoint present": checkpoint,
+                       "complete": training_complete and predictions.is_file() and validation_metrics.is_file(),
+                       "missing": [name for name, present in (("configuration.json", configuration.is_file()),
+                                   ("dataset_summary.json", dataset.is_file()), ("checkpoint", checkpoint),
+                                   ("validation_predictions.csv", predictions.is_file()),
+                                   ("validation_metrics.json", validation_metrics.is_file())) if not present]})
     return output
 
 
@@ -56,7 +65,10 @@ def align_seed_predictions(per_seed_rows: Mapping[int, Sequence[Mapping[str, Any
     canonical = None
     for seed in SEEDS:
         rows = list(per_seed_rows[seed]); keys = [(row["patient_id"], row["image_id"], int(row["label"])) for row in rows]
+        if not rows: raise ValueError("seed predictions must not be empty")
         if len(keys) != len(set((p, i) for p, i, _ in keys)): raise ValueError("duplicate seed predictions")
+        if any(not math.isfinite(float(row["probability"])) or not 0 <= float(row["probability"]) <= 1 for row in rows):
+            raise ValueError("probabilities must be finite in [0, 1]")
         if canonical is None: canonical = keys
         elif keys != canonical: raise ValueError("seed predictions have missing or inconsistent keys/labels")
     return [{"patient_id": row["patient_id"], "image_id": row["image_id"], "label": int(row["label"]),
@@ -116,9 +128,10 @@ def build_validation_ensemble(root: Path, architecture: str, condition: str) -> 
     variability = {name: {"mean": mean(float(row[name]) for row in seed_reports),
                           "standard_deviation": stdev(float(row[name]) for row in seed_reports)}
                    for name in ("pr_auc", "roc_auc", "brier_score", "ece")}
-    output = Path(root) / PUBLICATION_RESULTS / "ensembles" / architecture / condition
-    _write_csv(output / "validation_predictions.csv", image_rows)
+    output = Path(root) / ENSEMBLE_RESULTS / architecture / condition
+    _write_csv(output / "ensemble_predictions.csv", image_rows)
     _write_csv(output / "patient_level_predictions.csv", patient_rows)
+    _write_csv(output / "seed_metrics.csv", seed_reports)
     payload = {"architecture": architecture, "condition": condition, "seeds": list(SEEDS),
                "method": "mean_probability", "metrics": report, "confidence_intervals": confidence_intervals,
                "seed_metrics": seed_reports,
@@ -140,8 +153,8 @@ def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None
     comparisons, p_values = [], {}
     for architecture in ARCHITECTURES:
         for left, right in protocol["evaluation"]["primary_comparisons_per_architecture"]:
-            left_rows = _read_patient_rows(Path(root) / PUBLICATION_RESULTS / "ensembles" / architecture / left / "patient_level_predictions.csv")
-            right_rows = _read_patient_rows(Path(root) / PUBLICATION_RESULTS / "ensembles" / architecture / right / "patient_level_predictions.csv")
+            left_rows = _read_patient_rows(Path(root) / ENSEMBLE_RESULTS / architecture / left / "patient_level_predictions.csv")
+            right_rows = _read_patient_rows(Path(root) / ENSEMBLE_RESULTS / architecture / right / "patient_level_predictions.csv")
             if [row["patient_id"] for row in left_rows] != [row["patient_id"] for row in right_rows]:
                 raise ValueError("patient alignment differs between conditions")
             labels = [row["label"] for row in left_rows]
@@ -159,6 +172,58 @@ def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None
     return payload
 
 
+def ensemble_metric_table(ensembles: Sequence[Mapping[str, Any]]):
+    import pandas as pd
+    rows = []
+    baseline = {(row["architecture"]): float(row["metrics"]["pr_auc"]) for row in ensembles
+                if row["condition"] == "real_only"}
+    for row in ensembles:
+        report = row["metrics"]; intervals = row["confidence_intervals"]
+        rows.append({"architecture": row["architecture"], "condition": row["condition"],
+                     "pr_auc": report["pr_auc"], "pr_auc_ci_low": intervals["pr_auc"]["percentile_2_5"],
+                     "pr_auc_ci_high": intervals["pr_auc"]["percentile_97_5"], "roc_auc": report["roc_auc"],
+                     "brier": report["brier_score"], "ece": report["ece"],
+                     "delta_pr_auc_vs_real_only": float(report["pr_auc"]) - baseline[row["architecture"]],
+                     "seed_pr_auc_mean": row["seed_variability"]["pr_auc"]["mean"],
+                     "seed_pr_auc_std": row["seed_variability"]["pr_auc"]["standard_deviation"]})
+    return pd.DataFrame(rows)
+
+
+def plot_ensemble_overview(ensembles: Sequence[Mapping[str, Any]]):
+    import matplotlib.pyplot as plt
+    table = ensemble_metric_table(ensembles)
+    if len(table) != 8: raise ValueError("exactly eight logical ensembles are required")
+    figure, axes = plt.subplots(1, 2, figsize=(14, 5))
+    labels = [f"{row.architecture}\n{row.condition}" for row in table.itertuples()]
+    lower = table["pr_auc"] - table["pr_auc_ci_low"]; upper = table["pr_auc_ci_high"] - table["pr_auc"]
+    axes[0].errorbar(range(8), table["pr_auc"], yerr=[lower, upper], fmt="o"); axes[0].set_xticks(range(8), labels, rotation=90); axes[0].set_title("Validation PR-AUC with intervals")
+    heat = table.pivot(index="architecture", columns="condition", values="pr_auc")
+    image = axes[1].imshow(heat.values, aspect="auto", cmap="viridis"); axes[1].set_xticks(range(len(heat.columns)), heat.columns, rotation=90); axes[1].set_yticks(range(len(heat.index)), heat.index); axes[1].set_title("Architecture × condition PR-AUC"); figure.colorbar(image, ax=axes[1])
+    figure.tight_layout(); return figure
+
+
+def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]]):
+    import matplotlib.pyplot as plt
+    figure, axes = plt.subplots(2, 3, figsize=(16, 10))
+    for row in ensembles:
+        path = Path(root) / ENSEMBLE_RESULTS / row["architecture"] / row["condition"] / "patient_level_predictions.csv"
+        values = _read_patient_rows(path); labels = np.asarray([item["label"] for item in values]); probabilities = np.asarray([item["probability"] for item in values])
+        order = np.argsort(-probabilities); ordered = labels[order]; tp, fp = np.cumsum(ordered == 1), np.cumsum(ordered == 0)
+        recall = tp / max(1, int((labels == 1).sum())); precision = tp / np.maximum(tp + fp, 1); fpr = fp / max(1, int((labels == 0).sum()))
+        arch_index = 0 if row["architecture"] == ARCHITECTURES[0] else 1; label = row["condition"]
+        axes[arch_index, 0].plot(recall, precision, label=label); axes[arch_index, 1].plot(fpr, recall, label=label)
+        edges = np.linspace(0, 1, 6); observed, predicted = [], []
+        for low, high in zip(edges[:-1], edges[1:]):
+            mask = (probabilities >= low) & (probabilities <= high if high == 1 else probabilities < high)
+            if mask.any(): predicted.append(float(probabilities[mask].mean())); observed.append(float(labels[mask].mean()))
+        axes[arch_index, 2].plot(predicted, observed, marker="o", label=label)
+    for index, architecture in enumerate(ARCHITECTURES):
+        axes[index, 0].set_title(f"{architecture} validation PR curves"); axes[index, 1].set_title(f"{architecture} validation ROC curves"); axes[index, 2].set_title(f"{architecture} validation calibration")
+        axes[index, 2].plot([0, 1], [0, 1], "--", color="black")
+        for axis in axes[index]: axis.legend(fontsize=7)
+    figure.tight_layout(); return figure
+
+
 def _read_patient_rows(path: Path) -> list[dict[str, Any]]:
     with path.open(newline="", encoding="utf-8") as stream:
         return [{"patient_id": row["patient_id"], "label": int(row["label"]),
@@ -172,5 +237,6 @@ def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> Path:
     return path
 
 
-__all__ = ["PUBLICATION_RESULTS", "aggregate_patient", "align_seed_predictions", "build_all_validation_ensembles",
-           "build_validation_ensemble", "compare_validation", "discover_experiments", "result_dir"]
+__all__ = ["ENSEMBLE_RESULTS", "PUBLICATION_RESULTS", "aggregate_patient", "align_seed_predictions", "build_all_validation_ensembles",
+           "build_validation_ensemble", "compare_validation", "discover_experiments", "ensemble_metric_table",
+           "plot_ensemble_curves", "plot_ensemble_overview", "result_dir"]

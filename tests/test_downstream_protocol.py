@@ -54,8 +54,12 @@ class DownstreamProtocolTests(unittest.TestCase):
             configuration = {"policy": protocol["architectures"][architecture]}
             budget = training_budget(configuration)
             self.assertEqual(budget["max_optimizer_updates"], protocol["fairness"]["maximum_optimizer_updates"])
+            self.assertEqual(budget["validation_interval"], protocol["fairness"]["validation_interval_optimizer_updates"])
             self.assertEqual(budget["checkpoint_metric"], protocol["architectures"][architecture]["checkpoint_criterion"])
             self.assertEqual(budget["validation_manifest"], protocol["fairness"]["validation_manifest"])
+            self.assertEqual(budget["effective_batch_size"], 16)
+            self.assertEqual(budget["lr_schedule"], "ReduceLROnPlateau")
+            self.assertEqual(budget["early_stopping_policy"]["monitor"], "val_pr_auc")
 
     def test_duplicate_job_is_rejected(self):
         payload = json.loads((ROOT / "configs/downstream_classifier_jobs.json").read_text())

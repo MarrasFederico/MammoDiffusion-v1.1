@@ -69,6 +69,8 @@ class PublicationRepositoryTests(unittest.TestCase):
         self.assertFalse((ROOT / "configs/selected_generators.json").exists())
 
     def test_no_tracked_model_cache_or_archive_artifacts(self):
+        if not (ROOT / ".git").exists():
+            self.skipTest("Git metadata unavailable in source archive")
         tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.splitlines()
         forbidden = (".pt", ".pth", ".ckpt", ".keras", ".h5", ".safetensors", ".zip", ".tar.gz", ".tgz", ".pyc", ".pyo")
         self.assertEqual([path for path in tracked if path.endswith(forbidden)], [])

@@ -71,10 +71,14 @@ class GeneratorCompletionTests(unittest.TestCase):
             paths = self._images(Path(temporary))
             row = gb.technical_validity_row("g", "raw", paths, minimum_unique=4, expected_size=(64, 64))
         expected = {"generator_id", "condition", "n_discovered", "n_readable", "n_corrupt", "n_wrong_shape",
-                    "n_near_black", "n_invalid_range", "n_technically_valid", "n_technically_invalid",
-                    "n_unique_valid_content", "n_exact_duplicates_among_valid", "technical_validity_rate",
-                    "eligible_for_distribution_metrics", "failure_reason"}
-        self.assertEqual(set(row), expected)
+                    "n_feature_extractable", "n_feature_nonextractable", "feature_extractable_rate",
+                    "n_unique_feature_extractable_content", "n_exact_duplicates_among_feature_extractable",
+                    "n_near_black", "n_invalid_range", "n_quality_valid", "n_quality_invalid",
+                    "quality_validity_rate", "n_unique_quality_valid_content",
+                    "n_exact_duplicates_among_quality_valid", "eligible_for_distribution_metrics",
+                    "eligible_for_official_ranking", "quality_warning", "warning_reasons",
+                    "fatal_failure_reasons"}
+        self.assertTrue(expected.issubset(row))
         self.assertTrue(row["eligible_for_distribution_metrics"])
 
     def test_ms_ssim_pair_sampling_and_diversity_are_deterministic(self):

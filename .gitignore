@@ -116,6 +116,8 @@ build/
 
 # Publication-v2 runtime data: keep configs, notebooks and selected small report assets tracked.
 results/publication_v2/generator_benchmark/embedding_cache/
+results/publication_v2/generator_benchmark/execution_config.json
+results/publication_v2/generator_benchmark/runs/
 # Per-image provenance contains dataset identifiers and paths. Keep it local;
 # publish only schema, compact index, small provenance JSON and documentary audit.
 results/publication_v2/generator_provenance/runtime/

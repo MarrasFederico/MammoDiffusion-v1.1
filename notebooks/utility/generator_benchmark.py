@@ -47,6 +47,18 @@ CANONICAL_OUTPUTS = (
 )
 
 
+class NonFiniteEmbeddingError(ValueError):
+    """A feature extractor produced non-finite values for explicit samples."""
+
+    def __init__(self, extractor: str, failures: Sequence[Mapping[str, Any]]):
+        self.extractor = str(extractor)
+        self.failures = [dict(row) for row in failures]
+        details = "; ".join(
+            f"{row['sample_id']} ({row['path']}): {row['cause']}" for row in self.failures
+        )
+        super().__init__(f"non-finite {self.extractor} embeddings: {details}")
+
+
 def atomic_json(path: Path, value: Any) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -81,6 +93,16 @@ def validate_protocol(protocol: Mapping[str, Any]) -> None:
         raise ValueError("synthetic_pool_target must exceed one")
     if tuple(protocol.get("representations", [])) != REPRESENTATIONS:
         raise ValueError("raw and filtered representations must be registered separately")
+    technical_policy = protocol.get("technical_validity_policy", {})
+    raw_policy, filtered_policy = technical_policy.get("raw", {}), technical_policy.get("filtered", {})
+    if raw_policy.get("near_black") != "warning_and_include" or \
+            raw_policy.get("constant_range") != "warning_and_include":
+        raise ValueError("RAW quality defects must be retained as warnings")
+    if filtered_policy.get("near_black") != "fatal_for_official_ranking" or \
+            filtered_policy.get("constant_range") != "fatal_for_official_ranking":
+        raise ValueError("FILTERED quality defects must remain fatal for official ranking")
+    if protocol.get("selection", {}).get("official_representation") != "filtered":
+        raise ValueError("official family ranking must use FILTERED")
     if "test" in str(protocol.get("reference_sets", {}).get("distribution_metrics", "")).lower():
         raise ValueError("generator selection cannot use test data")
     resampling = protocol.get("resampling", {})
@@ -882,36 +904,62 @@ def duplicate_diagnostics(paths: Sequence[str | Path], perceptual_distance: int 
 def technical_audit(paths: Sequence[str | Path], expected_size: tuple[int, int] = (512, 512)) -> dict[str, Any]:
     from PIL import Image
     counters = Counter()
-    content_hashes = []
+    feature_hashes, quality_hashes = [], []
     for value in paths:
         try:
             with Image.open(value) as image:
-                gray = np.asarray(image.convert("L"), dtype=np.uint8)
+                image_size = image.size
+                gray = np.asarray(image.convert("L"))
                 counters["readable"] += 1
-                wrong_shape = image.size != expected_size
-                invalid_range = not gray.size or int(gray.max()) <= int(gray.min())
-                near_black = bool(gray.size and np.count_nonzero(gray > 5) / gray.size < 0.01)
+                wrong_shape = image_size != expected_size
+                numeric_array = bool(
+                    gray.size and np.issubdtype(gray.dtype, np.number) and np.isfinite(gray).all()
+                )
+                feature_extractable = numeric_array and not wrong_shape
                 if wrong_shape: counters["wrong_shape"] += 1
+                if not numeric_array: counters["invalid_numeric_array"] += 1
+                if not feature_extractable:
+                    continue
+                gray = np.asarray(gray, dtype=np.uint8)
+                counters["feature_extractable"] += 1
+                feature_hashes.append(hashlib.sha256(gray.tobytes()).hexdigest())
+                invalid_range = int(gray.max()) <= int(gray.min())
+                near_black = np.count_nonzero(gray > 5) / gray.size < 0.01
                 if invalid_range: counters["invalid_range"] += 1
                 if near_black: counters["near_black"] += 1
-                if not (wrong_shape or invalid_range or near_black):
-                    counters["technically_valid"] += 1
-                    content_hashes.append(hashlib.sha256(gray.tobytes()).hexdigest())
+                if not (invalid_range or near_black):
+                    counters["quality_valid"] += 1
+                    quality_hashes.append(hashlib.sha256(gray.tobytes()).hexdigest())
         except Exception:
             counters["corrupt"] += 1
     total = len(paths)
-    unique = len(set(content_hashes))
-    valid = counters["technically_valid"]
+    feature_extractable = counters["feature_extractable"]
+    quality_valid = counters["quality_valid"]
+    unique_feature = len(set(feature_hashes))
+    unique_quality = len(set(quality_hashes))
     return {
         "n_discovered": total, "n_readable": counters["readable"], "n_corrupt": counters["corrupt"],
         "n_wrong_shape": counters["wrong_shape"], "n_near_black": counters["near_black"],
-        "n_invalid_range": counters["invalid_range"], "n_technically_valid": valid,
-        "n_technically_invalid": counters["readable"] - valid,
-        "n_unique_valid_content": unique,
-        "n_exact_duplicates_among_valid": max(0, valid - unique),
-        "technical_validity_rate": valid / total if total else 0.0,
+        "n_invalid_range": counters["invalid_range"],
+        "n_feature_extractable": feature_extractable,
+        "n_feature_nonextractable": total - feature_extractable,
+        "feature_extractable_rate": feature_extractable / total if total else 0.0,
+        "n_unique_feature_extractable_content": unique_feature,
+        "n_exact_duplicates_among_feature_extractable": max(0, feature_extractable - unique_feature),
+        "n_quality_valid": quality_valid,
+        "n_quality_invalid": total - quality_valid,
+        "quality_validity_rate": quality_valid / total if total else 0.0,
+        "n_unique_quality_valid_content": unique_quality,
+        "n_exact_duplicates_among_quality_valid": max(0, quality_valid - unique_quality),
+        # Compatibility aliases describe quality validity, not feature extractability.
+        "n_technically_valid": quality_valid,
+        "n_technically_invalid": total - quality_valid,
+        "n_unique_valid_content": unique_quality,
+        "n_exact_duplicates_among_valid": max(0, quality_valid - unique_quality),
+        "technical_validity_rate": quality_valid / total if total else 0.0,
         # Backward-compatible rates used by the protocol gates.
-        "n_unique_content": unique, "n_exact_duplicates": max(0, valid - unique),
+        "n_unique_content": unique_quality,
+        "n_exact_duplicates": max(0, quality_valid - unique_quality),
         "n_images": total, "corrupted_rate": counters["corrupt"] / total if total else 0.0,
         "unexpected_dimensions_rate": counters["wrong_shape"] / total if total else 0.0,
         "invalid_dynamic_range_rate": counters["invalid_range"] / total if total else 0.0,
@@ -920,22 +968,97 @@ def technical_audit(paths: Sequence[str | Path], expected_size: tuple[int, int] 
 
 
 def technical_validity_row(generator_id: str, condition: str, paths: Sequence[str | Path], *,
-                           minimum_unique: int = 1361, expected_size: tuple[int, int] = (512, 512)) -> dict[str, Any]:
-    """Return the complete, display-ready technical-validity schema for one candidate condition."""
+                           minimum_unique: int = 1361, expected_size: tuple[int, int] = (512, 512),
+                           maximum_exact_duplicate_rate: float = 0.01) -> dict[str, Any]:
+    """Apply representation-aware execution and quality gates to one candidate condition."""
     audit = technical_audit(paths, expected_size)
-    failures = []
-    if audit["n_corrupt"]: failures.append("corrupt_images")
-    if audit["n_wrong_shape"]: failures.append("wrong_shape")
-    if audit["n_near_black"]: failures.append("near_black")
-    if audit["n_invalid_range"]: failures.append("invalid_range")
-    if audit["n_unique_valid_content"] < int(minimum_unique): failures.append("insufficient_unique_content")
-    return {"generator_id": generator_id, "condition": condition.upper(),
-            **{key: audit[key] for key in ("n_discovered", "n_readable", "n_corrupt", "n_wrong_shape",
-                                           "n_near_black", "n_invalid_range", "n_technically_valid",
-                                           "n_technically_invalid", "n_unique_valid_content",
-                                           "n_exact_duplicates_among_valid", "technical_validity_rate")},
-            "eligible_for_distribution_metrics": not failures,
-            "failure_reason": "; ".join(failures)}
+    normalized = str(condition).strip().lower()
+    if normalized not in REPRESENTATIONS:
+        raise ValueError(f"unsupported representation: {condition}")
+    fatal, warnings = [], []
+    if audit["n_corrupt"]: fatal.append("corrupt_images")
+    if audit["n_wrong_shape"]: fatal.append("wrong_shape")
+    if audit["n_feature_extractable"] < int(minimum_unique): fatal.append("insufficient_feature_extractable_images")
+    if audit["n_unique_feature_extractable_content"] < int(minimum_unique):
+        fatal.append("insufficient_unique_feature_extractable_content")
+    if normalized == "raw":
+        if audit["n_near_black"]: warnings.append("near_black")
+        if audit["n_invalid_range"]: warnings.append("invalid_range")
+    else:
+        if audit["n_near_black"]: fatal.append("near_black")
+        if audit["n_invalid_range"]: fatal.append("invalid_range")
+        if audit["n_quality_valid"] < int(minimum_unique): fatal.append("insufficient_quality_valid_images")
+        if audit["n_unique_quality_valid_content"] < int(minimum_unique):
+            fatal.append("insufficient_unique_quality_valid_content")
+        duplicate_rate = (
+            audit["n_exact_duplicates_among_quality_valid"] / audit["n_quality_valid"]
+            if audit["n_quality_valid"] else 0.0
+        )
+        if duplicate_rate > float(maximum_exact_duplicate_rate):
+            fatal.append("quality_valid_exact_duplicate_rate")
+    fatal_text = "; ".join(dict.fromkeys(fatal))
+    warning_text = "; ".join(dict.fromkeys(warnings))
+    eligible = not fatal
+    keys = (
+        "n_discovered", "n_readable", "n_corrupt", "n_wrong_shape",
+        "n_feature_extractable", "n_feature_nonextractable", "feature_extractable_rate",
+        "n_unique_feature_extractable_content", "n_exact_duplicates_among_feature_extractable",
+        "n_near_black", "n_invalid_range", "n_quality_valid", "n_quality_invalid",
+        "quality_validity_rate", "n_unique_quality_valid_content",
+        "n_exact_duplicates_among_quality_valid", "n_technically_valid", "n_technically_invalid",
+        "n_unique_valid_content", "n_exact_duplicates_among_valid", "technical_validity_rate",
+    )
+    return {"generator_id": generator_id, "condition": normalized.upper(),
+            **{key: audit[key] for key in keys},
+            "eligible_for_distribution_metrics": eligible,
+            "eligible_for_official_ranking": normalized == "filtered" and eligible,
+            "quality_warning": bool(warnings),
+            "warning_reasons": warning_text,
+            "fatal_failure_reasons": fatal_text,
+            # Compatibility alias: fatal reasons only, never quality warnings.
+            "failure_reason": fatal_text}
+
+
+def representation_preflight_rows(candidate_audits: Sequence[Mapping[str, Any]],
+                                  technical_rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Combine runtime lineage and per-representation technical readiness."""
+    technical = {(str(row["generator_id"]), str(row["condition"]).lower()): row
+                 for row in technical_rows}
+    rows = []
+    for audit in candidate_audits:
+        generator_id = str(audit["generator_id"])
+        raw = technical.get((generator_id, "raw"))
+        filtered = technical.get((generator_id, "filtered"))
+        runtime_ready = bool(audit.get("eligible_for_benchmark_execution", False))
+        descriptive = bool(audit.get("eligible_for_descriptive_benchmark", False))
+        official = bool(audit.get("eligible_for_official_family_ranking", False))
+        raw_ready = runtime_ready and descriptive and bool(raw and raw.get("eligible_for_distribution_metrics"))
+        filtered_ready = runtime_ready and descriptive and bool(filtered and filtered.get("eligible_for_distribution_metrics"))
+        filtered_official = filtered_ready and official and bool(filtered.get("eligible_for_official_ranking"))
+        reasons = list(audit.get("blockers", []))
+        if raw and raw.get("fatal_failure_reasons"): reasons.append(f"RAW:{raw['fatal_failure_reasons']}")
+        if filtered and filtered.get("fatal_failure_reasons"):
+            reasons.append(f"FILTERED:{filtered['fatal_failure_reasons']}")
+        rows.append({"generator_id": generator_id, "scientific_family": audit.get("scientific_family"),
+                     "candidate_role": audit.get("candidate_role"),
+                     "raw_descriptive_ready": raw_ready,
+                     "raw_quality_warning": bool(raw and raw.get("quality_warning")),
+                     "filtered_descriptive_ready": filtered_ready,
+                     "filtered_official_ranking_ready": filtered_official,
+                     "block_reasons": "; ".join(dict.fromkeys(reasons))})
+    return rows
+
+
+def require_official_family_coverage(preflight_rows: Sequence[Mapping[str, Any]],
+                                     families: Sequence[str] = FAMILIES) -> dict[str, int]:
+    """Stop only when an entire official FILTERED family is unavailable."""
+    counts = {family: sum(str(row.get("scientific_family")) == family and
+                          bool(row.get("filtered_official_ranking_ready")) for row in preflight_rows)
+              for family in families}
+    missing = [family for family, count in counts.items() if count == 0]
+    if missing:
+        raise RuntimeError(f"No official FILTERED candidate remains for families: {', '.join(missing)}")
+    return counts
 
 
 def _read_manifest(path: Path) -> Any:
@@ -1499,42 +1622,70 @@ def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], ima
         except (OSError, ValueError, json.JSONDecodeError):
             features, metadata = None, {}
         valid = features is not None and all(metadata.get(key) == value for key, value in expected.items())
+        valid = valid and np.asarray(features).ndim == 2 and len(features) == len(image_ids)
+        valid = valid and np.isfinite(np.asarray(features)).all()
         valid = valid and int(metadata.get("feature_dimension", -1)) == int(features.shape[1])
         if declared_dimension is not None:
             valid = valid and int(metadata.get("feature_dimension", -1)) == int(declared_dimension)
         if valid:
-            return features, metadata
+            return features, {**metadata, "cache_event": "hit", "cache_invalidation_reason": ""}
     features = extract_fn(image_paths, extractor)
-    if np.asarray(features).ndim != 2 or len(features) != len(image_ids):
+    array = np.asarray(features)
+    if array.ndim != 2 or len(array) != len(image_ids):
         raise ValueError("extractor returned an invalid feature matrix")
-    if declared_dimension is not None and int(features.shape[1]) != int(declared_dimension):
+    finite_rows = np.isfinite(array).all(axis=1)
+    if not finite_rows.all():
+        failures = [{"sample_id": str(image_ids[index]), "path": str(resolved[index]),
+                     "extractor": extractor, "cause": "non_finite_feature_values"}
+                    for index in np.flatnonzero(~finite_rows)]
+        raise NonFiniteEmbeddingError(extractor, failures)
+    if declared_dimension is not None and int(array.shape[1]) != int(declared_dimension):
         raise ValueError("extractor feature dimension differs from the declared dimension")
-    metadata = {**expected, "feature_dimension": int(features.shape[1])}
-    write_embedding_cache(path, features, metadata)
-    return features, metadata
+    metadata = {**expected, "feature_dimension": int(array.shape[1])}
+    write_embedding_cache(path, array, metadata)
+    reason = "cache_absent_or_metadata_mismatch"
+    return array, {**metadata, "cache_event": "miss", "cache_invalidation_reason": reason}
 
 
 def extract_features(paths: Sequence[str | Path], feature_space: str, *, device: str | None = None,
-                     allow_model_download: bool = False) -> np.ndarray:
+                     allow_model_download: bool = False,
+                     local_model_path: str | Path | None = None) -> np.ndarray:
     """Extract frozen InceptionV3 or RAD-DINO embeddings; downloads are opt-in."""
     import torch
     from PIL import Image
     if feature_space == "inception_v3":
         from torchvision.models import Inception_V3_Weights, inception_v3
         weights = Inception_V3_Weights.DEFAULT
-        if not allow_model_download:
+        checkpoint = Path(local_model_path) if local_model_path is not None else \
+            Path(torch.hub.get_dir()) / "checkpoints" / Path(weights.url).name
+        if not allow_model_download and not checkpoint.is_file():
+            raise FileNotFoundError("cached InceptionV3 weights required; downloads disabled")
+        if checkpoint.is_file():
+            model = inception_v3(weights=None, transform_input=False, init_weights=False)
+            state = torch.load(checkpoint, map_location="cpu", weights_only=True)
+            model.load_state_dict(state)
+        else:
+            if not allow_model_download:
+                raise FileNotFoundError("cached InceptionV3 weights required; downloads disabled")
+            model = inception_v3(weights=weights, transform_input=False)
+        if not allow_model_download and local_model_path is None:
             checkpoint = Path(torch.hub.get_dir()) / "checkpoints" / Path(weights.url).name
-            if not checkpoint.is_file(): raise FileNotFoundError("cached InceptionV3 weights required; downloads disabled")
-        model = inception_v3(weights=weights, transform_input=False); model.fc = torch.nn.Identity()
+            if not checkpoint.is_file():
+                raise FileNotFoundError("cached InceptionV3 weights required; downloads disabled")
+        model.fc = torch.nn.Identity()
         processor = lambda image: weights.transforms()(image.convert("RGB"))
     elif feature_space == "rad_dino":
         from transformers import AutoImageProcessor, AutoModel
-        name = "microsoft/rad-dino"
+        name = str(Path(local_model_path).resolve()) if local_model_path is not None else "microsoft/rad-dino"
         image_processor = AutoImageProcessor.from_pretrained(name, local_files_only=not allow_model_download)
         model = AutoModel.from_pretrained(name, local_files_only=not allow_model_download)
         processor = lambda image: image_processor(images=image.convert("RGB"), return_tensors="pt")["pixel_values"][0]
     else: raise ValueError(feature_space)
-    target = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu")); model.eval().to(target)
+    target = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+    model.eval()
+    for parameter in model.parameters():
+        parameter.requires_grad_(False)
+    model.to(target)
     output_rows = []
     with torch.inference_mode():
         for start in range(0, len(paths), 16):
@@ -1892,6 +2043,7 @@ def save_selected_generators(root: Path, finetuned: str, from_scratch: str, benc
 
 __all__ = ["BENCHMARK_ROOT", "PROVENANCE_ROOT", "RUNTIME_PROVENANCE_ROOT", "SHARED_TRAINING_CORPUS",
            "CANONICAL_OUTPUTS", "FEATURE_SPACES", "FAMILIES", "REPRESENTATIONS", "atomic_json",
+           "NonFiniteEmbeddingError",
            "audit_candidate", "audit_runtime_generator_assets", "audit_source_generator_metadata",
            "audit_training_corpus_dependencies", "balanced_subsample_indices", "build_canonical_generator_provenance", "canonical_sample_key",
            "canonical_samples_from_manifest", "deterministic_sample", "discover_candidates", "duplicate_diagnostics",
@@ -1899,5 +2051,7 @@ __all__ = ["BENCHMARK_ROOT", "PROVENANCE_ROOT", "RUNTIME_PROVENANCE_ROOT", "SHAR
            "deterministic_pair_indices", "diversity_metrics", "efficiency_from_manifest", "eligibility_failures", "evaluation_subset_size", "extract_features", "fid", "filter_acceptance_from_manifest", "get_or_extract_embeddings",
            "image_similarity", "inception_v3_identity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_provenance_index", "load_registry", "metadata_positive_paths",
            "multiscale_ssim", "nearest_neighbours", "paired_kid_differences", "plot_generator_summary", "practical_equivalence", "prdc", "rank_generator_family", "render_similarity_panel", "repeated_distribution_metrics", "save_resampling_plan", "save_selected_generators",
-           "rad_dino_identity", "sample_sets_equivalent", "similarity_summaries", "summarize", "technical_audit", "validate_protocol",
-           "synthetic_nearest_neighbours", "technical_validity_row", "training_corpus_from_manifest", "validate_selected_generators", "write_csv_rows", "write_embedding_cache"]
+           "rad_dino_identity", "representation_preflight_rows", "require_official_family_coverage",
+           "sample_sets_equivalent", "similarity_summaries", "summarize", "technical_audit", "validate_protocol",
+           "synthetic_nearest_neighbours", "technical_validity_row", "training_corpus_from_manifest",
+           "validate_selected_generators", "write_csv_rows", "write_embedding_cache"]

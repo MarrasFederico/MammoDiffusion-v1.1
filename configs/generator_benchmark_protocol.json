@@ -19,6 +19,28 @@
   },
   "representations": ["raw", "filtered"],
   "comparison_rule": "Compare raw only with raw and filtered only with filtered; never mix representations in one ranking table.",
+  "technical_validity_policy": {
+    "feature_extractable_definition": "readable, expected shape, non-empty finite numeric array",
+    "quality_valid_definition": "feature-extractable and neither near-black nor constant-range",
+    "raw": {
+      "near_black": "warning_and_include",
+      "constant_range": "warning_and_include",
+      "corrupt": "fatal_for_raw_representation",
+      "wrong_shape": "fatal_for_raw_representation",
+      "minimum_feature_extractable_images": 1361,
+      "minimum_unique_feature_extractable_content": 1361
+    },
+    "filtered": {
+      "near_black": "fatal_for_official_ranking",
+      "constant_range": "fatal_for_official_ranking",
+      "corrupt": "fatal",
+      "wrong_shape": "fatal",
+      "minimum_quality_valid_images": 1361,
+      "minimum_unique_quality_valid_content": 1361,
+      "maximum_exact_duplicate_rate_source": "eligibility_gates.maximum_exact_duplicate_rate"
+    },
+    "continuation_rule": "continue only when at least one official FILTERED candidate remains in each scientific family"
+  },
   "feature_spaces": {
     "inception_v3": {
       "role": "secondary standard-literature continuity",
@@ -73,6 +95,7 @@
     "forbid_test_access": true
   },
   "selection": {
+    "official_representation": "filtered",
     "one_per_family": ["finetuned", "from_scratch"],
     "primary_metric": "raddino_kid",
     "fid_role": "secondary_descriptive",

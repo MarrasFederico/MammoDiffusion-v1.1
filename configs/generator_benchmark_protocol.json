@@ -76,15 +76,24 @@
       {"metric": "rad_dino.filtered.kid.mean", "direction": "min"},
       {"metric": "rad_dino.filtered.coverage.mean", "direction": "max"},
       {"metric": "rad_dino.filtered.precision.mean", "direction": "max"},
+      {"metric": "rad_dino.filtered.fid.mean", "direction": "min", "role": "descriptive_tiebreak"},
       {"metric": "inception_v3.filtered.kid.mean", "direction": "min"},
+      {"metric": "rad_dino.filtered.kid.standard_deviation", "direction": "min"},
       {"metric": "generator_id", "direction": "lexicographic"}
     ],
     "manual_selection_required": true
   },
   "outputs": {
     "root": "results/publication_v2/generator_benchmark",
-    "manifest": "results/publication_v2/generator_benchmark/benchmark_manifest.json",
-    "metrics": "results/publication_v2/generator_benchmark/generator_metrics.csv",
-    "resampling": "results/publication_v2/generator_benchmark/repeated_subsampling.csv"
+    "candidate_audit": "results/publication_v2/generator_benchmark/candidate_audit.csv",
+    "technical_validity": "results/publication_v2/generator_benchmark/technical_validity.csv",
+    "metrics": "results/publication_v2/generator_benchmark/generator_summary.csv",
+    "ranking": "results/publication_v2/generator_benchmark/generator_ranking.csv",
+    "resampling": "results/publication_v2/generator_benchmark/distribution_metrics_repetitions.csv",
+    "distribution_summary": "results/publication_v2/generator_benchmark/distribution_metrics_summary.csv",
+    "diversity": "results/publication_v2/generator_benchmark/diversity_metrics.csv",
+    "train_memorization": "results/publication_v2/generator_benchmark/train_memorization.csv",
+    "validation_similarity": "results/publication_v2/generator_benchmark/validation_similarity.csv",
+    "synthetic_duplication": "results/publication_v2/generator_benchmark/synthetic_duplication.csv"
   }
 }

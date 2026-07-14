@@ -53,7 +53,9 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertLessEqual(cfg["fid_repetitions"], 10)
         ranking = [row["metric"] for row in self.protocol["selection"]["ranking"]]
         self.assertEqual(ranking[0], "rad_dino.filtered.kid.mean")
-        self.assertFalse(any("fid" in metric for metric in ranking))
+        fid_rows = [row for row in self.protocol["selection"]["ranking"] if "fid" in row["metric"]]
+        self.assertTrue(fid_rows)
+        self.assertTrue(all(row.get("role") == "descriptive_tiebreak" for row in fid_rows))
 
     def test_repeated_metrics_use_metric_specific_repetition_counts(self):
         protocol = copy.deepcopy(self.protocol)

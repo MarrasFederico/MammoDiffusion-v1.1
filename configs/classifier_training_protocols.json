@@ -1,5 +1,6 @@
 {
- "schema_version": 1,
+ "schema_version": 2,
+ "pipeline_namespace": "mammodiffusion.classifier_matrix.v2",
  "note": "One uniform training policy per architecture, shared by every dataset_variant in the Stage 1/2 matrix. Ad-hoc per-dataset retuning is forbidden (spec 0.3); training-mode ablations are registered separately (see classifier_experiment_matrix ablation jobs) and must not change this policy silently.",
  "optimizer_updates_are_primary": true,
  "policies": {

@@ -11,6 +11,8 @@ import os
 import pickle
 from pathlib import Path
 
+from classifier_pipeline_contracts import PIPELINE_NAMESPACE, atomic_json, value_signature
+
 EXPERIMENTS_ROOT = "experiments/classifiers_matrix"
 RESULTS_ROOT = "results/classifiers_matrix"
 RESUME_NAMES = ("checkpoint_latest", "checkpoint_previous", "checkpoint_best")
@@ -125,21 +127,23 @@ def sha256_file(path: Path) -> str:
 def checkpoint_signature(path: Path) -> dict | None:
     if not path.is_file():
         return None
-    return {"path": str(path), "size_bytes": path.stat().st_size, "sha256": sha256_file(path)}
+    return {"path": path.name, "size_bytes": path.stat().st_size, "sha256": sha256_file(path)}
 
 
 def write_checkpoint_metadata(run: Path, *, architecture: str, dataset_variant_id: str, training_policy: str,
                                seed: int, checkpoint: Path, dataset_manifest_sha256: str, protocol_signature: str) -> Path:
     run.mkdir(parents=True, exist_ok=True)
     payload = {
-        "schema_version": 1, "architecture": architecture, "dataset_variant_id": dataset_variant_id,
+        "schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE,
+        "artifact_type": "classifier_final_checkpoint", "architecture": architecture, "dataset_variant_id": dataset_variant_id,
         "training_policy": training_policy, "seed": seed,
         "checkpoint_signature": checkpoint_signature(checkpoint),
         "dataset_manifest_sha256": dataset_manifest_sha256,
         "protocol_signature": protocol_signature,
     }
+    payload["metadata_signature"] = value_signature(payload)
     out = run / "checkpoint_metadata.json"
-    out.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n")
+    atomic_json(out, payload)
     return out
 
 
@@ -153,10 +157,20 @@ def read_checkpoint_metadata(run: Path) -> dict | None:
         return None
 
 
-def checkpoint_is_verified(run: Path, framework: str) -> tuple[bool, str]:
+def checkpoint_is_verified(run: Path, framework: str, expected: dict | None = None) -> tuple[bool, str]:
     meta = read_checkpoint_metadata(run)
     if meta is None:
         return False, "no checkpoint_metadata.json"
+    if meta.get("schema_version") != 2 or meta.get("pipeline_namespace") != PIPELINE_NAMESPACE:
+        return False, "checkpoint metadata schema/namespace is incompatible"
+    recorded_metadata_signature = meta.get("metadata_signature")
+    unsigned_meta = {key: value for key, value in meta.items() if key != "metadata_signature"}
+    if not recorded_metadata_signature or recorded_metadata_signature != value_signature(unsigned_meta):
+        return False, "checkpoint metadata is unsigned or changed"
+    if expected:
+        mismatches = {key: (meta.get(key), value) for key, value in expected.items() if meta.get(key) != value}
+        if mismatches:
+            return False, f"checkpoint metadata belongs to another scientific job: {mismatches}"
     recorded = meta.get("checkpoint_signature")
     if not recorded:
         return False, "checkpoint_metadata.json has no signature"

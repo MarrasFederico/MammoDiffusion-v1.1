@@ -15,8 +15,13 @@ import json
 import time
 from collections import Counter
 from pathlib import Path
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "notebooks/utility"))
+import classifier_checkpoint_io as ckio  # noqa: E402
+import classifier_run_manifest as crm  # noqa: E402
+from classifier_pipeline_contracts import validate_matrix  # noqa: E402
 
 
 def build_report(root: Path, stage: int | None = None, architecture: str | None = None) -> dict:
@@ -24,7 +29,11 @@ def build_report(root: Path, stage: int | None = None, architecture: str | None 
     if not matrix_path.is_file():
         return {"jobs": [], "by_status": {}, "by_architecture": {}, "by_gpu_eligibility": {}}
 
-    jobs = json.loads(matrix_path.read_text())["jobs"]
+    payload = json.loads(matrix_path.read_text()); jobs = validate_matrix(payload)
+    protocols = json.loads((root / "configs/classifier_training_protocols.json").read_text())["policies"]
+    jobs = [{**job, "status": crm.reconstruct_state(ckio.run_dir(
+        root, job["architecture"], job["dataset_variant_id"], job["training_policy"], int(job["seed"])),
+        protocols[job["architecture"]]["framework"])["state"]} for job in jobs]
     if stage is not None:
         jobs = [j for j in jobs if j["stage"] == stage]
     if architecture is not None:

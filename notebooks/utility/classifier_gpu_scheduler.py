@@ -104,12 +104,13 @@ class Scheduler:
     so this class needs no real hardware or subprocess calls to test (spec 19.3).
     """
 
-    def __init__(self, gpus: list[dict], vram_profiles: dict[str, dict] | None = None):
+    def __init__(self, gpus: list[dict], vram_profiles: dict[str, dict] | None = None, *, strict_profiles: bool = False):
         self.gpus = [dict(g, gpu_key=classify_gpu(g)) for g in gpus]
         for g in self.gpus:
             if g["gpu_key"] is None:
                 raise ValueError(f"unrecognized GPU name (identify by UUID/name, never assume index): {g['name']}")
         self.vram_profiles = vram_profiles or {}
+        self.strict_profiles = strict_profiles
         self._running: dict[str, list[dict]] = {g["gpu_key"]: [] for g in self.gpus}
 
     def _estimated_peak_mb(self, job: dict) -> float:
@@ -117,6 +118,8 @@ class Scheduler:
         profile = self.vram_profiles.get(key) or self.vram_profiles.get(job["architecture"])
         if profile and "peak_allocated_mb" in profile:
             return float(profile["peak_allocated_mb"])
+        if self.strict_profiles:
+            raise ValueError(f"missing validated VRAM profile for architecture {job['architecture']}")
         # Conservative fallback when no probe exists yet: never admit heavy/exclusive jobs
         # blindly, but let light/medium jobs through with a cautious guess.
         fallback = {"light": 3000.0, "medium": 6000.0, "heavy": 11000.0, "exclusive": 15000.0}
@@ -137,7 +140,10 @@ class Scheduler:
             if not idle:
                 return {"admitted": False, "reason": "exclusive job requires one fully idle eligible GPU"}
 
-        estimated = self._estimated_peak_mb(job)
+        try:
+            estimated = self._estimated_peak_mb(job)
+        except ValueError as exc:
+            return {"admitted": False, "reason": str(exc)}
         candidates = []
         for g in self.eligible_gpus_for(job):
             if job["resource_profile"] == "exclusive" and self._running[g["gpu_key"]]:
@@ -173,7 +179,7 @@ class Scheduler:
     def preview_batch(self, jobs: list[dict]) -> list[dict]:
         """Return admission decisions without consuming slots in this scheduler instance."""
         preview = Scheduler([{key: value for key, value in gpu.items() if key != "gpu_key"} for gpu in self.gpus],
-                            self.vram_profiles)
+                            self.vram_profiles, strict_profiles=self.strict_profiles)
         return preview.schedule_batch(jobs)
 
 
@@ -182,4 +188,9 @@ def load_vram_profiles(path) -> dict:
     p = Path(path)
     if not p.is_file():
         return {}
-    return json.loads(p.read_text())
+    payload = json.loads(p.read_text())
+    if isinstance(payload, dict) and payload.get("artifact_type") == "gpu_profile_bundle":
+        from classifier_pipeline_contracts import verify_signed_payload
+        verify_signed_payload(payload)
+        return {record["architecture"]: record for record in payload.get("records", [])}
+    return payload

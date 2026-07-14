@@ -32,6 +32,44 @@ import classifier_run_manifest as run_manifest  # noqa: E402
 import classifier_checkpoint_io as checkpoint_io  # noqa: E402
 
 
+def scheduler_lock_path(root: Path, stage: int) -> Path:
+    return root / "results/runtime_profiles" / f"classifier_stage{stage}_scheduler.lock"
+
+
+def acquire_scheduler_lock(root: Path, stage: int, pid: int | None = None) -> bool:
+    """Atomic host-level guard: two real schedulers may never dispatch the same matrix."""
+    path = scheduler_lock_path(root, stage); path.parent.mkdir(parents=True, exist_ok=True)
+    owner_pid = int(pid or os.getpid())
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        try:
+            existing_pid = int(json.loads(path.read_text())["pid"])
+            os.kill(existing_pid, 0)
+            return False
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            # A dead/invalid owner is recoverable. Unlink then race again through O_EXCL;
+            # concurrent reclaimers cannot both become scheduler owner.
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+            try:
+                fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                return False
+    with os.fdopen(fd, "w") as stream:
+        stream.write(json.dumps({"pid": owner_pid, "stage": stage, "created_at": time.time()}))
+    return True
+
+
+def release_scheduler_lock(root: Path, stage: int) -> None:
+    try:
+        scheduler_lock_path(root, stage).unlink()
+    except FileNotFoundError:
+        pass
+
+
 def pending_jobs(root: Path, stage: int) -> list[dict]:
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
     protocols = json.loads((root / "configs/classifier_training_protocols.json").read_text())["policies"]
@@ -53,10 +91,17 @@ THREAD_ENV_VARS = {
 }
 
 
-def launch_job(root: Path, job: dict, gpu_index: int, mode: str = "auto") -> subprocess.Popen:
+def launch_job(root: Path, job: dict, gpu_identifier: str | None = None, mode: str = "auto",
+               *, gpu_index: int | None = None) -> subprocess.Popen:
     import os
     env = dict(os.environ)
-    env["CUDA_VISIBLE_DEVICES"] = str(gpu_index)
+    # NVIDIA accepts stable GPU UUIDs here; unlike numeric ordinals they do not change when
+    # driver enumeration order changes between scheduler runs.
+    if gpu_identifier is None:
+        if gpu_index is None:
+            raise ValueError("a stable GPU UUID/identifier is required")
+        gpu_identifier = str(gpu_index)  # compatibility for injected legacy scheduler fixtures
+    env["CUDA_VISIBLE_DEVICES"] = str(gpu_identifier)
     # With up to 5 concurrent jobs (spec 10.7 host cap), each process defaulting to
     # framework-detected thread counts (often == host core count) oversubscribes the CPU by
     # 5x; pin every launched worker to the policy's declared thread budget instead.
@@ -96,17 +141,17 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
     GPU_TARGETS["rtx_5060_ti_16gb"]["target_max_jobs"] = target_5060
     GPU_TARGETS["rtx_3060_12gb"]["target_max_jobs"] = target_3060
 
-    gpus = gpus if gpus is not None else query_gpus_live()
+    injected_gpus = gpus is not None
+    gpus = gpus if injected_gpus else query_gpus_live()
     vram_profiles = load_vram_profiles(root / "results/runtime_profiles/classifier_vram_profiles.json")
-    scheduler = Scheduler(gpus, vram_profiles)
-    index_by_uuid = {g["uuid"]: g["index"] for g in gpus}
+    scheduler = Scheduler(gpus, vram_profiles, strict_profiles=not dry_run and not injected_gpus)
 
     jobs = pending_jobs(root, stage)
     if dry_run:
         plan = scheduler.preview_batch(jobs)
         return {"mode": mode, "dry_run": True, "gpus": [g["name"] for g in gpus], "plan": plan}
 
-    completed = []
+    completed, waiting = [], []
     oom_states = {}
     while jobs:
         batch_plan = scheduler.schedule_batch(jobs)
@@ -116,10 +161,25 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
             decision = decisions[job["experiment_id"]]
             if not decision["admitted"]:
                 continue
-            gpu_index = index_by_uuid[decision["gpu_uuid"]]
-            proc = launch_job(root, job, gpu_index, mode="auto")
+            if not injected_gpus and job.get("status") in ("PENDING", "INTERRUPTED_RESUMABLE", "FAILED_RETRYABLE"):
+                run_dir = checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
+                                                job["training_policy"], job["seed"])
+                run_manifest.write_state(run_dir, "ADMITTED", gpu_uuid=decision["gpu_uuid"])
+            try:
+                proc = launch_job(root, job, decision["gpu_uuid"], mode="auto")
+            except Exception as exc:
+                scheduler.release(job, decision["gpu_key"])
+                if not injected_gpus:
+                    run_dir = checkpoint_io.run_dir(root, job["architecture"], job["dataset_variant_id"],
+                                                    job["training_policy"], job["seed"])
+                    run_manifest.write_state(run_dir, "FAILED_RETRYABLE", error=f"worker launch failed: {exc}")
+                completed.append({"experiment_id": job["experiment_id"], "returncode": None,
+                                  "state": "FAILED_RETRYABLE", "error": str(exc)})
+                continue
             processes[job["experiment_id"]] = (proc, decision["gpu_key"], job)
         if not processes:
+            waiting = [{"experiment_id": row["experiment_id"], "reason": row.get("reason")}
+                       for row in batch_plan if not row.get("admitted")]
             break
         attempted_ids = set(processes)
         try:
@@ -142,7 +202,9 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
                                         "effective_batch_size": oom.effective_batch_size,
                                         "oom_count": oom.oom_count, "forced_exclusive": oom.forced_exclusive,
                                         "history": oom.history}
-                            (run_dir / "oom_override.json").write_text(json.dumps(override, indent=2) + "\n")
+                            temporary = run_dir / f"oom_override.json.tmp.{os.getpid()}"
+                            temporary.write_text(json.dumps(override, indent=2) + "\n")
+                            os.replace(temporary, run_dir / "oom_override.json")
                             if oom.should_retry():
                                 job.update(override)
                                 if oom.forced_exclusive: job["resource_profile"] = "exclusive"
@@ -179,7 +241,8 @@ def run(root: Path, stage: int, mode: str, target_5060: int, target_3060: int, d
         # A failed job remains retryable for resume/OOM handling; do not spin forever here.
         jobs = [job for job in jobs if job["experiment_id"] not in attempted_ids or
                 (job["experiment_id"] in oom_states and oom_states[job["experiment_id"]].should_retry())]
-    return {"mode": mode, "dry_run": False, "gpus": [g["name"] for g in gpus], "completed": completed}
+    return {"mode": mode, "dry_run": False, "gpus": [g["name"] for g in gpus],
+            "completed": completed, "waiting": waiting}
 
 
 def main() -> None:
@@ -194,7 +257,16 @@ def main() -> None:
 
     root = Path(args.project_root)
     dry_run = args.dry_run or args.mode == "plan"
-    result = run(root, args.stage, args.mode, args.target_5060_jobs, args.target_3060_jobs, dry_run)
+    if not dry_run:
+        from classifier_gpu_gate import require_real_launch_gate
+        require_real_launch_gate(root)
+        if not acquire_scheduler_lock(root, args.stage):
+            raise SystemExit(f"another Stage {args.stage} scheduler owns {scheduler_lock_path(root, args.stage)}")
+    try:
+        result = run(root, args.stage, args.mode, args.target_5060_jobs, args.target_3060_jobs, dry_run)
+    finally:
+        if not dry_run:
+            release_scheduler_lock(root, args.stage)
     print(json.dumps(result, indent=1, default=str))
 
 

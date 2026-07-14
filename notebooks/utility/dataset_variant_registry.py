@@ -16,6 +16,8 @@ import random
 from collections import Counter
 from pathlib import Path
 
+from classifier_pipeline_contracts import PIPELINE_NAMESPACE, atomic_json
+
 TWO_CLASS = ("negative", "positive")
 CLASS_LABEL = {"negative": "0", "positive": "1"}
 SAMPLING_SEED = 42
@@ -338,7 +340,7 @@ def build_stage1_registry(root: Path) -> dict:
         "unresolved_two_class_generators": unresolved_two_class,
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE,
         "generated_from": "configs/final_generator_registry.json + data/processed/metadata/train.csv + data/real_augmented",
         "sampling_seed": SAMPLING_SEED,
         "budgets": budgets,
@@ -508,7 +510,7 @@ def build_and_write(root: Path) -> dict:
     errors = validate_registry(registry)
     registry["validation_errors"] = errors
     out_path = root / "configs/dataset_variant_registry.json"
-    out_path.write_text(json.dumps(registry, ensure_ascii=False, indent=1) + "\n")
+    atomic_json(out_path, registry)
     return registry
 
 

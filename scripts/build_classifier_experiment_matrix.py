@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import classifier_checkpoint_io as ckio  # noqa: E402
 import classifier_run_manifest as crm  # noqa: E402
+from classifier_pipeline_contracts import PIPELINE_NAMESPACE, atomic_json  # noqa: E402
 from dataset_variant_registry import build_stage2_variants  # noqa: E402
 
 SEEDS = (17, 42, 73)
@@ -96,7 +97,8 @@ def build_jobs(root: Path, stage: int, selected_union: list[str] | None = None) 
     return jobs
 
 
-def build_and_write(root: Path, stage: int, selected_union: list[str] | None = None) -> dict:
+def build_and_write(root: Path, stage: int, selected_union: list[str] | None = None,
+                    selected_union_signature: str | None = None) -> dict:
     if stage == 2:
         if selected_union is None:
             raise ValueError("Stage 2 requires a signed selected generator union")
@@ -104,18 +106,17 @@ def build_and_write(root: Path, stage: int, selected_union: list[str] | None = N
         registry = json.loads(registry_path.read_text())
         stage2_variants = build_stage2_variants(root, selected_union)
         registry["variants"] = [v for v in registry["variants"] if v.get("regime") != "stage2_advanced"] + stage2_variants
-        registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=1) + "\n")
+        atomic_json(registry_path, registry)
     jobs = build_jobs(root, stage, selected_union)
     out_path = root / "configs/classifier_experiment_matrix.json"
-    existing = {"schema_version": 1, "jobs": []}
+    existing = {"schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE, "jobs": []}
     if out_path.is_file():
-        try:
-            existing = json.loads(out_path.read_text())
-        except json.JSONDecodeError:
-            pass
+        existing = json.loads(out_path.read_text())
     other_stage_jobs = [j for j in existing.get("jobs", []) if j["stage"] != stage]
-    payload = {"schema_version": 1, "jobs": other_stage_jobs + jobs}
-    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n")
+    payload = {"schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE, "jobs": other_stage_jobs + jobs}
+    if stage == 2:
+        payload["stage2_source_union_signature"] = selected_union_signature
+    atomic_json(out_path, payload)
     return payload
 
 
@@ -128,12 +129,15 @@ def main() -> None:
 
     root = Path(args.project_root)
     selected_union = None
+    selected_union_signature = None
     if args.selected_union:
         payload = json.loads((root / args.selected_union).read_text()) if not Path(args.selected_union).is_absolute() \
             else json.loads(Path(args.selected_union).read_text())
-        selected_union = payload["selected_generator_union"]
+        from create_classifier_stage2_notebooks import verify_union
+        selected_union = verify_union(payload)
+        selected_union_signature = payload["signature"]
 
-    payload = build_and_write(root, args.stage, selected_union)
+    payload = build_and_write(root, args.stage, selected_union, selected_union_signature)
     stage_jobs = [j for j in payload["jobs"] if j["stage"] == args.stage]
     by_status: dict[str, int] = {}
     for j in stage_jobs:

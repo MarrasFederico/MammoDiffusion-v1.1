@@ -13,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dataset_variant_registry import CLASS_LABEL, deterministic_sample_signature  # noqa: E402
+from classifier_pipeline_contracts import PIPELINE_NAMESPACE, value_signature  # noqa: E402
 
 REAL_TRAIN_DIR = "data/processed/train"
 AUGMENTED_DIR = "data/real_augmented"
@@ -317,6 +318,8 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     manifest_payload = {
         "schema_version": 3,
+        "pipeline_namespace": PIPELINE_NAMESPACE,
+        "artifact_type": "classifier_dataset_manifest",
         "dataset_variant_id": variant["dataset_variant_id"],
         "counts": {klass: len(entries) for klass, entries in file_list.items()},
         "signature": combined_signature,
@@ -327,6 +330,7 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
         "validation_patient_ids": sorted(val_patients),
         "patient_overlap": [],
     }
+    manifest_payload["manifest_signature"] = value_signature(manifest_payload)
     return train_rows, val_rows, manifest_payload
 
 

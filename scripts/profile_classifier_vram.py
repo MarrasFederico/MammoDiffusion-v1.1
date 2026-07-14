@@ -57,8 +57,8 @@ def _probe_pytorch(architecture: str, policy: dict, n_batches: int) -> dict:
     torch.cuda.reset_peak_memory_stats(device)
     t0 = time.perf_counter()
     for _ in range(n_batches):
-        images = torch.randn(batch_size, 3, h, w, device=device)
-        labels = torch.randint(0, 2, (batch_size, 1), device=device, dtype=torch.float32)
+        images = torch.zeros(batch_size, 3, h, w, device=device)
+        labels = torch.zeros((batch_size, 1), device=device, dtype=torch.float32)
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(device_type="cuda", enabled=policy.get("amp", False)):
             logits = model(images)
@@ -96,8 +96,8 @@ def _probe_resnet50(policy: dict, n_batches: int) -> dict:
 
     batch_size = policy["physical_batch_size"]
     h, w = policy["input_size"]
-    x = np.random.rand(batch_size, h, w, 3).astype("float32")
-    y = np.random.randint(0, 2, size=(batch_size, 1)).astype("float32")
+    x = np.zeros((batch_size, h, w, 3), dtype="float32")
+    y = np.zeros((batch_size, 1), dtype="float32")
 
     tf.config.experimental.reset_memory_stats(gpus[0].name.replace("/physical_device:", ""))
     t0 = time.perf_counter()
@@ -135,6 +135,7 @@ def main() -> None:
     parser.add_argument("--n-batches", type=int, default=5)
     parser.add_argument("--dry-run", action="store_true", help="Resolve policies/assets without loading a model or writing profiles")
     parser.add_argument("--smoke-tiny", action="store_true", help="Exercise the adapter contract without GPU/model loading")
+    parser.add_argument("--gpu-uuid", default=None, help="Stable UUID to certify (required when multiple GPUs are visible)")
     parser.add_argument("--project-root", default=str(ROOT))
     args = parser.parse_args()
 
@@ -157,22 +158,46 @@ def main() -> None:
                           .estimate_memory_profile() for architecture in architectures}, indent=1))
         return
 
-    out_path = root / "results/runtime_profiles/classifier_vram_profiles.json"
-    existing = {}
+    from classifier_gpu_gate import PROFILE_PATH, environment_signature, make_bundle
+    from classifier_gpu_scheduler import query_gpus_live
+    from classifier_pipeline_contracts import atomic_json, code_revision, value_signature
+    gpus = query_gpus_live()
+    if args.gpu_uuid:
+        gpu = next((row for row in gpus if row["uuid"] == args.gpu_uuid), None)
+        if gpu is None: raise ValueError(f"GPU UUID not found: {args.gpu_uuid}")
+    elif len(gpus) == 1:
+        gpu = gpus[0]
+    else:
+        raise ValueError("--gpu-uuid is required when nvidia-smi exposes multiple GPUs")
+    out_path = root / PROFILE_PATH
+    existing = {"records": []}
     if out_path.is_file():
-        try:
-            existing = json.loads(out_path.read_text())
-        except json.JSONDecodeError:
-            pass
+        existing = json.loads(out_path.read_text())
+        from classifier_pipeline_contracts import verify_signed_payload
+        verify_signed_payload(existing)
+        if existing.get("artifact_type") != "gpu_profile_bundle":
+            raise ValueError("existing GPU profile file has an incompatible artifact type")
 
     for architecture in architectures:
         print(f"profiling {architecture} ...")
-        result = profile_architecture(architecture, protocols[architecture], args.n_batches)
-        existing[architecture] = result
+        policy = protocols[architecture]
+        result = profile_architecture(architecture, policy, args.n_batches)
+        if result.get("error"):
+            raise RuntimeError(f"{architecture} profile failed: {result['error']}")
+        result.update({"environment_signature": environment_signature(policy), "gpu_name": gpu["name"],
+                       "gpu_uuid": gpu["uuid"], "total_vram_mb": gpu["total_vram_mb"],
+                       "physical_batch_size": policy["physical_batch_size"],
+                       "gradient_accumulation_steps": policy["gradient_accumulation_steps"],
+                       "effective_batch_size": policy["effective_batch_size"],
+                       "measured_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                       "code_revision": code_revision(root),
+                       "fixture_signature": value_signature({"kind": "zero_tensor_binary_fixture",
+                           "input_size": policy["input_size"], "batch": policy["physical_batch_size"]})})
+        records = [row for row in existing.get("records", []) if row.get("architecture") != architecture] + [result]
+        existing = make_bundle("gpu_profile_bundle", sorted(records, key=lambda row: row["architecture"]))
         print(json.dumps(result, indent=1))
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(existing, ensure_ascii=False, indent=1) + "\n")
+    atomic_json(out_path, existing)
     print(f"written: {out_path.relative_to(root)}")
 
 

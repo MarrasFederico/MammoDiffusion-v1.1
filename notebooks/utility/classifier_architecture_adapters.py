@@ -78,7 +78,9 @@ class TinyAdapter:
 
     def save_checkpoint(self, model, path):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"architecture": self.architecture, "state_dict": model}, sort_keys=True) + "\n")
+        temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
+        temporary.write_text(json.dumps({"architecture": self.architecture, "state_dict": model}, sort_keys=True) + "\n")
+        os.replace(temporary, path)
         return path
 
     def load_checkpoint(self, path, **_):
@@ -202,16 +204,18 @@ class ArchitectureAdapter:
 
     def save_checkpoint(self, model, path):
         path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
         if self.architecture == "resnet50":
             # TF/Keras 2.15 cannot serialize the ResNet application through its native
             # `.keras` writer (the config contains an Ellipsis object).  A single-file HDF5
             # model without optimizer state is stable, reloadable in a fresh process, and can
             # still keep the canonical `model.keras` filename used by the matrix layout.
-            model.save(path, save_format="h5", include_optimizer=False)
+            model.save(temporary, save_format="h5", include_optimizer=False)
         else:
             import torch
             torch.save({"schema_version": 1, "architecture": self.architecture,
-                        "model_state_dict": model.state_dict()}, path)
+                        "model_state_dict": model.state_dict()}, temporary)
+        os.replace(temporary, path)
         return path
 
     def load_checkpoint(self, path, model=None, strict=True):
@@ -319,7 +323,8 @@ class ArchitectureAdapter:
                 if states.get("numpy"): np.random.set_state(states["numpy"])
                 try:
                     if states.get("tensorflow") is not None: tf.random.get_global_generator().state.assign(states["tensorflow"])
-                except Exception: pass
+                except Exception as exc:
+                    raise RuntimeError("TensorFlow RNG state is incompatible with this resume environment") from exc
 
             def restore_callback_state(reduce_cb, early_cb, resume_phase, current_phase):
                 # Gated on the *checkpoint's own* recorded phase, never the outer mutable

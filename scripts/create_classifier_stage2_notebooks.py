@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib.util
 import json
 import sys
@@ -12,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 from dataset_variant_registry import build_stage2_variants  # noqa: E402
+from classifier_pipeline_contracts import verify_signed_payload  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("stage1_notebooks", ROOT / "scripts/create_classifier_matrix_notebooks.py")
 stage1 = importlib.util.module_from_spec(_spec)
@@ -20,21 +20,26 @@ _spec.loader.exec_module(stage1)
 
 
 def verify_union(payload: dict) -> list[str]:
-    signature = payload.get("signature")
-    unsigned = {key: value for key, value in payload.items() if key != "signature"}
-    expected = hashlib.sha256(json.dumps(unsigned, sort_keys=True).encode("utf-8")).hexdigest()
-    if not signature or signature != expected:
-        raise ValueError("SELECTED_GENERATOR_UNION is missing or has an invalid content signature")
+    verify_signed_payload(payload)
+    if payload.get("artifact_type") != "classifier_selected_generator_union":
+        raise ValueError("not a classifier-matrix v2 SELECTED_GENERATOR_UNION")
     union = payload.get("selected_generator_union") or []
     if not union:
         raise ValueError("SELECTED_GENERATOR_UNION is empty; complete and finalize Stage 1 first")
     if payload.get("selection_used_test_data") is not False:
         raise ValueError("Stage 2 union must explicitly prove that no test data was used")
+    if payload.get("scientific_completion", {}).get("complete") is not True:
+        raise ValueError("Stage 1 completion is not certified by the selected union")
+    leaderboard = payload.get("leaderboard") or {}
+    verify_signed_payload(leaderboard)
+    if leaderboard.get("signature") != payload.get("leaderboard_signature"):
+        raise ValueError("selected union is not bound to its Stage 1 leaderboard")
     return union
 
 
 def generate(root: Path, union_path: Path) -> list[dict]:
-    union = verify_union(json.loads(union_path.read_text()))
+    union_payload = json.loads(union_path.read_text())
+    union = verify_union(union_payload)
     variants = build_stage2_variants(root, union)
     if not variants:
         raise ValueError("signed union produced no executable Stage 2 variants")
@@ -44,7 +49,9 @@ def generate(root: Path, union_path: Path) -> list[dict]:
             status, blocker = stage1.dataset_audit(root, variant)
             vid = variant["dataset_variant_id"]
             path = root / "notebooks/3_classifiers_matrix" / architecture / f"{prefix}_{vid}.ipynb"
-            stage1.write_notebook(path, stage1.notebook(architecture, variant, status, blocker, stage=2))
+            notebook_payload = stage1.notebook(architecture, variant, status, blocker, stage=2)
+            notebook_payload["metadata"]["mammodiffusion"]["selected_union_signature"] = union_payload["signature"]
+            stage1.write_notebook(path, notebook_payload)
             rows.append({
                 "path": str(path.relative_to(root)), "experiment_id": f"{architecture}__{vid}",
                 "architecture": architecture, "dataset_variant": vid, "stage": 2,

@@ -11,9 +11,8 @@ import os
 import time
 from pathlib import Path
 
-STATES = ("PENDING", "CLAIMED", "RUNNING", "INTERRUPTED_RESUMABLE", "TRAINED", "VALIDATING", "VALIDATED",
-          "ENSEMBLE_READY", "COMPLETE",
-          "BLOCKED", "FAILED_RETRYABLE", "FAILED_FINAL", "INVALIDATED")
+from classifier_pipeline_contracts import STATES, require_transition, signed_payload, verify_signed_payload
+
 
 
 def manifest_path(run: Path) -> Path:
@@ -27,12 +26,23 @@ def _atomic_write(path: Path, payload: dict) -> None:
     tmp.replace(path)
 
 
-def write_state(run: Path, state: str, **fields) -> dict:
+def write_state(run: Path, state: str, *, explicit_reset: bool = False, **fields) -> dict:
     if state not in STATES:
         raise ValueError(f"invalid state: {state}")
-    payload = {"schema_version": 1, "state": state, "updated_at": time.time(), **fields}
+    previous_manifest = read_manifest(run)
+    previous = previous_manifest.get("state", "PENDING") if previous_manifest else "PENDING"
+    require_transition(previous, state, explicit_reset=explicit_reset)
+    payload = signed_payload({"schema_version": 2, "pipeline_namespace": "mammodiffusion.classifier_matrix.v2",
+               "state": state, "previous_state": previous, "updated_at": time.time(), **fields}
+    )
     _atomic_write(manifest_path(run), payload)
     return payload
+
+
+def reset_terminal_state(run: Path, *, reason: str) -> dict:
+    if not reason.strip():
+        raise ValueError("explicit terminal-state reset requires a reason")
+    return write_state(run, "PENDING", explicit_reset=True, reset_reason=reason)
 
 
 def read_manifest(run: Path) -> dict | None:
@@ -40,8 +50,11 @@ def read_manifest(run: Path) -> dict | None:
     if not path.is_file():
         return None
     try:
-        return json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
+        payload = json.loads(path.read_text())
+        if payload.get("pipeline_namespace") is not None:
+            verify_signed_payload(payload)
+        return payload
+    except (OSError, json.JSONDecodeError, ValueError):
         return None
 
 
@@ -57,7 +70,24 @@ def reconstruct_state(run: Path, framework: str) -> dict:
     if manifest is not None and manifest.get("state") in ("BLOCKED", "FAILED_FINAL", "INVALIDATED"):
         return manifest  # terminal/explicit states are never silently overridden by a rescan
 
-    verified, reason = checkpoint_is_verified(run, framework)
+    expected = None
+    strict_v2 = False
+    for parent in run.parents:
+        matrix_path = parent / "configs/classifier_experiment_matrix.json"
+        if matrix_path.is_file():
+            try:
+                strict_v2 = json.loads(matrix_path.read_text()).get("pipeline_namespace") == \
+                    "mammodiffusion.classifier_matrix.v2"
+            except (OSError, json.JSONDecodeError):
+                strict_v2 = False
+            break
+    if strict_v2 and run.name.startswith("seed_") and len(run.parents) >= 3:
+        try:
+            expected = {"architecture": run.parents[2].name, "dataset_variant_id": run.parents[1].name,
+                        "training_policy": run.parent.name, "seed": int(run.name.removeprefix("seed_"))}
+        except ValueError:
+            expected = None
+    verified, reason = checkpoint_is_verified(run, framework, expected)
     if not verified:
         if (run / "checkpoint_latest.pkl").is_file() or (run / "checkpoint_previous.pkl").is_file():
             return {"state": "INTERRUPTED_RESUMABLE", "reason": "resume checkpoint available"}
@@ -125,7 +155,18 @@ def acquire_claim(run: Path, worker_id: str, pid: int) -> bool:
 
 
 def _force_reclaim(lock: Path, worker_id: str, pid: int) -> bool:
-    lock.write_text(json.dumps({"worker_id": worker_id, "pid": pid, "claimed_at": time.time()}))
+    # Never overwrite in place: two schedulers observing the same stale lock must still race
+    # through O_EXCL, so exactly one becomes the owner.
+    try:
+        lock.unlink()
+    except FileNotFoundError:
+        pass
+    try:
+        fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        return False
+    with os.fdopen(fd, "w") as stream:
+        stream.write(json.dumps({"worker_id": worker_id, "pid": pid, "claimed_at": time.time()}))
     return True
 
 

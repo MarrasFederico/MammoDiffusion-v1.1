@@ -26,6 +26,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
+from classifier_pipeline_contracts import (  # noqa: E402
+    PIPELINE_NAMESPACE, atomic_json, code_revision, signed_payload, verify_signed_payload,
+)
 
 LOCK_DIR = "results/final_evaluation_v2"
 
@@ -44,6 +47,26 @@ def _sha256_json(payload: dict) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
 
 
+def _acquire_build_guard(path: Path) -> bool:
+    def create() -> bool:
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            return False
+        with os.fdopen(fd, "w") as stream:
+            stream.write(json.dumps({"pid": os.getpid(), "created_at": time.time()}))
+        return True
+    if create():
+        return True
+    try:
+        pid = int(json.loads(path.read_text())["pid"]); os.kill(pid, 0)
+        return False
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        try: path.unlink()
+        except FileNotFoundError: pass
+        return create()
+
+
 def preconditions(root: Path) -> list[str]:
     problems = []
     union_path = root / "results/generator_comparison/selected_generator_union.json"
@@ -53,10 +76,31 @@ def preconditions(root: Path) -> list[str]:
         union = json.loads(union_path.read_text())
         if not union.get("selected_generator_union"):
             problems.append("SELECTED_GENERATOR_UNION is empty: Stage 1 has not actually completed any validation yet")
+        if union.get("pipeline_namespace") is not None:
+            try:
+                verify_signed_payload(union)
+                if union.get("scientific_completion", {}).get("complete") is not True:
+                    problems.append("Stage 1 completion is not certified")
+            except ValueError as exc:
+                problems.append(f"invalid v2 SELECTED_GENERATOR_UNION: {exc}")
 
     finalists_path = root / LOCK_DIR / "primary_finalists_manifest.json"
     if not finalists_path.is_file():
         problems.append(f"missing {LOCK_DIR}/primary_finalists_manifest.json (run finalize_validation_stage.py --stage 2 first)")
+    else:
+        finalists = json.loads(finalists_path.read_text())
+        if finalists.get("pipeline_namespace") is not None:
+            try:
+                verify_signed_payload(finalists)
+                if finalists.get("stage2_completion", {}).get("complete") is not True:
+                    problems.append("Stage 2 completion is not certified")
+            except ValueError as exc:
+                problems.append(f"invalid v2 panel selection: {exc}")
+
+    for marker in ("LOCKED_TEST_STARTED", "LOCKED_TEST_COMPLETE", "LOCKED_TEST_COMPLETED",
+                   "locked_test_predictions_manifest.json"):
+        if (root / LOCK_DIR / marker).exists():
+            problems.append(f"prior locked inference artifact exists: {marker}")
 
     test_csv = root / "data/processed/metadata/test.csv"
     if not test_csv.is_file():
@@ -69,7 +113,8 @@ def build_experiment_matrix_manifest(root: Path) -> dict:
     matrix_path = root / "configs/classifier_experiment_matrix.json"
     registry_path = root / "configs/dataset_variant_registry.json"
     return {
-        "schema_version": 1,
+        "schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE,
+        "artifact_type": "classifier_locked_experiment_matrix", "code_revision": code_revision(root),
         "classifier_experiment_matrix_sha256": _sha256_file(matrix_path),
         "dataset_variant_registry_sha256": _sha256_file(registry_path),
         "classifier_training_protocols_sha256": _sha256_file(root / "configs/classifier_training_protocols.json"),
@@ -158,7 +203,10 @@ def build_finalist_checkpoint_manifest(root: Path, matrix: dict, experiment_ids:
         ckpt = ckpt_path_for(run, framework)
         base = root / "results/classifiers_matrix" / job["architecture"] / job["dataset_variant_id"] / job["training_policy"] / "ensemble"
         entries[eid] = {
-            "checkpoint_sha256": _sha256_file(ckpt), "checkpoint_verified": checkpoint_is_verified(run, framework)[0],
+            "checkpoint_sha256": _sha256_file(ckpt), "checkpoint_verified": checkpoint_is_verified(run, framework, {
+                "architecture": job["architecture"], "dataset_variant_id": job["dataset_variant_id"],
+                "training_policy": job["training_policy"], "seed": int(job["seed"]),
+            })[0],
             "status": job["status"],
             "ensemble_predictions_csv_sha256": _sha256_file(base / "predictions/ensemble_validation_predictions.csv"),
             "ensemble_predictions_json_sha256": _sha256_file(base / "predictions/ensemble_validation_predictions.json"),
@@ -173,11 +221,21 @@ def verify_lock_still_valid(root: Path) -> tuple[bool, list[str]]:
     if not marker.is_file():
         return False, ["no lock present: run finalize_locked_test_stage.py --confirm-locked-test first"]
 
+    try:
+        marker_payload = json.loads(marker.read_text())
+        if marker_payload.get("pipeline_namespace") is not None:
+            verify_signed_payload(marker_payload)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return False, [f"invalid lock marker: {exc}"]
     manifest = json.loads((lock_dir / "experiment_matrix_manifest.json").read_text())
     problems = []
+    try:
+        verify_signed_payload(manifest)
+    except ValueError as exc:
+        problems.append(f"invalid signed experiment matrix lock manifest: {exc}")
     current = build_experiment_matrix_manifest(root)
     for key, recorded in manifest.items():
-        if key == "schema_version" or key.endswith("_manifest.json_sha256"):
+        if key in ("schema_version", "signature") or key.endswith("_manifest.json_sha256"):
             continue
         if current.get(key) != recorded:
             problems.append(f"{key} changed since lock: recorded={recorded} current={current.get(key)}")
@@ -204,6 +262,10 @@ def verify_lock_still_valid(root: Path) -> tuple[bool, list[str]]:
         if recorded and _sha256_file(lock_dir / name) != recorded:
             problems.append(f"{name} changed since lock")
 
+    expected_lock_signature = _sha256_json({**manifest, **test_manifest, "checkpoints": checkpoints})
+    if marker_payload.get("lock_signature") != expected_lock_signature:
+        problems.append("scientific lock signature does not bind the current locked manifests")
+
     return (len(problems) == 0), problems
 
 
@@ -211,14 +273,37 @@ def finalize(root: Path) -> dict:
     lock_dir = root / LOCK_DIR
     lock_dir.mkdir(parents=True, exist_ok=True)
 
+    existing_marker = lock_dir / "EXPERIMENT_MATRIX_LOCKED"
+    if existing_marker.is_file():
+        valid, problems = verify_lock_still_valid(root)
+        if not valid:
+            raise RuntimeError("existing scientific lock is immutable but invalid: " + "; ".join(problems))
+        return json.loads(existing_marker.read_text())
+    build_guard = lock_dir / ".scientific_lock_build"
+    if not _acquire_build_guard(build_guard):
+        raise RuntimeError("another process is building the scientific lock")
+    try:
+        return _finalize_owned(root, lock_dir)
+    finally:
+        try:
+            build_guard.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _finalize_owned(root: Path, lock_dir: Path) -> dict:
+
     finalists = json.loads((lock_dir / "primary_finalists_manifest.json").read_text())
     matrix = json.loads((root / "configs/classifier_experiment_matrix.json").read_text())
 
     experiment_matrix_manifest = build_experiment_matrix_manifest(root)
     test_dataset_manifest = build_test_dataset_manifest(root)
     validate_test_dataset_manifest_for_lock(test_dataset_manifest)
-    secondary_panel = {"schema_version": 2, "experiment_ids": finalists.get("secondary_locked_panel", [])}
-    ablation_panel = {"schema_version": 1, "experiment_ids": finalists.get("ablation_panel", [])}
+    strict_v2 = finalists.get("pipeline_namespace") == PIPELINE_NAMESPACE
+    secondary_panel = {"schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE,
+                       "experiment_ids": sorted(set(finalists.get("secondary_locked_panel", [])))}
+    ablation_panel = {"schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE,
+                      "experiment_ids": sorted(set(finalists.get("ablation_panel", [])))}
     primary_ids = []
     primary_seed_ids = []
     for architecture_panel in finalists.get("primary_finalists", {}).values():
@@ -233,6 +318,7 @@ def finalize(root: Path) -> dict:
             if isinstance(category, dict) and category.get("experiment_id"):
                 primary_ids.append(category["experiment_id"])
                 primary_seed_ids.extend(category.get("seed_experiment_ids", []))
+    primary_ids.extend(finalists.get("primary_locked_panel", []))
     primary_ids = sorted(set(primary_ids))
     logical_to_seeds = finalists.get("seed_experiment_ids_by_logical", {})
     def expand_for_checkpoint_signing(experiment_ids):
@@ -244,33 +330,48 @@ def finalize(root: Path) -> dict:
             elif not experiment_id.endswith("__ensemble"):
                 expanded.append(experiment_id)  # backward-compatible seed-level panel entry
         return expanded
+    primary_seed_ids.extend(expand_for_checkpoint_signing(primary_ids))
     secondary_seed_ids = expand_for_checkpoint_signing(secondary_panel["experiment_ids"])
     ablation_seed_ids = expand_for_checkpoint_signing(ablation_panel["experiment_ids"])
     unmapped = [logical_id for logical_id in secondary_panel["experiment_ids"] + ablation_panel["experiment_ids"]
                 if logical_id.endswith("__ensemble") and not logical_to_seeds.get(logical_id)]
     if unmapped:
         raise RuntimeError(f"cannot lock logical ensembles without seed mapping: {sorted(set(unmapped))}")
+    bad_seed_sets = [logical for logical in primary_ids + secondary_panel["experiment_ids"] + ablation_panel["experiment_ids"]
+                     if logical.endswith("__ensemble") and
+                     sorted(int(item.rsplit("seed", 1)[1]) for item in logical_to_seeds.get(logical, [])) != [17, 42, 73]]
+    if strict_v2 and bad_seed_sets:
+        raise RuntimeError(f"cannot lock logical ensembles without exact seeds 17/42/73: {sorted(set(bad_seed_sets))}")
     all_locked_ids = sorted(set(primary_seed_ids) | set(secondary_seed_ids) | set(ablation_seed_ids))
     checkpoints = build_finalist_checkpoint_manifest(root, matrix, all_locked_ids)
     missing = [eid for eid, entry in checkpoints.items() if entry.get("checkpoint_sha256") is None or not entry.get("checkpoint_verified") or
                entry.get("ensemble_predictions_csv_sha256") is None or entry.get("locked_validation_threshold_sha256") is None]
     if missing:
         raise RuntimeError(f"cannot lock incomplete finalist seed artifacts: {missing}")
+    if strict_v2:
+        not_complete = [eid for eid, entry in checkpoints.items() if entry.get("status") != "COMPLETE"]
+        if not_complete:
+            raise RuntimeError(f"cannot lock non-COMPLETE finalist jobs: {not_complete}")
 
-    (lock_dir / "test_dataset_manifest.json").write_text(json.dumps(test_dataset_manifest, ensure_ascii=False, indent=1) + "\n")
-    (lock_dir / "secondary_panel_manifest.json").write_text(json.dumps(secondary_panel, ensure_ascii=False, indent=1) + "\n")
-    (lock_dir / "primary_panel_manifest.json").write_text(json.dumps({"schema_version": 2, "experiment_ids": primary_ids}, ensure_ascii=False, indent=1) + "\n")
-    (lock_dir / "ablation_panel_manifest.json").write_text(json.dumps(ablation_panel, ensure_ascii=False, indent=1) + "\n")
-    (lock_dir / "primary_finalists_checkpoints.json").write_text(json.dumps(checkpoints, ensure_ascii=False, indent=1) + "\n")
+    atomic_json(lock_dir / "test_dataset_manifest.json", test_dataset_manifest)
+    atomic_json(lock_dir / "secondary_panel_manifest.json", secondary_panel)
+    atomic_json(lock_dir / "primary_panel_manifest.json", {"schema_version": 2,
+                "pipeline_namespace": PIPELINE_NAMESPACE, "experiment_ids": primary_ids})
+    atomic_json(lock_dir / "ablation_panel_manifest.json", ablation_panel)
+    atomic_json(lock_dir / "primary_finalists_checkpoints.json", checkpoints)
 
     for name in ("primary_finalists_manifest.json", "primary_panel_manifest.json", "secondary_panel_manifest.json", "ablation_panel_manifest.json"):
         experiment_matrix_manifest[name + "_sha256"] = _sha256_file(lock_dir / name)
-    (lock_dir / "experiment_matrix_manifest.json").write_text(json.dumps(experiment_matrix_manifest, ensure_ascii=False, indent=1) + "\n")
+    experiment_matrix_manifest = signed_payload(experiment_matrix_manifest)
+    atomic_json(lock_dir / "experiment_matrix_manifest.json", experiment_matrix_manifest)
 
     lock_signature = _sha256_json({**experiment_matrix_manifest, **test_dataset_manifest, "checkpoints": checkpoints})
-    marker_payload = {"locked_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "lock_signature": lock_signature,
-                       "n_primary_finalists": len(primary_ids), "n_secondary_panel": len(secondary_panel["experiment_ids"])}
-    (lock_dir / "EXPERIMENT_MATRIX_LOCKED").write_text(json.dumps(marker_payload, ensure_ascii=False, indent=1) + "\n")
+    marker_payload = signed_payload({"schema_version": 2, "pipeline_namespace": PIPELINE_NAMESPACE,
+                       "artifact_type": "classifier_scientific_lock", "locked_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                       "code_revision": code_revision(root), "lock_signature": lock_signature,
+                       "scientific_selection_complete": True, "final_aggregation_complete": False,
+                       "n_primary_finalists": len(primary_ids), "n_secondary_panel": len(secondary_panel["experiment_ids"])})
+    atomic_json(lock_dir / "EXPERIMENT_MATRIX_LOCKED", marker_payload)
     return marker_payload
 
 

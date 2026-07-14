@@ -1,5 +1,6 @@
 {
- "schema_version": 1,
+ "schema_version": 2,
+ "pipeline_namespace": "mammodiffusion.classifier_matrix.v2",
  "generated_from": "configs/final_generator_registry.json + data/processed/metadata/train.csv + data/real_augmented",
  "sampling_seed": 42,
  "budgets": {

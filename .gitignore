@@ -61,11 +61,18 @@ experiments/04d_ldm_*/
 # Matrice classificatori v2: molti checkpoint per job (4 architetture x decine di dataset
 # variant x 3 seed). Codice/config/risultati restano in notebooks/, configs/, results/.
 experiments/classifiers_matrix/
+results/classifiers_matrix/
+results/runtime_profiles/
+results/final_evaluation_v2/
+results/generator_comparison/selected_generator_union.json
+results/generator_comparison/stage1_validation_leaderboard.json
+results/generator_comparison/stage1_completion_manifest.json
 
 # Zip di backup dei notebook creati fuori workflow (non versionare)
 notebooks*.zip
 new*.zip
 tests*.zip
+*.zip
 
 # Struttura piatta precedente, conservata solo come archivio locale.
 /old/

@@ -163,7 +163,7 @@ def generate_publication_report(root: Path) -> Path:
         ("7. Validation results", format_downstream_results(validation)),
         ("8. Final evaluation status/results", format_metric_table(final_results or final_dataset_status())),
         ("9. Interpretability", collect_figure_references(root)),
-        ("10. Efficiency", format_metric_table([{"generator_id": row.get("generator_id"), "generation_efficiency": row.get("generation_efficiency")} for row in generator_rows] if generator_rows else None)),
+        ("10. Efficiency", format_metric_table([{key: row.get(key) for key in ("generator_id", "generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes", "efficiency_source", "efficiency_status")} for row in generator_rows] if generator_rows else None)),
         ("11. Limitations", format_limitations()),
         ("12. Conclusions", "Not yet evaluated" if not final_results else "Conclusions are limited to the explicitly configured final evaluation."),
     )

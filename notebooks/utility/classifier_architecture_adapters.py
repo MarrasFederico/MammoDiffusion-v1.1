@@ -62,6 +62,19 @@ def _dataframes(train_rows, validation_rows):
     return pd.DataFrame(train_rows), pd.DataFrame(validation_rows)
 
 
+def _accounting_metadata(rows):
+    output = []
+    for index, row in enumerate(rows):
+        source = str(row.get("source", "")).lower()
+        field = ("traditional_augmented_seen" if "augment" in source else
+                 "finetuned_synthetic_seen" if "finetuned" in source else
+                 "fromscratch_synthetic_seen" if "from_scratch" in source or "fromscratch" in source else
+                 "real_positive_seen" if int(row.get("label", 0)) == 1 else "real_negative_seen")
+        output.append({"sample_id": str(row.get("image_id") or row.get("sample_id") or index),
+                       "source": str(row.get("source", "unknown")), "accounting_field": field})
+    return output
+
+
 def _torch_payload(raw):
     """Normalize common checkpoint wrappers and a uniform DataParallel prefix."""
     if not isinstance(raw, dict):
@@ -133,9 +146,15 @@ class TinyAdapter:
                 "history": {"loss": [0.0]}, "rng_states": {"python": random.getstate()},
                 "resume_segment_id": f"tiny-{global_step}"}, best=True)
         self.save_checkpoint(model, checkpoint_path)
+        prior_accounting = None
+        accounting_path = Path(context["run_dir"]) / "source_accounting.json" if context.get("run_dir") else None
+        if accounting_path and accounting_path.is_file():
+            prior_accounting = json.loads(accounting_path.read_text())
         return {"checkpoint": str(checkpoint_path), "history": {"loss": [0.0]},
                 "optimizer_updates": global_step if context.get("run_dir") else 1,
-                "resumed_from": source if context.get("run_dir") and prior else None}
+                "resumed_from": source if context.get("run_dir") and prior else None,
+                "processed_sample_rows": list(train_rows),
+                "previous_source_accounting": prior_accounting}
 
     def predict_validation(self, checkpoint_path, validation_rows, **_):
         model = self.load_checkpoint(checkpoint_path)
@@ -206,13 +225,15 @@ class ArchitectureAdapter:
             import maxvit_utils as utils
             mean, std = self.policy["normalization"]["mean"], self.policy["normalization"]["std"]
             size = int(self.policy["input_size"][0])
-            return (utils.make_dataloader(train_df, "processed_path", "label", mean, std, size, batch, True, True, seed, workers),
+            return (utils.make_dataloader(train_df, "processed_path", "label", mean, std, size, batch, True, True, seed, workers,
+                                          metadata=_accounting_metadata(train_rows)),
                     utils.make_dataloader(val_df, "processed_path", "label", mean, std, size, batch, False, False, seed, workers))
         if self.architecture == "mammofm":
             import mammofm_utils as utils
             return (utils.make_mammofm_dataloader(train_df, "processed_path", "label", utils.DEFAULT_MAMMOFM_MEAN,
                     utils.DEFAULT_MAMMOFM_STD, utils.DEFAULT_IMG_SIZE, batch_size=batch, shuffle=True,
-                    augment=True, seed=seed, num_workers=workers, drop_last=False),
+                    augment=True, seed=seed, num_workers=workers, drop_last=False,
+                    metadata=_accounting_metadata(train_rows)),
                     utils.make_mammofm_dataloader(val_df, "processed_path", "label", utils.DEFAULT_MAMMOFM_MEAN,
                     utils.DEFAULT_MAMMOFM_STD, utils.DEFAULT_IMG_SIZE, batch_size=batch, shuffle=False,
                     augment=False, seed=seed, num_workers=workers, drop_last=False))
@@ -285,12 +306,9 @@ class ArchitectureAdapter:
                     "ALLOW_DISCARD_INVALID_RESUME=True (env var) to explicitly discard and start over."
                 )
         model = self.build_model(pretrained=True, seed=seed)
-        results_dir = Path(context.get("run_dir", run_dir))
+        results_dir = run_dir
         if context.get("run_dir"):
-            # Mirror the run layout under results while keeping checkpoints operational-only.
-            project_root = self.root
-            results_dir = (project_root / "results/downstream_classifiers" / self.architecture /
-                           context["dataset_variant_id"] / context["training_policy"] / f"seed_{seed}")
+            # All publication-v2 artifacts share the already-resolved canonical run directory.
             results_dir.mkdir(parents=True, exist_ok=True)
             if self.architecture == "resnet50":
                 params = int(model.count_params()); trainable = sum(int(v.shape.num_elements()) for v in model.trainable_weights)
@@ -482,6 +500,9 @@ class ArchitectureAdapter:
             scaler = torch.amp.GradScaler("cuda") if bool(self.policy.get("amp")) and device.type == "cuda" else None
             start_epoch, start_batch, global_step = 1, 0, 0
             prior_history: dict = {}
+            accounting_fields = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
+                                 "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
+            actual_source_counts = {field: 0 for field in accounting_fields}
             if resume:
                 model.load_state_dict(resume["model_state_dict"], strict=True)
                 optimizer.load_state_dict(resume["optimizer_state_dict"])
@@ -500,12 +521,25 @@ class ArchitectureAdapter:
                 early.best_secondary = float(resume.get("best_validation_loss", float("inf")))
                 best_epoch = resume.get("best_epoch")
                 prior_history = dict(resume.get("history", {}))
+                previous_accounting = resume.get("source_accounting", {})
+                if previous_accounting.get("accounting_mode") == "actual":
+                    actual_source_counts.update({field: int(previous_accounting.get(field, 0)) for field in accounting_fields})
                 if resume.get("rng_states", {}).get("python"): random.setstate(resume["rng_states"]["python"])
                 if resume.get("rng_states", {}).get("numpy"): np.random.set_state(resume["rng_states"]["numpy"])
                 if resume.get("rng_states", {}).get("torch") is not None: torch.set_rng_state(resume["rng_states"]["torch"])
                 if torch.cuda.is_available() and resume.get("rng_states", {}).get("torch_cuda"):
                     torch.cuda.set_rng_state_all(resume["rng_states"]["torch_cuda"])
             segment = hashlib.sha256(os.urandom(16)).hexdigest()[:16]
+            def record_processed_batch(metadata):
+                if not isinstance(metadata, dict) or "accounting_field" not in metadata:
+                    raise RuntimeError("training batch is missing sample_id/source accounting metadata")
+                for field in metadata["accounting_field"]:
+                    if field not in actual_source_counts:
+                        raise RuntimeError(f"unknown source accounting field: {field}")
+                    actual_source_counts[field] += 1
+            def actual_accounting():
+                return {"schema_version": 1, "accounting_mode": "actual", **actual_source_counts,
+                        "total_samples_seen": sum(actual_source_counts.values())}
             # `current` tracks the *real* in-progress epoch/history so a periodic (intra-epoch)
             # checkpoint never reports the previous epoch's number or wipes history to {}.
             current = {"epoch": start_epoch, "history": prior_history, "best_epoch": best_epoch}
@@ -519,6 +553,7 @@ class ArchitectureAdapter:
                     "best_validation_loss": getattr(early, "best_secondary", None),
                     "best_epoch": current["best_epoch"] if best_epoch is None else best_epoch,
                     "early_stopping_counter": getattr(early, "wait", 0), "history": history or {},
+                    "source_accounting": actual_accounting(),
                     "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "torch": torch.get_rng_state(),
                                    "torch_cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}, "resume_segment_id": segment}
                 ckio.save_resume_checkpoint(run_dir, payload, best=best)
@@ -549,6 +584,7 @@ class ArchitectureAdapter:
                 max_optimizer_updates=int(self.policy["max_optimizer_updates"]), scaler=scaler,
                 on_optimizer_step=periodic, on_before_optimizer_step=before_optimizer_step,
                 on_epoch_begin=epoch_begin, on_epoch_end=epoch_end, resume_history=prior_history,
+                on_batch_processed=record_processed_batch,
             )
             history = history_obj.history if hasattr(history_obj, "history") else vars(history_obj)
             # The in-memory early.best_state does not survive a process restart; the disk-backed
@@ -567,7 +603,8 @@ class ArchitectureAdapter:
         self.save_checkpoint(model, Path(checkpoint_path))
         return {"checkpoint": str(checkpoint_path), "history": history, "resumed_from": resume_source if resume else None,
                 "optimizer_updates_limit": int(self.policy["max_optimizer_updates"]), "epochs": epochs,
-                "best_epoch": best_epoch}
+                "best_epoch": best_epoch,
+                **({"source_accounting": actual_accounting()} if self.architecture != "resnet50" else {})}
 
     def predict_validation(self, checkpoint_path, validation_rows, seed=42, **_):
         loader = self.build_validation_dataloader(validation_rows, seed)

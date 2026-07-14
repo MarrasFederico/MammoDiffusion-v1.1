@@ -19,6 +19,8 @@
       "status": "completed_legacy_normalized_verified",
       "checkpoint": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
       "lineage_manifest": "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json",
+      "raw_generation_manifest": "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json",
       "filtering_applied": false,
       "samples": {
@@ -48,9 +50,11 @@
       "status": "completed",
       "checkpoint": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
       "lineage_manifest": "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
+      "raw_generation_manifest": "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/02_sd21_filtered_100steps/metrics/filter_report_positive_adaptive_mask.csv",
+      "filter_manifest": "results/diffusers/02_sd21_filtered_100steps/metrics/filter_report_positive_adaptive_mask.csv",
       "efficiency_manifest": "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
       "samples": {
         "raw_positive": "experiments/diffusers/02_sd21_filtered_100steps/generated_images/raw_matched_1361/positive",
@@ -76,9 +80,11 @@
       "status": "completed",
       "checkpoint": "experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-12000/unet/diffusion_pytorch_model.safetensors",
       "lineage_manifest": "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
+      "raw_generation_manifest": "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/03_sd21_vae_finetuned/metrics/filter_report_positive_adaptive_mask.csv",
+      "filter_manifest": "results/diffusers/03_sd21_vae_finetuned/metrics/filter_report_positive_adaptive_mask.csv",
       "efficiency_manifest": "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
       "samples": {
         "raw_positive": "experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive",
@@ -104,9 +110,11 @@
       "status": "completed",
       "checkpoint": "experiments/diffusers/04_sd21_lora/model/pytorch_lora_weights.safetensors",
       "lineage_manifest": "results/diffusers/04_sd21_lora/metrics/generation_info.json",
+      "raw_generation_manifest": "results/diffusers/04_sd21_lora/metrics/generation_info.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/04_sd21_lora/metrics/generation_info.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/04_sd21_lora/metrics/filter_report_positive_adaptive_mask.csv",
+      "filter_manifest": "results/diffusers/04_sd21_lora/metrics/filter_report_positive_adaptive_mask.csv",
       "efficiency_manifest": "results/diffusers/04_sd21_lora/metrics/generation_info.json",
       "samples": {
         "raw_positive": "experiments/diffusers/04_sd21_lora/generated_images/raw_matched_1361/positive",
@@ -134,9 +142,11 @@
       "status": "completed_positive_only",
       "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "lineage_manifest": null,
+      "raw_generation_manifest": null,
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_summary.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_report.csv",
+      "filter_manifest": "results/diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_report.csv",
       "samples": {
         "raw_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_raw",
         "filtered_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_filtered"
@@ -167,9 +177,11 @@
       "status": "completed",
       "checkpoint": "experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "lineage_manifest": "experiments/diffusers/06_ldm_extra1361_fromscratch/legacy_runtime_manifest.json",
+      "raw_generation_manifest": "experiments/diffusers/06_ldm_extra1361_fromscratch/legacy_runtime_manifest.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_summary.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_report.csv",
+      "filter_manifest": "results/diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_report.csv",
       "samples": {
         "raw_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
         "filtered_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered"
@@ -194,9 +206,11 @@
       "status": "completed",
       "checkpoint": "experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
       "lineage_manifest": "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json",
+      "raw_generation_manifest": "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_summary.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
+      "filter_manifest": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
       "samples": {
         "raw_positive": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
         "filtered_positive": "data/synthetic/fromscratch_new/positive"
@@ -221,9 +235,11 @@
       "status": "completed",
       "checkpoint": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "lineage_manifest": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json",
+      "raw_generation_manifest": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json",
+      "training_corpus_manifest": null,
       "provenance_manifest": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_summary.json",
       "filtering_applied": true,
-      "filter_report": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
+      "filter_manifest": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
       "samples": {
         "raw_positive": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
         "filtered_positive": "data/synthetic/fromscratch_v3/positive"

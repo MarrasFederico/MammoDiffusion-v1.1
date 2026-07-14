@@ -52,20 +52,22 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertNotEqual(cfg["fid_repetitions"], cfg["kid_repetitions"])
         self.assertLessEqual(cfg["fid_repetitions"], 10)
         ranking = [row["metric"] for row in self.protocol["selection"]["ranking"]]
-        self.assertEqual(ranking[0], "rad_dino.filtered.kid.mean")
+        self.assertEqual(ranking[0], "rad_dino.filtered.kid.full_reference")
         fid_rows = [row for row in self.protocol["selection"]["ranking"] if "fid" in row["metric"]]
         self.assertTrue(fid_rows)
         self.assertTrue(all(row.get("role") == "descriptive_tiebreak" for row in fid_rows))
 
-    def test_repeated_metrics_use_metric_specific_repetition_counts(self):
+    def test_repeated_metrics_use_shared_stability_plan_and_full_estimate(self):
         protocol = copy.deepcopy(self.protocol)
         protocol["synthetic_pool_target"] = 20
-        protocol["resampling"].update(kid_repetitions=3, prdc_repetitions=2, fid_repetitions=1, nearest_neighbour_k=3)
+        protocol["resampling"].update(stability_repetitions=3, nearest_neighbour_k=3)
         rng = np.random.default_rng(9)
         rows, summary = gb.repeated_distribution_metrics(rng.normal(size=(10, 4)), rng.normal(size=(20, 4)), protocol)
-        self.assertEqual({name: sum(row["metric_group"] == name for row in rows) for name in ("kid", "prdc", "fid")},
-                         {"kid": 3, "prdc": 2, "fid": 1})
-        self.assertEqual(summary["evaluation_subset_size"], 10)
+        self.assertEqual(len(rows), 3)
+        self.assertTrue(all(row["metric_group"] == "kid_prdc_stability" for row in rows))
+        self.assertEqual(summary["stability_subset_size"], 8)
+        self.assertIn("full_reference_estimates", summary)
+        self.assertEqual(summary["stability_interval_type"], "repeated-subsampling stability interval")
 
     def test_similarity_categories_are_separate(self):
         result = gb.similarity_summaries(
@@ -107,8 +109,11 @@ class GeneratorBenchmarkTests(unittest.TestCase):
     def test_embedding_cache_requires_and_round_trips_metadata(self):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "features.npy"
-            metadata = {"image_ids": ["a", "b"], "image_paths": ["a.png", "b.png"], "extractor": "rad_dino",
-                        "preprocessing": "x", "dimension": 3, "code_version": "abc", "source_manifest": "m.json"}
+            metadata = {"schema_version": 2, "image_ids": ["a", "b"], "image_paths": ["a.png", "b.png"],
+                        "image_fingerprints": [{"image_id": "a"}, {"image_id": "b"}], "extractor": "rad_dino",
+                        "extractor_model_id": "microsoft/rad-dino", "extractor_weights_identifier": "w",
+                        "preprocessing_signature": "x", "feature_dimension": 3, "code_version": "abc",
+                        "source_manifest_path": "m.json", "source_manifest_sha256": "123"}
             gb.write_embedding_cache(path, np.ones((2, 3)), metadata)
             features, restored = gb.load_embedding_cache(path)
             np.testing.assert_array_equal(features, np.ones((2, 3)))

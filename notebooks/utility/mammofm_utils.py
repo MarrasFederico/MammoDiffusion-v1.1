@@ -374,7 +374,7 @@ class MammoFMDataset(Dataset):
     standardizzazione con `mean`/`std` (scalari, non statistiche ImageNet)."""
 
     def __init__(self, paths, labels, mean: float, std: float, img_size: int,
-                 augment: bool = False, use_clahe: bool = False):
+                 augment: bool = False, use_clahe: bool = False, metadata=None):
         self.paths = list(paths)
         self.labels = np.asarray(labels, dtype=np.float32)
         self.mean = float(mean)
@@ -382,6 +382,7 @@ class MammoFMDataset(Dataset):
         self.img_size = int(img_size)
         self.augment = bool(augment)
         self.use_clahe = bool(use_clahe)
+        self.metadata = list(metadata) if metadata is not None else None
 
     def __len__(self):
         return len(self.paths)
@@ -409,14 +410,15 @@ class MammoFMDataset(Dataset):
         arr = (arr - self.mean) / self.std
 
         tensor = torch.from_numpy(arr).unsqueeze(0).repeat(3, 1, 1).float()  # 1 canale -> 3 canali (RGB)
-        return tensor, torch.tensor(label, dtype=torch.float32)
+        result = (tensor, torch.tensor(label, dtype=torch.float32))
+        return (*result, self.metadata[idx]) if self.metadata is not None else result
 
 
 def make_mammofm_dataloader(df: pd.DataFrame, path_col: str, label_col: str,
                              mean: float, std: float, img_size: int,
                              batch_size: int = 8, shuffle: bool = False, augment: bool = False,
                              use_clahe: bool = False, seed: int = 42, num_workers: int = 2,
-                             drop_last: Optional[bool] = None) -> DataLoader:
+                             drop_last: Optional[bool] = None, metadata=None) -> DataLoader:
     """Costruisce un DataLoader coerente con lo stile di `maxvit_utils.make_dataloader`.
 
     `drop_last` di default resta `None` (equivalente a `drop_last=shuffle`); i notebook
@@ -425,7 +427,7 @@ def make_mammofm_dataloader(df: pd.DataFrame, path_col: str, label_col: str,
     """
     dataset = MammoFMDataset(
         paths=df[path_col].values, labels=df[label_col].values,
-        mean=mean, std=std, img_size=img_size, augment=augment, use_clahe=use_clahe,
+        mean=mean, std=std, img_size=img_size, augment=augment, use_clahe=use_clahe, metadata=metadata,
     )
     generator = torch.Generator().manual_seed(seed)
     if drop_last is None:
@@ -554,7 +556,7 @@ def check_no_split_overlap(splits: dict) -> None:
 def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None,
                          grad_clip_norm: Optional[float] = None, accumulation_steps: int = 1,
                          start_batch: int = 0, global_step: int = 0, max_optimizer_updates: int | None = None,
-                         on_optimizer_step=None, on_before_optimizer_step=None) -> dict:
+                         on_optimizer_step=None, on_before_optimizer_step=None, on_batch_processed=None) -> dict:
     from sklearn.metrics import average_precision_score, roc_auc_score
 
     model.train()
@@ -563,9 +565,10 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
     y_true, y_prob = [], []
     optimizer.zero_grad(set_to_none=True)
 
-    for step, (imgs, labels) in enumerate(loader):
+    for step, batch in enumerate(loader):
         if step < start_batch:
             continue
+        imgs, labels, metadata = (*batch, None) if len(batch) == 2 else batch
         imgs, labels = imgs.to(device), labels.to(device)
         with torch.autocast(device_type=device.type, enabled=(scaler is not None and device.type == "cuda")):
             logits = model(imgs).squeeze(-1)
@@ -575,6 +578,8 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
             scaler.scale(loss).backward()
         else:
             loss.backward()
+        if on_batch_processed is not None:
+            on_batch_processed(metadata)
 
         is_last_batch = (step + 1) == len(loader)
         if (step + 1) % accumulation_steps == 0 or is_last_batch:
@@ -649,7 +654,8 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
                 accumulation_steps: int = 1, start_epoch: int = 1, start_batch: int = 0,
                 global_step: int = 0, max_optimizer_updates: int | None = None,
                 scaler=None, on_optimizer_step=None, on_before_optimizer_step=None,
-                on_epoch_begin=None, on_epoch_end=None, resume_history: dict | None = None) -> History:
+                on_epoch_begin=None, on_epoch_end=None, on_batch_processed=None,
+                resume_history: dict | None = None) -> History:
     """Training loop stile Keras (fit) con AMP + gradient clipping + gradient accumulation.
 
     Non duplica `maxvit_utils.fit`: qui serve gestire esplicitamente le BatchNorm2d
@@ -674,7 +680,7 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
             scaler=scaler, grad_clip_norm=grad_clip_norm, accumulation_steps=accumulation_steps,
                 start_batch=start_batch if epoch == start_epoch else 0, global_step=global_step,
             max_optimizer_updates=max_optimizer_updates, on_optimizer_step=on_optimizer_step,
-            on_before_optimizer_step=on_before_optimizer_step,
+            on_before_optimizer_step=on_before_optimizer_step, on_batch_processed=on_batch_processed,
         )
         global_step = train_metrics.pop("global_step")
         val_metrics = evaluate_amp(model, val_loader, criterion, device)

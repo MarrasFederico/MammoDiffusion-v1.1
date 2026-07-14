@@ -138,24 +138,41 @@ def source_exposure(audit: Mapping[str, Any], optimizer_steps: int, effective_ba
     rows = []
     for source, count in sorted(distribution.items()):
         seen = total_seen * int(count) / total if total else 0.0
-        rows.append({"source": source, "available_samples": int(count), "samples_seen": seen,
+        rows.append({"source": source, "available_samples": int(count), "expected_samples_exposed": seen,
                      "effective_epochs": seen / int(count) if count else 0.0})
     return {"optimizer_steps": int(optimizer_steps), "effective_batch_size": int(effective_batch_size),
-            "samples_seen_by_source": rows, "sampler_policy": "documented proportional sampling; no hidden oversampling"}
+            "expected_source_exposure": rows, "accounting_mode": "proportional_estimate",
+            "sampler_policy": "documented proportional sampling; no hidden oversampling"}
 
 
-def source_accounting(audit: Mapping[str, Any], optimizer_updates: int, effective_batch_size: int) -> dict[str, Any]:
-    """Fixed-budget accounting with the publication protocol's five explicit source fields."""
-    counts = {
-        "real_negative_seen": int(audit.get("number_of_real_negatives", 0)),
-        "real_positive_seen": int(audit.get("number_of_real_positives", 0)),
-        "traditional_augmented_seen": int(audit.get("number_of_traditional_augmentations", 0)),
-        "finetuned_synthetic_seen": int(audit.get("number_of_finetuned_synthetic_positives", 0)),
-        "fromscratch_synthetic_seen": int(audit.get("number_of_fromscratch_synthetic_positives", 0)),
-    }
-    available = sum(counts.values()); total_seen = int(optimizer_updates) * int(effective_batch_size)
-    return {key: (total_seen * value / available if available else 0.0) for key, value in counts.items()} | {
-        "optimizer_updates": int(optimizer_updates), "effective_batch_size": int(effective_batch_size)}
+SOURCE_ACCOUNTING_FIELDS = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
+                            "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
+
+
+def _source_field(row: Mapping[str, Any]) -> str:
+    source = str(row.get("source", "")).lower()
+    if "augment" in source: return "traditional_augmented_seen"
+    if "finetuned" in source: return "finetuned_synthetic_seen"
+    if "from_scratch" in source or "fromscratch" in source: return "fromscratch_synthetic_seen"
+    return "real_positive_seen" if int(row.get("label", 0)) == 1 else "real_negative_seen"
+
+
+def source_accounting(processed_rows: Sequence[Mapping[str, Any]], previous: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Count examples after their batch is processed; prior counts make resume additive."""
+    counts = {field: int((previous or {}).get(field, 0)) for field in SOURCE_ACCOUNTING_FIELDS}
+    for row in processed_rows:
+        counts[_source_field(row)] += 1
+    return {"schema_version": 1, "accounting_mode": "actual", **counts,
+            "total_samples_seen": sum(counts.values())}
+
+
+def proportional_source_accounting(audit: Mapping[str, Any], optimizer_updates: int,
+                                   effective_batch_size: int) -> dict[str, Any]:
+    """Explicit fallback: expected exposure, never fields named ``*_seen``."""
+    exposure = source_exposure(audit, optimizer_updates, effective_batch_size)
+    return {"schema_version": 1, "accounting_mode": "proportional_estimate",
+            "optimizer_updates": int(optimizer_updates), "effective_batch_size": int(effective_batch_size),
+            "expected_source_exposure": exposure["expected_source_exposure"]}
 
 
 def select_best_epoch(history: Sequence[Mapping[str, Any]], *, tolerance: float = 1e-12) -> Mapping[str, Any]:
@@ -213,8 +230,12 @@ def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, An
     exposure = source_exposure(dataset["audit"], int(result.get("optimizer_updates", configuration["policy"]["max_optimizer_updates"])),
                                int(configuration["policy"]["effective_batch_size"]))
     atomic_json(output / "source_exposure.json", exposure)
-    accounting = source_accounting(dataset["audit"], int(result.get("optimizer_updates", configuration["policy"]["max_optimizer_updates"])),
-                                   int(configuration["policy"]["effective_batch_size"]))
+    if result.get("processed_sample_rows") is not None:
+        accounting = source_accounting(result["processed_sample_rows"], result.get("previous_source_accounting"))
+    else:
+        accounting = result.get("source_accounting") or proportional_source_accounting(
+            dataset["audit"], int(result.get("optimizer_updates", configuration["policy"]["max_optimizer_updates"])),
+            int(configuration["policy"]["effective_batch_size"]))
     atomic_json(output / "source_accounting.json", accounting)
     return {**result, "checkpoint": str(checkpoint), "output_dir": str(output), "source_exposure": exposure,
             "source_accounting": accounting, "resume_status": resume}
@@ -319,10 +340,18 @@ def plot_training_history(history: Sequence[Mapping[str, Any]]):
 
 def plot_source_accounting(accounting: Mapping[str, Any]):
     import matplotlib.pyplot as plt
-    fields = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
-              "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
-    figure, axis = plt.subplots(figsize=(9, 4)); axis.bar(fields, [float(accounting.get(name, 0)) for name in fields])
-    axis.tick_params(axis="x", rotation=30); axis.set_ylabel("Samples seen"); figure.tight_layout(); return figure
+    if accounting.get("accounting_mode") != "actual":
+        rows = accounting.get("expected_source_exposure", [])
+        fields = [str(row["source"]) for row in rows]
+        values = [float(row["expected_samples_exposed"]) for row in rows]
+        ylabel = "Expected samples exposed (proportional estimate)"
+    else:
+        fields = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
+                  "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
+        values = [float(accounting.get(name, 0)) for name in fields]
+        ylabel = "Samples actually processed"
+    figure, axis = plt.subplots(figsize=(9, 4)); axis.bar(fields, values)
+    axis.tick_params(axis="x", rotation=30); axis.set_ylabel(ylabel); figure.tight_layout(); return figure
 
 
 def plot_validation_curves(rows: Sequence[Mapping[str, Any]], threshold: float = 0.5):
@@ -379,4 +408,4 @@ def saved_artifacts(root: Path, configuration: Mapping[str, Any]) -> list[str]:
 __all__ = ["audit_dataset", "build_error_case_table", "configure_environment", "configure_visible_gpu", "construct_dataset", "experiment_configuration",
            "experiment_dir", "load_adapter", "load_existing_outputs", "load_model", "load_prediction_rows", "plot_calibration", "plot_source_accounting", "plot_training_history",
            "plot_validation_curves", "resume_status", "run_validation", "saved_artifacts",
-           "select_best_epoch", "source_accounting", "source_exposure", "train", "training_budget"]
+           "proportional_source_accounting", "select_best_epoch", "source_accounting", "source_exposure", "train", "training_budget"]

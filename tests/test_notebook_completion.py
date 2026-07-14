@@ -71,8 +71,9 @@ class GeneratorCompletionTests(unittest.TestCase):
             paths = self._images(Path(temporary))
             row = gb.technical_validity_row("g", "raw", paths, minimum_unique=4, expected_size=(64, 64))
         expected = {"generator_id", "condition", "n_discovered", "n_readable", "n_corrupt", "n_wrong_shape",
-                    "n_near_black", "n_invalid_range", "n_unique_content", "n_exact_duplicates",
-                    "acceptance_rate", "eligible_for_distribution_metrics", "failure_reason"}
+                    "n_near_black", "n_invalid_range", "n_technically_valid", "n_technically_invalid",
+                    "n_unique_valid_content", "n_exact_duplicates_among_valid", "technical_validity_rate",
+                    "eligible_for_distribution_metrics", "failure_reason"}
         self.assertEqual(set(row), expected)
         self.assertTrue(row["eligible_for_distribution_metrics"])
 
@@ -107,7 +108,9 @@ class GeneratorCompletionTests(unittest.TestCase):
         return {"generator_id": generator_id, "family": family, "eligible_for_selection": eligible,
                 "valid_positive_images": 1361, "synthetic_exact_duplicate_rate": 0,
                 "perceptual_hash_duplicate_rate": 0, "train_memorization_rate": 0,
-                "raddino_coverage": .8, "acceptance_rate": .9, "metrics_complete": True,
+                "raddino_coverage": .8, "filter_acceptance_rate": .9, "metrics_complete": True,
+                "lineage_complete": True, "provenance_manifest_valid": True,
+                "training_corpus_manifest_valid": True,
                 "test_access": False, "raddino_kid": kid, "raddino_precision": .8,
                 "raddino_fid": 3, "inception_kid": .2, "raddino_kid_std": .01}
 

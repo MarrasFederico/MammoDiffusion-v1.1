@@ -53,13 +53,14 @@ def build_maxvit_model(num_classes: int = 1, pretrained: bool = True):
 class MammoDataset(Dataset):
     """Carica mammografie grayscale, le converte a 3 canali e le normalizza per MaxViT."""
 
-    def __init__(self, paths, labels, mean, std, img_size: int, augment: bool = False):
+    def __init__(self, paths, labels, mean, std, img_size: int, augment: bool = False, metadata=None):
         self.paths = list(paths)
         self.labels = np.asarray(labels, dtype=np.float32)
         self.mean = torch.tensor(mean, dtype=torch.float32).view(3, 1, 1)
         self.std = torch.tensor(std, dtype=torch.float32).view(3, 1, 1)
         self.img_size = img_size
         self.augment = augment
+        self.metadata = list(metadata) if metadata is not None else None
 
     def __len__(self):
         return len(self.paths)
@@ -79,13 +80,15 @@ class MammoDataset(Dataset):
 
         tensor = torch.from_numpy(arr).unsqueeze(0).repeat(3, 1, 1)  # 1 canale -> 3 canali
         tensor = (tensor - self.mean) / self.std
-        return tensor, torch.tensor(label, dtype=torch.float32)
+        result = (tensor, torch.tensor(label, dtype=torch.float32))
+        return (*result, self.metadata[idx]) if self.metadata is not None else result
 
 
 def make_dataloader(df: pd.DataFrame, path_col: str, label_col: str, mean, std, img_size: int,
                      batch_size: int, shuffle: bool = False, augment: bool = False,
-                     seed: int = 42, num_workers: int = 2) -> DataLoader:
-    ds = MammoDataset(df[path_col].values, df[label_col].values, mean, std, img_size, augment=augment)
+                     seed: int = 42, num_workers: int = 2, metadata=None) -> DataLoader:
+    ds = MammoDataset(df[path_col].values, df[label_col].values, mean, std, img_size, augment=augment,
+                      metadata=metadata)
     generator = torch.Generator().manual_seed(seed)
     return DataLoader(
         ds, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers,

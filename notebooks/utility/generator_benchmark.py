@@ -27,6 +27,7 @@ CANONICAL_OUTPUTS = (
     "distribution_metrics_repetitions.csv", "distribution_metrics_summary.csv",
     "diversity_metrics.csv", "train_memorization.csv", "validation_similarity.csv",
     "synthetic_duplication.csv", "generator_summary.csv", "generator_ranking.csv",
+    "resampling_plan.json", "paired_generator_differences.csv",
     "figures/", "diagnostic_panels/",
 )
 
@@ -70,10 +71,17 @@ def validate_protocol(protocol: Mapping[str, Any]) -> None:
     resampling = protocol.get("resampling", {})
     if resampling.get("replace") is not False:
         raise ValueError("KID and PRDC repeated subsampling must use replace=False")
+    fraction = float(resampling.get("subsampling_fraction", 0.0))
+    if not 0.0 < fraction < 1.0:
+        raise ValueError("subsampling_fraction must be strictly between zero and one")
+    if int(resampling.get("stability_repetitions", 0)) < 2:
+        raise ValueError("stability_repetitions must be at least two")
+    if float(protocol.get("selection", {}).get("practical_equivalence_margin", -1)) < 0:
+        raise ValueError("practical_equivalence_margin must be preregistered")
     if int(resampling.get("fid_repetitions", 999)) > 10:
         raise ValueError("FID is secondary and must use a small independent repetition count")
     ranking_metrics = [item["metric"] for item in protocol["selection"]["ranking"]]
-    if ranking_metrics[0] != "rad_dino.filtered.kid.mean":
+    if ranking_metrics[0] != "rad_dino.filtered.kid.full_reference":
         raise ValueError("KID must be the primary ranking metric")
     fid_rows = [item for item in protocol["selection"]["ranking"] if "fid" in item["metric"]]
     if any(item.get("role") != "descriptive_tiebreak" for item in fid_rows):
@@ -107,14 +115,40 @@ def metadata_positive_paths(root: Path, relative_csv: str) -> tuple[list[str], l
     return paths, ids
 
 
-def evaluation_subset_size(synthetic_pool_count: int, real_reference_count: int, synthetic_pool_target: int = 1361) -> int:
-    """Validate the synthetic pool and return the balanced per-repetition size."""
+def training_corpus_from_manifest(root: Path, relative_csv: str) -> tuple[list[str], list[str], dict[str, int], dict[str, str]]:
+    """Load the complete generator-declared training corpus, preserving labels and sources."""
+    _reject_test_path(relative_csv)
+    manifest = Path(root) / relative_csv
+    with manifest.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    paths, ids, labels, sources = [], [], {}, {}
+    for index, row in enumerate(rows):
+        image_id = str(row.get("image_id") or row.get("sample_id") or index)
+        sample_id = f"{row.get('patient_id', '')}::{image_id}"
+        value = row.get("processed_path") or row.get("path")
+        if not value:
+            label = int(row["label"])
+            value = f"data/processed/train/{label}/{image_id}.png"
+        _reject_test_path(value)
+        paths.append(str((Path(root) / value).resolve())); ids.append(sample_id)
+        labels[sample_id] = int(row["label"]); sources[sample_id] = str(row.get("source", "real_train"))
+    if len(ids) != len(set(ids)):
+        raise ValueError("training corpus manifest contains duplicate sample IDs")
+    return paths, ids, labels, sources
+
+
+def evaluation_subset_size(synthetic_pool_count: int, real_reference_count: int, synthetic_pool_target: int = 1361,
+                           subsampling_fraction: float = 1.0) -> int:
+    """Validate the pool and return the balanced stability-subsample size."""
     synthetic_pool_count, real_reference_count = int(synthetic_pool_count), int(real_reference_count)
     if synthetic_pool_count < int(synthetic_pool_target):
         raise ValueError(f"synthetic pool below target: {synthetic_pool_count} < {synthetic_pool_target}")
     if real_reference_count < 2:
         raise ValueError("at least two real validation positives are required")
-    return min(real_reference_count, synthetic_pool_count)
+    fraction = float(subsampling_fraction)
+    if not 0.0 < fraction <= 1.0:
+        raise ValueError("subsampling_fraction must be in (0, 1]")
+    return int(math.floor(fraction * min(real_reference_count, synthetic_pool_count)))
 
 
 def deterministic_sample(values: Sequence[str | Path], count: int, seed: int) -> list[str]:
@@ -205,30 +239,72 @@ def summarize(values: Sequence[float]) -> dict[str, Any]:
 
 
 def repeated_distribution_metrics(real: np.ndarray, synthetic: np.ndarray, protocol: Mapping[str, Any],
-                                  *, seed: int | None = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Compute KID/PRDC/FID with independent, balanced, no-replacement repetitions."""
+                                  *, seed: int | None = None,
+                                  resampling_plan: Sequence[Mapping[str, Any]] | None = None
+                                  ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Compute a full estimate plus repeated-subsampling stability measurements."""
     cfg = protocol["resampling"]
-    size = evaluation_subset_size(len(synthetic), len(real), int(protocol["synthetic_pool_target"]))
+    size = evaluation_subset_size(len(synthetic), len(real), int(protocol["synthetic_pool_target"]),
+                                  float(cfg["subsampling_fraction"]))
+    nearest_k = int(cfg["nearest_neighbour_k"])
+    if size <= nearest_k:
+        raise ValueError("stability subset_size must exceed nearest_neighbour_k")
     base_seed = int(seed if seed is not None else protocol["sampling"]["seed"])
+    if resampling_plan is None:
+        resampling_plan = balanced_subsample_indices(len(real), len(synthetic), size,
+            int(cfg["stability_repetitions"]), base_seed, nearest_neighbour_k=nearest_k)
+    plans = [dict(row) for row in resampling_plan]
+    for plan in plans:
+        if len(plan["real_indices"]) != size or len(plan["synthetic_indices"]) != size:
+            raise ValueError("resampling plan does not match the protocol subset size")
+        if max(plan["real_indices"], default=-1) >= len(real) or max(plan["synthetic_indices"], default=-1) >= len(synthetic):
+            raise ValueError("resampling plan index exceeds an embedding pool")
     rows: list[dict[str, Any]] = []
-    summaries: dict[str, Any] = {}
-    specifications = (("kid", int(cfg["kid_repetitions"]), None),
-                      ("prdc", int(cfg["prdc_repetitions"]), int(cfg["nearest_neighbour_k"])),
-                      ("fid", int(cfg["fid_repetitions"]), None))
-    for offset, (name, repetitions, nearest_k) in enumerate(specifications):
-        plans = balanced_subsample_indices(len(real), len(synthetic), size, repetitions, base_seed + offset * 100000,
-                                           nearest_neighbour_k=nearest_k)
-        values: dict[str, list[float]] = {}
-        for plan in plans:
-            real_subset, synthetic_subset = real[plan["real_indices"]], synthetic[plan["synthetic_indices"]]
-            measured = {"kid": kid, "fid": fid}[name](real_subset, synthetic_subset) if name != "prdc" \
-                else prdc(real_subset, synthetic_subset, nearest_k=nearest_k or 5)
-            metrics = measured if isinstance(measured, dict) else {name: measured}
-            rows.append({**plan, "metric_group": name, "subset_size": size, **metrics})
-            for metric, value in metrics.items():
-                values.setdefault(metric, []).append(float(value))
-        summaries.update({metric: summarize(metric_values) for metric, metric_values in values.items()})
-    return rows, {"evaluation_subset_size": size, **summaries}
+    values: dict[str, list[float]] = {}
+    for plan in plans:
+        real_subset, synthetic_subset = real[plan["real_indices"]], synthetic[plan["synthetic_indices"]]
+        measured = {"kid": kid(real_subset, synthetic_subset),
+                    **prdc(real_subset, synthetic_subset, nearest_k=nearest_k)}
+        rows.append({**plan, "metric_group": "kid_prdc_stability", "subset_size": size,
+                     "interval_type": "repeated-subsampling stability interval", **measured})
+        for metric, value in measured.items():
+            values.setdefault(metric, []).append(float(value))
+    # Point estimates use every real reference. Synthetic balancing is deterministic and explicit.
+    point_synthetic_count = min(len(synthetic), int(protocol["synthetic_pool_target"]))
+    synthetic_point = np.asarray(synthetic)[np.random.default_rng(base_seed).choice(
+        len(synthetic), point_synthetic_count, replace=False)]
+    real_point = np.asarray(real)
+    point = {"kid": kid(real_point, synthetic_point), "fid": fid(real_point, synthetic_point),
+             **prdc(real_point, synthetic_point, nearest_k=nearest_k)}
+    summaries = {metric: summarize(metric_values) for metric, metric_values in values.items()}
+    return rows, {"full_reference_policy": "all real references; deterministic balanced synthetic subset",
+                  "full_reference_real_count": len(real_point),
+                  "full_reference_synthetic_count": len(synthetic_point), "full_reference_estimates": point,
+                  "stability_subset_size": size, "stability_interval_type": "repeated-subsampling stability interval",
+                  **summaries}
+
+
+def save_resampling_plan(path: Path, plan: Sequence[Mapping[str, Any]], protocol: Mapping[str, Any]) -> Path:
+    return atomic_json(path, {"schema_version": 1, "interval_type": "repeated-subsampling stability interval",
+        "subsampling_fraction": protocol["resampling"]["subsampling_fraction"], "repetitions": list(plan)})
+
+
+def paired_kid_differences(left_rows: Sequence[Mapping[str, Any]], right_rows: Sequence[Mapping[str, Any]],
+                           left_id: str = "left", right_id: str = "right") -> dict[str, Any]:
+    left = {int(row["repetition"]): float(row["kid"]) for row in left_rows if row.get("kid") is not None}
+    right = {int(row["repetition"]): float(row["kid"]) for row in right_rows if row.get("kid") is not None}
+    if set(left) != set(right) or not left:
+        raise ValueError("paired KID comparison requires the same non-empty repetition plan")
+    differences = [left[index] - right[index] for index in sorted(left)]
+    summary = summarize(differences)
+    return {"left_generator_id": left_id, "right_generator_id": right_id,
+            "difference_definition": "left_kid_minus_right_kid", "mean_paired_difference": summary["mean"],
+            "median_paired_difference": summary["median"], "stability_interval_low": summary["percentile_2_5"],
+            "stability_interval_high": summary["percentile_97_5"],
+            "left_win_fraction": float(np.mean(np.asarray(differences) < 0)),
+            "right_win_fraction": float(np.mean(np.asarray(differences) > 0)),
+            "tie_fraction": float(np.mean(np.asarray(differences) == 0)), "paired_differences": differences,
+            "interval_type": "repeated-subsampling stability interval"}
 
 
 def file_sha256(path: Path) -> str:
@@ -281,20 +357,23 @@ def technical_audit(paths: Sequence[str | Path], expected_size: tuple[int, int] 
                 if invalid_range: counters["invalid_range"] += 1
                 if near_black: counters["near_black"] += 1
                 if not (wrong_shape or invalid_range or near_black):
-                    counters["accepted"] += 1
+                    counters["technically_valid"] += 1
                     content_hashes.append(hashlib.sha256(gray.tobytes()).hexdigest())
         except Exception:
             counters["corrupt"] += 1
     total = len(paths)
     unique = len(set(content_hashes))
-    accepted = counters["accepted"]
+    valid = counters["technically_valid"]
     return {
         "n_discovered": total, "n_readable": counters["readable"], "n_corrupt": counters["corrupt"],
         "n_wrong_shape": counters["wrong_shape"], "n_near_black": counters["near_black"],
-        "n_invalid_range": counters["invalid_range"], "n_unique_content": unique,
-        "n_exact_duplicates": max(0, counters["readable"] - unique),
-        "acceptance_rate": accepted / total if total else 0.0,
+        "n_invalid_range": counters["invalid_range"], "n_technically_valid": valid,
+        "n_technically_invalid": counters["readable"] - valid,
+        "n_unique_valid_content": unique,
+        "n_exact_duplicates_among_valid": max(0, valid - unique),
+        "technical_validity_rate": valid / total if total else 0.0,
         # Backward-compatible rates used by the protocol gates.
+        "n_unique_content": unique, "n_exact_duplicates": max(0, valid - unique),
         "n_images": total, "corrupted_rate": counters["corrupt"] / total if total else 0.0,
         "unexpected_dimensions_rate": counters["wrong_shape"] / total if total else 0.0,
         "invalid_dynamic_range_rate": counters["invalid_range"] / total if total else 0.0,
@@ -311,13 +390,169 @@ def technical_validity_row(generator_id: str, condition: str, paths: Sequence[st
     if audit["n_wrong_shape"]: failures.append("wrong_shape")
     if audit["n_near_black"]: failures.append("near_black")
     if audit["n_invalid_range"]: failures.append("invalid_range")
-    if audit["n_unique_content"] < int(minimum_unique): failures.append("insufficient_unique_content")
+    if audit["n_unique_valid_content"] < int(minimum_unique): failures.append("insufficient_unique_content")
     return {"generator_id": generator_id, "condition": condition.upper(),
             **{key: audit[key] for key in ("n_discovered", "n_readable", "n_corrupt", "n_wrong_shape",
-                                           "n_near_black", "n_invalid_range", "n_unique_content",
-                                           "n_exact_duplicates", "acceptance_rate")},
+                                           "n_near_black", "n_invalid_range", "n_technically_valid",
+                                           "n_technically_invalid", "n_unique_valid_content",
+                                           "n_exact_duplicates_among_valid", "technical_validity_rate")},
             "eligible_for_distribution_metrics": not failures,
             "failure_reason": "; ".join(failures)}
+
+
+def _read_manifest(path: Path) -> Any:
+    if path.suffix.lower() == ".json":
+        return json.loads(path.read_text(encoding="utf-8"))
+    if path.suffix.lower() == ".csv":
+        with path.open(newline="", encoding="utf-8") as stream:
+            return list(csv.DictReader(stream))
+    raise ValueError("manifest must be JSON or CSV")
+
+
+def _manifest_sample_paths(payload: Any, representation: str) -> list[str]:
+    if not isinstance(payload, Mapping):
+        return []
+    direct = payload.get("sample_paths") or payload.get("image_paths")
+    if isinstance(direct, list):
+        return [str(value) for value in direct]
+    samples = payload.get("samples", {})
+    if isinstance(samples, Mapping) and isinstance(samples.get(representation), list):
+        return [str(value.get("path")) if isinstance(value, Mapping) else str(value)
+                for value in samples[representation] if not isinstance(value, Mapping) or value.get("path")]
+    image_sets = payload.get("image_sets", [])
+    if isinstance(image_sets, list):
+        return [str(value.get("path")) for value in image_sets if isinstance(value, Mapping) and value.get("path")]
+    return []
+
+
+def _manifest_sample_records(payload: Any, representation: str) -> list[Mapping[str, Any]]:
+    if not isinstance(payload, Mapping): return []
+    samples = payload.get("samples", {})
+    values = samples.get(representation, []) if isinstance(samples, Mapping) else []
+    return [value for value in values if isinstance(value, Mapping) and value.get("path") and value.get("sha256")]
+
+
+def _path_names(values: Sequence[str | Path]) -> set[str]:
+    return {Path(str(value)).name for value in values if str(value)}
+
+
+def filter_acceptance_from_manifest(path: Path, filtered_paths: Sequence[str | Path],
+                                    raw_paths: Sequence[str | Path] | None = None) -> dict[str, Any]:
+    """Read acceptance only from a filter manifest, never from directory validity."""
+    result = {"filter_acceptance_rate": None, "filter_provenance_complete": False,
+              "n_raw_submitted_to_filter": None, "n_filter_accepted": None,
+              "filter_manifest_valid": False, "filter_failure_reason": "missing_filter_manifest"}
+    if not path.is_file():
+        return result
+    try:
+        payload = _read_manifest(path)
+        if isinstance(payload, list):
+            raw_count = len(payload)
+            accepted_rows = [row for row in payload if str(row.get("selected", row.get("accepted", ""))).lower() in {"1", "true", "yes"}]
+            accepted_count = len(accepted_rows)
+            declared = [row.get("filtered_path") or row.get("output_path") for row in accepted_rows]
+            declared_raw = [row.get("raw_path") or row.get("source_path") or row.get("input_path") for row in payload]
+        else:
+            signature = payload.get("input_signature", payload)
+            raw_count = int(signature.get("n_raw", payload.get("n_raw_submitted_to_filter", 0)))
+            accepted_count = int(signature.get("n_selected", payload.get("n_filter_accepted", 0)))
+            declared = _manifest_sample_paths(payload, "filtered")
+            declared_raw = _manifest_sample_paths(payload, "raw")
+        if raw_count <= 0 or accepted_count < 0 or accepted_count > raw_count:
+            raise ValueError("invalid raw/accepted counts")
+        if not declared or _path_names(declared) != _path_names(filtered_paths):
+            raise ValueError("filtered sample set differs from filter manifest")
+        if raw_paths is not None and (not declared_raw or _path_names(declared_raw) != _path_names(raw_paths)):
+            raise ValueError("RAW sample set differs from filter manifest")
+        return {"filter_acceptance_rate": accepted_count / raw_count,
+                "filter_provenance_complete": True, "n_raw_submitted_to_filter": raw_count,
+                "n_filter_accepted": accepted_count, "filter_manifest_valid": True,
+                "filter_failure_reason": ""}
+    except Exception as exc:
+        return {**result, "filter_failure_reason": f"{type(exc).__name__}: {exc}"}
+
+
+def _provenance_audit(root: Path, entry: Mapping[str, Any], representations: Mapping[str, Any]) -> dict[str, Any]:
+    manifest_value = entry.get("provenance_manifest")
+    path = Path(root) / str(manifest_value) if manifest_value else Path("")
+    base = {"provenance_manifest_exists": bool(manifest_value and path.is_file()),
+            "provenance_manifest_valid": False, "lineage_complete": False, "raw_manifest_valid": False,
+            "filter_manifest_valid": False, "sample_set_matches_manifest": False,
+            "training_corpus_manifest": None, "training_corpus_manifest_valid": False,
+            "provenance_failure_reason": ""}
+    reasons = []
+    if not base["provenance_manifest_exists"]:
+        reasons.append("provenance_manifest_missing")
+        return {**base, "provenance_failure_reason": "; ".join(reasons)}
+    try:
+        payload = _read_manifest(path)
+    except Exception as exc:
+        reasons.append(f"provenance_manifest_unreadable:{type(exc).__name__}")
+        return {**base, "provenance_failure_reason": "; ".join(reasons)}
+    if not isinstance(payload, Mapping):
+        reasons.append("provenance_manifest_not_object")
+        return {**base, "provenance_failure_reason": "; ".join(reasons)}
+    recorded_id = payload.get("generator_id") or payload.get("experiment_id") or payload.get("id")
+    if recorded_id != entry.get("id"): reasons.append("wrong_generator_id")
+    checkpoint = payload.get("checkpoint") or payload.get("checkpoint_path") or payload.get("selected_checkpoint") or payload.get("best_checkpoint")
+    if not checkpoint: reasons.append("missing_checkpoint_identifier")
+    elif entry.get("checkpoint") and Path(str(checkpoint)).name not in str(entry["checkpoint"]): reasons.append("wrong_checkpoint")
+    training_manifest = payload.get("training_corpus_manifest") or entry.get("training_corpus_manifest")
+    training_ids, training_labels = payload.get("training_image_ids"), payload.get("training_labels")
+    training_path = Path(root) / str(training_manifest) if training_manifest else None
+    training_valid = bool(training_ids and training_labels and len(training_ids) == len(training_labels))
+    if training_path and training_path.is_file():
+        try:
+            training_payload = _read_manifest(training_path)
+            if isinstance(training_payload, list):
+                training_valid = bool(training_payload) and all(row.get("label") not in (None, "") and
+                    (row.get("image_id") or row.get("sample_id") or row.get("processed_path") or row.get("path"))
+                    for row in training_payload)
+            elif isinstance(training_payload, Mapping):
+                ids = training_payload.get("training_image_ids")
+                labels = training_payload.get("training_labels")
+                training_valid = bool(ids and labels and len(ids) == len(labels))
+        except Exception:
+            training_valid = False
+    if not training_valid: reasons.append("missing_training_corpus")
+    training_dataset = payload.get("training_dataset") or payload.get("training_corpus") or training_manifest
+    if not training_dataset: reasons.append("missing_training_dataset_identifier")
+    actual_paths = {name: list_image_paths(Path(root) / value["path"]) if value.get("path") else []
+                    for name, value in representations.items()}
+    actual_by_representation = {name: _path_names(values) for name, values in actual_paths.items()}
+    records_by_representation = {name: _manifest_sample_records(payload, name) for name in REPRESENTATIONS}
+    declared_by_representation = {name: _path_names([record["path"] for record in records])
+                                  for name, records in records_by_representation.items()}
+    sets_match = all(declared_by_representation[name] and
+        declared_by_representation[name] == actual_by_representation[name] for name in REPRESENTATIONS)
+    fingerprints_match = False
+    if sets_match:
+        actual_hashes = {name: {path.name: file_sha256(path) for path in values}
+                         for name, values in actual_paths.items()}
+        fingerprints_match = all(all(actual_hashes[name].get(Path(str(record["path"])).name) == str(record["sha256"])
+            for record in records_by_representation[name]) for name in REPRESENTATIONS)
+    samples_match = sets_match and fingerprints_match
+    if not samples_match: reasons.append("sample_set_mismatch")
+    raw_manifest = entry.get("raw_generation_manifest") or payload.get("raw_generation_manifest")
+    raw_path = Path(root) / str(raw_manifest) if raw_manifest else path
+    raw_valid = raw_path.is_file() and bool(declared_by_representation["raw"])
+    if not raw_valid: reasons.append("raw_manifest_invalid")
+    filtered_paths = list_image_paths(Path(root) / representations["filtered"]["path"]) if representations["filtered"].get("path") else []
+    raw_paths = list_image_paths(Path(root) / representations["raw"]["path"]) if representations["raw"].get("path") else []
+    filter_value = entry.get("filter_manifest") or payload.get("filter_manifest")
+    filter_result = filter_acceptance_from_manifest(Path(root) / str(filter_value), filtered_paths, raw_paths) if filter_value else {
+        "filter_manifest_valid": not entry.get("filtering_applied", False), "filter_provenance_complete": not entry.get("filtering_applied", False),
+        "filter_acceptance_rate": 1.0 if not entry.get("filtering_applied", False) else None,
+        "n_raw_submitted_to_filter": len(filtered_paths) if not entry.get("filtering_applied", False) else None,
+        "n_filter_accepted": len(filtered_paths) if not entry.get("filtering_applied", False) else None,
+        "filter_failure_reason": "" if not entry.get("filtering_applied", False) else "missing_filter_manifest"}
+    if not filter_result["filter_manifest_valid"]: reasons.append(filter_result["filter_failure_reason"])
+    lineage = raw_valid and filter_result["filter_manifest_valid"] and samples_match
+    return {**base, **filter_result, "provenance_manifest_valid": not any(reason.startswith(("wrong_generator", "wrong_checkpoint", "provenance_", "missing_checkpoint", "missing_training_dataset")) for reason in reasons),
+            "lineage_complete": lineage, "raw_manifest_valid": raw_valid,
+            "sample_set_matches_manifest": samples_match, "training_corpus_manifest": training_manifest,
+            "training_corpus_manifest_valid": training_valid,
+            "provenance_failure_reason": "; ".join(dict.fromkeys(reasons))}
 
 
 def audit_candidate(root: Path, entry: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
@@ -330,13 +565,19 @@ def audit_candidate(root: Path, entry: Mapping[str, Any], protocol: Mapping[str,
         representations[representation] = {"path": relative, "count": len(paths)}
         if len(paths) < target: blockers.append(f"insufficient_{representation}_positive_images:{len(paths)}<{target}")
     if entry.get("scientific_family") not in FAMILIES: blockers.append("invalid_scientific_family")
-    if not entry.get("provenance_manifest"): blockers.append("missing_provenance_manifest")
+    provenance = _provenance_audit(Path(root), entry, representations)
+    gates = protocol["eligibility_gates"]
+    if gates.get("require_provenance") and not provenance["provenance_manifest_valid"]: blockers.append("provenance_invalid")
+    if gates.get("require_lineage") and not provenance["lineage_complete"]: blockers.append("lineage_incomplete")
+    if entry.get("candidate_role", "primary_candidate") == "primary_candidate":
+        if entry.get("filtering_applied") and not provenance.get("filter_provenance_complete"): blockers.append("filter_provenance_incomplete")
+        if not provenance.get("training_corpus_manifest_valid"): blockers.append("training_corpus_missing")
     role = entry.get("candidate_role", "primary_candidate")
     eligible = bool(entry.get("eligible_for_downstream_selection", False))
     return {"generator_id": entry["id"], "scientific_family": entry.get("scientific_family"),
             "model_family": entry.get("model_family"), "model_variant": entry.get("model_variant"),
             "sampling_steps": entry.get("sampling_steps"), "candidate_role": role,
-            "eligible_for_downstream_selection": eligible, "representations": representations,
+            "eligible_for_downstream_selection": eligible, "representations": representations, **provenance,
             "blockers": sorted(set(blockers)), "eligible_for_benchmark_execution": not blockers}
 
 
@@ -348,7 +589,9 @@ def discover_candidates(root: Path, protocol: Mapping[str, Any] | None = None,
 
 
 def write_embedding_cache(path: Path, features: np.ndarray, metadata: Mapping[str, Any]) -> tuple[Path, Path]:
-    required = {"image_ids", "image_paths", "extractor", "preprocessing", "dimension", "code_version", "source_manifest"}
+    required = {"schema_version", "image_ids", "image_paths", "image_fingerprints", "extractor",
+                "extractor_model_id", "extractor_weights_identifier", "preprocessing_signature",
+                "feature_dimension", "code_version", "source_manifest_path", "source_manifest_sha256"}
     missing = required - set(metadata)
     if missing: raise ValueError(f"embedding cache metadata missing: {sorted(missing)}")
     path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
@@ -371,15 +614,52 @@ def load_embedding_cache(path: Path) -> tuple[np.ndarray, dict[str, Any]]:
 
 def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], image_ids: Sequence[str], *,
                               extractor: str, preprocessing: str, code_version: str, source_manifest: str,
+                              extractor_model_id: str | None = None,
+                              extractor_weights_identifier: str | None = None,
+                              feature_dimension: int | None = None, metadata_csv: str | Path | None = None,
                               extract_fn: Callable[[Sequence[str | Path], str], np.ndarray]) -> tuple[np.ndarray, dict[str, Any]]:
+    if len(image_paths) != len(image_ids):
+        raise ValueError("image paths and IDs must align")
+    resolved = [Path(value).resolve() for value in image_paths]
+    common = Path(os.path.commonpath([str(value.parent) for value in resolved])) if resolved else Path(".")
+    fingerprints = [{"image_id": str(image_id), "relative_path": os.path.relpath(value, common),
+                     "file_size": value.stat().st_size, "sha256": file_sha256(value)}
+                    for image_id, value in zip(image_ids, resolved)]
+    manifest_path = Path(source_manifest)
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"embedding source manifest is missing: {manifest_path}")
+    manifest_hash = file_sha256(manifest_path)
+    csv_path = Path(metadata_csv) if metadata_csv else None
+    if csv_path is not None and not csv_path.is_file():
+        raise FileNotFoundError(f"embedding metadata CSV is missing: {csv_path}")
+    preprocessing_signature = hashlib.sha256(str(preprocessing).encode("utf-8")).hexdigest()
+    declared_dimension = feature_dimension or {"inception_v3": 2048, "rad_dino": 768}.get(extractor)
+    expected = {"schema_version": 2, "image_ids": list(image_ids),
+                "image_paths": [str(value) for value in resolved], "image_fingerprints": fingerprints,
+                "extractor": extractor, "extractor_model_id": extractor_model_id or extractor,
+                "extractor_weights_identifier": extractor_weights_identifier or extractor,
+                "preprocessing_signature": preprocessing_signature, "code_version": code_version,
+                "source_manifest_path": str(manifest_path), "source_manifest_sha256": manifest_hash,
+                "metadata_csv_sha256": file_sha256(csv_path) if csv_path and csv_path.is_file() else None}
+    if declared_dimension is not None:
+        expected["feature_dimension"] = int(declared_dimension)
     if Path(path).is_file() and Path(path).with_suffix(Path(path).suffix + ".metadata.json").is_file():
-        features, metadata = load_embedding_cache(path)
-        if metadata["image_ids"] == list(image_ids) and metadata["extractor"] == extractor:
+        try:
+            features, metadata = load_embedding_cache(path)
+        except (OSError, ValueError, json.JSONDecodeError):
+            features, metadata = None, {}
+        valid = features is not None and all(metadata.get(key) == value for key, value in expected.items())
+        valid = valid and int(metadata.get("feature_dimension", -1)) == int(features.shape[1])
+        if declared_dimension is not None:
+            valid = valid and int(metadata.get("feature_dimension", -1)) == int(declared_dimension)
+        if valid:
             return features, metadata
     features = extract_fn(image_paths, extractor)
-    metadata = {"image_ids": list(image_ids), "image_paths": [str(value) for value in image_paths],
-                "extractor": extractor, "preprocessing": preprocessing, "dimension": int(features.shape[1]),
-                "code_version": code_version, "source_manifest": source_manifest}
+    if np.asarray(features).ndim != 2 or len(features) != len(image_ids):
+        raise ValueError("extractor returned an invalid feature matrix")
+    if declared_dimension is not None and int(features.shape[1]) != int(declared_dimension):
+        raise ValueError("extractor feature dimension differs from the declared dimension")
+    metadata = {**expected, "feature_dimension": int(features.shape[1])}
     write_embedding_cache(path, features, metadata)
     return features, metadata
 
@@ -503,13 +783,25 @@ def diversity_metrics(paths: Sequence[str | Path], features: np.ndarray, *, pair
 
 def build_train_memorization_rows(query: np.ndarray, reference: np.ndarray, query_ids: Sequence[str],
                                   reference_ids: Sequence[str], synthetic_paths: Mapping[str, Path],
-                                  train_paths: Mapping[str, Path], flag_rule: Mapping[str, Any]) -> list[dict[str, Any]]:
-    rows = nearest_neighbours(query, reference, query_ids, reference_ids, "real_train_positive")
+                                  train_paths: Mapping[str, Path], flag_rule: Mapping[str, Any],
+                                  train_labels: Mapping[str, Any] | None = None,
+                                  train_sources: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Compare against the generator-specific declared training corpus, including negatives."""
+    rows = nearest_neighbours(query, reference, query_ids, reference_ids, "declared_generator_training_corpus")
     enriched = enrich_similarity_rows(rows, synthetic_paths, train_paths, flag_rule, flag_name="memorization_flag")
-    return [{"synthetic_id": row["synthetic_id"], "nearest_train_id": row["source_id"],
+    train_labels, train_sources = train_labels or {}, train_sources or {}
+    exact_by_hash = {file_sha256(Path(path)): str(train_id) for train_id, path in train_paths.items()}
+    output = []
+    for row in enriched:
+        exact_id = exact_by_hash.get(file_sha256(Path(synthetic_paths[str(row["synthetic_id"])])))
+        output.append({"synthetic_id": row["synthetic_id"], "nearest_train_id": row["source_id"],
+             "nearest_train_label": train_labels.get(str(row["source_id"])),
+             "nearest_train_source": train_sources.get(str(row["source_id"])),
              "embedding_distance": row["embedding_distance"], "ssim": row["ssim"],
-             "phash_distance": row["perceptual_hash_distance"], "exact_hash_match": row["exact_hash_match"],
-             "memorization_flag": row["memorization_flag"]} for row in enriched]
+             "phash_distance": row["perceptual_hash_distance"], "exact_hash_match": exact_id is not None,
+             "exact_match_train_id": exact_id,
+             "memorization_flag": bool(row["memorization_flag"] or exact_id is not None)})
+    return output
 
 
 def build_validation_similarity_rows(query: np.ndarray, reference: np.ndarray, query_ids: Sequence[str],
@@ -594,10 +886,15 @@ def eligibility_failures(row: Mapping[str, Any], gates: Mapping[str, Any]) -> li
         (_metric_value(row, "perceptual_hash_duplicate_rate") <= gates["maximum_perceptual_duplicate_rate"], "perceptual_duplicate_rate"),
         (_metric_value(row, "train_memorization_rate") <= gates["maximum_train_memorization_rate"], "train_memorization_rate"),
         (_metric_value(row, "raddino_coverage", "coverage", default=-math.inf) >= gates["minimum_rad_dino_coverage"], "rad_dino_coverage"),
-        (_metric_value(row, "acceptance_rate", default=-math.inf) >= gates["minimum_filter_acceptance_rate"], "acceptance_rate"),
+        (_metric_value(row, "filter_acceptance_rate", default=-math.inf) >= gates["minimum_filter_acceptance_rate"], "filter_acceptance_rate"),
         (_as_bool(row.get("metrics_complete")), "metrics_complete"),
         (not _as_bool(row.get("test_access")), "test_access"),
     ]
+    if gates.get("require_lineage"):
+        checks.append((_as_bool(row.get("lineage_complete")), "lineage"))
+    if gates.get("require_provenance"):
+        checks.append((_as_bool(row.get("provenance_manifest_valid")), "provenance"))
+    checks.append((_as_bool(row.get("training_corpus_manifest_valid")), "training_corpus"))
     if not _as_bool(row.get("eligible_for_selection", row.get("eligible_for_downstream_selection", False))):
         checks.append((False, "registry_role"))
     return [name for passed, name in checks if not passed]
@@ -638,17 +935,44 @@ def rank_generator_family(rows: Sequence[Mapping[str, Any]], family: str,
             for index, row in enumerate(ordered)]
 
 
-def practical_equivalence(left: Mapping[str, Any], right: Mapping[str, Any], *, small_difference: float = 0.001) -> dict[str, Any]:
-    left_mean, right_mean = _metric_value(left, "raddino_kid", "raddino_kid_mean"), _metric_value(right, "raddino_kid", "raddino_kid_mean")
-    left_ci = (_metric_value(left, "raddino_kid_ci_low", "raddino_kid_2_5"),
-               _metric_value(left, "raddino_kid_ci_high", "raddino_kid_97_5"))
-    right_ci = (_metric_value(right, "raddino_kid_ci_low", "raddino_kid_2_5"),
-                _metric_value(right, "raddino_kid_ci_high", "raddino_kid_97_5"))
-    overlap = max(left_ci[0], right_ci[0]) <= min(left_ci[1], right_ci[1])
-    difference = abs(left_mean - right_mean)
-    return {"kid_interval_overlap": overlap, "absolute_kid_difference": difference,
-            "small_difference": difference <= float(small_difference),
-            "practically_similar": overlap and difference <= float(small_difference)}
+def practical_equivalence(paired: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
+    """Apply the preregistered margin to paired stability differences."""
+    low, high = float(paired["stability_interval_low"]), float(paired["stability_interval_high"])
+    mean = float(paired["mean_paired_difference"])
+    margin = float(protocol["selection"]["practical_equivalence_margin"])
+    includes_zero = low <= 0.0 <= high
+    return {"paired_stability_interval_includes_zero": includes_zero,
+            "absolute_paired_mean_difference": abs(mean), "practical_equivalence_margin": margin,
+            "practically_similar": includes_zero and abs(mean) <= margin}
+
+
+def efficiency_from_manifest(root: Path, entry: Mapping[str, Any]) -> dict[str, Any]:
+    """Import only explicitly recorded runtime measurements; never estimate missing values."""
+    unavailable = {"generation_seconds_per_image": None, "peak_vram_mb": None, "energy_kwh": None,
+                   "checkpoint_size_bytes": None, "efficiency_source": None,
+                   "efficiency_status": "unavailable", "generation_efficiency_status": "unavailable"}
+    value = entry.get("efficiency_manifest")
+    path = Path(root) / str(value) if value else None
+    if not path or not path.is_file(): return unavailable
+    try:
+        payload = _read_manifest(path)
+        if not isinstance(payload, Mapping): return unavailable
+        count = payload.get("images_generated") or payload.get("n_generated")
+        if not count and payload.get("n_per_class") and payload.get("generated_classes"):
+            count = int(payload["n_per_class"]) * len(payload["generated_classes"])
+        seconds_per_image = payload.get("seconds_per_image")
+        if seconds_per_image is None and payload.get("elapsed_seconds") is not None and count:
+            seconds_per_image = float(payload["elapsed_seconds"]) / int(count)
+        checkpoint = Path(root) / str(entry.get("checkpoint", ""))
+        values = {"generation_seconds_per_image": seconds_per_image,
+                  "peak_vram_mb": payload.get("peak_vram_mb"), "energy_kwh": payload.get("energy_kwh"),
+                  "checkpoint_size_bytes": checkpoint.stat().st_size if checkpoint.is_file() else None,
+                  "efficiency_source": str(value)}
+        status = "available" if any(values[key] is not None for key in (
+            "generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes")) else "unavailable"
+        return {**values, "efficiency_status": status, "generation_efficiency_status": status}
+    except Exception:
+        return unavailable
 
 
 def write_csv_rows(path: Path, rows: Sequence[Mapping[str, Any]], fieldnames: Sequence[str] | None = None) -> Path:
@@ -712,8 +1036,8 @@ def save_selected_generators(root: Path, finetuned: str, from_scratch: str, benc
 __all__ = ["BENCHMARK_ROOT", "CANONICAL_OUTPUTS", "FEATURE_SPACES", "FAMILIES", "REPRESENTATIONS", "atomic_json", "audit_candidate",
            "balanced_subsample_indices", "deterministic_sample", "discover_candidates", "duplicate_diagnostics",
            "build_synthetic_duplication_rows", "build_train_memorization_rows", "build_validation_similarity_rows",
-           "deterministic_pair_indices", "diversity_metrics", "eligibility_failures", "evaluation_subset_size", "extract_features", "fid", "get_or_extract_embeddings",
+           "deterministic_pair_indices", "diversity_metrics", "efficiency_from_manifest", "eligibility_failures", "evaluation_subset_size", "extract_features", "fid", "filter_acceptance_from_manifest", "get_or_extract_embeddings",
            "image_similarity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_registry", "metadata_positive_paths",
-           "multiscale_ssim", "nearest_neighbours", "plot_generator_summary", "practical_equivalence", "prdc", "rank_generator_family", "render_similarity_panel", "repeated_distribution_metrics", "save_selected_generators",
+           "multiscale_ssim", "nearest_neighbours", "paired_kid_differences", "plot_generator_summary", "practical_equivalence", "prdc", "rank_generator_family", "render_similarity_panel", "repeated_distribution_metrics", "save_resampling_plan", "save_selected_generators",
            "similarity_summaries", "summarize", "technical_audit", "validate_protocol",
-           "synthetic_nearest_neighbours", "technical_validity_row", "validate_selected_generators", "write_csv_rows", "write_embedding_cache"]
+           "synthetic_nearest_neighbours", "technical_validity_row", "training_corpus_from_manifest", "validate_selected_generators", "write_csv_rows", "write_embedding_cache"]

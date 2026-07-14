@@ -58,7 +58,7 @@ class ArtifactPhasePlannerTests(unittest.TestCase):
   paths=[ROOT/'notebooks/4_downstream_classifiers/07_MaxViT512_Downstream.ipynb',
          ROOT/'notebooks/4_downstream_classifiers/08_MammoFM_Downstream.ipynb']
   for p in paths:
-   text=p.read_text(); self.assertIn('condition',text); self.assertIn('seed',text)
+   text=p.read_text(); self.assertIn('CONDITION =',text); self.assertIn('SEED =',text)
    self.assertNotIn('run_downstream_locked_test.py',text)
 
  # --- ALLOW_HEAVY_RETRAIN / ALLOW_FULL_REGENERATION -------------------------------------------

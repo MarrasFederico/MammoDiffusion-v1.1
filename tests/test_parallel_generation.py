@@ -1075,7 +1075,7 @@ class ParallelGenerationTests(unittest.TestCase):
         notebook = json.loads((ROOT / "notebooks" / "4_downstream_classifiers" / "09_Downstream_Validation_Comparison.ipynb").read_text(encoding="utf-8"))
         cells = ["".join(cell.get("source", [])) for cell in notebook["cells"] if cell.get("cell_type") == "code"]
         joined = "\n".join(cells)
-        self.assertIn("finalize_downstream_validation.py", joined)
+        self.assertIn("from notebooks.utility.downstream_analysis import", joined)
         self.assertNotIn("metadata/test.csv", joined)
         for index, source in enumerate(cells):
             compile(source, f"09-cell-{index}", "exec")

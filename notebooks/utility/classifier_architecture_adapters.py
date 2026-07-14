@@ -476,6 +476,7 @@ class ArchitectureAdapter:
                 # restoring the wrong name silently restored nothing on every resume.
                 early.wait = int(resume.get("early_stopping_counter", 0))
                 if resume.get("best_metric") is not None: early.best = float(resume["best_metric"])
+                early.best_secondary = float(resume.get("best_validation_loss", float("inf")))
                 best_epoch = resume.get("best_epoch")
                 prior_history = dict(resume.get("history", {}))
                 if resume.get("rng_states", {}).get("python"): random.setstate(resume["rng_states"]["python"])
@@ -494,6 +495,7 @@ class ArchitectureAdapter:
                     "scheduler_state_dict": scheduler.state_dict(), "scaler_state_dict": scaler.state_dict() if scaler else None,
                     "epoch": epoch, "batch_index": batch, "global_step": step,
                     "best_metric": getattr(early, "best", None),
+                    "best_validation_loss": getattr(early, "best_secondary", None),
                     "best_epoch": current["best_epoch"] if best_epoch is None else best_epoch,
                     "early_stopping_counter": getattr(early, "wait", 0), "history": history or {},
                     "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "torch": torch.get_rng_state(),
@@ -513,7 +515,7 @@ class ArchitectureAdapter:
                 current["epoch"] = epoch
                 current["history"] = hist.history
                 if improved: current["best_epoch"] = epoch
-                scheduler.step(metrics["auc"])
+                scheduler.step(metrics["pr_auc"])
                 save_torch(step, -1, epoch + 1, hist.history, best=improved)
             history_obj = amp_utils.fit_mammofm(
                 model, train_loader, val_loader, optimizer, criterion, epochs, device,

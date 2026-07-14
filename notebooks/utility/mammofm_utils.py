@@ -555,7 +555,7 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
                          grad_clip_norm: Optional[float] = None, accumulation_steps: int = 1,
                          start_batch: int = 0, global_step: int = 0, max_optimizer_updates: int | None = None,
                          on_optimizer_step=None, on_before_optimizer_step=None) -> dict:
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import average_precision_score, roc_auc_score
 
     model.train()
     refreeze_batchnorm(model)  # le BatchNorm2d di EfficientNet congelate restano in eval()
@@ -606,12 +606,17 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
         auc = float(roc_auc_score(y_true, y_prob))
     except ValueError:
         auc = float("nan")
-    return {"loss": total_loss / max(n_seen, 1), "auc": auc, "global_step": global_step, "last_batch": step}
+    try:
+        pr_auc = float(average_precision_score(y_true, y_prob))
+    except ValueError:
+        pr_auc = float("nan")
+    return {"loss": total_loss / max(n_seen, 1), "auc": auc, "pr_auc": pr_auc,
+            "global_step": global_step, "last_batch": step}
 
 
 @torch.no_grad()
 def evaluate_amp(model, loader, criterion, device) -> dict:
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import average_precision_score, roc_auc_score
 
     model.eval()
     total_loss, n_seen = 0.0, 0
@@ -630,7 +635,12 @@ def evaluate_amp(model, loader, criterion, device) -> dict:
         auc = float(roc_auc_score(y_true_arr, y_prob_arr))
     except ValueError:
         auc = float("nan")
-    return {"loss": total_loss / max(n_seen, 1), "auc": auc, "y_true": y_true_arr, "y_prob": y_prob_arr}
+    try:
+        pr_auc = float(average_precision_score(y_true_arr, y_prob_arr))
+    except ValueError:
+        pr_auc = float("nan")
+    return {"loss": total_loss / max(n_seen, 1), "auc": auc, "pr_auc": pr_auc,
+            "y_true": y_true_arr, "y_prob": y_prob_arr}
 
 
 def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: int, device,
@@ -670,27 +680,29 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
         val_metrics = evaluate_amp(model, val_loader, criterion, device)
         history.append(train_metrics, val_metrics)
 
-        print(f"Epoch {epoch}/{epochs} - loss: {train_metrics['loss']:.4f} - auc: {train_metrics['auc']:.4f} "
-              f"- val_loss: {val_metrics['loss']:.4f} - val_auc: {val_metrics['auc']:.4f}")
+        print(f"Epoch {epoch}/{epochs} - loss: {train_metrics['loss']:.4f} - ROC-AUC: {train_metrics['auc']:.4f} "
+              f"- PR-AUC: {train_metrics['pr_auc']:.4f} - val_loss: {val_metrics['loss']:.4f} "
+              f"- val_ROC-AUC: {val_metrics['auc']:.4f} - val_PR-AUC: {val_metrics['pr_auc']:.4f}")
 
         if csv_logger is not None:
             csv_logger.log({
                 "epoch": epoch, "loss": train_metrics["loss"], "auc": train_metrics["auc"],
-                "val_loss": val_metrics["loss"], "val_auc": val_metrics["auc"],
+                "pr_auc": train_metrics["pr_auc"], "val_loss": val_metrics["loss"],
+                "val_auc": val_metrics["auc"], "val_pr_auc": val_metrics["pr_auc"],
             })
         if checkpoint is not None:
-            checkpoint.step(val_metrics["auc"], model)
+            checkpoint.step(val_metrics["pr_auc"], model, val_metrics["loss"])
         if lr_scheduler is not None:
-            lr_scheduler.step(val_metrics["auc"])
+            lr_scheduler.step(val_metrics["pr_auc"])
         improved = False
         if early_stopping is not None:
             before = early_stopping.best
-            early_stopping.step(val_metrics["auc"], model)
+            early_stopping.step(val_metrics["pr_auc"], model, val_metrics["loss"])
             improved = early_stopping.best != before
         if on_epoch_end is not None:
             on_epoch_end(epoch, global_step, scaler, history, val_metrics, improved)
         if early_stopping is not None and early_stopping.stop:
-            print(f"Early stopping all'epoca {epoch} (best val_auc={early_stopping.best:.4f})")
+            print(f"Early stopping all'epoca {epoch} (best val_pr_auc={early_stopping.best:.4f})")
             break
         if max_optimizer_updates is not None and global_step >= max_optimizer_updates:
             break

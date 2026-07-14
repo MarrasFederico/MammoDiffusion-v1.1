@@ -179,6 +179,7 @@ class EarlyStopping:
         self.min_delta = min_delta
         self.restore_best_weights = restore_best_weights
         self.best = -np.inf if mode == "max" else np.inf
+        self.best_secondary = np.inf
         self.wait = 0
         self.best_state: Optional[dict] = None
         self.stop = False
@@ -188,9 +189,16 @@ class EarlyStopping:
             return value > self.best + self.min_delta
         return value < self.best - self.min_delta
 
-    def step(self, value: float, model) -> None:
-        if self._is_improvement(value):
+    def step(self, value: float, model, secondary: float | None = None) -> None:
+        primary_improved = self._is_improvement(value)
+        tied_with_better_secondary = (
+            secondary is not None and np.isclose(value, self.best, rtol=1e-12, atol=1e-12)
+            and float(secondary) < self.best_secondary
+        )
+        if primary_improved or tied_with_better_secondary:
             self.best = value
+            if secondary is not None:
+                self.best_secondary = float(secondary)
             self.wait = 0
             if self.restore_best_weights:
                 self.best_state = copy.deepcopy(model.state_dict())
@@ -209,11 +217,16 @@ class ModelCheckpoint:
         self.filepath = filepath
         self.mode = mode
         self.best = -np.inf if mode == "max" else np.inf
+        self.best_secondary = np.inf
 
-    def step(self, value: float, model) -> None:
+    def step(self, value: float, model, secondary: float | None = None) -> None:
         improved = value > self.best if self.mode == "max" else value < self.best
+        improved = improved or (secondary is not None and np.isclose(value, self.best, rtol=1e-12, atol=1e-12)
+                                and float(secondary) < self.best_secondary)
         if improved:
             self.best = value
+            if secondary is not None:
+                self.best_secondary = float(secondary)
             torch.save(model.state_dict(), self.filepath)
 
 
@@ -235,14 +248,16 @@ class CSVLogger:
 @dataclass
 class History:
     history: dict = field(default_factory=lambda: {
-        "loss": [], "auc": [], "val_loss": [], "val_auc": [],
+        "loss": [], "auc": [], "pr_auc": [], "val_loss": [], "val_auc": [], "val_pr_auc": [],
     })
 
     def append(self, train_metrics: dict, val_metrics: dict) -> None:
         self.history["loss"].append(train_metrics["loss"])
         self.history["auc"].append(train_metrics["auc"])
+        self.history["pr_auc"].append(train_metrics["pr_auc"])
         self.history["val_loss"].append(val_metrics["loss"])
         self.history["val_auc"].append(val_metrics["auc"])
+        self.history["val_pr_auc"].append(val_metrics["pr_auc"])
 
 
 # ---------------------------------------------------------------------------
@@ -250,13 +265,17 @@ class History:
 # ---------------------------------------------------------------------------
 
 def _binary_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> dict:
-    from sklearn.metrics import roc_auc_score
+    from sklearn.metrics import average_precision_score, roc_auc_score
 
     try:
         auc = roc_auc_score(y_true, y_prob)
     except ValueError:
         auc = float("nan")  # una sola classe presente nel batch/epoca
-    return {"auc": float(auc)}
+    try:
+        pr_auc = average_precision_score(y_true, y_prob)
+    except ValueError:
+        pr_auc = float("nan")
+    return {"auc": float(auc), "pr_auc": float(pr_auc)}
 
 
 def train_one_epoch(model, loader: DataLoader, optimizer, criterion, device) -> dict:
@@ -328,13 +347,13 @@ def fit(model, train_loader, val_loader, optimizer, criterion, epochs: int, devi
                 "val_loss": val_metrics["loss"], "val_auc": val_metrics["auc"],
             })
         if checkpoint is not None:
-            checkpoint.step(val_metrics["auc"], model)
+            checkpoint.step(val_metrics["pr_auc"], model, val_metrics["loss"])
         if lr_scheduler is not None:
-            lr_scheduler.step(val_metrics["auc"])
+            lr_scheduler.step(val_metrics["pr_auc"])
         if early_stopping is not None:
-            early_stopping.step(val_metrics["auc"], model)
+            early_stopping.step(val_metrics["pr_auc"], model, val_metrics["loss"])
             if early_stopping.stop:
-                print(f"Early stopping all'epoca {epoch} (best val_auc={early_stopping.best:.4f})")
+                print(f"Early stopping all'epoca {epoch} (best val_pr_auc={early_stopping.best:.4f})")
                 break
 
     if early_stopping is not None:

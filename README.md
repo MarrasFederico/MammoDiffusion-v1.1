@@ -149,6 +149,10 @@ La demo locale e in `assets/mammodiffusion_gradio/`. Usa i path correnti degli e
 
 ## Riproducibilita
 
+Il flusso operativo canonico della matrice classificatori v2 è documentato in
+[`docs/classifier_pipeline_v2_runbook.md`](docs/classifier_pipeline_v2_runbook.md). La pipeline
+storica e gli artefatti v2 restano separati.
+
 - split reali invariati tra gli esperimenti;
 - soglie decisionali calcolate sul validation set con criterio di Youden;
 - test set reale mantenuto separato dalla selezione di checkpoint, filtri e sorgenti sintetiche;

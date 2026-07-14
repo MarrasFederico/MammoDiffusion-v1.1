@@ -143,6 +143,10 @@ The local demo lives in `assets/mammodiffusion_gradio/`. It uses the current pat
 
 ## Reproducibility
 
+The canonical classifier-matrix v2 workflow is documented in
+[`docs/classifier_pipeline_v2_runbook.md`](docs/classifier_pipeline_v2_runbook.md). Historical and
+v2 pipeline artifacts remain separate.
+
 - unchanged real-data splits across experiments;
 - Youden thresholds computed on the validation set;
 - real test set isolated from checkpoint, filter and synthetic-source selection;

@@ -6,6 +6,7 @@ The notebook calls each stage explicitly and may reuse cached embeddings.
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import hashlib
 import json
 import math
@@ -1123,7 +1124,8 @@ def _audit_canonical_provenance(root: Path, entry: Mapping[str, Any], payload: M
     return {**filter_result, "provenance_manifest_valid": valid, "lineage_complete": lineage,
             "raw_manifest_valid": bool(raw_rows) and lineage, "sample_set_matches_manifest": lineage,
             "training_corpus_manifest": training_value or None, "training_corpus_manifest_valid": training_valid,
-            "canonical_raw_count": len(raw_rows), "canonical_filtered_count": len(filtered_rows),
+            "canonical_raw_count": len(raw_rows) if raw_rows else None,
+            "canonical_filtered_count": len(filtered_rows) if filtered_rows else None,
             "provenance_failure_reason": "; ".join(dict.fromkeys(reasons))}
 
 
@@ -1388,6 +1390,49 @@ def discover_candidates(root: Path, protocol: Mapping[str, Any] | None = None,
     rows = [audit_runtime_generator_assets(Path(root), entry, protocol) for entry in registry["generators"]
             if entry.get("benchmark", {}).get("enabled", False)]
     return detect_duplicate_generator_identities(rows)
+
+
+def candidate_audit_document_rows(candidate_audits: Sequence[Mapping[str, Any]],
+                                  audit_generated_at: str | None = None) -> list[dict[str, Any]]:
+    """Serialize the metadata/runtime audit without running benchmark metrics."""
+    generated_at = audit_generated_at or dt.datetime.now(dt.timezone.utc).isoformat()
+    return [{
+        "generator_id": row["generator_id"],
+        "scientific_family": row["scientific_family"],
+        "candidate_role": row["candidate_role"],
+        "parent_generator_id": row.get("parent_generator_id"),
+        "model_identity_sha256": row.get("model_identity_sha256"),
+        "generation_identity_sha256": row.get("generation_identity_sha256"),
+        "duplicate_model_group": row.get("duplicate_model_group", ""),
+        "distinct_generator_for_ranking": row.get("distinct_generator_for_ranking", False),
+        "audit_mode": row["audit_mode"],
+        "audit_generated_at": generated_at,
+        "project_root_independent_paths": True,
+        "provenance_recorded": row["provenance_recorded"],
+        "provenance_record_schema_valid": row["provenance_record_schema_valid"],
+        "provenance_index_consistent": row["provenance_index_consistent"],
+        "runtime_manifest_hashes_declared": row["runtime_manifest_hashes_declared"],
+        "runtime_manifest_contents_verified": row["runtime_manifest_contents_verified"],
+        "runtime_assets_verified": row["runtime_assets_verified"],
+        "runtime_assets_unavailable": row["runtime_assets_unavailable"],
+        "runtime_assets_mismatch": row["runtime_assets_mismatch"],
+        "eligible_for_descriptive_benchmark": row["eligible_for_descriptive_benchmark"],
+        "eligible_for_official_family_ranking": row["eligible_for_official_family_ranking"],
+        "raw_count": row["representations"]["raw"]["count"],
+        "filtered_count": row["representations"]["filtered"]["count"],
+        "filter_acceptance_rate_descriptive": row.get("filter_acceptance_rate"),
+        "provenance_manifest_exists": row["provenance_manifest_exists"],
+        "provenance_manifest_valid": row["provenance_manifest_valid"],
+        "lineage_complete": row["lineage_complete"],
+        "raw_manifest_valid": row["raw_manifest_valid"],
+        "filter_manifest_valid": row["filter_manifest_valid"],
+        "sample_set_matches_manifest": row["sample_set_matches_manifest"],
+        "training_corpus_manifest": row["training_corpus_manifest"],
+        "training_corpus_manifest_valid": row["training_corpus_manifest_valid"],
+        "filter_provenance_complete": row.get("filter_provenance_complete"),
+        "provenance_failure_reason": row["provenance_failure_reason"],
+        "block_reasons": "; ".join(row["blockers"]),
+    } for row in candidate_audits]
 
 
 def write_embedding_cache(path: Path, features: np.ndarray, metadata: Mapping[str, Any]) -> tuple[Path, Path]:
@@ -1793,7 +1838,7 @@ def write_csv_rows(path: Path, rows: Sequence[Mapping[str, Any]], fieldnames: Se
     fields = list(fieldnames or dict.fromkeys(key for row in rows for key in row))
     temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
     with temporary.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         writer.writeheader(); writer.writerows(rows); stream.flush(); os.fsync(stream.fileno())
     os.replace(temporary, path)
     return path

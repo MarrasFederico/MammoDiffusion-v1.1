@@ -6,16 +6,17 @@ Open and run `notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipy
 
 - `synthetic_pool_target = 1361` is the minimum valid synthetic pool per eligible candidate.
 - `real_reference_count` is every positive image available in `data/processed/metadata/val.csv`.
-- The main result is a full-reference point estimate using all validation positives and a deterministic balanced synthetic subset.
+- `kid_full_pool` (primary) and descriptive `fid_full_pool` use every validation positive against the canonical 1,361-image synthetic pool. Unequal group sizes are intentional; the small real pool is an explicit FID caveat.
+- `precision_balanced_point`, `recall_balanced_point`, `density_balanced_point`, and `coverage_balanced_point` use every validation positive against a deterministic synthetic subset of exactly the same size.
 - Stability uses `floor(0.8 × min(real_reference_count, synthetic_pool_count))`, which must exceed the PRDC neighbour count.
 
 For example, 1,361 synthetic images and 73 validation positives produce stability repetitions with 58 real and 58 synthetic features. Both subsets therefore vary. Sampling is deterministic and without replacement, and a shared plan is recorded in `resampling_plan.json`.
 
 ## Metrics
 
-KID is primary. Full-reference values are point estimates; repeated balanced KID/PRDC results are explicitly called repeated-subsampling stability intervals. FID remains descriptive. RAW and FILTERED results remain separate. Top candidates are compared with paired per-repetition KID differences, and practical equivalence uses the protocol-configured margin.
+KID full-pool is primary. Outputs are separated into `full_pool_distribution_estimates`, `balanced_prdc_point_estimates`, and `stability_estimates`; repeated balanced KID/PRDC results are explicitly called repeated-subsampling stability intervals. FID remains descriptive. RAW and FILTERED results remain separate. Top candidates are compared with paired per-repetition KID differences, and practical equivalence uses the protocol-configured margin.
 
-Frozen InceptionV3 and RAD-DINO embeddings are cached only when ordered image IDs, path/size/SHA-256 fingerprints, model and weights identifiers, preprocessing, feature dimension, relevant code version, metadata CSV hash and source-manifest content hash all match.
+Frozen InceptionV3 and RAD-DINO embeddings are cached only when ordered image IDs, path/size/SHA-256 fingerprints, the complete encoder identity, preprocessing, feature dimension, relevant code version, metadata CSV hash and source-manifest content hash all match. Inception identity includes torchvision version, weights enum, checkpoint filename/hash and transforms. RAD-DINO identity includes repository, resolved local snapshot/commit, config hash, weight-shard composite hash, processor hash and preprocessing. Missing local weights defer execution; no download is performed.
 
 ## Similarity analyses
 
@@ -29,4 +30,8 @@ Panels show closest, median and farthest examples deterministically for all thre
 
 The 50-step Stable Diffusion variant is a `sampling_ablation` and excluded from automatic downstream eligibility. The canonical 100-step variant may be eligible. The first LDM is a `descriptive_baseline` until lineage is demonstrated. Notebook 06 performs a transparent manual selection and saves only `configs/selected_generators.json`.
 
-Technical validity and filtering acceptance are independent. Filtering acceptance is read from a filter manifest (`accepted / raw submitted`), never inferred from a filtered directory. Primary candidates require readable content-aware provenance, matching sample sets, coherent RAW/FILTERED lineage, a filter manifest when filtering was applied, and a declared training-corpus manifest. Runtime efficiency fields are imported only when a referenced manifest contains them; otherwise their status is `unavailable`.
+Technical validity and filtering acceptance are independent. Acceptance rate is a descriptive selection-pressure/efficiency measure, not a universal exclusion gate and not a direct comparison across deliberately different RAW pool sizes. Eligibility instead requires a valid canonical filter manifest, complete RAW→FILTERED mapping, at least 1,361 valid unique FILTERED images, no corrupt files, complete provenance and a canonical CSV training-corpus manifest. A protocol-specific top-K run passes when its declared target is reached even when acceptance is about 1,361/4,083.
+
+Canonical publication-v2 identity is `(sample_id, project-relative path, SHA-256)`. Basenames are never sufficient. The canonical flat `generator_summary.csv` ranking fields are, in order, `raddino_kid` (RAD-DINO KID full-pool), `raddino_coverage` (balanced point), `raddino_precision` (balanced point), descriptive `raddino_fid` (full-pool), `inception_kid` (full-pool), `raddino_kid_std` (stability standard deviation), and `generator_id`.
+
+Per-image provenance CSVs are local, regenerable runtime artifacts under `results/publication_v2/generator_provenance/runtime/`; the common 3,061-row train corpus is stored once under `runtime/shared/`. They are deliberately excluded from Git because they contain dataset identifiers and thousands of paths. The repository publishes the manifest schema, compact `generator_provenance_index.json`, project-relative `provenance.json` records, G06 refusal diagnostic, and documentary candidate audit. Source-only validation checks those structural records without claiming that checkpoints, datasets, or images exist in that clone. Notebook 05 reruns the runtime-asset audit before benchmark execution. Legacy reports are evidence inputs only. Runtime efficiency fields are imported only when explicitly recorded; otherwise they remain `unavailable`.

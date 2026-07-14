@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "generator_id": "07_ldm_sdvae_extra1361",
+  "scientific_family": "from_scratch",
+  "candidate_role": "primary_candidate",
+  "model_checkpoint_identifier": "ldm-v2-sdvae-best-eval",
+  "checkpoint_path": "experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+  "checkpoint_sha256": "d9ec6db4740399bb08ddee933f05682e4cad34a403db66a92ce924af786a2ace",
+  "training_notebook_config_identifier": "notebooks/2_diffusers/07_LDM_SDVAE_Extra1361.ipynb:unet_v2,eps,150000_steps",
+  "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
+  "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/raw_samples.csv",
+  "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filtered_samples.csv",
+  "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filter_mapping.csv",
+  "manifest_sha256": {
+    "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
+    "raw_samples": "6b4cda1aa42a869a49b6e5101ef9a6925cdb0f10875770691ebed6bede8499f9",
+    "filtered_samples": "18fbba23bcee22b8d46f4e37abeb75fb550d73c567a7f492999d7c82058a0266",
+    "filter_mapping": "0643ef693775a4456bc0712760ccde5bfa7cd6cf3431c8d94def98f8b35d6454"
+  },
+  "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
+  "generation_configuration": {
+    "pool_size": 4083,
+    "seed_strategy": "stateless_seed_per_image_v1",
+    "base_seed": 42,
+    "class_label": 1,
+    "unet_version": "v2",
+    "parameterization": "eps",
+    "vae": "stable-diffusion-2-1-base VAE frozen"
+  },
+  "sampling_steps": 100,
+  "guidance_conditioning_configuration": {
+    "guidance_scale": 1.5,
+    "target_label": 1
+  },
+  "filter_configuration": {
+    "algorithm": "adaptive_mask",
+    "selection": "top_k",
+    "target": 1361
+  },
+  "filter_report_evidence": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
+  "lineage_status": {
+    "complete": true,
+    "mapping_method": "explicit_path_preserved_name_or_exact_sha256",
+    "raw_count": 4083,
+    "filtered_count": 1361
+  },
+  "known_limitations": [],
+  "source_evidence": [
+    "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_manifest.json",
+    "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw/.generation_manifest.json",
+    "experiments/diffusers/07_ldm_sdvae_extra1361/evaluation/ldm_pipeline_manifest.json",
+    "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json"
+  ]
+}

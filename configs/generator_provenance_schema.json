@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "publication_policy": {
+    "per_image_manifests": "local_runtime_artifacts_not_committed",
+    "runtime_root": "results/publication_v2/generator_provenance/runtime",
+    "reason": "Per-image rows contain dataset identifiers and paths; distribution permission is not assumed."
+  },
+  "provenance_json": {
+    "required_fields": [
+      "schema_version", "generator_id", "scientific_family", "candidate_role",
+      "model_checkpoint_identifier", "checkpoint_path", "checkpoint_sha256",
+      "training_notebook_config_identifier", "training_corpus_manifest",
+      "raw_sample_manifest", "filtered_sample_manifest", "filter_mapping_manifest",
+      "manifest_sha256", "training_dataset_identifier", "generation_configuration",
+      "filter_configuration", "lineage_status"
+    ],
+    "path_policy": "project_relative_only"
+  },
+  "csv_manifests": {
+    "training_corpus": ["sample_id", "patient_id", "image_id", "label", "source", "processed_path", "file_size", "sha256"],
+    "raw_samples": ["sample_id", "relative_path", "class_label", "file_size", "sha256", "generation_seed", "generation_index"],
+    "filtered_samples": ["sample_id", "relative_path", "source_raw_sample_id", "file_size", "sha256", "selection_rank", "filter_reason"],
+    "filter_mapping": ["raw_sample_id", "raw_relative_path", "raw_sha256", "selected", "filtered_sample_id", "filtered_relative_path", "filtered_sha256", "selection_rank", "reject_reason"]
+  }
+}

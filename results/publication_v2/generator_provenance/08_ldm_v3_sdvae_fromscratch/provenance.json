@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "generator_id": "08_ldm_v3_sdvae_fromscratch",
+  "scientific_family": "from_scratch",
+  "candidate_role": "primary_candidate",
+  "model_checkpoint_identifier": "ldm-v3-sdvae-v-prediction-min-snr-best-eval",
+  "checkpoint_path": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+  "checkpoint_sha256": "8abbeebac17ec6869787b45946b091c060c4b1a57b12fc611294d2f624bd6930",
+  "training_notebook_config_identifier": "notebooks/2_diffusers/08_LDM_v3_SDVAE_FromScratch.ipynb:unet_v3,v_prediction,min_snr,150000_steps",
+  "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
+  "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/raw_samples.csv",
+  "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/filtered_samples.csv",
+  "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/filter_mapping.csv",
+  "manifest_sha256": {
+    "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
+    "raw_samples": "27b60704411e8f1e802612140904564e04c28363d1a86647d4013482cd0ec2ac",
+    "filtered_samples": "b2d984e440eacbedbd0f2c3c7c52433315d1c666c04e8187afd3ddef2a75d900",
+    "filter_mapping": "3e65ad98fd7166fb50c74d783c0301662e62a8f378141b6806ba93668da1ad55"
+  },
+  "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
+  "generation_configuration": {
+    "pool_size": 4083,
+    "seed_strategy": "stateless_seed_per_image_v1",
+    "base_seed": 42,
+    "class_label": 1,
+    "unet_version": "v3",
+    "parameterization": "v",
+    "min_snr_gamma": 5.0,
+    "vae": "stable-diffusion-2-1-base VAE frozen"
+  },
+  "sampling_steps": 100,
+  "guidance_conditioning_configuration": {
+    "guidance_scale": 1.5,
+    "target_label": 1
+  },
+  "filter_configuration": {
+    "algorithm": "adaptive_mask",
+    "selection": "top_k",
+    "target": 1361
+  },
+  "filter_report_evidence": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
+  "lineage_status": {
+    "complete": true,
+    "mapping_method": "explicit_path_preserved_name_or_exact_sha256",
+    "raw_count": 4083,
+    "filtered_count": 1361
+  },
+  "known_limitations": [],
+  "source_evidence": [
+    "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/training_manifest.json",
+    "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_manifest.json",
+    "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw/.generation_manifest.json",
+    "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json"
+  ]
+}

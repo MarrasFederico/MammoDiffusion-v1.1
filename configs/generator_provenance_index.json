@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "audit_generated_at": "2026-07-14T19:39:05+02:00",
+  "audit_mode": "runtime_assets_verified",
+  "project_root_independent_paths": true,
+  "training_corpus_evidence": {
+    "identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
+    "source_metadata": "data/real_augmented/metadata.csv",
+    "source_metadata_sha256": "25131fd5f6decd1494a0ce20d80c3ee2ddf973ed9f5e8201a43a2d4195d0fb72",
+    "canonical_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
+    "canonical_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
+    "record_count": 3061,
+    "real_negative_count": 1701,
+    "real_positive_count": 340,
+    "positive_augmentation_count": 1020
+  },
+  "generators": [
+    {
+      "generator_id": "01_sd21_baseline_50steps", "scientific_family": "finetuned", "candidate_role": "sampling_ablation",
+      "provenance_manifest": "results/publication_v2/generator_provenance/01_sd21_baseline_50steps/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/01_sd21_baseline_50steps/raw_samples.csv", "raw_samples_manifest_sha256": "e7abab63f052fa33bce342071fab5a19ed2ce6003267ea1c9e2a047b3d4c675c", "raw_count": 1411,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/01_sd21_baseline_50steps/filtered_samples.csv", "filtered_samples_manifest_sha256": "38a263defd192716ba0ef1d14b1c92368e53c32461f0e8fd5d821652fd063ebe", "filtered_count": 1411,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/01_sd21_baseline_50steps/filter_mapping.csv", "filter_mapping_manifest_sha256": "09e4274df804ad283b555f61da6236bda9a5badb63bace9d8d8e29b9bedee897",
+      "checkpoint_identifier": "sd21-full-unet-checkpoint-3000-sampling-50", "checkpoint_sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb", "audit_status": "runtime_assets_verified"
+    },
+    {
+      "generator_id": "02_sd21_filtered_100steps", "scientific_family": "finetuned", "candidate_role": "primary_candidate",
+      "provenance_manifest": "results/publication_v2/generator_provenance/02_sd21_filtered_100steps/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/02_sd21_filtered_100steps/raw_samples.csv", "raw_samples_manifest_sha256": "b3162d2e4e041529e2a60d4b8a5b647ca256fc493eeb2338e98a62ae26d9cb67", "raw_count": 2722,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/02_sd21_filtered_100steps/filtered_samples.csv", "filtered_samples_manifest_sha256": "77a6a7b483fbac50d8199eda0c2d483fab76d0b889823406d7d660391448420c", "filtered_count": 1361,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/02_sd21_filtered_100steps/filter_mapping.csv", "filter_mapping_manifest_sha256": "002ee462a7bdea14810b328a94071a8ad22df993773befc906c202e937f50253",
+      "checkpoint_identifier": "sd21-full-unet-checkpoint-3000", "checkpoint_sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb", "audit_status": "runtime_assets_verified"
+    },
+    {
+      "generator_id": "03_sd21_vae_finetuned", "scientific_family": "finetuned", "candidate_role": "primary_candidate",
+      "provenance_manifest": "results/publication_v2/generator_provenance/03_sd21_vae_finetuned/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/03_sd21_vae_finetuned/raw_samples.csv", "raw_samples_manifest_sha256": "823f6fc13120d55010fe8c12364d5eb8508255554e275d3974d30f84aeb61239", "raw_count": 2722,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/03_sd21_vae_finetuned/filtered_samples.csv", "filtered_samples_manifest_sha256": "87740975e00752461ce04c537e24cf2cbdb13d2a1bb856ec98c06b540939056d", "filtered_count": 1361,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/03_sd21_vae_finetuned/filter_mapping.csv", "filter_mapping_manifest_sha256": "38834089916158c7b90f5b1c30177c6b950167715a0dd04c933128aefb89e278",
+      "checkpoint_identifier": "sd21-finetuned-vae-full-unet-checkpoint-4000", "checkpoint_sha256": "acfe97bfbaf034869f6df728c03b38fb128fc11081a8fb23961761d7ea3aa55a", "audit_status": "runtime_assets_verified"
+    },
+    {
+      "generator_id": "04_sd21_lora", "scientific_family": "finetuned", "candidate_role": "primary_candidate",
+      "provenance_manifest": "results/publication_v2/generator_provenance/04_sd21_lora/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/04_sd21_lora/raw_samples.csv", "raw_samples_manifest_sha256": "e553822ad338c4366dfc3633309faad47960be5542ff2586aded62706122fae0", "raw_count": 2722,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/04_sd21_lora/filtered_samples.csv", "filtered_samples_manifest_sha256": "9d927fec45e6a3f66468200aa2d541a49afee1adc729667aecdb7582525b8f4f", "filtered_count": 1361,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/04_sd21_lora/filter_mapping.csv", "filter_mapping_manifest_sha256": "d0e02298aa50674449d7b8a2749e571f0c76ac772a637932ac52d3f8b99c0e72",
+      "checkpoint_identifier": "sd21-lora-rank16-checkpoint-4500", "checkpoint_sha256": "c3809b5a4e6fcfa66f237dea2a9efcc5d9bf20b3f282f48eadce37b61dc3c09a", "audit_status": "runtime_assets_verified"
+    },
+    {
+      "generator_id": "05_ldm_basic_fromscratch", "scientific_family": "from_scratch", "candidate_role": "descriptive_baseline",
+      "provenance_manifest": "results/publication_v2/generator_provenance/05_ldm_basic_fromscratch/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/05_ldm_basic_fromscratch/raw_samples.csv", "raw_samples_manifest_sha256": "be374a3e9d27ec059ffc8346d43811d445eb0767c4b6084251a60ddaf5f14871", "raw_count": 2722,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/05_ldm_basic_fromscratch/filtered_samples.csv", "filtered_samples_manifest_sha256": "bfd04891f29ab7e29d6b98dbf73b8a30877a247050b6e6c333957216f3654eec", "filtered_count": 1361,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/05_ldm_basic_fromscratch/filter_mapping.csv", "filter_mapping_manifest_sha256": "7e06b6f10c06a87a657f59fcd8110498d5f0eb7747a5b999b39ed2d7aae8f1e3",
+      "checkpoint_identifier": "ldm-v2-custom-vae-historical-best-eval", "checkpoint_sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703", "audit_status": "runtime_assets_verified"
+    },
+    {
+      "generator_id": "06_ldm_extra1361_fromscratch", "scientific_family": "from_scratch", "candidate_role": "primary_candidate",
+      "provenance_manifest": null,
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": null, "raw_samples_manifest_sha256": null, "raw_count": 4083,
+      "filtered_sample_manifest": null, "filtered_samples_manifest_sha256": null, "filtered_count": 1361,
+      "filter_mapping_manifest": null, "filter_mapping_manifest_sha256": null,
+      "checkpoint_identifier": "ldm-v2-custom-vae-best-eval-step-70000", "checkpoint_sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703", "audit_status": "runtime_assets_mismatch", "refusal": "filter_mapping_hash_mismatch:synth_04082.png->synth_filtered_0032.png"
+    },
+    {
+      "generator_id": "07_ldm_sdvae_extra1361", "scientific_family": "from_scratch", "candidate_role": "primary_candidate",
+      "provenance_manifest": "results/publication_v2/generator_provenance/07_ldm_sdvae_extra1361/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/raw_samples.csv", "raw_samples_manifest_sha256": "6b4cda1aa42a869a49b6e5101ef9a6925cdb0f10875770691ebed6bede8499f9", "raw_count": 4083,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filtered_samples.csv", "filtered_samples_manifest_sha256": "18fbba23bcee22b8d46f4e37abeb75fb550d73c567a7f492999d7c82058a0266", "filtered_count": 1361,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filter_mapping.csv", "filter_mapping_manifest_sha256": "0643ef693775a4456bc0712760ccde5bfa7cd6cf3431c8d94def98f8b35d6454",
+      "checkpoint_identifier": "ldm-v2-sdvae-best-eval", "checkpoint_sha256": "d9ec6db4740399bb08ddee933f05682e4cad34a403db66a92ce924af786a2ace", "audit_status": "runtime_assets_verified"
+    },
+    {
+      "generator_id": "08_ldm_v3_sdvae_fromscratch", "scientific_family": "from_scratch", "candidate_role": "primary_candidate",
+      "provenance_manifest": "results/publication_v2/generator_provenance/08_ldm_v3_sdvae_fromscratch/provenance.json",
+      "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv", "training_corpus_manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da", "training_corpus_record_count": 3061,
+      "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/raw_samples.csv", "raw_samples_manifest_sha256": "27b60704411e8f1e802612140904564e04c28363d1a86647d4013482cd0ec2ac", "raw_count": 4083,
+      "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/filtered_samples.csv", "filtered_samples_manifest_sha256": "b2d984e440eacbedbd0f2c3c7c52433315d1c666c04e8187afd3ddef2a75d900", "filtered_count": 1361,
+      "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/filter_mapping.csv", "filter_mapping_manifest_sha256": "3e65ad98fd7166fb50c74d783c0301662e62a8f378141b6806ba93668da1ad55",
+      "checkpoint_identifier": "ldm-v3-sdvae-v-prediction-min-snr-best-eval", "checkpoint_sha256": "8abbeebac17ec6869787b45946b091c060c4b1a57b12fc611294d2f624bd6930", "audit_status": "runtime_assets_verified"
+    }
+  ]
+}

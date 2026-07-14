@@ -116,6 +116,23 @@ build/
 
 # Publication-v2 runtime data: keep configs, notebooks and selected small report assets tracked.
 results/publication_v2/generator_benchmark/embedding_cache/
+# Per-image provenance contains dataset identifiers and paths. Keep it local;
+# publish only schema, compact index, small provenance JSON and documentary audit.
+results/publication_v2/generator_provenance/runtime/
+# Benchmark computations are runtime outputs. candidate_audit.csv is intentionally
+# not matched here because it is the small documentary host-audit snapshot.
+results/publication_v2/generator_benchmark/technical_validity.csv
+results/publication_v2/generator_benchmark/distribution_metrics_*.csv
+results/publication_v2/generator_benchmark/diversity_metrics.csv
+results/publication_v2/generator_benchmark/train_memorization.csv
+results/publication_v2/generator_benchmark/validation_similarity.csv
+results/publication_v2/generator_benchmark/synthetic_duplication.csv
+results/publication_v2/generator_benchmark/generator_summary.csv
+results/publication_v2/generator_benchmark/generator_ranking.csv
+results/publication_v2/generator_benchmark/resampling_plan.json
+results/publication_v2/generator_benchmark/paired_generator_differences.csv
+results/publication_v2/generator_benchmark/figures/
+results/publication_v2/generator_benchmark/diagnostic_panels/
 results/publication_v2/downstream/**/checkpoint_*
 results/publication_v2/downstream/**/*.pkl
 results/publication_v2/downstream/**/*.npy

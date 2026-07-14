@@ -93,7 +93,7 @@ class ProvenanceAndFilterTests(unittest.TestCase):
     def _fixture(self, root: Path):
         raw = root / "raw"; filtered = root / "filtered"; raw.mkdir(); filtered.mkdir()
         raw_paths = [image(raw / "r1.png", 40), image(raw / "r2.png", 90)]
-        filtered_paths = [image(filtered / "f1.png", 50)]
+        filtered_paths = [filtered / "f1.png"]; filtered_paths[0].write_bytes(raw_paths[0].read_bytes())
         train = root / "train.csv"; train.write_text("image_id,label\nt1,0\n")
         checkpoint = root / "model.pt"; checkpoint.write_bytes(b"weights")
         filter_manifest = root / "filter.csv"
@@ -140,11 +140,17 @@ class ProvenanceAndFilterTests(unittest.TestCase):
             audit = gb.audit_candidate(root, entry, self.protocol)
             self.assertFalse(audit["filter_manifest_valid"]); self.assertFalse(audit["eligible_for_benchmark_execution"])
 
-    def test_descriptive_g05_without_lineage_stays_ineligible(self):
-        entry = next(item for item in gb.load_registry(ROOT)["generators"] if item["id"] == "05_ldm_basic_fromscratch")
-        audit = gb.audit_candidate(ROOT, entry, gb.load_protocol(ROOT))
-        self.assertFalse(entry["eligible_for_downstream_selection"])
-        self.assertFalse(audit["lineage_complete"])
+    def test_descriptive_g05_with_autonomous_provenance_stays_selection_ineligible(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); entry, _, _, _, _ = self._fixture(root)
+            entry["id"] = "05_fixture"; entry["candidate_role"] = "descriptive_baseline"
+            entry["eligible_for_downstream_selection"] = False
+            payload = json.loads((root / "provenance.json").read_text()); payload["generator_id"] = "05_fixture"
+            (root / "provenance.json").write_text(json.dumps(payload))
+            audit = gb.audit_candidate(root, entry, self.protocol)
+            self.assertTrue(audit["lineage_complete"])
+            self.assertTrue(audit["eligible_for_descriptive_benchmark"])
+            self.assertFalse(audit["eligible_for_official_family_ranking"])
 
 
 class StatisticsMemorizationAccountingTests(unittest.TestCase):
@@ -174,6 +180,9 @@ class StatisticsMemorizationAccountingTests(unittest.TestCase):
                 {"neg": 0, "pos": 1}, {"neg": "real_negative", "pos": "real_positive"})
             self.assertTrue(rows[0]["exact_hash_match"]); self.assertTrue(rows[0]["memorization_flag"])
             self.assertEqual(rows[0]["exact_match_train_id"], "neg")
+            self.assertEqual(rows[0]["exact_match_train_label"], 0)
+            self.assertEqual(rows[0]["exact_match_train_source"], "real_negative")
+            self.assertEqual(rows[0]["exact_match_train_ids"], ["neg"])
             self.assertEqual(rows[0]["nearest_train_label"], 1)
 
     def test_actual_accounting_stop_and_resume_and_estimate_labels(self):

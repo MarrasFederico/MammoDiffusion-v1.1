@@ -11,6 +11,7 @@ import json
 import math
 import os
 import random
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -22,6 +23,9 @@ FAMILIES = ("finetuned", "from_scratch")
 REPRESENTATIONS = ("raw", "filtered")
 FEATURE_SPACES = ("inception_v3", "rad_dino")
 BENCHMARK_ROOT = Path("results/publication_v2/generator_benchmark")
+PROVENANCE_ROOT = Path("results/publication_v2/generator_provenance")
+RUNTIME_PROVENANCE_ROOT = PROVENANCE_ROOT / "runtime"
+SHARED_TRAINING_CORPUS = RUNTIME_PROVENANCE_ROOT / "shared/rsna_train_real_plus_positive_augmentation.csv"
 CANONICAL_OUTPUTS = (
     "candidate_audit.csv", "technical_validity.csv", "embedding_cache/",
     "distribution_metrics_repetitions.csv", "distribution_metrics_summary.csv",
@@ -81,8 +85,15 @@ def validate_protocol(protocol: Mapping[str, Any]) -> None:
     if int(resampling.get("fid_repetitions", 999)) > 10:
         raise ValueError("FID is secondary and must use a small independent repetition count")
     ranking_metrics = [item["metric"] for item in protocol["selection"]["ranking"]]
-    if ranking_metrics[0] != "rad_dino.filtered.kid.full_reference":
+    expected_ranking = ["raddino_kid", "raddino_coverage", "raddino_precision", "raddino_fid",
+                        "inception_kid", "raddino_kid_std", "generator_id"]
+    if ranking_metrics != expected_ranking:
+        raise ValueError("ranking fields must match the canonical flat generator_summary columns")
+    if protocol["selection"].get("primary_metric") != "raddino_kid":
         raise ValueError("KID must be the primary ranking metric")
+    train_reference = str(protocol.get("reference_sets", {}).get("train_memorization", ""))
+    if train_reference != "generator_specific_declared_complete_training_corpus" or "positive_only" in train_reference:
+        raise ValueError("train memorization must use the complete generator-specific declared corpus")
     fid_rows = [item for item in protocol["selection"]["ranking"] if "fid" in item["metric"]]
     if any(item.get("role") != "descriptive_tiebreak" for item in fid_rows):
         raise ValueError("FID may appear only as a descriptive tie-break")
@@ -116,21 +127,27 @@ def metadata_positive_paths(root: Path, relative_csv: str) -> tuple[list[str], l
 
 
 def training_corpus_from_manifest(root: Path, relative_csv: str) -> tuple[list[str], list[str], dict[str, int], dict[str, str]]:
-    """Load the complete generator-declared training corpus, preserving labels and sources."""
+    """Load and verify the canonical CSV training corpus used by a generator."""
     _reject_test_path(relative_csv)
     manifest = Path(root) / relative_csv
+    if manifest.suffix.lower() != ".csv":
+        raise ValueError("canonical training_corpus_manifest must be CSV")
     with manifest.open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream))
+    required = {"sample_id", "patient_id", "image_id", "label", "source", "processed_path", "file_size", "sha256"}
+    if not rows or required - set(rows[0]):
+        raise ValueError(f"canonical training corpus is empty or missing fields: {sorted(required - set(rows[0] if rows else {}))}")
     paths, ids, labels, sources = [], [], {}, {}
-    for index, row in enumerate(rows):
-        image_id = str(row.get("image_id") or row.get("sample_id") or index)
-        sample_id = f"{row.get('patient_id', '')}::{image_id}"
-        value = row.get("processed_path") or row.get("path")
-        if not value:
-            label = int(row["label"])
-            value = f"data/processed/train/{label}/{image_id}.png"
+    for row in rows:
+        sample_id = str(row["sample_id"])
+        value = str(row["processed_path"])
         _reject_test_path(value)
-        paths.append(str((Path(root) / value).resolve())); ids.append(sample_id)
+        path = Path(root) / value
+        if not path.is_file():
+            raise FileNotFoundError(f"training corpus sample is missing: {value}")
+        if path.stat().st_size != int(row["file_size"]) or file_sha256(path) != str(row["sha256"]):
+            raise ValueError(f"training corpus fingerprint mismatch: {value}")
+        paths.append(str(path.resolve())); ids.append(sample_id)
         labels[sample_id] = int(row["label"]); sources[sample_id] = str(row.get("source", "real_train"))
     if len(ids) != len(set(ids)):
         raise ValueError("training corpus manifest contains duplicate sample IDs")
@@ -269,19 +286,29 @@ def repeated_distribution_metrics(real: np.ndarray, synthetic: np.ndarray, proto
                      "interval_type": "repeated-subsampling stability interval", **measured})
         for metric, value in measured.items():
             values.setdefault(metric, []).append(float(value))
-    # Point estimates use every real reference. Synthetic balancing is deterministic and explicit.
-    point_synthetic_count = min(len(synthetic), int(protocol["synthetic_pool_target"]))
-    synthetic_point = np.asarray(synthetic)[np.random.default_rng(base_seed).choice(
-        len(synthetic), point_synthetic_count, replace=False)]
-    real_point = np.asarray(real)
-    point = {"kid": kid(real_point, synthetic_point), "fid": fid(real_point, synthetic_point),
-             **prdc(real_point, synthetic_point, nearest_k=nearest_k)}
+    # KID/FID use the complete declared pools; PRDC gets a separately balanced point estimate.
+    full_synthetic_count = min(len(synthetic), int(protocol["synthetic_pool_target"]))
+    synthetic_full = np.asarray(synthetic)[np.random.default_rng(base_seed).choice(
+        len(synthetic), full_synthetic_count, replace=False)]
+    real_full = np.asarray(real)
+    balanced_count = min(len(real_full), len(synthetic_full))
+    balanced_indices = np.random.default_rng(base_seed).choice(len(synthetic_full), balanced_count, replace=False)
+    balanced_prdc = prdc(real_full, synthetic_full[balanced_indices], nearest_k=nearest_k)
     summaries = {metric: summarize(metric_values) for metric, metric_values in values.items()}
-    return rows, {"full_reference_policy": "all real references; deterministic balanced synthetic subset",
-                  "full_reference_real_count": len(real_point),
-                  "full_reference_synthetic_count": len(synthetic_point), "full_reference_estimates": point,
+    return rows, {"full_pool_distribution_policy": "all real validation positives vs canonical synthetic pool",
+                  "full_pool_real_count": len(real_full), "full_pool_synthetic_count": len(synthetic_full),
+                  "full_pool_distribution_estimates": {"kid_full_pool": kid(real_full, synthetic_full),
+                                                       "fid_full_pool": fid(real_full, synthetic_full)},
+                  "fid_full_pool_caveat": "descriptive; the real validation-positive pool is small",
+                  "balanced_prdc_point_real_count": len(real_full),
+                  "balanced_prdc_point_synthetic_count": balanced_count,
+                  "balanced_prdc_point_estimates": {
+                      "precision_balanced_point": balanced_prdc["precision"],
+                      "recall_balanced_point": balanced_prdc["recall"],
+                      "density_balanced_point": balanced_prdc["density"],
+                      "coverage_balanced_point": balanced_prdc["coverage"]},
                   "stability_subset_size": size, "stability_interval_type": "repeated-subsampling stability interval",
-                  **summaries}
+                  "stability_estimates": summaries}
 
 
 def save_resampling_plan(path: Path, plan: Sequence[Mapping[str, Any]], protocol: Mapping[str, Any]) -> Path:
@@ -313,6 +340,317 @@ def file_sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _project_relative(root: Path, path: str | Path) -> str:
+    """Return a stable project-relative identity and reject paths outside the project."""
+    root = Path(root).resolve()
+    value = Path(path)
+    resolved = value.resolve() if value.is_absolute() else (root / value).resolve()
+    try:
+        relative = resolved.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise ValueError(f"path is outside the project root: {path}") from exc
+    _reject_test_path(relative)
+    return relative
+
+
+def canonical_sample_key(row: Mapping[str, Any]) -> tuple[str, str, str]:
+    """Scientific sample identity; basenames alone are deliberately insufficient."""
+    required = ("sample_id", "relative_path", "sha256")
+    if any(row.get(field) in (None, "") for field in required):
+        raise ValueError("canonical sample identity requires sample_id, relative_path and sha256")
+    return tuple(str(row[field]) for field in required)  # type: ignore[return-value]
+
+
+def sample_sets_equivalent(left: Sequence[Mapping[str, Any]], right: Sequence[Mapping[str, Any]]) -> bool:
+    """Compare complete canonical identities, preserving multiplicity."""
+    try:
+        left_keys = [canonical_sample_key(row) for row in left]
+        right_keys = [canonical_sample_key(row) for row in right]
+    except ValueError:
+        return False
+    return len(left_keys) == len(set(left_keys)) and len(right_keys) == len(set(right_keys)) \
+        and set(left_keys) == set(right_keys)
+
+
+def canonical_samples_from_manifest(root: Path, relative_csv: str) -> tuple[list[Path], list[str], list[dict[str, str]]]:
+    required = {"sample_id", "relative_path", "file_size", "sha256"}
+    rows = _canonical_manifest_rows(Path(root), relative_csv, required)
+    paths = []
+    for row in rows:
+        relative = _project_relative(root, row["relative_path"]); path = Path(root) / relative
+        if not path.is_file() or path.stat().st_size != int(row["file_size"]) or file_sha256(path) != row["sha256"]:
+            raise ValueError(f"canonical sample fingerprint mismatch: {relative}")
+        paths.append(path)
+    keys = [canonical_sample_key(row) for row in rows]
+    if len(keys) != len(set(keys)): raise ValueError("canonical sample manifest contains duplicate identities")
+    return paths, [row["sample_id"] for row in rows], rows
+
+
+def _top_level_images(path: Path) -> list[Path]:
+    _reject_test_path(path)
+    return sorted(item for item in Path(path).iterdir()
+                  if item.is_file() and item.suffix.lower() in IMAGE_SUFFIXES) if Path(path).is_dir() else []
+
+
+def _parse_bool(value: Any) -> bool:
+    return value is True or str(value).strip().lower() in {"1", "true", "yes"}
+
+
+def _generation_index(path: Path) -> int | None:
+    match = re.search(r"(\d+)(?=\.[^.]+$)", path.name)
+    return int(match.group(1)) if match else None
+
+
+def _canonical_training_rows(root: Path, metadata_path: Path) -> list[dict[str, Any]]:
+    """Convert an explicitly declared executed-training metadata CSV to publication-v2."""
+    relative_metadata = _project_relative(root, metadata_path)
+    if Path(relative_metadata).suffix.lower() != ".csv":
+        raise ValueError("training metadata evidence must be CSV")
+    with (Path(root) / relative_metadata).open(newline="", encoding="utf-8") as stream:
+        source_rows = list(csv.DictReader(stream))
+    if not source_rows:
+        raise ValueError("training metadata is empty")
+    rows = []
+    for index, source_row in enumerate(source_rows):
+        value = source_row.get("processed_path") or source_row.get("file_name") or source_row.get("path")
+        if not value:
+            raise ValueError(f"training metadata row {index} has no image path")
+        relative = _project_relative(root, value)
+        path = Path(root) / relative
+        if not path.is_file():
+            raise FileNotFoundError(f"training image is missing: {relative}")
+        patient_id = str(source_row.get("patient_id", ""))
+        image_id = str(source_row.get("image_id") or Path(relative).stem)
+        source = str(source_row.get("source") or "real_train")
+        sample_id = f"{patient_id}::{image_id}::{source}::{Path(relative).name}"
+        rows.append({"sample_id": sample_id, "patient_id": patient_id, "image_id": image_id,
+                     "label": int(source_row["label"]), "source": source, "processed_path": relative,
+                     "file_size": path.stat().st_size, "sha256": file_sha256(path)})
+    if len({row["sample_id"] for row in rows}) != len(rows):
+        raise ValueError("training metadata does not produce unique canonical sample IDs")
+    return rows
+
+
+def _canonical_image_rows(root: Path, directory: Path, generator_id: str, representation: str,
+                          class_label: int, generation: Mapping[str, Any]) -> list[dict[str, Any]]:
+    directory = directory if directory.is_absolute() else Path(root) / directory
+    paths = _top_level_images(directory)
+    rows = []
+    for path in paths:
+        relative = _project_relative(root, path)
+        index = _generation_index(path)
+        row = {"sample_id": f"{generator_id}::{representation}::{relative}", "relative_path": relative,
+               "class_label": int(class_label), "file_size": path.stat().st_size, "sha256": file_sha256(path),
+               "generation_seed": "", "generation_index": "" if index is None else index}
+        if generation.get("seed_strategy") == "stateless_seed_per_image_v1" and index is not None:
+            row["generation_seed"] = int(generation["base_seed"]) + index
+        rows.append(row)
+    if not rows or len({row["sample_id"] for row in rows}) != len(rows):
+        raise ValueError(f"{representation} pool is empty or contains duplicate identities")
+    return rows
+
+
+def _resolve_filter_mapping(root: Path, report_path: Path, raw_rows: Sequence[Mapping[str, Any]],
+                            filtered_rows: Sequence[Mapping[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Prove RAW->FILTERED mapping by explicit path, preserved name, or an unambiguous exact hash."""
+    with report_path.open(newline="", encoding="utf-8") as stream:
+        report = list(csv.DictReader(stream))
+    raw_by_name: dict[str, list[Mapping[str, Any]]] = {}
+    filtered_by_name: dict[str, list[Mapping[str, Any]]] = {}
+    filtered_by_hash: dict[str, list[Mapping[str, Any]]] = {}
+    for row in raw_rows: raw_by_name.setdefault(Path(str(row["relative_path"])).name, []).append(row)
+    for row in filtered_rows:
+        filtered_by_name.setdefault(Path(str(row["relative_path"])).name, []).append(row)
+        filtered_by_hash.setdefault(str(row["sha256"]), []).append(row)
+    mapping, selected_filtered = [], []
+    seen_raw, seen_filtered = set(), set()
+    for index, evidence in enumerate(report):
+        raw_name = evidence.get("source_name") or evidence.get("raw_filename") or Path(str(
+            evidence.get("source_path") or evidence.get("raw_path") or evidence.get("input_path") or "")).name
+        raw_candidates = raw_by_name.get(str(raw_name), [])
+        if len(raw_candidates) != 1:
+            raise ValueError(f"filter row {index} does not identify exactly one RAW sample: {raw_name}")
+        raw = raw_candidates[0]; raw_key = canonical_sample_key(raw)
+        if raw_key in seen_raw: raise ValueError(f"duplicate RAW filter row: {raw_name}")
+        seen_raw.add(raw_key)
+        selected = _parse_bool(evidence.get("selected", evidence.get("accepted", False)))
+        filtered = None
+        rank_value = evidence.get("selection_rank", evidence.get("rank", ""))
+        rank = "" if rank_value in (None, "") else int(float(str(rank_value)))
+        if selected:
+            explicit = evidence.get("filtered_path") or evidence.get("output_path")
+            candidates = filtered_by_name.get(Path(str(explicit)).name, []) if explicit else []
+            if not candidates:
+                candidates = filtered_by_name.get(str(raw_name), [])  # documented name-preserving copy
+            if not candidates:
+                candidates = filtered_by_hash.get(str(raw["sha256"]), [])  # byte-identical copy evidence
+            candidates = [candidate for candidate in candidates if candidate["sha256"] == raw["sha256"]]
+            if len(candidates) != 1:
+                raise ValueError(f"selected RAW sample has no unambiguous byte-identical FILTERED sample: {raw_name}")
+            filtered = candidates[0]; filtered_key = canonical_sample_key(filtered)
+            if filtered_key in seen_filtered: raise ValueError("one FILTERED sample maps from multiple RAW samples")
+            seen_filtered.add(filtered_key); selected_filtered.append({
+                "sample_id": filtered["sample_id"], "relative_path": filtered["relative_path"],
+                "source_raw_sample_id": raw["sample_id"], "file_size": filtered["file_size"],
+                "sha256": filtered["sha256"], "selection_rank": rank,
+                "filter_reason": "selected_top_k"})
+        reason = evidence.get("reject_reason") or evidence.get("reason") or ("not_selected_top_k" if not selected else "")
+        mapping.append({"raw_sample_id": raw["sample_id"], "raw_relative_path": raw["relative_path"],
+                        "raw_sha256": raw["sha256"], "selected": bool(selected),
+                        "filtered_sample_id": filtered["sample_id"] if filtered else "",
+                        "filtered_relative_path": filtered["relative_path"] if filtered else "",
+                        "filtered_sha256": filtered["sha256"] if filtered else "", "selection_rank": rank,
+                        "reject_reason": reason})
+    if len(seen_raw) != len(raw_rows): raise ValueError("filter report does not cover the complete RAW pool")
+    if len(seen_filtered) != len(filtered_rows): raise ValueError("filter report does not cover the complete FILTERED pool")
+    return mapping, sorted(selected_filtered, key=lambda row: (str(row["selection_rank"]), row["sample_id"]))
+
+
+def build_canonical_generator_provenance(root: Path, sources: Mapping[str, Any]) -> dict[str, Any]:
+    """Build one generator's five canonical manifests from explicit, metadata-only evidence.
+
+    This function never imports a model library, never accesses a test path, and refuses
+    partial or ambiguous reconstruction before writing any output.
+    """
+    root = Path(root).resolve(); generator_id = str(sources["generator_id"])
+    record_output = root / PROVENANCE_ROOT / generator_id
+    runtime_output = root / RUNTIME_PROVENANCE_ROOT / generator_id
+    checkpoint_relative = _project_relative(root, sources["checkpoint"])
+    checkpoint = root / checkpoint_relative
+    if not checkpoint.is_file(): raise FileNotFoundError(f"checkpoint missing: {checkpoint_relative}")
+    training_rows = _canonical_training_rows(root, Path(sources["training_metadata"]))
+    generation = dict(sources.get("generation_configuration", {}))
+    raw_rows = _canonical_image_rows(root, Path(sources["raw_directory"]), generator_id, "raw",
+                                     int(sources.get("class_label", 1)), generation)
+    filtered_base = _canonical_image_rows(root, Path(sources["filtered_directory"]), generator_id, "filtered",
+                                          int(sources.get("class_label", 1)), {})
+    report_relative = None
+    if sources.get("filtering_applied", True):
+        report_relative = _project_relative(root, sources["filter_report"])
+        mapping_rows, filtered_rows = _resolve_filter_mapping(root, root / report_relative, raw_rows, filtered_base)
+    else:
+        filtered_by_path = {row["relative_path"]: row for row in filtered_base}
+        if set(filtered_by_path) != {row["relative_path"] for row in raw_rows}:
+            raise ValueError("unfiltered RAW/FILTERED identity requires the same project-relative files")
+        mapping_rows, filtered_rows = [], []
+        for rank, raw in enumerate(raw_rows):
+            filtered = filtered_by_path[raw["relative_path"]]
+            if filtered["sha256"] != raw["sha256"]: raise ValueError("unfiltered RAW/FILTERED hash mismatch")
+            mapping_rows.append({"raw_sample_id": raw["sample_id"], "raw_relative_path": raw["relative_path"],
+                                 "raw_sha256": raw["sha256"], "selected": True,
+                                 "filtered_sample_id": filtered["sample_id"], "filtered_relative_path": filtered["relative_path"],
+                                 "filtered_sha256": filtered["sha256"], "selection_rank": rank, "reject_reason": ""})
+            filtered_rows.append({"sample_id": filtered["sample_id"], "relative_path": filtered["relative_path"],
+                                  "source_raw_sample_id": raw["sample_id"], "file_size": filtered["file_size"],
+                                  "sha256": filtered["sha256"], "selection_rank": rank, "filter_reason": "unfiltered_identity"})
+    target = int(sources.get("filtered_target", 1361))
+    if len(filtered_rows) < target: raise ValueError(f"FILTERED target not reached: {len(filtered_rows)} < {target}")
+    training_manifest = Path(sources.get("training_corpus_manifest", SHARED_TRAINING_CORPUS))
+    training_manifest = training_manifest if training_manifest.is_absolute() else root / training_manifest
+    manifest_paths = {"training_corpus": training_manifest,
+                      **{name: runtime_output / f"{name}.csv" for name in
+                         ("raw_samples", "filtered_samples", "filter_mapping")}}
+    record_output.mkdir(parents=True, exist_ok=True); runtime_output.mkdir(parents=True, exist_ok=True)
+    if manifest_paths["training_corpus"].is_file():
+        with manifest_paths["training_corpus"].open(newline="", encoding="utf-8") as stream:
+            existing_training_rows = list(csv.DictReader(stream))
+        normalized = [{key: str(value) for key, value in row.items()} for row in training_rows]
+        if existing_training_rows != normalized:
+            raise ValueError("shared training corpus differs from the generator-declared training metadata")
+    else:
+        write_csv_rows(manifest_paths["training_corpus"], training_rows)
+    write_csv_rows(manifest_paths["raw_samples"], raw_rows)
+    write_csv_rows(manifest_paths["filtered_samples"], filtered_rows)
+    write_csv_rows(manifest_paths["filter_mapping"], mapping_rows)
+    relative_manifests = {name: _project_relative(root, path) for name, path in manifest_paths.items()}
+    payload = {
+        "schema_version": 2, "generator_id": generator_id,
+        "scientific_family": sources["scientific_family"], "candidate_role": sources["candidate_role"],
+        "model_checkpoint_identifier": sources.get("model_checkpoint_identifier", Path(checkpoint_relative).name),
+        "checkpoint_path": checkpoint_relative, "checkpoint_sha256": file_sha256(checkpoint),
+        "training_notebook_config_identifier": sources["training_notebook_config_identifier"],
+        "training_corpus_manifest": relative_manifests["training_corpus"],
+        "raw_sample_manifest": relative_manifests["raw_samples"],
+        "filtered_sample_manifest": relative_manifests["filtered_samples"],
+        "filter_mapping_manifest": relative_manifests["filter_mapping"],
+        "manifest_sha256": {name: file_sha256(path) for name, path in manifest_paths.items()},
+        "training_dataset_identifier": sources["training_dataset_identifier"],
+        "generation_configuration": generation, "sampling_steps": sources.get("sampling_steps"),
+        "guidance_conditioning_configuration": sources.get("guidance_conditioning_configuration", {}),
+        "filter_configuration": sources.get("filter_configuration", {}),
+        "filter_report_evidence": report_relative,
+        "lineage_status": {"complete": True, "mapping_method": "explicit_path_preserved_name_or_exact_sha256",
+                           "raw_count": len(raw_rows), "filtered_count": len(filtered_rows)},
+        "known_limitations": list(sources.get("known_limitations", [])),
+        "source_evidence": [_project_relative(root, value) for value in sources.get("source_evidence", [])],
+    }
+    atomic_json(record_output / "provenance.json", payload)
+    return payload
+
+
+def load_provenance_index(root: Path) -> dict[str, Any]:
+    path = Path(root) / "configs/generator_provenance_index.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != 1 or not isinstance(payload.get("generators"), list):
+        raise ValueError("unsupported generator provenance index")
+    ids = [row.get("generator_id") for row in payload["generators"]]
+    if len(ids) != len(set(ids)):
+        raise ValueError("generator provenance index contains duplicate IDs")
+    return payload
+
+
+def audit_training_corpus_dependencies(root: Path, index: Mapping[str, Any] | None = None) -> dict[str, bool | None]:
+    """Check declared corpus hashes; one changed shared file invalidates every dependent generator."""
+    root = Path(root); index = index or load_provenance_index(root)
+    observed: dict[str, str | None] = {}; result: dict[str, bool | None] = {}
+    for row in index["generators"]:
+        path_value = row.get("training_corpus_manifest")
+        expected = row.get("training_corpus_manifest_sha256")
+        if not path_value or not expected:
+            result[str(row["generator_id"])] = None
+            continue
+        relative = _project_relative(root, str(path_value))
+        if relative not in observed:
+            path = root / relative
+            observed[relative] = file_sha256(path) if path.is_file() else None
+        result[str(row["generator_id"])] = observed[relative] == expected if observed[relative] else None
+    return result
+
+
+def _identity_digest(value: Mapping[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(dict(value), sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def inception_v3_identity(torchvision_version: str, weights_enum: str, checkpoint_path: Path,
+                          transform_configuration: Mapping[str, Any]) -> dict[str, Any]:
+    """Record the actual local torchvision weight artifact without initializing the model."""
+    checkpoint_path = Path(checkpoint_path)
+    if not checkpoint_path.is_file(): raise FileNotFoundError(checkpoint_path)
+    identity = {"library": "torchvision", "torchvision_version": str(torchvision_version),
+                "weights_enum": str(weights_enum), "checkpoint_filename": checkpoint_path.name,
+                "checkpoint_sha256": file_sha256(checkpoint_path),
+                "transform_configuration": dict(transform_configuration)}
+    return {**identity, "identity_sha256": _identity_digest(identity)}
+
+
+def rad_dino_identity(model_repository: str, resolved_cache_path: Path, *, commit_hash: str | None,
+                      config_path: Path, weight_paths: Sequence[Path], processor_config_path: Path,
+                      preprocessing_configuration: Mapping[str, Any]) -> dict[str, Any]:
+    """Record a fully local RAD-DINO snapshot; missing files defer the benchmark."""
+    cache = Path(resolved_cache_path).resolve(); config = Path(config_path); processor = Path(processor_config_path)
+    weights = sorted(Path(path) for path in weight_paths)
+    if not cache.is_dir() or not config.is_file() or not processor.is_file() or not weights or not all(path.is_file() for path in weights):
+        raise FileNotFoundError("complete local RAD-DINO config, processor and weights are required")
+    shards = [{"filename": path.name, "sha256": file_sha256(path), "file_size": path.stat().st_size} for path in weights]
+    composite = hashlib.sha256("".join(f"{row['filename']}:{row['sha256']}\n" for row in shards).encode()).hexdigest()
+    identity = {"model_repository": str(model_repository), "resolved_local_cache_path": str(cache),
+                "huggingface_commit_hash": commit_hash, "config_sha256": file_sha256(config),
+                "weight_files": shards, "weight_composite_sha256": composite,
+                "processor_config_sha256": file_sha256(processor),
+                "preprocessing_configuration": dict(preprocessing_configuration)}
+    return {**identity, "identity_sha256": _identity_digest(identity)}
 
 
 def perceptual_hash(path: Path) -> str:
@@ -433,6 +771,7 @@ def _manifest_sample_records(payload: Any, representation: str) -> list[Mapping[
 
 
 def _path_names(values: Sequence[str | Path]) -> set[str]:
+    """Legacy-reader helper only; canonical publication-v2 comparisons never use it."""
     return {Path(str(value)).name for value in values if str(value)}
 
 
@@ -447,8 +786,24 @@ def filter_acceptance_from_manifest(path: Path, filtered_paths: Sequence[str | P
     try:
         payload = _read_manifest(path)
         if isinstance(payload, list):
+            if payload and "raw_sample_id" in payload[0]:
+                raw_count = len(payload)
+                accepted_rows = [row for row in payload if _parse_bool(row.get("selected"))]
+                accepted_count = len(accepted_rows)
+                if any(not row.get("filtered_sample_id") or not row.get("filtered_relative_path") or
+                       not row.get("filtered_sha256") for row in accepted_rows):
+                    raise ValueError("canonical mapping has incomplete selected rows")
+                if len({(row["filtered_sample_id"], row["filtered_relative_path"], row["filtered_sha256"])
+                        for row in accepted_rows}) != accepted_count:
+                    raise ValueError("canonical mapping reuses a FILTERED identity")
+                if filtered_paths and len(filtered_paths) != accepted_count:
+                    raise ValueError("FILTERED sample count differs from canonical mapping")
+                return {"filter_acceptance_rate": accepted_count / raw_count,
+                        "filter_provenance_complete": True, "n_raw_submitted_to_filter": raw_count,
+                        "n_filter_accepted": accepted_count, "filter_manifest_valid": True,
+                        "filter_failure_reason": ""}
             raw_count = len(payload)
-            accepted_rows = [row for row in payload if str(row.get("selected", row.get("accepted", ""))).lower() in {"1", "true", "yes"}]
+            accepted_rows = [row for row in payload if _parse_bool(row.get("selected", row.get("accepted", "")))]
             accepted_count = len(accepted_rows)
             declared = [row.get("filtered_path") or row.get("output_path") for row in accepted_rows]
             declared_raw = [row.get("raw_path") or row.get("source_path") or row.get("input_path") for row in payload]
@@ -460,16 +815,113 @@ def filter_acceptance_from_manifest(path: Path, filtered_paths: Sequence[str | P
             declared_raw = _manifest_sample_paths(payload, "raw")
         if raw_count <= 0 or accepted_count < 0 or accepted_count > raw_count:
             raise ValueError("invalid raw/accepted counts")
-        if not declared or _path_names(declared) != _path_names(filtered_paths):
+        filtered_by_name = {Path(value).name: Path(value) for value in filtered_paths}
+        declared_names = {Path(str(value)).name for value in declared if value}
+        if not declared_names:
+            # Stable Diffusion legacy case A: the selected copy preserves source_name.
+            declared_names = {str(row.get("source_name", "")) for row in accepted_rows if row.get("source_name")}
+        if declared_names != set(filtered_by_name):
             raise ValueError("filtered sample set differs from filter manifest")
-        if raw_paths is not None and (not declared_raw or _path_names(declared_raw) != _path_names(raw_paths)):
-            raise ValueError("RAW sample set differs from filter manifest")
+        if raw_paths is not None:
+            raw_by_name = {Path(value).name: Path(value) for value in raw_paths}
+            raw_names = {Path(str(value)).name for value in declared_raw if value}
+            if raw_names != set(raw_by_name): raise ValueError("RAW sample set differs from filter manifest")
+            for row in accepted_rows:
+                raw_name = Path(str(row.get("raw_path") or row.get("source_path") or row.get("input_path") or row.get("source_name"))).name
+                filtered_name = Path(str(row.get("filtered_path") or row.get("output_path") or row.get("source_name"))).name
+                if raw_name not in raw_by_name or filtered_name not in filtered_by_name:
+                    raise ValueError("filter mapping path cannot be resolved")
+                if file_sha256(raw_by_name[raw_name]) != file_sha256(filtered_by_name[filtered_name]):
+                    raise ValueError("FILTERED copy differs from its RAW source")
         return {"filter_acceptance_rate": accepted_count / raw_count,
                 "filter_provenance_complete": True, "n_raw_submitted_to_filter": raw_count,
                 "n_filter_accepted": accepted_count, "filter_manifest_valid": True,
                 "filter_failure_reason": ""}
     except Exception as exc:
         return {**result, "filter_failure_reason": f"{type(exc).__name__}: {exc}"}
+
+
+def _canonical_manifest_rows(root: Path, value: str, required: set[str]) -> list[dict[str, str]]:
+    path = Path(root) / value
+    if path.suffix.lower() != ".csv": raise ValueError("canonical manifests must be CSV")
+    with path.open(newline="", encoding="utf-8") as stream: rows = list(csv.DictReader(stream))
+    if not rows or required - set(rows[0]): raise ValueError(f"manifest missing fields: {sorted(required - set(rows[0] if rows else {}))}")
+    return rows
+
+
+def _audit_canonical_provenance(root: Path, entry: Mapping[str, Any], payload: Mapping[str, Any]) -> dict[str, Any]:
+    reasons = []
+    required = {"generator_id", "checkpoint_path", "checkpoint_sha256", "training_corpus_manifest",
+                "raw_sample_manifest", "filtered_sample_manifest", "filter_mapping_manifest",
+                "training_dataset_identifier", "generation_configuration", "filter_configuration", "lineage_status"}
+    if required - set(payload): reasons.append(f"missing_fields:{','.join(sorted(required - set(payload)))}")
+    if payload.get("generator_id") != entry.get("id"): reasons.append("wrong_generator_id")
+    checkpoint_value = str(payload.get("checkpoint_path", ""))
+    try:
+        checkpoint_relative = _project_relative(root, checkpoint_value)
+        checkpoint = Path(root) / checkpoint_relative
+        if not checkpoint.is_file() or file_sha256(checkpoint) != payload.get("checkpoint_sha256"):
+            reasons.append("checkpoint_fingerprint_mismatch")
+        if entry.get("checkpoint") and checkpoint_relative != str(entry["checkpoint"]): reasons.append("wrong_checkpoint")
+    except Exception as exc: reasons.append(f"checkpoint_invalid:{type(exc).__name__}")
+    training_value = str(payload.get("training_corpus_manifest", ""))
+    training_valid = False
+    try:
+        training_corpus_from_manifest(root, training_value); training_valid = True
+    except Exception as exc: reasons.append(f"training_corpus_invalid:{type(exc).__name__}:{exc}")
+    raw_required = {"sample_id", "relative_path", "class_label", "file_size", "sha256"}
+    filtered_required = {"sample_id", "relative_path", "source_raw_sample_id", "file_size", "sha256", "selection_rank", "filter_reason"}
+    mapping_required = {"raw_sample_id", "raw_relative_path", "raw_sha256", "selected", "filtered_sample_id",
+                        "filtered_relative_path", "filtered_sha256", "selection_rank", "reject_reason"}
+    raw_rows: list[dict[str, str]] = []; filtered_rows: list[dict[str, str]] = []; mapping_rows: list[dict[str, str]] = []
+    try:
+        raw_rows = _canonical_manifest_rows(root, str(payload["raw_sample_manifest"]), raw_required)
+        filtered_rows = _canonical_manifest_rows(root, str(payload["filtered_sample_manifest"]), filtered_required)
+        mapping_rows = _canonical_manifest_rows(root, str(payload["filter_mapping_manifest"]), mapping_required)
+        for rows in (raw_rows, filtered_rows):
+            keys = [canonical_sample_key(row) for row in rows]
+            if len(keys) != len(set(keys)): raise ValueError("duplicate canonical sample identity")
+            for row in rows:
+                relative = _project_relative(root, row["relative_path"]); sample = Path(root) / relative
+                if not sample.is_file() or sample.stat().st_size != int(row["file_size"]) or file_sha256(sample) != row["sha256"]:
+                    raise ValueError(f"sample fingerprint mismatch: {relative}")
+                try:
+                    from PIL import Image
+                    with Image.open(sample) as image: image.verify()
+                except Exception as exc:
+                    raise ValueError(f"corrupt image file: {relative}") from exc
+        if len({row["sha256"] for row in filtered_rows}) != len(filtered_rows):
+            raise ValueError("FILTERED pool contains duplicate file content")
+        raw_by_id = {row["sample_id"]: row for row in raw_rows}; filtered_by_id = {row["sample_id"]: row for row in filtered_rows}
+        if len(mapping_rows) != len(raw_rows): raise ValueError("mapping does not cover complete RAW pool")
+        mapped_raw, mapped_filtered = set(), set()
+        for row in mapping_rows:
+            raw = raw_by_id.get(row["raw_sample_id"])
+            if not raw or (raw["relative_path"], raw["sha256"]) != (row["raw_relative_path"], row["raw_sha256"]):
+                raise ValueError("mapping RAW identity mismatch")
+            mapped_raw.add(row["raw_sample_id"])
+            if _parse_bool(row["selected"]):
+                filtered = filtered_by_id.get(row["filtered_sample_id"])
+                if not filtered or (filtered["relative_path"], filtered["sha256"], filtered["source_raw_sample_id"]) != (
+                        row["filtered_relative_path"], row["filtered_sha256"], row["raw_sample_id"]):
+                    raise ValueError("mapping FILTERED identity mismatch")
+                if filtered["sha256"] != raw["sha256"]: raise ValueError("mapped copy hash differs from RAW")
+                mapped_filtered.add(row["filtered_sample_id"])
+        if mapped_raw != set(raw_by_id) or mapped_filtered != set(filtered_by_id):
+            raise ValueError("mapping coverage is incomplete")
+    except Exception as exc: reasons.append(f"canonical_sample_manifest_invalid:{type(exc).__name__}:{exc}")
+    lineage = bool(payload.get("lineage_status", {}).get("complete")) and bool(raw_rows and filtered_rows and mapping_rows) \
+        and not any(reason.startswith("canonical_sample_manifest_invalid") for reason in reasons)
+    filter_result = {"filter_acceptance_rate": len(filtered_rows) / len(raw_rows) if raw_rows else None,
+                     "filter_provenance_complete": lineage, "n_raw_submitted_to_filter": len(raw_rows) or None,
+                     "n_filter_accepted": len(filtered_rows) or None, "filter_manifest_valid": lineage,
+                     "filter_failure_reason": "" if lineage else "canonical_mapping_invalid"}
+    valid = not reasons
+    return {**filter_result, "provenance_manifest_valid": valid, "lineage_complete": lineage,
+            "raw_manifest_valid": bool(raw_rows) and lineage, "sample_set_matches_manifest": lineage,
+            "training_corpus_manifest": training_value or None, "training_corpus_manifest_valid": training_valid,
+            "canonical_raw_count": len(raw_rows), "canonical_filtered_count": len(filtered_rows),
+            "provenance_failure_reason": "; ".join(dict.fromkeys(reasons))}
 
 
 def _provenance_audit(root: Path, entry: Mapping[str, Any], representations: Mapping[str, Any]) -> dict[str, Any]:
@@ -492,6 +944,8 @@ def _provenance_audit(root: Path, entry: Mapping[str, Any], representations: Map
     if not isinstance(payload, Mapping):
         reasons.append("provenance_manifest_not_object")
         return {**base, "provenance_failure_reason": "; ".join(reasons)}
+    if int(payload.get("schema_version", 0)) == 2 and payload.get("filter_mapping_manifest"):
+        return {**base, **_audit_canonical_provenance(root, entry, payload)}
     recorded_id = payload.get("generator_id") or payload.get("experiment_id") or payload.get("id")
     if recorded_id != entry.get("id"): reasons.append("wrong_generator_id")
     checkpoint = payload.get("checkpoint") or payload.get("checkpoint_path") or payload.get("selected_checkpoint") or payload.get("best_checkpoint")
@@ -555,17 +1009,95 @@ def _provenance_audit(root: Path, entry: Mapping[str, Any], representations: Map
             "provenance_failure_reason": "; ".join(dict.fromkeys(reasons))}
 
 
-def audit_candidate(root: Path, entry: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
+def audit_source_generator_metadata(root: Path, entry: Mapping[str, Any],
+                                    protocol: Mapping[str, Any] | None = None,
+                                    index: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Validate publishable records without inspecting checkpoints, datasets, or images."""
+    root = Path(root); protocol = protocol or load_protocol(root); validate_protocol(protocol)
+    schema_path = root / "configs/generator_provenance_schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    if schema.get("schema_version") != 1:
+        raise ValueError("unsupported generator provenance schema")
+    index = index or load_provenance_index(root)
+    indexed = {str(row["generator_id"]): row for row in index["generators"]}
+    generator_id = str(entry["id"]); row = indexed.get(generator_id)
+    reasons: list[str] = []
+    refusal = entry.get("canonical_provenance_refusal")
+    manifest_value = entry.get("provenance_manifest")
+    manifest_path = root / str(manifest_value) if manifest_value else None
+    recorded = bool(manifest_path and manifest_path.is_file())
+    payload: Mapping[str, Any] = {}
+    if recorded:
+        try:
+            loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if not isinstance(loaded, Mapping): raise ValueError("provenance record is not an object")
+            payload = loaded
+        except Exception as exc:
+            reasons.append(f"provenance_record_invalid:{type(exc).__name__}")
+    elif not refusal:
+        reasons.append("provenance_record_missing")
+    if row is None:
+        reasons.append("provenance_index_entry_missing")
+    if payload:
+        required = set(schema["provenance_json"]["required_fields"])
+        missing = required - set(payload)
+        if missing: reasons.append(f"provenance_fields_missing:{','.join(sorted(missing))}")
+        if payload.get("generator_id") != generator_id: reasons.append("wrong_generator_id")
+        if payload.get("scientific_family") != entry.get("scientific_family"): reasons.append("wrong_scientific_family")
+        if payload.get("candidate_role") != entry.get("candidate_role"): reasons.append("wrong_candidate_role")
+        for field in ("checkpoint_path", "training_corpus_manifest", "raw_sample_manifest",
+                      "filtered_sample_manifest", "filter_mapping_manifest"):
+            try: _project_relative(root, str(payload.get(field, "")))
+            except Exception: reasons.append(f"nonportable_path:{field}")
+        hashes = payload.get("manifest_sha256", {})
+        if set(hashes) != {"training_corpus", "raw_samples", "filtered_samples", "filter_mapping"} or \
+                any(not re.fullmatch(r"[0-9a-f]{64}", str(value)) for value in hashes.values()):
+            reasons.append("invalid_declared_manifest_hashes")
+    if row is not None and payload:
+        comparisons = {
+            "training_corpus_manifest": row.get("training_corpus_manifest"),
+            "raw_sample_manifest": row.get("raw_sample_manifest"),
+            "filtered_sample_manifest": row.get("filtered_sample_manifest"),
+            "filter_mapping_manifest": row.get("filter_mapping_manifest"),
+        }
+        for field, expected in comparisons.items():
+            if payload.get(field) != expected: reasons.append(f"index_path_mismatch:{field}")
+        hashes = payload.get("manifest_sha256", {})
+        for name in ("training_corpus", "raw_samples", "filtered_samples", "filter_mapping"):
+            if hashes.get(name) != row.get(f"{name}_manifest_sha256"):
+                reasons.append(f"index_hash_mismatch:{name}")
+        lineage = payload.get("lineage_status", {})
+        if int(lineage.get("raw_count", -1)) != int(row.get("raw_count", -2)): reasons.append("index_raw_count_mismatch")
+        if int(lineage.get("filtered_count", -1)) != int(row.get("filtered_count", -2)): reasons.append("index_filtered_count_mismatch")
+    internally_valid = recorded and row is not None and not reasons
+    mismatch = bool(refusal) or bool(reasons)
+    return {"generator_id": generator_id, "audit_mode": "source_metadata_only",
+            "provenance_recorded": recorded, "canonical_manifests_internally_valid": internally_valid,
+            "runtime_assets_verified": False, "runtime_assets_unavailable": True,
+            "runtime_assets_mismatch": mismatch, "eligible_for_descriptive_benchmark": False,
+            "eligible_for_official_family_ranking": False,
+            "source_audit_reasons": sorted(set(([str(refusal)] if refusal else []) + reasons))}
+
+
+def audit_runtime_generator_assets(root: Path, entry: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
+    """Verify the current host assets. This is required immediately before benchmark execution."""
     target = int(protocol["synthetic_pool_target"])
     blockers = []
     representations = {}
     for representation in REPRESENTATIONS:
         relative = entry.get("samples", {}).get(f"{representation}_positive")
-        paths = list_image_paths(Path(root) / relative) if relative else []
+        paths = _top_level_images(Path(root) / relative) if relative else []
         representations[representation] = {"path": relative, "count": len(paths)}
         if len(paths) < target: blockers.append(f"insufficient_{representation}_positive_images:{len(paths)}<{target}")
     if entry.get("scientific_family") not in FAMILIES: blockers.append("invalid_scientific_family")
+    if entry.get("canonical_provenance_refusal"): blockers.append(str(entry["canonical_provenance_refusal"]))
     provenance = _provenance_audit(Path(root), entry, representations)
+    if provenance.get("canonical_raw_count") is not None:
+        representations["raw"]["count"] = int(provenance["canonical_raw_count"])
+        representations["filtered"]["count"] = int(provenance["canonical_filtered_count"])
+        blockers = [reason for reason in blockers if not reason.startswith(("insufficient_raw_", "insufficient_filtered_"))]
+        if representations["raw"]["count"] < target: blockers.append(f"insufficient_raw_positive_images:{representations['raw']['count']}<{target}")
+        if representations["filtered"]["count"] < target: blockers.append(f"insufficient_filtered_positive_images:{representations['filtered']['count']}<{target}")
     gates = protocol["eligibility_gates"]
     if gates.get("require_provenance") and not provenance["provenance_manifest_valid"]: blockers.append("provenance_invalid")
     if gates.get("require_lineage") and not provenance["lineage_complete"]: blockers.append("lineage_incomplete")
@@ -574,23 +1106,46 @@ def audit_candidate(root: Path, entry: Mapping[str, Any], protocol: Mapping[str,
         if not provenance.get("training_corpus_manifest_valid"): blockers.append("training_corpus_missing")
     role = entry.get("candidate_role", "primary_candidate")
     eligible = bool(entry.get("eligible_for_downstream_selection", False))
+    descriptive = not blockers
+    official = descriptive and eligible and role == "primary_candidate"
+    expected = []
+    for representation in REPRESENTATIONS:
+        value = entry.get("samples", {}).get(f"{representation}_positive")
+        if value: expected.append(Path(root) / str(value))
+    if entry.get("checkpoint"): expected.append(Path(root) / str(entry["checkpoint"]))
+    runtime_unavailable = any(not path.exists() for path in expected)
+    runtime_mismatch = bool(entry.get("canonical_provenance_refusal")) or (bool(blockers) and not runtime_unavailable)
+    runtime_verified = descriptive and not runtime_unavailable
+    audit_mode = "runtime_assets_verified" if runtime_verified else (
+        "runtime_assets_unavailable" if runtime_unavailable else "runtime_assets_mismatch")
     return {"generator_id": entry["id"], "scientific_family": entry.get("scientific_family"),
             "model_family": entry.get("model_family"), "model_variant": entry.get("model_variant"),
             "sampling_steps": entry.get("sampling_steps"), "candidate_role": role,
             "eligible_for_downstream_selection": eligible, "representations": representations, **provenance,
-            "blockers": sorted(set(blockers)), "eligible_for_benchmark_execution": not blockers}
+            "blockers": sorted(set(blockers)), "eligible_for_descriptive_benchmark": descriptive,
+            "eligible_for_official_family_ranking": official,
+            "eligible_for_benchmark_execution": runtime_verified, "audit_mode": audit_mode,
+            "provenance_recorded": provenance["provenance_manifest_exists"],
+            "canonical_manifests_internally_valid": provenance["provenance_manifest_valid"],
+            "runtime_assets_verified": runtime_verified, "runtime_assets_unavailable": runtime_unavailable,
+            "runtime_assets_mismatch": runtime_mismatch}
+
+
+def audit_candidate(root: Path, entry: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
+    """Backward-compatible name for the explicit runtime audit."""
+    return audit_runtime_generator_assets(root, entry, protocol)
 
 
 def discover_candidates(root: Path, protocol: Mapping[str, Any] | None = None,
                         registry: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
     protocol, registry = protocol or load_protocol(root), registry or load_registry(root)
-    return [audit_candidate(Path(root), entry, protocol) for entry in registry["generators"]
+    return [audit_runtime_generator_assets(Path(root), entry, protocol) for entry in registry["generators"]
             if entry.get("benchmark", {}).get("enabled", False)]
 
 
 def write_embedding_cache(path: Path, features: np.ndarray, metadata: Mapping[str, Any]) -> tuple[Path, Path]:
     required = {"schema_version", "image_ids", "image_paths", "image_fingerprints", "extractor",
-                "extractor_model_id", "extractor_weights_identifier", "preprocessing_signature",
+                "extractor_model_id", "extractor_weights_identifier", "extractor_identity", "extractor_identity_sha256", "preprocessing_signature",
                 "feature_dimension", "code_version", "source_manifest_path", "source_manifest_sha256"}
     missing = required - set(metadata)
     if missing: raise ValueError(f"embedding cache metadata missing: {sorted(missing)}")
@@ -616,6 +1171,7 @@ def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], ima
                               extractor: str, preprocessing: str, code_version: str, source_manifest: str,
                               extractor_model_id: str | None = None,
                               extractor_weights_identifier: str | None = None,
+                              extractor_identity: Mapping[str, Any] | None = None,
                               feature_dimension: int | None = None, metadata_csv: str | Path | None = None,
                               extract_fn: Callable[[Sequence[str | Path], str], np.ndarray]) -> tuple[np.ndarray, dict[str, Any]]:
     if len(image_paths) != len(image_ids):
@@ -638,6 +1194,8 @@ def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], ima
                 "image_paths": [str(value) for value in resolved], "image_fingerprints": fingerprints,
                 "extractor": extractor, "extractor_model_id": extractor_model_id or extractor,
                 "extractor_weights_identifier": extractor_weights_identifier or extractor,
+                "extractor_identity": dict(extractor_identity or {}),
+                "extractor_identity_sha256": _identity_digest(extractor_identity or {}),
                 "preprocessing_signature": preprocessing_signature, "code_version": code_version,
                 "source_manifest_path": str(manifest_path), "source_manifest_sha256": manifest_hash,
                 "metadata_csv_sha256": file_sha256(csv_path) if csv_path and csv_path.is_file() else None}
@@ -790,17 +1348,22 @@ def build_train_memorization_rows(query: np.ndarray, reference: np.ndarray, quer
     rows = nearest_neighbours(query, reference, query_ids, reference_ids, "declared_generator_training_corpus")
     enriched = enrich_similarity_rows(rows, synthetic_paths, train_paths, flag_rule, flag_name="memorization_flag")
     train_labels, train_sources = train_labels or {}, train_sources or {}
-    exact_by_hash = {file_sha256(Path(path)): str(train_id) for train_id, path in train_paths.items()}
+    exact_by_hash: dict[str, list[str]] = {}
+    for train_id, path in train_paths.items():
+        exact_by_hash.setdefault(file_sha256(Path(path)), []).append(str(train_id))
     output = []
     for row in enriched:
-        exact_id = exact_by_hash.get(file_sha256(Path(synthetic_paths[str(row["synthetic_id"])])))
+        exact_ids = sorted(exact_by_hash.get(file_sha256(Path(synthetic_paths[str(row["synthetic_id"])])), []))
+        exact_id = exact_ids[0] if exact_ids else None
         output.append({"synthetic_id": row["synthetic_id"], "nearest_train_id": row["source_id"],
              "nearest_train_label": train_labels.get(str(row["source_id"])),
              "nearest_train_source": train_sources.get(str(row["source_id"])),
              "embedding_distance": row["embedding_distance"], "ssim": row["ssim"],
-             "phash_distance": row["perceptual_hash_distance"], "exact_hash_match": exact_id is not None,
-             "exact_match_train_id": exact_id,
-             "memorization_flag": bool(row["memorization_flag"] or exact_id is not None)})
+             "phash_distance": row["perceptual_hash_distance"], "exact_hash_match": bool(exact_ids),
+             "exact_match_count": len(exact_ids), "exact_match_train_ids": exact_ids,
+             "exact_match_train_id": exact_id, "exact_match_train_label": train_labels.get(str(exact_id)) if exact_id else None,
+             "exact_match_train_source": train_sources.get(str(exact_id)) if exact_id else None,
+             "memorization_flag": bool(row["memorization_flag"] or exact_ids)})
     return output
 
 
@@ -886,7 +1449,9 @@ def eligibility_failures(row: Mapping[str, Any], gates: Mapping[str, Any]) -> li
         (_metric_value(row, "perceptual_hash_duplicate_rate") <= gates["maximum_perceptual_duplicate_rate"], "perceptual_duplicate_rate"),
         (_metric_value(row, "train_memorization_rate") <= gates["maximum_train_memorization_rate"], "train_memorization_rate"),
         (_metric_value(row, "raddino_coverage", "coverage", default=-math.inf) >= gates["minimum_rad_dino_coverage"], "rad_dino_coverage"),
-        (_metric_value(row, "filter_acceptance_rate", default=-math.inf) >= gates["minimum_filter_acceptance_rate"], "filter_acceptance_rate"),
+        (_as_bool(row.get("filter_manifest_valid")), "filter_manifest"),
+        (_as_bool(row.get("filter_provenance_complete")), "filter_mapping"),
+        (_metric_value(row, "corrupted_rate", "n_corrupt", default=0.0) <= gates["maximum_corrupted_file_rate"], "corrupt_files"),
         (_as_bool(row.get("metrics_complete")), "metrics_complete"),
         (not _as_bool(row.get("test_access")), "test_access"),
     ]
@@ -1033,11 +1598,14 @@ def save_selected_generators(root: Path, finetuned: str, from_scratch: str, benc
     return atomic_json(Path(root) / "configs/selected_generators.json", payload)
 
 
-__all__ = ["BENCHMARK_ROOT", "CANONICAL_OUTPUTS", "FEATURE_SPACES", "FAMILIES", "REPRESENTATIONS", "atomic_json", "audit_candidate",
-           "balanced_subsample_indices", "deterministic_sample", "discover_candidates", "duplicate_diagnostics",
+__all__ = ["BENCHMARK_ROOT", "PROVENANCE_ROOT", "RUNTIME_PROVENANCE_ROOT", "SHARED_TRAINING_CORPUS",
+           "CANONICAL_OUTPUTS", "FEATURE_SPACES", "FAMILIES", "REPRESENTATIONS", "atomic_json",
+           "audit_candidate", "audit_runtime_generator_assets", "audit_source_generator_metadata",
+           "audit_training_corpus_dependencies", "balanced_subsample_indices", "build_canonical_generator_provenance", "canonical_sample_key",
+           "canonical_samples_from_manifest", "deterministic_sample", "discover_candidates", "duplicate_diagnostics",
            "build_synthetic_duplication_rows", "build_train_memorization_rows", "build_validation_similarity_rows",
            "deterministic_pair_indices", "diversity_metrics", "efficiency_from_manifest", "eligibility_failures", "evaluation_subset_size", "extract_features", "fid", "filter_acceptance_from_manifest", "get_or_extract_embeddings",
-           "image_similarity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_registry", "metadata_positive_paths",
+           "image_similarity", "inception_v3_identity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_provenance_index", "load_registry", "metadata_positive_paths",
            "multiscale_ssim", "nearest_neighbours", "paired_kid_differences", "plot_generator_summary", "practical_equivalence", "prdc", "rank_generator_family", "render_similarity_panel", "repeated_distribution_metrics", "save_resampling_plan", "save_selected_generators",
-           "similarity_summaries", "summarize", "technical_audit", "validate_protocol",
+           "rad_dino_identity", "sample_sets_equivalent", "similarity_summaries", "summarize", "technical_audit", "validate_protocol",
            "synthetic_nearest_neighbours", "technical_validity_row", "training_corpus_from_manifest", "validate_selected_generators", "write_csv_rows", "write_embedding_cache"]

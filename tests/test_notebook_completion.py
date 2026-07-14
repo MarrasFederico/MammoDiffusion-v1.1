@@ -110,6 +110,7 @@ class GeneratorCompletionTests(unittest.TestCase):
                 "perceptual_hash_duplicate_rate": 0, "train_memorization_rate": 0,
                 "raddino_coverage": .8, "filter_acceptance_rate": .9, "metrics_complete": True,
                 "lineage_complete": True, "provenance_manifest_valid": True,
+                "filter_manifest_valid": True, "filter_provenance_complete": True, "n_corrupt": 0,
                 "training_corpus_manifest_valid": True,
                 "test_access": False, "raddino_kid": kid, "raddino_precision": .8,
                 "raddino_fid": 3, "inception_kid": .2, "raddino_kid_std": .01}

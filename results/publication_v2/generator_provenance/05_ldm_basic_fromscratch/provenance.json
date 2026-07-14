@@ -1,0 +1,56 @@
+{
+  "schema_version": 2,
+  "generator_id": "05_ldm_basic_fromscratch",
+  "scientific_family": "from_scratch",
+  "candidate_role": "descriptive_baseline",
+  "model_checkpoint_identifier": "ldm-v2-custom-vae-historical-best-eval",
+  "checkpoint_path": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+  "checkpoint_sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703",
+  "training_notebook_config_identifier": "notebooks/2_diffusers/05_LDM_Basic_FromScratch.ipynb:unet_v2,eps,80000_steps",
+  "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
+  "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/05_ldm_basic_fromscratch/raw_samples.csv",
+  "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/05_ldm_basic_fromscratch/filtered_samples.csv",
+  "filter_mapping_manifest": "results/publication_v2/generator_provenance/runtime/05_ldm_basic_fromscratch/filter_mapping.csv",
+  "manifest_sha256": {
+    "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
+    "raw_samples": "be374a3e9d27ec059ffc8346d43811d445eb0767c4b6084251a60ddaf5f14871",
+    "filtered_samples": "bfd04891f29ab7e29d6b98dbf73b8a30877a247050b6e6c333957216f3654eec",
+    "filter_mapping": "7e06b6f10c06a87a657f59fcd8110498d5f0eb7747a5b999b39ed2d7aae8f1e3"
+  },
+  "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
+  "generation_configuration": {
+    "pool_size": 2722,
+    "seed_strategy": "stateless_seed_per_image_v1",
+    "base_seed": 42,
+    "class_label": 1,
+    "unet_version": "v2",
+    "parameterization": "eps",
+    "vae": "project custom VAE"
+  },
+  "sampling_steps": 100,
+  "guidance_conditioning_configuration": {
+    "guidance_scale": 1.5,
+    "target_label": 1
+  },
+  "filter_configuration": {
+    "algorithm": "adaptive_mask",
+    "selection": "top_k",
+    "target": 1361
+  },
+  "filter_report_evidence": "results/diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_report.csv",
+  "lineage_status": {
+    "complete": true,
+    "mapping_method": "explicit_path_preserved_name_or_exact_sha256",
+    "raw_count": 2722,
+    "filtered_count": 1361
+  },
+  "known_limitations": [
+    "Descriptive baseline only; no 05-to-06 lineage is asserted and downstream selection remains disabled."
+  ],
+  "source_evidence": [
+    "experiments/diffusers/05_ldm_basic_fromscratch/training_manifest.json",
+    "experiments/diffusers/05_ldm_basic_fromscratch/evaluation/ldm_pipeline_manifest.json",
+    "experiments/diffusers/05_ldm_basic_fromscratch/logs/generation_raw_state.json",
+    "experiments/diffusers/05_ldm_basic_fromscratch/legacy_runtime_manifest.json"
+  ]
+}

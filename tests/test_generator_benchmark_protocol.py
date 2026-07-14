@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import csv
+import hashlib
 import json
 import sys
 import tempfile
@@ -52,10 +54,18 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertNotEqual(cfg["fid_repetitions"], cfg["kid_repetitions"])
         self.assertLessEqual(cfg["fid_repetitions"], 10)
         ranking = [row["metric"] for row in self.protocol["selection"]["ranking"]]
-        self.assertEqual(ranking[0], "rad_dino.filtered.kid.full_reference")
+        self.assertEqual(ranking, ["raddino_kid", "raddino_coverage", "raddino_precision", "raddino_fid",
+                                   "inception_kid", "raddino_kid_std", "generator_id"])
         fid_rows = [row for row in self.protocol["selection"]["ranking"] if "fid" in row["metric"]]
         self.assertTrue(fid_rows)
         self.assertTrue(all(row.get("role") == "descriptive_tiebreak" for row in fid_rows))
+
+    def test_train_memorization_reference_can_never_return_to_positive_only(self):
+        value = self.protocol["reference_sets"]["train_memorization"]
+        self.assertEqual(value, "generator_specific_declared_complete_training_corpus")
+        self.assertNotIn("positive_only", value)
+        notebook = (ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb").read_text()
+        self.assertIn("generator-specific complete declared training corpus", notebook)
 
     def test_repeated_metrics_use_shared_stability_plan_and_full_estimate(self):
         protocol = copy.deepcopy(self.protocol)
@@ -66,7 +76,12 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertTrue(all(row["metric_group"] == "kid_prdc_stability" for row in rows))
         self.assertEqual(summary["stability_subset_size"], 8)
-        self.assertIn("full_reference_estimates", summary)
+        self.assertEqual(summary["full_pool_real_count"], 10)
+        self.assertEqual(summary["full_pool_synthetic_count"], 20)
+        self.assertEqual(summary["balanced_prdc_point_real_count"], summary["balanced_prdc_point_synthetic_count"])
+        self.assertIn("kid_full_pool", summary["full_pool_distribution_estimates"])
+        self.assertIn("precision_balanced_point", summary["balanced_prdc_point_estimates"])
+        self.assertIn("kid", summary["stability_estimates"])
         self.assertEqual(summary["stability_interval_type"], "repeated-subsampling stability interval")
 
     def test_similarity_categories_are_separate(self):
@@ -78,6 +93,30 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["train_memorization_rate"], 1.0)
         self.assertEqual(result["validation_similarity_rate"], 1.0)
         self.assertEqual(result["synthetic_duplicate_rate"], 0.0)
+
+    def test_flat_generator_summary_uses_every_preregistered_tiebreak_in_order(self):
+        base = {"family": "finetuned", "eligible_for_selection": True, "valid_positive_images": 1361,
+                "synthetic_exact_duplicate_rate": 0, "perceptual_hash_duplicate_rate": 0,
+                "train_memorization_rate": 0, "filter_manifest_valid": True,
+                "filter_provenance_complete": True, "n_corrupt": 0, "metrics_complete": True,
+                "test_access": False, "lineage_complete": True, "provenance_manifest_valid": True,
+                "training_corpus_manifest_valid": True}
+        def row(generator_id, kid, coverage, precision, fid, inception, stability):
+            return {**base, "generator_id": generator_id, "raddino_kid": kid,
+                    "raddino_coverage": coverage, "raddino_precision": precision,
+                    "raddino_fid": fid, "inception_kid": inception, "raddino_kid_std": stability}
+        summary = [
+            row("a_kid", .1, .5, .1, 9, .9, .9),
+            row("b_coverage", .2, .9, .1, 9, .9, .9),
+            row("c_precision", .2, .8, .9, 9, .9, .9),
+            row("d_fid", .2, .8, .8, 1, .9, .9),
+            row("e_inception", .2, .8, .8, 2, .1, .9),
+            row("f_stability", .2, .8, .8, 2, .2, .01),
+            row("g_generator_id", .2, .8, .8, 2, .2, .02),
+            row("h_generator_id", .2, .8, .8, 2, .2, .02),
+        ]
+        ranked = gb.rank_generator_family(list(reversed(summary)), "finetuned", self.protocol["eligibility_gates"])
+        self.assertEqual([row["generator_id"] for row in ranked], [row["generator_id"] for row in summary])
 
     def test_registry_roles_keep_ablation_and_descriptive_baseline_visible_but_ineligible(self):
         by_id = {entry["id"]: entry for entry in self.registry["generators"]}
@@ -112,6 +151,8 @@ class GeneratorBenchmarkTests(unittest.TestCase):
             metadata = {"schema_version": 2, "image_ids": ["a", "b"], "image_paths": ["a.png", "b.png"],
                         "image_fingerprints": [{"image_id": "a"}, {"image_id": "b"}], "extractor": "rad_dino",
                         "extractor_model_id": "microsoft/rad-dino", "extractor_weights_identifier": "w",
+                        "extractor_identity": {"weight_sha256": "w"},
+                        "extractor_identity_sha256": gb._identity_digest({"weight_sha256": "w"}),
                         "preprocessing_signature": "x", "feature_dimension": 3, "code_version": "abc",
                         "source_manifest_path": "m.json", "source_manifest_sha256": "123"}
             gb.write_embedding_cache(path, np.ones((2, 3)), metadata)

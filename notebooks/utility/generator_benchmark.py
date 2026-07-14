@@ -1697,6 +1697,92 @@ def extract_features(paths: Sequence[str | Path], feature_space: str, *, device:
     return np.concatenate(output_rows, axis=0)
 
 
+class FrozenLocalFeatureExtractor:
+    """Load one frozen local encoder and reuse it for many extractions.
+
+    Constructs the InceptionV3 (ImageNet-1K, 2048-d) or RAD-DINO (768-d) model a
+    single time from a *local* path and keeps it resident, so repeated cache
+    misses never reload the weights. Numerically mirrors :func:`extract_features`
+    (same weights enum, preprocessing, batching) and never downloads anything.
+    """
+
+    def __init__(self, feature_space: str, local_model_path: str | Path, *,
+                 device: str | None = None, batch_size: int = 16) -> None:
+        import torch
+        if feature_space not in FEATURE_SPACES:
+            raise ValueError(feature_space)
+        if int(batch_size) < 1:
+            raise ValueError("batch_size must be positive")
+        self._torch = torch
+        self.feature_space = feature_space
+        self.local_model_path = Path(local_model_path)
+        self.batch_size = int(batch_size)
+        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        if feature_space == "inception_v3":
+            from torchvision.models import Inception_V3_Weights, inception_v3
+            weights = Inception_V3_Weights.IMAGENET1K_V1
+            if not self.local_model_path.is_file():
+                raise FileNotFoundError(f"local InceptionV3 checkpoint required: {self.local_model_path}")
+            model = inception_v3(weights=None, transform_input=False, init_weights=False)
+            state = torch.load(self.local_model_path, map_location="cpu", weights_only=True)
+            model.load_state_dict(state)
+            model.fc = torch.nn.Identity()
+            transforms = weights.transforms()
+            self._processor = lambda image: transforms(image.convert("RGB"))
+            self.feature_dimension = 2048
+        else:
+            from transformers import AutoImageProcessor, AutoModel
+            name = str(self.local_model_path.resolve())
+            image_processor = AutoImageProcessor.from_pretrained(name, local_files_only=True)
+            model = AutoModel.from_pretrained(name, local_files_only=True)
+            self._processor = lambda image: image_processor(images=image.convert("RGB"),
+                                                            return_tensors="pt")["pixel_values"][0]
+            self.feature_dimension = 768
+        model.eval()
+        for parameter in model.parameters():
+            parameter.requires_grad_(False)
+        model.to(self.device)
+        self._model = model
+
+    def extract(self, paths: Sequence[str | Path]) -> np.ndarray:
+        from PIL import Image
+        torch = self._torch
+        if self._model is None:
+            raise RuntimeError("extractor has been closed")
+        paths = list(paths)
+        output_rows = []
+        with torch.inference_mode():
+            for start in range(0, len(paths), self.batch_size):
+                chunk = paths[start:start + self.batch_size]
+                batch = torch.stack([self._processor(Image.open(path)) for path in chunk]).to(self.device)
+                output = self._model(batch)
+                if self.feature_space == "rad_dino":
+                    output = output.pooler_output if getattr(output, "pooler_output", None) is not None \
+                        else output.last_hidden_state[:, 0]
+                output_rows.append(output.detach().cpu().float().numpy())
+        array = (np.concatenate(output_rows, axis=0) if output_rows
+                 else np.empty((0, self.feature_dimension), dtype=np.float32)).astype(np.float32, copy=False)
+        if array.ndim != 2 or int(array.shape[1]) != int(self.feature_dimension):
+            raise ValueError("extractor feature dimension differs from the declared dimension")
+        if not np.isfinite(array).all():
+            raise ValueError(f"{self.feature_space} produced non-finite features")
+        return array
+
+    def close(self) -> None:
+        """Release the model and free the CUDA cache; ``extract`` fails afterwards."""
+        torch = self._torch
+        self._model = None
+        self._processor = None
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    def __enter__(self) -> "FrozenLocalFeatureExtractor":
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self.close()
+
+
 def nearest_neighbours(query: np.ndarray, reference: np.ndarray, query_ids: Sequence[str],
                        reference_ids: Sequence[str], pool: str) -> list[dict[str, Any]]:
     if "test" in pool.lower(): raise PermissionError("test cannot be a nearest-neighbour pool")
@@ -2048,7 +2134,7 @@ __all__ = ["BENCHMARK_ROOT", "PROVENANCE_ROOT", "RUNTIME_PROVENANCE_ROOT", "SHAR
            "audit_training_corpus_dependencies", "balanced_subsample_indices", "build_canonical_generator_provenance", "canonical_sample_key",
            "canonical_samples_from_manifest", "deterministic_sample", "discover_candidates", "duplicate_diagnostics",
            "build_synthetic_duplication_rows", "build_train_memorization_rows", "build_validation_similarity_rows",
-           "deterministic_pair_indices", "diversity_metrics", "efficiency_from_manifest", "eligibility_failures", "evaluation_subset_size", "extract_features", "fid", "filter_acceptance_from_manifest", "get_or_extract_embeddings",
+           "deterministic_pair_indices", "diversity_metrics", "efficiency_from_manifest", "eligibility_failures", "evaluation_subset_size", "extract_features", "FrozenLocalFeatureExtractor", "fid", "file_sha256", "filter_acceptance_from_manifest", "get_or_extract_embeddings",
            "image_similarity", "inception_v3_identity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_provenance_index", "load_registry", "metadata_positive_paths",
            "multiscale_ssim", "nearest_neighbours", "paired_kid_differences", "plot_generator_summary", "practical_equivalence", "prdc", "rank_generator_family", "render_similarity_panel", "repeated_distribution_metrics", "save_resampling_plan", "save_selected_generators",
            "rad_dino_identity", "representation_preflight_rows", "require_official_family_coverage",

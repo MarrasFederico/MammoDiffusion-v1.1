@@ -1071,20 +1071,14 @@ class ParallelGenerationTests(unittest.TestCase):
         import sd_vae_utils
         self.assertIn("return", typing.get_type_hints(sd_vae_utils.image_batch_to_sd_tensor))
 
-    def test_comparison_notebook_defines_output_dirs_before_use_and_compiles(self) -> None:
-        notebook = json.loads((ROOT / "notebooks" / "4_comparisons_and_test" / "02z_MaxViT512_Confronto_FromScratchVSFineTuned.ipynb").read_text(encoding="utf-8"))
+    def test_downstream_comparison_notebook_compiles_and_does_not_open_test(self) -> None:
+        notebook = json.loads((ROOT / "notebooks" / "4_downstream_classifiers" / "09_Downstream_Validation_Comparison.ipynb").read_text(encoding="utf-8"))
         cells = ["".join(cell.get("source", [])) for cell in notebook["cells"] if cell.get("cell_type") == "code"]
         joined = "\n".join(cells)
-        self.assertLess(joined.index("COMPARE_DIR ="), joined.index("summary_table.to_csv(COMPARE_DIR"))
-        self.assertLess(joined.index("FIGURES_DIR ="), joined.index("FIGURES_DIR / 'metrics_validation"))
+        self.assertIn("finalize_downstream_validation.py", joined)
+        self.assertNotIn("metadata/test.csv", joined)
         for index, source in enumerate(cells):
-            compile(source, f"02z-cell-{index}", "exec")
-        with tempfile.TemporaryDirectory() as tmp:
-            namespace = {"Path": Path, "BASE": Path(tmp)}
-            setup_lines = [line for line in cells[0].splitlines() if line.startswith(("COMPARE_DIR =", "FIGURES_DIR =", "COMPARE_DIR.mkdir", "FIGURES_DIR.mkdir"))]
-            exec("\n".join(setup_lines), namespace)
-            self.assertTrue(namespace["COMPARE_DIR"].is_dir())
-            self.assertTrue(namespace["FIGURES_DIR"].is_dir())
+            compile(source, f"09-cell-{index}", "exec")
 
     def test_ldm_preview_notebooks_guard_both_sd_layout_globals(self) -> None:
         for name in ("05_LDM_Basic_FromScratch.ipynb", "06_LDM_Extra1361_FromScratch.ipynb"):

@@ -14,6 +14,7 @@ data/
 *.hdf5
 *.safetensors
 *.bin
+*.onnx
 *.npy
 *.npz
 *.pkl
@@ -58,21 +59,26 @@ experiments/diffusers/
 experiments/04d_ldm_*/
 # Le cartelle experiments/exp_maxvit512_*, experiments/exp_mammofm_*, experiments/exp_raddino_*
 # e experiments/compare_22c_* (classificatori) restano tracciate.
-# Matrice classificatori v2: molti checkpoint per job (4 architetture x decine di dataset
-# variant x 3 seed). Codice/config/risultati restano in notebooks/, configs/, results/.
+# Classificatori publication-oriented: checkpoint/resume locali per 24 job.
+experiments/downstream_classifiers/
+# Local outputs from the archived full matrix remain recoverable but are not active/tracked.
 experiments/classifiers_matrix/
 results/classifiers_matrix/
 results/runtime_profiles/
-results/final_evaluation_v2/
-results/generator_comparison/selected_generator_union.json
-results/generator_comparison/stage1_validation_leaderboard.json
-results/generator_comparison/stage1_completion_manifest.json
+
+# Mammo-FM: la licenza vieta la redistribuzione dei pesi e dei derivati.
+*Mammo-FM*Trained*.tar
+*mammo*fm*checkpoint*
+*mammofm*checkpoint*
 
 # Zip di backup dei notebook creati fuori workflow (non versionare)
 notebooks*.zip
 new*.zip
 tests*.zip
 *.zip
+*.tar
+*.tar.gz
+*.tgz
 
 # Struttura piatta precedente, conservata solo come archivio locale.
 /old/

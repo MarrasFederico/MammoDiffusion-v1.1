@@ -8,11 +8,9 @@ la sorgente ufficiale; la precedente struttura piatta e' conservata localmente i
 
 - `1_preprocessing/`: preparazione e augmentation dei dati.
 - `2_diffusers/`: esperimenti generativi numerati in ordine evolutivo.
-- `3_classifiers/`: famiglie di classificatori; la lettera distingue la ricetta dati.
-- `4_comparisons_and_test/`: validazione, test e confronti; il suffisso `z` indica il
-  confronto conclusivo disponibile per una famiglia.
+- `3_generator_benchmark/`: benchmark unificato e selezione per famiglia.
+- `4_downstream_classifiers/`: MaxViT-512, Mammo-FM, confronto validation e test locked.
 - `utility/`: helper condivisi importati da tutti i notebook tramite bootstrap.
 
-I path di esperimenti e risultati seguono la stessa numerazione, per esempio
-`notebooks/3_classifiers/02a_*`, `experiments/classifiers/maxvit512/02a_*` e
-`results/classifiers/maxvit512/02x_*`.
+I notebook downstream sono parametrizzati con `condition` e `seed`; non esiste un notebook per
+ognuno dei 24 job. Il runner canonico è `scripts/run_downstream_classifier.py`.

@@ -26,20 +26,16 @@ repeated log lines) and `canonical_pipeline_energy` (the reproducible cost) — 
 canonical never exceeds actual via test coverage, and the difference is reported as
 `retry_and_failure_overhead_kwh`.
 
-## Notebook
+## Publication workflow
 
-`notebooks/4_comparisons_and_test/00y_Analisi_Consumi_e_Sostenibilita.ipynb` reads only this
-registry (never a raw eco_tracker log directly) and produces: absolute energy/CO2 per phase
-(log-scale bar), a PR-AUC-vs-kWh trade-off scatter per completed job, a stacked per-phase cost
-decomposition, the actual-vs-canonical breakdown, and `results/sustainability/summary_by_run.csv`
-/ `summary_by_experiment.csv`. It degrades gracefully and says so explicitly when
-`events.jsonl` is empty (verified this session: 0 events currently logged, since no classifier
-training has run yet) rather than plotting misleading empty/zero charts silently.
+`notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb` includes the descriptive
+generator efficiency table. The final report may also use the registry (never raw EcoTracker
+logs directly) for absolute energy/CO2 per phase, PR-AUC-vs-kWh trade-offs, and actual-vs-
+canonical breakdowns. Efficiency is never a primary generator-selection metric.
 
-Existing `notebooks/utility/eco_tracker.py` (measurement, via CodeCarbon + a RAM-peak sampling
-thread) is unchanged; producing `results/sustainability/events.jsonl` entries from its
-`SustainabilityMetrics` output at the point each classifier run completes is future wiring work,
-not part of this session (no training ran, so there is nothing yet to log).
+Existing `notebooks/utility/eco_tracker.py` provides CodeCarbon measurement and RAM-peak
+sampling. Runtime events may be recorded by later real executions; this refactoring produced no
+training or scientific sustainability result.
 
 CodeCarbon figures are estimates, not wall-socket measurements — repeated here because the
 original notebook's summary made the same disclaimer and it remains true.
@@ -48,4 +44,5 @@ original notebook's summary made the same disclaimer and it remains true.
 `python scripts/import_legacy_sustainability_logs.py` normalizza in modo idempotente i JSON/JSONL
 EcoTracker già presenti in `experiments/` e `results/`, deduplica per firma del contenuto e scrive
 `results/sustainability/canonical_events.jsonl`. Il dataset corrente contiene 193 eventi importati.
-Il notebook `00y` usa questa registry e riporta separatamente actual e canonical energy.
+Il report publication-oriented può usare questa registry e deve riportare separatamente actual
+e canonical energy.

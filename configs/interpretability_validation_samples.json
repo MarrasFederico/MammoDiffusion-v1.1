@@ -1,8 +1,0 @@
-{
- "schema_version": 1,
- "split": "validation",
- "selection_policy": "deterministic_by_error_category_then_patient_image_id",
- "categories": ["true_positive", "true_negative", "false_positive", "false_negative"],
- "samples": [],
- "note": "Populated from validation predictions only; the locked test is forbidden."
-}

@@ -4,192 +4,120 @@
 
 # MammoDiffusion v2
 
-**Generazione condizionata di mammografie sintetiche e valutazione della loro utilita per la classificazione del tumore al seno.**
+**Benchmark publication-oriented di generatori di mammografie sintetiche e verifica downstream compatta.**
 
 [English version](README_EN.md)
 
 </div>
 
-## Obiettivo
+## Obiettivo scientifico
 
-MammoDiffusion confronta diffusori fine-tuned e modelli latent diffusion addestrati from scratch sul dataset RSNA Breast Cancer Detection. Le immagini sintetiche non vengono giudicate soltanto con FID, Inception Score e PRDC: il progetto misura anche il loro effetto su classificatori valutati esclusivamente su validation e test reali.
+MammoDiffusion v2 confronta generatori fine-tuned e from scratch sul dataset RSNA Breast Cancer Detection. Il progetto concentra la profondità scientifica sulla qualità delle immagini generate e usa pochi classificatori downstream per verificare l’utilità dei sintetici.
 
-ResNet-50 e stato usato nella consegna originale come baseline sostenibile e riproducibile. La versione v2 estende il confronto a MaxViT-Tiny-512, MammoFM e RAD-DINO, introduce VAE adattati, LoRA e una U-Net from scratch piu evoluta, e cerca il miglior sistema assoluto anche quando richiede una combinazione costosa di dati reali, aumentati e sintetici.
+- **RQ1 — Qualità dei generatori:** quale generatore fine-tuned e quale from scratch offrono il miglior equilibrio tra fedeltà, diversità, coverage e assenza di memorizzazione?
+- **RQ2 — Utilità downstream:** aggiungere mammografie sintetiche positive migliora la classificazione rispetto ai soli reali e alla traditional augmentation?
+- **RQ3 — Robustezza rispetto al classificatore:** l’effetto è coerente tra un modello general-purpose moderno e un foundation model mammography-specific?
 
-## Domande di ricerca
+Il test non partecipa alla selezione di generatori, checkpoint o soglie.
 
-1. I diffusori from scratch e Stable Diffusion 2.1 fine-tuned producono mammografie realistiche e sufficientemente varie?
-2. I dati sintetici migliorano AUC, F1 e recall della classe positiva rispetto ai soli dati reali?
-3. Un classificatore nativo a 512x512 chiarisce meglio l'utilita dei sintetici rispetto alla baseline ResNet-50 a 224x224?
-4. Il fine-tuning del VAE di Stable Diffusion cambia FID, IS, PRDC e prestazioni downstream?
-5. Inserire il VAE di Stable Diffusion nel diffusore from scratch migliora il VAE addestrato da zero?
-6. La U-Net v3 con v-prediction e Min-SNR migliora le precedenti versioni from scratch?
-7. LoRA raggiunge una qualita comparabile al fine-tuning completo con costo inferiore?
-8. Real+Augmented+Synthetic supera le singole strategie di augmentation?
-9. Quale sorgente sintetica e piu utile per ciascun classificatore, mantenendo split, seed, soglie e budget confrontabili?
+## Disegno compatto
 
-## Struttura
+Il benchmark unificato valuta tutti i candidati validi del registry con 1.361 positivi per generatore, output RAW e FILTERED separati, bootstrap deterministico e due spazi indipendenti:
 
-```text
-MammoDiffusion/
-|-- assets/
-|-- data/                              # locale, esclusa da Git
-|-- experiments/
-|   |-- diffusers/                     # cache e checkpoint esclusi da Git
-|   `-- classifiers/
-|       |-- resnet50/
-|       |-- maxvit512/
-|       |-- mammofm/
-|       `-- raddino/
-|-- notebooks/
-|   |-- 1_preprocessing/
-|   |-- 2_diffusers/
-|   |-- 3_classifiers/
-|   |-- 4_comparisons_and_test/
-|   |-- pretrained_model/              # singola copia locale di SD 2.1
-|   `-- utility/
-|-- results/
-|   |-- preprocessing/
-|   |-- diffusers/
-|   |-- classifiers/
-|   |-- comparisons/
-`-- old/                               # struttura piatta locale, esclusa da Git
-```
+- InceptionV3 per FID/KID standard e continuità con la letteratura;
+- RAD-DINO congelato come encoder medico indipendente, con la limitazione che non è mammography-specific.
 
-La lettera finale identifica una configurazione dello stesso classificatore. Il suffisso `z` e riservato al confronto conclusivo della famiglia. Notebook, esperimenti e risultati condividono lo stesso prefisso, per esempio `02a` per MaxViT RealOnly e `02z` per il confronto MaxViT.
+KID RAD-DINO è il criterio primario. FID, precision, recall, density, coverage, LPIPS, MS-SSIM, duplicati, validità tecnica e nearest neighbour train/validation completano la valutazione. Viene proposto un vincitore `finetuned` e uno `from_scratch`; l’approvazione manuale firmata è obbligatoria prima dei classificatori.
 
-Tutti i notebook attivi contengono un bootstrap che individua automaticamente la root del progetto ed espone `notebooks/utility/`; possono quindi essere avviati dalla root o da qualunque sottocartella di `notebooks/`.
-
-## Notebook
-
-### Preprocessing
-
-| Notebook | Funzione |
-|---|---|
-| `1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` | Preprocessing RSNA, selezione MLO, split e immagini grayscale 512x512 |
-| `1_preprocessing/02_Data_Augmentation_Trad.ipynb` | Augmentation tradizionale e relativo metadata |
-
-### Diffusori
-
-| ID | Notebook | Esperimento principale |
-|---|---|---|
-| 01 | `2_diffusers/01_SD21_Baseline_50steps.ipynb` | SD2.1 baseline |
-| 02 | `2_diffusers/02_SD21_Filtered_100steps.ipynb` | Fine-tuning SD2.1, sampling e filtro |
-| 03 | `2_diffusers/03_SD21_VAE_FineTuned.ipynb` | Fine-tuning del VAE SD2.1 |
-| 04 | `2_diffusers/04_SD21_LoRA.ipynb` | Fine-tuning LoRA della U-Net |
-| 05 | `2_diffusers/05_LDM_Basic_FromScratch.ipynb` | LDM base from scratch |
-| 06 | `2_diffusers/06_LDM_Extra1361_FromScratch.ipynb` | LDM con VAE custom e dataset bilanciato |
-| 07 | `2_diffusers/07_LDM_SDVAE_Extra1361.ipynb` | U-Net riaddestrata su latenti del VAE SD |
-| 08 | `2_diffusers/08_LDM_v3_SDVAE_FromScratch.ipynb` | U-Net v3, v-prediction, Min-SNR e SD-VAE |
-
-I notebook 07 e 08 applicano lo stesso flusso a entrambe le classi:
+La verifica downstream contiene soltanto:
 
 ```text
-generate -> filter -> validate (validation reale) -> test (test reale)
+2 architetture: MaxViT-512, Mammo-FM
+4 condizioni: real_only, real_augmented,
+              real_plus_best_finetuned_positive,
+              real_plus_best_fromscratch_positive
+3 seed: 17, 42, 73
+= 24 job primari e 8 ensemble
 ```
 
-Le metriche finali sono separate in `metrics/positive/` e `metrics/negative/`. Per compatibilita, gli output positivi principali vengono copiati anche nei vecchi path piatti.
+MaxViT-512 è il backbone general-purpose convolution/transformer. Mammo-FM è il foundation model con pretraining di dominio. ResNet-50 rimane una baseline storica V1; RAD-DINO non è un classificatore downstream.
 
-### Classificatori
+## Flusso canonico
 
-| Famiglia | Notebook disponibili |
-|---|---|
-| ResNet-50 (`01`) | `01a` RealOnly, `01b` RealSynth partial, `01c` RealSynth full, `01d` SyntheticOnly, `01e` RealAugmented, `01f` RealSynthPositive |
-| MaxViT-512 (`02`) | `02a`-`02f` equivalenti ResNet, `02i` RealAugSynth FromScratch, `02j` RealAugSynth FineTuned |
-| MammoFM (`03`) | `03a` RealOnly, `03b` RealSynth FineTuned, `03c` RealSynth FromScratch, `03d` RealAugmented |
-| RAD-DINO (`04`) | `04a` RealOnly, `04b` RealSynth |
+```text
+preprocessing
+→ traditional augmentation
+→ sviluppo/generazione
+→ generator_benchmark
+→ generator_selection
+→ approvazione esplicita
+→ downstream_validation
+→ ensemble dei tre seed
+→ freeze del protocollo
+→ locked_test one-shot
+→ statistiche patient-level
+→ final_report
+```
 
-I notebook di validation, test e confronto sono in `4_comparisons_and_test/`. `00z` confronta i diffusori; `01z` e `02z` chiudono rispettivamente le famiglie ResNet e MaxViT; `03z` confronta ResNet-50 e MaxViT-512.
+I job si eseguono manualmente uno alla volta. Non esiste uno scheduler da cluster e non sono richiesti certificati GPU o canary firmati. Il runner mantiene dataset validation, lock per singolo experiment ID, checkpoint atomici, resume, validation inference, metriche e stato terminale.
 
-## Dati sintetici
+## Struttura attiva
 
-| Cartella | Sorgente |
-|---|---|
-| `data/synthetic/fine_tuned/` | SD2.1 fine-tuned |
-| `data/synthetic/fine_tuned_vaeft/` | SD2.1 con VAE adattato |
-| `data/synthetic/fine_tuned_lora/` | SD2.1 LoRA |
-| `data/synthetic/fromscratch/` | LDM con VAE custom |
-| `data/synthetic/fromscratch_new/` | LDM con SD-VAE |
-| `data/synthetic/fromscratch_v3/` | LDM v3 con SD-VAE |
+```text
+configs/
+  generator_benchmark_protocol.json
+  generator_registry.json
+  downstream_classifier_protocol.json
+  downstream_classifier_jobs.json
+  optional_downstream_ablations.json
+notebooks/
+  1_preprocessing/
+  2_diffusers/
+  3_generator_benchmark/
+  4_downstream_classifiers/
+  utility/
+scripts/
+  run_generator_benchmark.py
+  approve_generator_selection.py
+  run_downstream_classifier.py
+  build_downstream_ensembles.py
+  lock_downstream_test.py
+docs/
+  publication_experimental_design.md
+  execution_guide.md
+```
 
-Ogni cartella finale contiene `positive/` e `negative/`. `data/` e esclusa da Git e deve essere preparata o ripristinata localmente.
+`configs/approved_generators.json` viene creato soltanto dopo un benchmark reale e un’approvazione esplicita; non contiene vincitori hardcoded.
 
-## Strategia dei confronti
+## Esecuzione
 
-Per evitare di scegliere la sorgente sintetica sul test set, il progetto seguira due fasi:
-
-1. valutazione di tutte le sorgenti sintetiche candidate con ricette e budget fissi, usando soltanto il validation set reale per ranking e soglie;
-2. uso della migliore variante from scratch e della migliore variante fine-tuned nelle configurazioni piu costose `Real+Synth` e `Real+Augmented+Synthetic`, con un'unica valutazione finale sul test reale.
-
-La matrice verra applicata a ResNet-50, MaxViT-512, MammoFM e RAD-DINO. Dove un backbone rende il confronto completo proibitivo, la selezione della sorgente restera comune e documentata, invece di cambiare dataset a posteriori per favorire un modello.
-
-## Installazione
+Consultare [`docs/execution_guide.md`](docs/execution_guide.md). I punti di ingresso principali sono:
 
 ```bash
-git clone https://github.com/MarrasFederico/MammoDiffusion-v2.git
-cd MammoDiffusion-v2
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+python scripts/run_generator_benchmark.py --dry-run
+python scripts/list_downstream_jobs.py
+python scripts/status_downstream_classifiers.py --json
+python scripts/run_downstream_classifier.py \
+  --architecture maxvit512 \
+  --condition real_only \
+  --seed 17 \
+  --gpu 0
 ```
 
-PyTorch/TensorFlow e CUDA devono essere compatibili con la GPU utilizzata. Il notebook 08 configura esplicitamente RTX 5060 Ti/Blackwell e il percorso `libdevice`; il notebook 04 imposta la GPU prima di importare PyTorch. Dopo un cambio di GPU e necessario riavviare il kernel.
+La metrica downstream primaria è PR-AUC patient-level. L’ensemble medio dei seed è il risultato principale; le soglie vengono selezionate su validation e congelate prima del test. Otto confronti preregistrati usano bootstrap patient-level e correzione Holm.
 
-Il modello base condiviso e risolto da `notebooks/pretrained_model/stable-diffusion-2-1-base` oppure dalla variabile `MAMMODIFFUSION_SD21_BASE`. I VAE e gli adapter modificati restano invece nelle rispettive cartelle di esperimento.
+## Licenze e dati pesanti
 
-Il repository Diffusers condiviso e pinned vive sotto
-`experiments/diffusers/03_sd21_vae_finetuned/diffusers_repo`. Le utility lo trattano come unica
-sorgente attiva; i duplicati identici sono stati archiviati fuori dal repository.
-Il modello SD2.1 base canonico resta quello sotto `notebooks/pretrained_model/`, mentre VAE e
-LoRA modificati rimangono intenzionalmente negli esperimenti che li hanno prodotti.
+Dataset, immagini sintetiche, pesi e checkpoint non sono versionati. Mammo-FM è utilizzabile solo secondo la licenza accademica applicabile: vedere [`docs/mammo_fm_license_note.md`](docs/mammo_fm_license_note.md). Non committare pesi originali o derivati Mammo-FM.
 
-## Demo Gradio
+I risultati ResNet-50 V1 restano storici e separati dalle statistiche V2: [`docs/legacy_v1_classifier_results.md`](docs/legacy_v1_classifier_results.md). La pipeline completa precedente alla semplificazione è recuperabile dal tag Git `classifier-matrix-v2-full`.
 
-La demo locale e in `assets/mammodiffusion_gradio/`. Usa i path correnti degli esperimenti 02 e 06 e salva gli output temporanei fuori da Git.
+## Documentazione
 
-## Riproducibilita
-
-Il flusso operativo canonico della matrice classificatori v2 è documentato in
-[`docs/classifier_pipeline_v2_runbook.md`](docs/classifier_pipeline_v2_runbook.md). La pipeline
-storica e gli artefatti v2 restano separati.
-
-- split reali invariati tra gli esperimenti;
-- soglie decisionali calcolate sul validation set con criterio di Youden;
-- test set reale mantenuto separato dalla selezione di checkpoint, filtri e sorgenti sintetiche;
-- seed e budget annotati nei notebook e nei manifest;
-- FID, IS e PRDC calcolati per classe;
-- checkpoint, dataset e cache pesanti esclusi da Git, metriche e codice versionati.
-
-## Stato conclusivo della preparazione
-
-La generazione LoRA e le pipeline generative 02-08 sono completate; lo stato verificato e la
-classificazione finale/ablation sono in `configs/final_generator_registry.json` e
-`docs/GENERATOR_STATUS.md`. Otto inferenze locked sono predisposte. I due ResNet 01a/01b restano
-bloccati per assenza dei checkpoint `.keras`; 04y/04z non sono ancora stati eseguiti in real-run e
-`final_aggregation_complete=False`.
-
-Documentazione operativa:
-
-- `docs/LEGACY_RECOVERY_REPORT.md`: recupero e provenance legacy;
-- `docs/SHARED_ASSETS.md`: Diffusers/SD2.1 canonici e derivati;
-- `docs/CLASSIFIER_EXECUTION_PLAN.md`: ordine locked senza leakage;
-- `docs/LEGACY_OPERATIONAL_MIGRATION.md`: mapping 01/02/05/06, modalità idempotenti e matrice operativa.
-
-Una seconda matrice sperimentale, indipendente dalla precedente e mai eseguita in questa sessione
-oltre lo screening di codice, estende il confronto a un numero molto più ampio di combinazioni
-architettura x dataset x seed, con scheduler multi-GPU adattivo e un secondo lock scientifico
-separato (`results/final_evaluation_v2/`, mai sovrapposto a `results/final_evaluation/`):
-
-- `docs/EXPERIMENT_MATRIX.md`: registry dataset/protocolli, generazione job, riuso checkpoint legacy;
-- `docs/MULTI_GPU_CLASSIFIER_SCHEDULER.md`: identificazione GPU per nome, ammissione VRAM, gestione OOM;
-- `docs/SUSTAINABILITY_ANALYSIS.md`: schema eventi, actual vs canonical, notebook `00y`;
-- `docs/FINAL_LOCKED_TEST_PROTOCOL.md`: precondizioni del lock, verifica pre-test, statistiche.
-
-Nessun job di training è stato avviato e nessun checkpoint esiste ancora per questa matrice: i
-comandi esatti per costruirla ed eseguirla sono in `docs/EXPERIMENT_MATRIX.md`.
-
-Gli inventari esaustivi e i package temporanei sono conservati localmente fuori dal repository in
-`../MammoDiffusion_local_archive/`; non sono necessari al runtime.
+- [`docs/publication_experimental_design.md`](docs/publication_experimental_design.md): protocollo completo e limitazioni;
+- [`docs/generator_benchmark_protocol.md`](docs/generator_benchmark_protocol.md): inclusione, metriche, bootstrap e ranking;
+- [`docs/downstream_classifier_protocol.md`](docs/downstream_classifier_protocol.md): fairness, ensemble e statistiche;
+- [`docs/execution_guide.md`](docs/execution_guide.md): sequenza operativa minima.
 
 ## Team
 
@@ -200,9 +128,4 @@ Gli inventari esaustivi e i package temporanei sono conservati localmente fuori 
 | Alexandro Sanna | [@AlexandroSanna](https://github.com/AlexandroSanna) |
 | Samuele Nonnis | [@SamueleNonnis](https://github.com/SamueleNonnis) |
 
-Progetto sviluppato per l'insegnamento di Deep Learning, annualita 2026, Corso di Laurea in Informatica Applicata e Data Analytics dell'Universita degli Studi di Cagliari.
-# Classifier matrix v2 notebook-first
-
-I 112 notebook Stage 1 dedicati sono in `notebooks/3_classifiers_matrix/`. Notebook e scheduler
-usano lo stesso runner e gli stessi adapter reali; consultare `docs/NOTEBOOK_MATRIX.md` per
-inventario, blocker e flusso Stage 2.
+Progetto sviluppato per l’insegnamento di Deep Learning, annualità 2026, Corso di Laurea in Informatica Applicata e Data Analytics dell’Università degli Studi di Cagliari.

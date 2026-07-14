@@ -49,5 +49,138 @@
     "experiments/diffusers/04_sd21_lora/generated_images/final/positive/.generation_manifest.json",
     "results/diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json",
     "experiments/diffusers/04_sd21_lora/legacy_runtime_manifest.json"
-  ]
+  ],
+  "parent_generator_id": null,
+  "model_components": [
+    {
+      "role": "base_model_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:model-index",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/model_index.json",
+      "sha256": "518553e098fdaa4153d9a92139e344e44f53bb329c22f383293e3099c4f1bad2",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "base_unet",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:unet",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/unet/diffusion_pytorch_model.safetensors",
+      "sha256": "28ec9cf3b239c0751c201b1f6fb46b551df5862731b30a37aa1360101cb3fbab",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "base_unet_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:unet-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/unet/config.json",
+      "sha256": "ce0c6d379e3b1d3e1f79338de70c80a1e36f17a6372439a8249b6fb0dfa1b608",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "lora_adapter",
+      "identifier": "mammodiffusion-sd21-lora-rank16-checkpoint-4500",
+      "path": "experiments/diffusers/04_sd21_lora/model/checkpoint-4500/pytorch_lora_weights.safetensors",
+      "sha256": "c3809b5a4e6fcfa66f237dea2a9efcc5d9bf20b3f282f48eadce37b61dc3c09a",
+      "source_type": "local"
+    },
+    {
+      "role": "lora_config",
+      "identifier": "mammodiffusion-sd21-lora-rank16-config",
+      "path": "configs/sd21_lora_rank16_config.json",
+      "sha256": "ad207cd2d75c69bab4b36a0a44ae823bfabd944bf3ae55f074264f021577f255",
+      "source_type": "local"
+    },
+    {
+      "role": "scheduler_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:pndm-scheduler",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/scheduler/scheduler_config.json",
+      "sha256": "11ac5627d7df0fa344b875c4b5722b1767a8a2aa1684c2cf8b4d614300127234",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "text_encoder",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:openclip-text-encoder",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/model.safetensors",
+      "sha256": "681c555376658c81dc273f2d737a2aeb23ddb6d1d8e5b3a7064636d359a22668",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "text_encoder_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:text-encoder-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/config.json",
+      "sha256": "7e33bfc475f6cf76e69b28b101993ca834d1f22ff4d35caefde32d63d4f42fba",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "tokenizer_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/tokenizer_config.json",
+      "sha256": "d562b18a0c6d32a168fce3d7a342fce64579ebacffb98fb71b0affc494fc32d8",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "tokenizer_merges",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-merges",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/merges.txt",
+      "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "tokenizer_vocab",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-vocab",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/vocab.json",
+      "sha256": "e089ad92ba36837a0d31433e555c8f45fe601ab5c221d4f607ded32d9f7a4349",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "vae",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:vae",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+      "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "vae_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+      "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+      "source_type": "pretrained"
+    }
+  ],
+  "model_configuration": {
+    "model_type": "stable_diffusion_lora",
+    "base_model_identifier": "stabilityai/stable-diffusion-2-1-base",
+    "lora_rank": 16,
+    "prediction_type": "epsilon",
+    "scheduler": "PNDMScheduler"
+  },
+  "model_identity_sha256": "18bb52ded22d0fa119846ed204566266a431701aa7d996937cd8299109d01c4f",
+  "generation_identity": {
+    "model_identity_sha256": "18bb52ded22d0fa119846ed204566266a431701aa7d996937cd8299109d01c4f",
+    "sampling_steps": 100,
+    "guidance_scale": 7.5,
+    "seed_strategy": "mixed_legacy_and_per_image_seed_v2",
+    "prompt_or_condition": {
+      "guidance_scale": 7.5,
+      "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"
+    },
+    "resolution": 512,
+    "scheduler": "PNDMScheduler",
+    "generation_code_signature": "ea0f947b87a9c63bd2455fd195416fc84c012f20a2c1501872c3e7c55cef7225",
+    "parameterization": "epsilon",
+    "representation_configuration": {
+      "raw": {
+        "pool_size": 2722,
+        "seed_strategy": "mixed_legacy_and_per_image_seed_v2",
+        "base_seed": 43,
+        "class_label": 1,
+        "base_model": "stable-diffusion-2-1-base"
+      },
+      "filtered": {
+        "algorithm": "adaptive_mask_v2",
+        "selection": "top_k",
+        "target": 1361
+      }
+    }
+  },
+  "generation_identity_sha256": "22e90c5d5dbafae2d672acc10819af2648c5211bab349dcf7caf465f095f21a0",
+  "eligible_for_downstream_selection": true,
+  "distinct_generator_for_ranking": true
 }

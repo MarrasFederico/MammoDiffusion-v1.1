@@ -22,6 +22,16 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
 FAMILIES = ("finetuned", "from_scratch")
 REPRESENTATIONS = ("raw", "filtered")
 FEATURE_SPACES = ("inception_v3", "rad_dino")
+SUPPORTED_PROVENANCE_SCHEMA_VERSION = 2
+SUPPORTED_PROVENANCE_INDEX_VERSION = 2
+PROVENANCE_REQUIRED_FIELDS = {
+    "schema_version", "generator_id", "scientific_family", "candidate_role", "parent_generator_id",
+    "model_components", "model_configuration", "model_identity_sha256", "generation_identity",
+    "generation_identity_sha256", "model_checkpoint_identifier", "checkpoint_path", "checkpoint_sha256",
+    "training_notebook_config_identifier", "training_corpus_manifest", "raw_sample_manifest",
+    "filtered_sample_manifest", "filter_mapping_manifest", "manifest_sha256", "training_dataset_identifier",
+    "generation_configuration", "filter_configuration", "lineage_status",
+}
 BENCHMARK_ROOT = Path("results/publication_v2/generator_benchmark")
 PROVENANCE_ROOT = Path("results/publication_v2/generator_provenance")
 RUNTIME_PROVENANCE_ROOT = PROVENANCE_ROOT / "runtime"
@@ -342,6 +352,172 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def canonical_model_components(components: Sequence[Mapping[str, Any]]) -> list[dict[str, str]]:
+    """Validate and order generator components without making storage paths scientific identity.
+
+    Paths are retained for runtime verification, but equivalent byte-identical copies of a
+    component have the same generator identity.  This is what allows G01/G02 and G05/G06 to
+    be recognized as the same model despite living in different experiment directories.
+    """
+    if not isinstance(components, Sequence) or isinstance(components, (str, bytes)) or not components:
+        raise ValueError("model_components must be a non-empty list")
+    normalized: list[dict[str, str]] = []
+    for component in components:
+        required = {"role", "identifier", "path", "sha256", "source_type"}
+        missing = required - set(component)
+        if missing:
+            raise ValueError(f"model component missing fields: {sorted(missing)}")
+        digest = str(component["sha256"])
+        if not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError(f"invalid component SHA-256 for {component.get('role')}")
+        source_type = str(component["source_type"])
+        if source_type not in {"local", "shared", "pretrained"}:
+            raise ValueError(f"invalid component source_type: {source_type}")
+        normalized.append({key: str(component[key]) for key in
+                           ("role", "identifier", "path", "sha256", "source_type")})
+    keys = [(row["role"], row["identifier"]) for row in normalized]
+    if len(keys) != len(set(keys)):
+        raise ValueError("model component role/identifier pairs must be unique")
+    return sorted(normalized, key=lambda row: (row["role"], row["identifier"], row["sha256"]))
+
+
+def model_identity_sha256(components: Sequence[Mapping[str, Any]],
+                          model_configuration: Mapping[str, Any]) -> str:
+    """Hash scientific model identity; component ordering and copy paths are immaterial."""
+    canonical = canonical_model_components(components)
+    material = {
+        "components": [{key: row[key] for key in ("role", "identifier", "sha256")}
+                       for row in canonical],
+        "model_configuration": dict(model_configuration),
+    }
+    return _identity_digest(material)
+
+
+def generation_identity_sha256(generation_identity: Mapping[str, Any]) -> str:
+    """Hash only the model signature and generation/filter configuration, never Git HEAD."""
+    material = {key: value for key, value in generation_identity.items()
+                if key != "generation_identity_sha256"}
+    return _identity_digest(material)
+
+
+def _required_component_roles(record: Mapping[str, Any]) -> tuple[set[str], list[set[str]]]:
+    configuration = record.get("model_configuration", {})
+    model_type = str(configuration.get("model_type", ""))
+    if model_type == "stable_diffusion_full_unet":
+        return ({"unet", "unet_config", "base_model_config", "vae", "vae_config", "text_encoder",
+                 "text_encoder_config", "tokenizer_config", "tokenizer_vocab", "scheduler_config"}, [])
+    if model_type == "stable_diffusion_lora":
+        return ({"lora_adapter", "lora_config", "base_unet", "base_unet_config", "base_model_config",
+                 "vae", "vae_config", "text_encoder", "text_encoder_config", "tokenizer_config",
+                 "tokenizer_vocab", "scheduler_config"}, [])
+    if model_type == "latent_diffusion":
+        return ({"ldm_unet", "latent_stats", "latents_manifest", "latents_train", "latents_validation",
+                 "architecture_config"}, [{"vae"}, {"vae_encoder", "vae_decoder"}])
+    return (set(), [])
+
+
+def validate_generator_provenance_record(root: Path, record: Mapping[str, Any],
+                                         schema: Mapping[str, Any] | None = None,
+                                         *, verify_component_files: bool = False) -> None:
+    """Validate one v2 record explicitly; v1 and future records are never reinterpreted."""
+    root = Path(root)
+    if schema is None:
+        schema_path = root / "configs/generator_provenance_schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8")) if schema_path.is_file() else {
+            "schema_version": SUPPORTED_PROVENANCE_SCHEMA_VERSION,
+            "provenance_json": {"required_fields": sorted(PROVENANCE_REQUIRED_FIELDS)},
+        }
+    supported = int(schema.get("schema_version", 0))
+    if supported != SUPPORTED_PROVENANCE_SCHEMA_VERSION:
+        raise ValueError(f"unsupported generator provenance schema: {supported}")
+    version = record.get("schema_version")
+    if version != supported:
+        raise ValueError(f"unsupported provenance record version: {version!r}; expected {supported}")
+    required = set(schema["provenance_json"]["required_fields"])
+    missing = required - set(record)
+    if missing:
+        raise ValueError(f"provenance fields missing: {sorted(missing)}")
+    components = canonical_model_components(record["model_components"])
+    roles = {row["role"] for row in components}
+    required_roles, alternatives = _required_component_roles(record)
+    missing_roles = required_roles - roles
+    if missing_roles:
+        raise ValueError(f"model component roles missing: {sorted(missing_roles)}")
+    if alternatives and not any(option <= roles for option in alternatives):
+        raise ValueError(f"model component role alternative missing: {alternatives}")
+    configuration = record.get("model_configuration", {})
+    if configuration.get("model_type") == "latent_diffusion":
+        for field in ("architecture_version", "parameterization", "min_snr_enabled", "min_snr_gamma"):
+            if field not in configuration:
+                raise ValueError(f"LDM model configuration missing: {field}")
+    if configuration.get("model_type") == "stable_diffusion_lora" and "lora_rank" not in configuration:
+        raise ValueError("LoRA model configuration missing lora_rank")
+    observed_model_identity = model_identity_sha256(components, configuration)
+    if record.get("model_identity_sha256") != observed_model_identity:
+        raise ValueError("model_identity_sha256 mismatch")
+    generation = record.get("generation_identity")
+    if not isinstance(generation, Mapping):
+        raise ValueError("generation_identity must be an object")
+    generation_required = {"model_identity_sha256", "sampling_steps", "guidance_scale", "seed_strategy",
+                           "prompt_or_condition", "resolution", "scheduler", "generation_code_signature",
+                           "representation_configuration"}
+    if generation_required - set(generation):
+        raise ValueError(f"generation identity fields missing: {sorted(generation_required - set(generation))}")
+    if generation.get("model_identity_sha256") != observed_model_identity:
+        raise ValueError("generation identity references a different model")
+    observed_generation_identity = generation_identity_sha256(generation)
+    if record.get("generation_identity_sha256") != observed_generation_identity:
+        raise ValueError("generation_identity_sha256 mismatch")
+    for component in components:
+        relative = _project_relative(root, component["path"])
+        if verify_component_files:
+            path = root / relative
+            if not path.is_file() or file_sha256(path) != component["sha256"]:
+                raise ValueError(f"model component fingerprint mismatch: {relative}")
+
+
+def detect_duplicate_generator_identities(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Annotate model duplicates and reject duplicate official ranking competitors."""
+    groups: dict[str, list[str]] = {}
+    for row in rows:
+        identity = str(row.get("model_identity_sha256", ""))
+        if identity:
+            groups.setdefault(identity, []).append(str(row.get("generator_id") or row.get("id")))
+    annotated = []
+    for row in rows:
+        result = dict(row)
+        identity = str(result.get("model_identity_sha256", ""))
+        members = sorted(groups.get(identity, []))
+        result["duplicate_model_group"] = "|".join(members) if len(members) > 1 else ""
+        role = result.get("candidate_role")
+        result["distinct_generator_for_ranking"] = bool(
+            result.get("eligible_for_official_family_ranking") and role == "primary_candidate")
+        annotated.append(result)
+    for identity, members in groups.items():
+        competitors = [row for row in annotated if row.get("model_identity_sha256") == identity and
+                       row.get("distinct_generator_for_ranking")]
+        if len(competitors) > 1:
+            raise ValueError(f"duplicate model identity cannot enter official ranking twice: {members}")
+    return annotated
+
+
+def classify_generation_pool_ablation(parent: Mapping[str, Any], candidate: Mapping[str, Any]) -> dict[str, Any]:
+    """Resolve whether a larger/differently filtered pool is a model or generation variant."""
+    same_model = bool(parent.get("model_identity_sha256")) and \
+        parent.get("model_identity_sha256") == candidate.get("model_identity_sha256")
+    if same_model:
+        return {"candidate_role": "generation_pool_ablation",
+                "parent_generator_id": parent.get("generator_id") or parent.get("id"),
+                "eligible_for_downstream_selection": False,
+                "distinct_generator_for_ranking": False,
+                "same_generator_identity": True}
+    return {"candidate_role": candidate.get("candidate_role", "primary_candidate"),
+            "parent_generator_id": candidate.get("parent_generator_id"),
+            "eligible_for_downstream_selection": False,
+            "distinct_generator_for_ranking": True,
+            "same_generator_identity": False}
+
+
 def _project_relative(root: Path, path: str | Path) -> str:
     """Return a stable project-relative identity and reject paths outside the project."""
     root = Path(root).resolve()
@@ -565,9 +741,32 @@ def build_canonical_generator_provenance(root: Path, sources: Mapping[str, Any])
     write_csv_rows(manifest_paths["filtered_samples"], filtered_rows)
     write_csv_rows(manifest_paths["filter_mapping"], mapping_rows)
     relative_manifests = {name: _project_relative(root, path) for name, path in manifest_paths.items()}
+    components = canonical_model_components(sources["model_components"])
+    model_configuration = dict(sources["model_configuration"])
+    model_identity = model_identity_sha256(components, model_configuration)
+    generation_identity = {
+        "model_identity_sha256": model_identity,
+        "sampling_steps": sources.get("sampling_steps"),
+        "guidance_scale": sources.get("guidance_conditioning_configuration", {}).get("guidance_scale"),
+        "seed_strategy": generation.get("seed_strategy"),
+        "prompt_or_condition": sources.get("guidance_conditioning_configuration", {}),
+        "resolution": int(sources.get("resolution", 512)),
+        "scheduler": sources.get("scheduler", model_configuration.get("scheduler")),
+        "generation_code_signature": sources["generation_code_signature"],
+        "parameterization": model_configuration.get("parameterization"),
+        "representation_configuration": {
+            "raw": generation,
+            "filtered": dict(sources.get("filter_configuration", {})),
+        },
+    }
     payload = {
         "schema_version": 2, "generator_id": generator_id,
         "scientific_family": sources["scientific_family"], "candidate_role": sources["candidate_role"],
+        "parent_generator_id": sources.get("parent_generator_id"),
+        "model_components": components, "model_configuration": model_configuration,
+        "model_identity_sha256": model_identity,
+        "generation_identity": generation_identity,
+        "generation_identity_sha256": generation_identity_sha256(generation_identity),
         "model_checkpoint_identifier": sources.get("model_checkpoint_identifier", Path(checkpoint_relative).name),
         "checkpoint_path": checkpoint_relative, "checkpoint_sha256": file_sha256(checkpoint),
         "training_notebook_config_identifier": sources["training_notebook_config_identifier"],
@@ -593,7 +792,7 @@ def build_canonical_generator_provenance(root: Path, sources: Mapping[str, Any])
 def load_provenance_index(root: Path) -> dict[str, Any]:
     path = Path(root) / "configs/generator_provenance_index.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if payload.get("schema_version") != 1 or not isinstance(payload.get("generators"), list):
+    if payload.get("schema_version") != SUPPORTED_PROVENANCE_INDEX_VERSION or not isinstance(payload.get("generators"), list):
         raise ValueError("unsupported generator provenance index")
     ids = [row.get("generator_id") for row in payload["generators"]]
     if len(ids) != len(set(ids)):
@@ -855,6 +1054,10 @@ def _audit_canonical_provenance(root: Path, entry: Mapping[str, Any], payload: M
                 "raw_sample_manifest", "filtered_sample_manifest", "filter_mapping_manifest",
                 "training_dataset_identifier", "generation_configuration", "filter_configuration", "lineage_status"}
     if required - set(payload): reasons.append(f"missing_fields:{','.join(sorted(required - set(payload)))}")
+    try:
+        validate_generator_provenance_record(root, payload, verify_component_files=True)
+    except Exception as exc:
+        reasons.append(f"generator_identity_invalid:{type(exc).__name__}:{exc}")
     if payload.get("generator_id") != entry.get("id"): reasons.append("wrong_generator_id")
     checkpoint_value = str(payload.get("checkpoint_path", ""))
     try:
@@ -944,8 +1147,11 @@ def _provenance_audit(root: Path, entry: Mapping[str, Any], representations: Map
     if not isinstance(payload, Mapping):
         reasons.append("provenance_manifest_not_object")
         return {**base, "provenance_failure_reason": "; ".join(reasons)}
-    if int(payload.get("schema_version", 0)) == 2 and payload.get("filter_mapping_manifest"):
+    if payload.get("schema_version") == SUPPORTED_PROVENANCE_SCHEMA_VERSION:
         return {**base, **_audit_canonical_provenance(root, entry, payload)}
+    if "schema_version" in payload:
+        reasons.append(f"unsupported_provenance_version:{payload.get('schema_version')}")
+        return {**base, "provenance_failure_reason": "; ".join(reasons)}
     recorded_id = payload.get("generator_id") or payload.get("experiment_id") or payload.get("id")
     if recorded_id != entry.get("id"): reasons.append("wrong_generator_id")
     checkpoint = payload.get("checkpoint") or payload.get("checkpoint_path") or payload.get("selected_checkpoint") or payload.get("best_checkpoint")
@@ -1013,10 +1219,10 @@ def audit_source_generator_metadata(root: Path, entry: Mapping[str, Any],
                                     protocol: Mapping[str, Any] | None = None,
                                     index: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Validate publishable records without inspecting checkpoints, datasets, or images."""
-    root = Path(root); protocol = protocol or load_protocol(root); validate_protocol(protocol)
+    root = Path(root); protocol = protocol or load_protocol(root)
     schema_path = root / "configs/generator_provenance_schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    if schema.get("schema_version") != 1:
+    if schema.get("schema_version") != SUPPORTED_PROVENANCE_SCHEMA_VERSION:
         raise ValueError("unsupported generator provenance schema")
     index = index or load_provenance_index(root)
     indexed = {str(row["generator_id"]): row for row in index["generators"]}
@@ -1038,20 +1244,25 @@ def audit_source_generator_metadata(root: Path, entry: Mapping[str, Any],
         reasons.append("provenance_record_missing")
     if row is None:
         reasons.append("provenance_index_entry_missing")
+    schema_valid = False
     if payload:
-        required = set(schema["provenance_json"]["required_fields"])
-        missing = required - set(payload)
-        if missing: reasons.append(f"provenance_fields_missing:{','.join(sorted(missing))}")
+        try:
+            validate_generator_provenance_record(root, payload, schema, verify_component_files=False)
+            schema_valid = True
+        except Exception as exc:
+            reasons.append(f"provenance_record_schema_invalid:{type(exc).__name__}:{exc}")
         if payload.get("generator_id") != generator_id: reasons.append("wrong_generator_id")
         if payload.get("scientific_family") != entry.get("scientific_family"): reasons.append("wrong_scientific_family")
         if payload.get("candidate_role") != entry.get("candidate_role"): reasons.append("wrong_candidate_role")
         for field in ("checkpoint_path", "training_corpus_manifest", "raw_sample_manifest",
                       "filtered_sample_manifest", "filter_mapping_manifest"):
+            if payload.get(field) is None:
+                continue
             try: _project_relative(root, str(payload.get(field, "")))
             except Exception: reasons.append(f"nonportable_path:{field}")
         hashes = payload.get("manifest_sha256", {})
         if set(hashes) != {"training_corpus", "raw_samples", "filtered_samples", "filter_mapping"} or \
-                any(not re.fullmatch(r"[0-9a-f]{64}", str(value)) for value in hashes.values()):
+                any(value is not None and not re.fullmatch(r"[0-9a-f]{64}", str(value)) for value in hashes.values()):
             reasons.append("invalid_declared_manifest_hashes")
     if row is not None and payload:
         comparisons = {
@@ -1069,18 +1280,36 @@ def audit_source_generator_metadata(root: Path, entry: Mapping[str, Any],
         lineage = payload.get("lineage_status", {})
         if int(lineage.get("raw_count", -1)) != int(row.get("raw_count", -2)): reasons.append("index_raw_count_mismatch")
         if int(lineage.get("filtered_count", -1)) != int(row.get("filtered_count", -2)): reasons.append("index_filtered_count_mismatch")
-    internally_valid = recorded and row is not None and not reasons
+    index_reasons = [reason for reason in reasons if reason.startswith("provenance_index_") or
+                     reason.startswith("index_")]
+    index_consistent = row is not None and not index_reasons
+    manifest_hashes = payload.get("manifest_sha256", {}) if payload else {}
+    runtime_hashes_declared = bool(manifest_hashes) and all(
+        re.fullmatch(r"[0-9a-f]{64}", str(manifest_hashes.get(name, "")))
+        for name in ("training_corpus", "raw_samples", "filtered_samples", "filter_mapping"))
     mismatch = bool(refusal) or bool(reasons)
     return {"generator_id": generator_id, "audit_mode": "source_metadata_only",
-            "provenance_recorded": recorded, "canonical_manifests_internally_valid": internally_valid,
+            "provenance_recorded": recorded, "provenance_record_schema_valid": schema_valid,
+            "provenance_index_consistent": index_consistent,
+            "runtime_manifest_hashes_declared": runtime_hashes_declared,
+            "runtime_manifest_contents_verified": False,
             "runtime_assets_verified": False, "runtime_assets_unavailable": True,
             "runtime_assets_mismatch": mismatch, "eligible_for_descriptive_benchmark": False,
             "eligible_for_official_family_ranking": False,
+            "model_identity_sha256": payload.get("model_identity_sha256"),
+            "generation_identity_sha256": payload.get("generation_identity_sha256"),
+            "parent_generator_id": entry.get("parent_generator_id"),
             "source_audit_reasons": sorted(set(([str(refusal)] if refusal else []) + reasons))}
 
 
 def audit_runtime_generator_assets(root: Path, entry: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
     """Verify the current host assets. This is required immediately before benchmark execution."""
+    if (Path(root) / "configs/generator_provenance_schema.json").is_file() and \
+            (Path(root) / "configs/generator_provenance_index.json").is_file():
+        source_status = audit_source_generator_metadata(root, entry, protocol)
+    else:
+        source_status = {"provenance_record_schema_valid": None, "provenance_index_consistent": None,
+                         "runtime_manifest_hashes_declared": None}
     target = int(protocol["synthetic_pool_target"])
     blockers = []
     representations = {}
@@ -1118,6 +1347,11 @@ def audit_runtime_generator_assets(root: Path, entry: Mapping[str, Any], protoco
     runtime_verified = descriptive and not runtime_unavailable
     audit_mode = "runtime_assets_verified" if runtime_verified else (
         "runtime_assets_unavailable" if runtime_unavailable else "runtime_assets_mismatch")
+    payload = {}
+    provenance_path = Path(root) / str(entry.get("provenance_manifest", ""))
+    if provenance_path.is_file():
+        try: payload = json.loads(provenance_path.read_text(encoding="utf-8"))
+        except Exception: payload = {}
     return {"generator_id": entry["id"], "scientific_family": entry.get("scientific_family"),
             "model_family": entry.get("model_family"), "model_variant": entry.get("model_variant"),
             "sampling_steps": entry.get("sampling_steps"), "candidate_role": role,
@@ -1126,7 +1360,19 @@ def audit_runtime_generator_assets(root: Path, entry: Mapping[str, Any], protoco
             "eligible_for_official_family_ranking": official,
             "eligible_for_benchmark_execution": runtime_verified, "audit_mode": audit_mode,
             "provenance_recorded": provenance["provenance_manifest_exists"],
-            "canonical_manifests_internally_valid": provenance["provenance_manifest_valid"],
+            "provenance_record_schema_valid": (source_status["provenance_record_schema_valid"]
+                if source_status["provenance_record_schema_valid"] is not None else
+                bool(payload) and not any(reason.startswith("generator_identity_invalid") for reason in
+                                          provenance.get("provenance_failure_reason", "").split("; "))),
+            "provenance_index_consistent": source_status["provenance_index_consistent"],
+            "runtime_manifest_hashes_declared": (source_status["runtime_manifest_hashes_declared"]
+                if source_status["runtime_manifest_hashes_declared"] is not None else
+                bool(payload.get("manifest_sha256")) and all(payload.get("manifest_sha256", {}).get(name)
+                    for name in ("training_corpus", "raw_samples", "filtered_samples", "filter_mapping"))),
+            "runtime_manifest_contents_verified": provenance["provenance_manifest_valid"],
+            "model_identity_sha256": payload.get("model_identity_sha256"),
+            "generation_identity_sha256": payload.get("generation_identity_sha256"),
+            "parent_generator_id": entry.get("parent_generator_id"),
             "runtime_assets_verified": runtime_verified, "runtime_assets_unavailable": runtime_unavailable,
             "runtime_assets_mismatch": runtime_mismatch}
 
@@ -1139,8 +1385,9 @@ def audit_candidate(root: Path, entry: Mapping[str, Any], protocol: Mapping[str,
 def discover_candidates(root: Path, protocol: Mapping[str, Any] | None = None,
                         registry: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
     protocol, registry = protocol or load_protocol(root), registry or load_registry(root)
-    return [audit_runtime_generator_assets(Path(root), entry, protocol) for entry in registry["generators"]
+    rows = [audit_runtime_generator_assets(Path(root), entry, protocol) for entry in registry["generators"]
             if entry.get("benchmark", {}).get("enabled", False)]
+    return detect_duplicate_generator_identities(rows)
 
 
 def write_embedding_cache(path: Path, features: np.ndarray, metadata: Mapping[str, Any]) -> tuple[Path, Path]:

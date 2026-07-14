@@ -10,7 +10,7 @@ is validation-only; downstream test performance cannot change the choice.
 | 03 | complete | negative, positive | final comparison, fine-tuned VAE/full tuning |
 | 04 | complete | negative, positive | final comparison, LoRA |
 | 05 | complete | positive only | from-scratch baseline |
-| 06 | complete | negative, positive | extra-data ablation |
+| 06 | model identity complete; per-image mapping refused | negative, positive | generation-pool ablation/extension of G05; not a distinct generator |
 | 07 | complete | negative, positive | final comparison, SD-VAE |
 | 08 | complete | negative, positive | final comparison plus 25/50/75/100-step ablation |
 

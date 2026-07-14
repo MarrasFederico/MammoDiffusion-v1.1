@@ -47,5 +47,121 @@
     "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
     "results/diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json",
     "experiments/diffusers/02_sd21_filtered_100steps/legacy_runtime_manifest.json"
-  ]
+  ],
+  "parent_generator_id": null,
+  "model_components": [
+    {
+      "role": "base_model_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:model-index",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/model_index.json",
+      "sha256": "518553e098fdaa4153d9a92139e344e44f53bb329c22f383293e3099c4f1bad2",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "scheduler_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:pndm-scheduler",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/scheduler/scheduler_config.json",
+      "sha256": "11ac5627d7df0fa344b875c4b5722b1767a8a2aa1684c2cf8b4d614300127234",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "text_encoder",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:openclip-text-encoder",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/model.safetensors",
+      "sha256": "681c555376658c81dc273f2d737a2aeb23ddb6d1d8e5b3a7064636d359a22668",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "text_encoder_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:text-encoder-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/config.json",
+      "sha256": "7e33bfc475f6cf76e69b28b101993ca834d1f22ff4d35caefde32d63d4f42fba",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "tokenizer_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/tokenizer_config.json",
+      "sha256": "d562b18a0c6d32a168fce3d7a342fce64579ebacffb98fb71b0affc494fc32d8",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "tokenizer_merges",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-merges",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/merges.txt",
+      "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "tokenizer_vocab",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-vocab",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/vocab.json",
+      "sha256": "e089ad92ba36837a0d31433e555c8f45fe601ab5c221d4f607ded32d9f7a4349",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "unet",
+      "identifier": "mammodiffusion-sd21-full-unet-checkpoint-3000",
+      "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+      "sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb",
+      "source_type": "local"
+    },
+    {
+      "role": "unet_config",
+      "identifier": "mammodiffusion-sd21-full-unet-config",
+      "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/config.json",
+      "sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f",
+      "source_type": "local"
+    },
+    {
+      "role": "vae",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:vae",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+      "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+      "source_type": "pretrained"
+    },
+    {
+      "role": "vae_config",
+      "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+      "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+      "source_type": "pretrained"
+    }
+  ],
+  "model_configuration": {
+    "model_type": "stable_diffusion_full_unet",
+    "base_model_identifier": "stabilityai/stable-diffusion-2-1-base",
+    "prediction_type": "epsilon",
+    "scheduler": "PNDMScheduler"
+  },
+  "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
+  "generation_identity": {
+    "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
+    "sampling_steps": 100,
+    "guidance_scale": 7.5,
+    "seed_strategy": "mixed_legacy_seed_provenance; per-image seed unavailable for legacy members",
+    "prompt_or_condition": {
+      "guidance_scale": 7.5,
+      "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"
+    },
+    "resolution": 512,
+    "scheduler": "PNDMScheduler",
+    "generation_code_signature": "ea0f947b87a9c63bd2455fd195416fc84c012f20a2c1501872c3e7c55cef7225",
+    "parameterization": "epsilon",
+    "representation_configuration": {
+      "raw": {
+        "pool_size": 2722,
+        "seed_strategy": "mixed_legacy_seed_provenance; per-image seed unavailable for legacy members",
+        "class_label": 1
+      },
+      "filtered": {
+        "algorithm": "adaptive_mask",
+        "selection": "top_k",
+        "target": 1361
+      }
+    }
+  },
+  "generation_identity_sha256": "327ad1f379c161d6d67d42621628896ba67c812186a0066d23884674d66ea20b",
+  "eligible_for_downstream_selection": true,
+  "distinct_generator_for_ranking": true
 }

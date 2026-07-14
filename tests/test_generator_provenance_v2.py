@@ -39,13 +39,23 @@ class CanonicalProvenanceTests(unittest.TestCase):
             for item in raw[1:]: writer.writerow({"source_path": item, "source_name": item.name, "selected": False,
                                                   "selection_rank": "", "reject_reason": "not_top_k", "filtered_path": ""})
         checkpoint = root / "model/checkpoint.bin"; checkpoint.parent.mkdir(); checkpoint.write_bytes(b"checkpoint")
+        component_hash = gb.file_sha256(checkpoint)
+        component_roles = ("unet", "unet_config", "base_model_config", "vae", "vae_config", "text_encoder",
+                           "text_encoder_config", "tokenizer_config", "tokenizer_vocab", "scheduler_config")
         sources = {"generator_id": "fixture_generator", "scientific_family": "finetuned",
                    "candidate_role": "primary_candidate", "checkpoint": "model/checkpoint.bin",
                    "training_metadata": "training.csv", "training_dataset_identifier": "fixture_train",
                    "training_notebook_config_identifier": "fixture.ipynb:cell1", "raw_directory": "raw",
                    "filtered_directory": "filtered", "filter_report": "filter.csv", "filtered_target": 1,
                    "sampling_steps": 100, "generation_configuration": {"base_seed": 42, "seed_strategy": "stateless_seed_per_image_v1"},
-                   "filter_configuration": {"selection": "top_k"}}
+                   "guidance_conditioning_configuration": {"guidance_scale": 7.5, "prompt": "fixture"},
+                   "filter_configuration": {"selection": "top_k"}, "scheduler": "PNDMScheduler",
+                   "generation_code_signature": component_hash,
+                   "model_configuration": {"model_type": "stable_diffusion_full_unet",
+                                           "base_model_identifier": "fixture", "scheduler": "PNDMScheduler"},
+                   "model_components": [{"role": role, "identifier": f"fixture-{role}",
+                                          "path": "model/checkpoint.bin", "sha256": component_hash,
+                                          "source_type": "local"} for role in component_roles]}
         return sources, checkpoint, raw, filtered, train_image
 
     def test_build_and_audit_end_to_end(self):
@@ -71,6 +81,7 @@ class CanonicalProvenanceTests(unittest.TestCase):
             protocol = copy.deepcopy(gb.load_protocol(ROOT)); protocol["synthetic_pool_target"] = 1
             audit = gb.audit_candidate(root, entry, protocol)
             self.assertTrue(audit["provenance_manifest_valid"] and audit["lineage_complete"])
+            self.assertTrue(audit["runtime_manifest_contents_verified"] and audit["runtime_assets_verified"])
             self.assertTrue(audit["eligible_for_descriptive_benchmark"] and audit["eligible_for_official_family_ranking"])
             self.assertEqual((audit["canonical_raw_count"], audit["canonical_filtered_count"]), (3, 1))
             checkpoint.write_bytes(b"changed")
@@ -116,9 +127,16 @@ class CanonicalProvenanceTests(unittest.TestCase):
         for generator_id in ("01_sd21_baseline_50steps", "02_sd21_filtered_100steps", "03_sd21_vae_finetuned",
                              "04_sd21_lora", "05_ldm_basic_fromscratch", "07_ldm_sdvae_extra1361", "08_ldm_v3_sdvae_fromscratch"):
             self.assertTrue(by_id[generator_id]["provenance_recorded"])
-            self.assertTrue(by_id[generator_id]["canonical_manifests_internally_valid"])
+            self.assertTrue(by_id[generator_id]["provenance_record_schema_valid"])
+            self.assertTrue(by_id[generator_id]["provenance_index_consistent"])
+            self.assertTrue(by_id[generator_id]["runtime_manifest_hashes_declared"])
+            self.assertFalse(by_id[generator_id]["runtime_manifest_contents_verified"])
             self.assertFalse(by_id[generator_id]["runtime_assets_verified"])
             self.assertTrue(by_id[generator_id]["runtime_assets_unavailable"])
+        self.assertTrue(by_id["06_ldm_extra1361_fromscratch"]["provenance_record_schema_valid"])
+        self.assertTrue(by_id["06_ldm_extra1361_fromscratch"]["provenance_index_consistent"])
+        self.assertFalse(by_id["06_ldm_extra1361_fromscratch"]["runtime_manifest_hashes_declared"])
+        self.assertFalse(by_id["06_ldm_extra1361_fromscratch"]["runtime_manifest_contents_verified"])
         self.assertTrue(by_id["06_ldm_extra1361_fromscratch"]["runtime_assets_mismatch"])
 
     def test_sd_name_preserved_maps_and_missing_mapping_is_refused(self):
@@ -137,6 +155,80 @@ class CanonicalProvenanceTests(unittest.TestCase):
         self.assertFalse(gb.sample_sets_equivalent(left, [{"sample_id": "s", "relative_path": "two/a.png", "sha256": "h"}]))
         self.assertFalse(gb.sample_sets_equivalent(left, [{"sample_id": "s", "relative_path": "one/a.png", "sha256": "other"}]))
         self.assertTrue(gb.sample_sets_equivalent(left, [dict(left[0])]))
+
+
+class GeneratorIdentityTests(unittest.TestCase):
+    def _record(self, generator_id="02_sd21_filtered_100steps"):
+        return json.loads((ROOT / "results/publication_v2/generator_provenance" / generator_id / "provenance.json").read_text())
+
+    def test_schema_and_record_versions_are_explicit(self):
+        schema = json.loads((ROOT / "configs/generator_provenance_schema.json").read_text())
+        self.assertEqual(schema["schema_version"], 2)
+        record = self._record()
+        gb.validate_generator_provenance_record(ROOT, record, schema)
+        for version in (1, 3, None):
+            changed = copy.deepcopy(record)
+            if version is None: changed.pop("schema_version")
+            else: changed["schema_version"] = version
+            with self.assertRaisesRegex(ValueError, "unsupported provenance record version"):
+                gb.validate_generator_provenance_record(ROOT, changed, schema)
+
+    def test_primary_candidate_missing_vae_identity_fails(self):
+        record = self._record()
+        record["model_components"] = [row for row in record["model_components"] if row["role"] != "vae"]
+        with self.assertRaisesRegex(ValueError, "vae"):
+            gb.validate_generator_provenance_record(ROOT, record)
+
+    def test_lora_missing_base_model_identity_fails(self):
+        record = self._record("04_sd21_lora")
+        record["model_components"] = [row for row in record["model_components"] if row["role"] != "base_unet"]
+        with self.assertRaisesRegex(ValueError, "base_unet"):
+            gb.validate_generator_provenance_record(ROOT, record)
+
+    def test_ldm_missing_latent_or_vae_identity_fails(self):
+        record = self._record("07_ldm_sdvae_extra1361")
+        for missing_role in ("latent_stats", "latents_manifest", "vae"):
+            changed = copy.deepcopy(record)
+            changed["model_components"] = [row for row in changed["model_components"] if row["role"] != missing_role]
+            with self.assertRaises(ValueError):
+                gb.validate_generator_provenance_record(ROOT, changed)
+
+    def test_component_order_is_irrelevant_but_hash_change_changes_identity(self):
+        record = self._record()
+        original = gb.model_identity_sha256(record["model_components"], record["model_configuration"])
+        self.assertEqual(original, gb.model_identity_sha256(list(reversed(record["model_components"])), record["model_configuration"]))
+        changed = copy.deepcopy(record["model_components"])
+        changed[0]["sha256"] = "0" * 64
+        self.assertNotEqual(original, gb.model_identity_sha256(changed, record["model_configuration"]))
+
+    def test_same_model_different_sampling_has_distinct_generation_identity(self):
+        g01, g02 = self._record("01_sd21_baseline_50steps"), self._record("02_sd21_filtered_100steps")
+        self.assertEqual(g01["model_identity_sha256"], g02["model_identity_sha256"])
+        self.assertNotEqual(g01["generation_identity_sha256"], g02["generation_identity_sha256"])
+
+    def test_duplicate_model_cannot_rank_twice(self):
+        identity = self._record()["model_identity_sha256"]
+        rows = [{"generator_id": "a", "model_identity_sha256": identity, "candidate_role": "primary_candidate",
+                 "eligible_for_official_family_ranking": True},
+                {"generator_id": "b", "model_identity_sha256": identity, "candidate_role": "primary_candidate",
+                 "eligible_for_official_family_ranking": True}]
+        with self.assertRaisesRegex(ValueError, "cannot enter official ranking twice"):
+            gb.detect_duplicate_generator_identities(rows)
+
+    def test_g05_g06_same_identity_is_pool_ablation(self):
+        g05, g06 = self._record("05_ldm_basic_fromscratch"), self._record("06_ldm_extra1361_fromscratch")
+        self.assertEqual(g05["model_identity_sha256"], g06["model_identity_sha256"])
+        classification = gb.classify_generation_pool_ablation(g05, g06)
+        self.assertEqual(classification["candidate_role"], "generation_pool_ablation")
+        self.assertFalse(classification["eligible_for_downstream_selection"])
+
+    def test_different_complete_identity_remains_distinct_but_blocked(self):
+        g05, candidate = self._record("05_ldm_basic_fromscratch"), self._record("06_ldm_extra1361_fromscratch")
+        candidate["model_identity_sha256"] = "f" * 64
+        classification = gb.classify_generation_pool_ablation(g05, candidate)
+        self.assertFalse(classification["same_generator_identity"])
+        self.assertTrue(classification["distinct_generator_for_ranking"])
+        self.assertFalse(classification["eligible_for_downstream_selection"])
 
 
 class GateMetricAndCacheTests(unittest.TestCase):

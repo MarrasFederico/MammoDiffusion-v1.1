@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "canonical_metadata_reconstruction_from_byte_verified_runtime_assets",
+  "applies_to": [
+    "05_ldm_basic_fromscratch",
+    "06_ldm_extra1361_fromscratch"
+  ],
+  "vae_backend": "project_custom_vae",
+  "architecture_version": "v2",
+  "parameterization": "eps",
+  "min_snr_enabled": false,
+  "min_snr_gamma": 5.0,
+  "vae_encoder_sha256": "b129f501ea55ed43b89afcf15375eecfabd0756461d517085d7a0d4ab71f4541",
+  "vae_decoder_sha256": "d4ce2cb3d701f4b282ec29bb0d86d4255cfdd67e36fc4324b2b7533e01c8fbf8",
+  "latent_stats_sha256": "3e4902a9d252318a873ded16059c5d0412b14ee322e7a54efe7be4be0d09702f",
+  "latents_train_sha256": "456989ad9257d249bce7449a716fc1c7b3c184e726847ca0c80a31e554c463e3",
+  "latents_validation_sha256": "dbad79c40c559bf8d59b2e6bf29eb33ed2df4ef500b4210477d391e995975510",
+  "training_metadata_sha256": "25131fd5f6decd1494a0ce20d80c3ee2ddf973ed9f5e8201a43a2d4195d0fb72",
+  "n_train": 3061,
+  "n_validation": 437,
+  "image_size": 512,
+  "latent_size": 64,
+  "latent_channels": 4,
+  "evidence": "Both experiment copies have identical full-file SHA-256 values for U-Net, VAE, latent statistics and latent arrays."
+}

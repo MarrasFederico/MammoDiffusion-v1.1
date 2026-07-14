@@ -33,7 +33,15 @@
         "notes": [
           "No separate filtered export is registered; RAW and FILTERED labels point to the same verified unfiltered set and filtering_applied is false."
         ]
-      }
+      },
+      "parent_generator_id": "02_sd21_filtered_100steps",
+      "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
+      "generation_identity_sha256": "3dc13325d536bb7c9ccd5b7597444019d6216aab77227e3ca360bd2cb6899dd9",
+      "duplicate_model_group": [
+        "01_sd21_baseline_50steps",
+        "02_sd21_filtered_100steps"
+      ],
+      "distinct_generator_for_ranking": false
     },
     {
       "id": "02_sd21_filtered_100steps",
@@ -63,7 +71,15 @@
       },
       "benchmark": {
         "enabled": true
-      }
+      },
+      "parent_generator_id": null,
+      "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
+      "generation_identity_sha256": "327ad1f379c161d6d67d42621628896ba67c812186a0066d23884674d66ea20b",
+      "duplicate_model_group": [
+        "01_sd21_baseline_50steps",
+        "02_sd21_filtered_100steps"
+      ],
+      "distinct_generator_for_ranking": true
     },
     {
       "id": "03_sd21_vae_finetuned",
@@ -93,7 +109,12 @@
       },
       "benchmark": {
         "enabled": true
-      }
+      },
+      "parent_generator_id": null,
+      "model_identity_sha256": "507fa3c9f71af236abb4bf7709b5e964c4e8ad00a653c21c6aa27605fb70a121",
+      "generation_identity_sha256": "b7d481b3c571e77047382b2c3c0ca075c4294146844ca6bdf3dba1fc775f7b84",
+      "duplicate_model_group": [],
+      "distinct_generator_for_ranking": true
     },
     {
       "id": "04_sd21_lora",
@@ -126,13 +147,18 @@
         "exclusion_if": [
           "fewer_than_canonical_positive_images"
         ]
-      }
+      },
+      "parent_generator_id": null,
+      "model_identity_sha256": "18bb52ded22d0fa119846ed204566266a431701aa7d996937cd8299109d01c4f",
+      "generation_identity_sha256": "22e90c5d5dbafae2d672acc10819af2648c5211bab349dcf7caf465f095f21a0",
+      "duplicate_model_group": [],
+      "distinct_generator_for_ranking": true
     },
     {
       "id": "05_ldm_basic_fromscratch",
       "model_family": "ldm_from_scratch",
       "model_variant": "historical_basic",
-      "sampling_steps": null,
+      "sampling_steps": 100,
       "candidate_role": "descriptive_baseline",
       "eligible_for_downstream_selection": false,
       "scientific_family": "from_scratch",
@@ -160,15 +186,23 @@
         "notes": [
           "G05 remains excluded until lineage is independently demonstrated."
         ]
-      }
+      },
+      "parent_generator_id": null,
+      "model_identity_sha256": "4a504654cbf17771f25729f342ebb0ed7eec9b2ec47e4cbfabd3b11a5b8d7ef2",
+      "generation_identity_sha256": "618c26122b480a33da843a2abbf08586e0f5c9a3cca9439edbfc68d857454dd9",
+      "duplicate_model_group": [
+        "05_ldm_basic_fromscratch",
+        "06_ldm_extra1361_fromscratch"
+      ],
+      "distinct_generator_for_ranking": false
     },
     {
       "id": "06_ldm_extra1361_fromscratch",
       "model_family": "ldm_from_scratch",
       "model_variant": "custom_vae_extra1361",
-      "sampling_steps": null,
-      "candidate_role": "primary_candidate",
-      "eligible_for_downstream_selection": true,
+      "sampling_steps": 100,
+      "candidate_role": "generation_pool_ablation",
+      "eligible_for_downstream_selection": false,
       "scientific_family": "from_scratch",
       "subtype": "improved_ldm_custom_vae",
       "classes": [
@@ -189,14 +223,26 @@
         "filtered_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered"
       },
       "benchmark": {
-        "enabled": true
-      }
+        "enabled": true,
+        "notes": [
+          "Generation-pool ablation/extension of G05; never an independent official ranking candidate.",
+          "Per-image RAW/FILTERED mapping remains refused because the selected copy hash mismatches."
+        ]
+      },
+      "parent_generator_id": "05_ldm_basic_fromscratch",
+      "model_identity_sha256": "4a504654cbf17771f25729f342ebb0ed7eec9b2ec47e4cbfabd3b11a5b8d7ef2",
+      "generation_identity_sha256": "9ada6b30ee23d28aab96caea254530339199aba75adbba528e57f329d611bb26",
+      "duplicate_model_group": [
+        "05_ldm_basic_fromscratch",
+        "06_ldm_extra1361_fromscratch"
+      ],
+      "distinct_generator_for_ranking": false
     },
     {
       "id": "07_ldm_sdvae_extra1361",
       "model_family": "ldm_from_scratch",
       "model_variant": "sdvae_extra1361",
-      "sampling_steps": null,
+      "sampling_steps": 100,
       "candidate_role": "primary_candidate",
       "eligible_for_downstream_selection": true,
       "scientific_family": "from_scratch",
@@ -219,13 +265,18 @@
       },
       "benchmark": {
         "enabled": true
-      }
+      },
+      "parent_generator_id": null,
+      "model_identity_sha256": "6a1fd367b1bac08dde79e06a4eb1a492298f2e924a42afd3d99e713735aac617",
+      "generation_identity_sha256": "e2fcbc2272920863c1c3b7bdfa3044df5922c26c19f941226fb8edf7b15bbef8",
+      "duplicate_model_group": [],
+      "distinct_generator_for_ranking": true
     },
     {
       "id": "08_ldm_v3_sdvae_fromscratch",
       "model_family": "ldm_from_scratch",
       "model_variant": "v3_sdvae",
-      "sampling_steps": null,
+      "sampling_steps": 100,
       "candidate_role": "primary_candidate",
       "eligible_for_downstream_selection": true,
       "scientific_family": "from_scratch",
@@ -248,7 +299,12 @@
       },
       "benchmark": {
         "enabled": true
-      }
+      },
+      "parent_generator_id": null,
+      "model_identity_sha256": "d92d1c662e2e98bdd09c85eb9b8a6d342bb3e761bb29683cec25a36095c118bd",
+      "generation_identity_sha256": "3a454d47477261d5c03eb707d36cca79d18007bfe19c7c713314a8b6a955d364",
+      "duplicate_model_group": [],
+      "distinct_generator_for_ranking": true
     }
   ]
 }

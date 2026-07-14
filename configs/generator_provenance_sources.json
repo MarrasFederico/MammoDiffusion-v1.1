@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "training_corpus_evidence": "data/real_augmented/metadata.csv",
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "shared_training_corpus": {
@@ -11,9 +11,14 @@
     "real_positive_count": 340,
     "positive_augmentation_count": 1020,
     "dependent_generators": [
-      "01_sd21_baseline_50steps", "02_sd21_filtered_100steps", "03_sd21_vae_finetuned",
-      "04_sd21_lora", "05_ldm_basic_fromscratch", "06_ldm_extra1361_fromscratch",
-      "07_ldm_sdvae_extra1361", "08_ldm_v3_sdvae_fromscratch"
+      "01_sd21_baseline_50steps",
+      "02_sd21_filtered_100steps",
+      "03_sd21_vae_finetuned",
+      "04_sd21_lora",
+      "05_ldm_basic_fromscratch",
+      "06_ldm_extra1361_fromscratch",
+      "07_ldm_sdvae_extra1361",
+      "08_ldm_v3_sdvae_fromscratch"
     ],
     "evidence": [
       "notebooks/2_diffusers training metadata/staging configuration",
@@ -33,11 +38,115 @@
       "filtered_directory": "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive",
       "filtering_applied": false,
       "sampling_steps": 50,
-      "generation_configuration": {"pool_size": 1411, "seed_strategy": "mixed_legacy_and_per_image_seed_v2", "base_seed": 43, "class_label": 1},
-      "guidance_conditioning_configuration": {"guidance_scale": 7.5, "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"},
-      "filter_configuration": {"applied": false},
-      "source_evidence": ["experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive/.generation_manifest.json", "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json"],
-      "known_limitations": ["Sampling ablation only; excluded from official family ranking and downstream selection."]
+      "generation_configuration": {
+        "pool_size": 1411,
+        "seed_strategy": "mixed_legacy_and_per_image_seed_v2",
+        "base_seed": 43,
+        "class_label": 1
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 7.5,
+        "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"
+      },
+      "filter_configuration": {
+        "applied": false
+      },
+      "source_evidence": [
+        "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive/.generation_manifest.json",
+        "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [
+        "Sampling ablation only; excluded from official family ranking and downstream selection."
+      ],
+      "parent_generator_id": "02_sd21_filtered_100steps",
+      "model_components": [
+        {
+          "role": "base_model_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:model-index",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/model_index.json",
+          "sha256": "518553e098fdaa4153d9a92139e344e44f53bb329c22f383293e3099c4f1bad2",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "scheduler_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:pndm-scheduler",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/scheduler/scheduler_config.json",
+          "sha256": "11ac5627d7df0fa344b875c4b5722b1767a8a2aa1684c2cf8b4d614300127234",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:openclip-text-encoder",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/model.safetensors",
+          "sha256": "681c555376658c81dc273f2d737a2aeb23ddb6d1d8e5b3a7064636d359a22668",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:text-encoder-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/config.json",
+          "sha256": "7e33bfc475f6cf76e69b28b101993ca834d1f22ff4d35caefde32d63d4f42fba",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/tokenizer_config.json",
+          "sha256": "d562b18a0c6d32a168fce3d7a342fce64579ebacffb98fb71b0affc494fc32d8",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_merges",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-merges",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/merges.txt",
+          "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_vocab",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-vocab",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/vocab.json",
+          "sha256": "e089ad92ba36837a0d31433e555c8f45fe601ab5c221d4f607ded32d9f7a4349",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "unet",
+          "identifier": "mammodiffusion-sd21-full-unet-checkpoint-3000",
+          "path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+          "sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb",
+          "source_type": "local"
+        },
+        {
+          "role": "unet_config",
+          "identifier": "mammodiffusion-sd21-full-unet-config",
+          "path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/config.json",
+          "sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f",
+          "source_type": "local"
+        },
+        {
+          "role": "vae",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "vae_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+          "source_type": "pretrained"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "stable_diffusion_full_unet",
+        "base_model_identifier": "stabilityai/stable-diffusion-2-1-base",
+        "prediction_type": "epsilon",
+        "scheduler": "PNDMScheduler"
+      },
+      "generation_code_signature": "ea0f947b87a9c63bd2455fd195416fc84c012f20a2c1501872c3e7c55cef7225",
+      "scheduler": "PNDMScheduler",
+      "resolution": 512
     },
     {
       "generator_id": "02_sd21_filtered_100steps",
@@ -50,11 +159,117 @@
       "filtered_directory": "data/synthetic/fine_tuned/positive",
       "filter_report": "results/diffusers/02_sd21_filtered_100steps/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 2722, "seed_strategy": "mixed_legacy_seed_provenance; per-image seed unavailable for legacy members", "class_label": 1},
-      "guidance_conditioning_configuration": {"guidance_scale": 7.5, "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"},
-      "filter_configuration": {"algorithm": "adaptive_mask", "selection": "top_k", "target": 1361},
-      "source_evidence": ["results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json", "results/diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json", "experiments/diffusers/02_sd21_filtered_100steps/legacy_runtime_manifest.json"],
-      "known_limitations": ["Generation contains legacy members without a recoverable per-image seed."]
+      "generation_configuration": {
+        "pool_size": 2722,
+        "seed_strategy": "mixed_legacy_seed_provenance; per-image seed unavailable for legacy members",
+        "class_label": 1
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 7.5,
+        "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
+        "results/diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json",
+        "experiments/diffusers/02_sd21_filtered_100steps/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [
+        "Generation contains legacy members without a recoverable per-image seed."
+      ],
+      "parent_generator_id": null,
+      "model_components": [
+        {
+          "role": "base_model_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:model-index",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/model_index.json",
+          "sha256": "518553e098fdaa4153d9a92139e344e44f53bb329c22f383293e3099c4f1bad2",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "scheduler_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:pndm-scheduler",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/scheduler/scheduler_config.json",
+          "sha256": "11ac5627d7df0fa344b875c4b5722b1767a8a2aa1684c2cf8b4d614300127234",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:openclip-text-encoder",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/model.safetensors",
+          "sha256": "681c555376658c81dc273f2d737a2aeb23ddb6d1d8e5b3a7064636d359a22668",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:text-encoder-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/config.json",
+          "sha256": "7e33bfc475f6cf76e69b28b101993ca834d1f22ff4d35caefde32d63d4f42fba",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/tokenizer_config.json",
+          "sha256": "d562b18a0c6d32a168fce3d7a342fce64579ebacffb98fb71b0affc494fc32d8",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_merges",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-merges",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/merges.txt",
+          "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_vocab",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-vocab",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/vocab.json",
+          "sha256": "e089ad92ba36837a0d31433e555c8f45fe601ab5c221d4f607ded32d9f7a4349",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "unet",
+          "identifier": "mammodiffusion-sd21-full-unet-checkpoint-3000",
+          "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+          "sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb",
+          "source_type": "local"
+        },
+        {
+          "role": "unet_config",
+          "identifier": "mammodiffusion-sd21-full-unet-config",
+          "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/config.json",
+          "sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f",
+          "source_type": "local"
+        },
+        {
+          "role": "vae",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "vae_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+          "source_type": "pretrained"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "stable_diffusion_full_unet",
+        "base_model_identifier": "stabilityai/stable-diffusion-2-1-base",
+        "prediction_type": "epsilon",
+        "scheduler": "PNDMScheduler"
+      },
+      "generation_code_signature": "ea0f947b87a9c63bd2455fd195416fc84c012f20a2c1501872c3e7c55cef7225",
+      "scheduler": "PNDMScheduler",
+      "resolution": 512
     },
     {
       "generator_id": "03_sd21_vae_finetuned",
@@ -67,11 +282,118 @@
       "filtered_directory": "data/synthetic/fine_tuned_vaeft/positive",
       "filter_report": "results/diffusers/03_sd21_vae_finetuned/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 2722, "seed_strategy": "legacy per-image seed unavailable", "class_label": 1, "vae": "fine-tuned VAE recorded by notebook 03"},
-      "guidance_conditioning_configuration": {"guidance_scale": 7.5, "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"},
-      "filter_configuration": {"algorithm": "adaptive_mask_v2", "selection": "top_k", "target": 1361},
-      "source_evidence": ["results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json", "results/diffusers/03_sd21_vae_finetuned/metrics/filter_summary_positive_adaptive_mask.json", "experiments/diffusers/03_sd21_vae_finetuned/legacy_runtime_manifest.json"],
-      "known_limitations": ["Generation contains legacy members without a recoverable per-image seed."]
+      "generation_configuration": {
+        "pool_size": 2722,
+        "seed_strategy": "legacy per-image seed unavailable",
+        "class_label": 1,
+        "vae": "fine-tuned VAE recorded by notebook 03"
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 7.5,
+        "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask_v2",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
+        "results/diffusers/03_sd21_vae_finetuned/metrics/filter_summary_positive_adaptive_mask.json",
+        "experiments/diffusers/03_sd21_vae_finetuned/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [
+        "Generation contains legacy members without a recoverable per-image seed."
+      ],
+      "parent_generator_id": null,
+      "model_components": [
+        {
+          "role": "base_model_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:model-index",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/model_index.json",
+          "sha256": "518553e098fdaa4153d9a92139e344e44f53bb329c22f383293e3099c4f1bad2",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "scheduler_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:pndm-scheduler",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/scheduler/scheduler_config.json",
+          "sha256": "11ac5627d7df0fa344b875c4b5722b1767a8a2aa1684c2cf8b4d614300127234",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:openclip-text-encoder",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/model.safetensors",
+          "sha256": "681c555376658c81dc273f2d737a2aeb23ddb6d1d8e5b3a7064636d359a22668",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:text-encoder-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/config.json",
+          "sha256": "7e33bfc475f6cf76e69b28b101993ca834d1f22ff4d35caefde32d63d4f42fba",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/tokenizer_config.json",
+          "sha256": "d562b18a0c6d32a168fce3d7a342fce64579ebacffb98fb71b0affc494fc32d8",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_merges",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-merges",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/merges.txt",
+          "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_vocab",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-vocab",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/vocab.json",
+          "sha256": "e089ad92ba36837a0d31433e555c8f45fe601ab5c221d4f607ded32d9f7a4349",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "unet",
+          "identifier": "mammodiffusion-sd21-vaeft-full-unet-checkpoint-4000",
+          "path": "experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-4000/unet/diffusion_pytorch_model.safetensors",
+          "sha256": "acfe97bfbaf034869f6df728c03b38fb128fc11081a8fb23961761d7ea3aa55a",
+          "source_type": "local"
+        },
+        {
+          "role": "unet_config",
+          "identifier": "mammodiffusion-sd21-vaeft-unet-config",
+          "path": "experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-4000/unet/config.json",
+          "sha256": "02522306de0d4165115396f26a7c1150de2860e2de311fcd56e6123b187649d7",
+          "source_type": "local"
+        },
+        {
+          "role": "vae",
+          "identifier": "mammodiffusion-sd21-finetuned-vae-used-for-generation",
+          "path": "experiments/diffusers/03_sd21_vae_finetuned/pretrained_model_vaeft/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "sha256": "9586a65f6d79698e37bc7989a425b28f4d51595b4523e07fd4a203c4f941c6df",
+          "source_type": "local"
+        },
+        {
+          "role": "vae_config",
+          "identifier": "mammodiffusion-sd21-finetuned-vae-config",
+          "path": "experiments/diffusers/03_sd21_vae_finetuned/pretrained_model_vaeft/stable-diffusion-2-1-base/vae/config.json",
+          "sha256": "e3a1f2b173b09a43406388a967cc529cbb4e5cfa503d194fc165cae0345663fb",
+          "source_type": "local"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "stable_diffusion_full_unet",
+        "base_model_identifier": "stabilityai/stable-diffusion-2-1-base+mammodiffusion-finetuned-vae",
+        "prediction_type": "epsilon",
+        "scheduler": "PNDMScheduler"
+      },
+      "generation_code_signature": "ea0f947b87a9c63bd2455fd195416fc84c012f20a2c1501872c3e7c55cef7225",
+      "scheduler": "PNDMScheduler",
+      "resolution": 512
     },
     {
       "generator_id": "04_sd21_lora",
@@ -84,11 +406,134 @@
       "filtered_directory": "data/synthetic/fine_tuned_lora/positive",
       "filter_report": "results/diffusers/04_sd21_lora/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 2722, "seed_strategy": "mixed_legacy_and_per_image_seed_v2", "base_seed": 43, "class_label": 1, "base_model": "stable-diffusion-2-1-base"},
-      "guidance_conditioning_configuration": {"guidance_scale": 7.5, "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"},
-      "filter_configuration": {"algorithm": "adaptive_mask_v2", "selection": "top_k", "target": 1361},
-      "source_evidence": ["experiments/diffusers/04_sd21_lora/generated_images/final/positive/.generation_manifest.json", "results/diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json", "experiments/diffusers/04_sd21_lora/legacy_runtime_manifest.json"],
-      "known_limitations": ["The mixed legacy generation pool does not expose a seed for every image."]
+      "generation_configuration": {
+        "pool_size": 2722,
+        "seed_strategy": "mixed_legacy_and_per_image_seed_v2",
+        "base_seed": 43,
+        "class_label": 1,
+        "base_model": "stable-diffusion-2-1-base"
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 7.5,
+        "prompt": "grayscale MLO mammogram, breast cancer positive, malignant finding, suspicious lesion, medical imaging"
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask_v2",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "experiments/diffusers/04_sd21_lora/generated_images/final/positive/.generation_manifest.json",
+        "results/diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json",
+        "experiments/diffusers/04_sd21_lora/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [
+        "The mixed legacy generation pool does not expose a seed for every image."
+      ],
+      "parent_generator_id": null,
+      "model_components": [
+        {
+          "role": "base_model_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:model-index",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/model_index.json",
+          "sha256": "518553e098fdaa4153d9a92139e344e44f53bb329c22f383293e3099c4f1bad2",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "base_unet",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:unet",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/unet/diffusion_pytorch_model.safetensors",
+          "sha256": "28ec9cf3b239c0751c201b1f6fb46b551df5862731b30a37aa1360101cb3fbab",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "base_unet_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:unet-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/unet/config.json",
+          "sha256": "ce0c6d379e3b1d3e1f79338de70c80a1e36f17a6372439a8249b6fb0dfa1b608",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "lora_adapter",
+          "identifier": "mammodiffusion-sd21-lora-rank16-checkpoint-4500",
+          "path": "experiments/diffusers/04_sd21_lora/model/checkpoint-4500/pytorch_lora_weights.safetensors",
+          "sha256": "c3809b5a4e6fcfa66f237dea2a9efcc5d9bf20b3f282f48eadce37b61dc3c09a",
+          "source_type": "local"
+        },
+        {
+          "role": "lora_config",
+          "identifier": "mammodiffusion-sd21-lora-rank16-config",
+          "path": "configs/sd21_lora_rank16_config.json",
+          "sha256": "ad207cd2d75c69bab4b36a0a44ae823bfabd944bf3ae55f074264f021577f255",
+          "source_type": "local"
+        },
+        {
+          "role": "scheduler_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:pndm-scheduler",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/scheduler/scheduler_config.json",
+          "sha256": "11ac5627d7df0fa344b875c4b5722b1767a8a2aa1684c2cf8b4d614300127234",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:openclip-text-encoder",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/model.safetensors",
+          "sha256": "681c555376658c81dc273f2d737a2aeb23ddb6d1d8e5b3a7064636d359a22668",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "text_encoder_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:text-encoder-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/text_encoder/config.json",
+          "sha256": "7e33bfc475f6cf76e69b28b101993ca834d1f22ff4d35caefde32d63d4f42fba",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/tokenizer_config.json",
+          "sha256": "d562b18a0c6d32a168fce3d7a342fce64579ebacffb98fb71b0affc494fc32d8",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_merges",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-merges",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/merges.txt",
+          "sha256": "9fd691f7c8039210e0fced15865466c65820d09b63988b0174bfe25de299051a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "tokenizer_vocab",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:tokenizer-vocab",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/tokenizer/vocab.json",
+          "sha256": "e089ad92ba36837a0d31433e555c8f45fe601ab5c221d4f607ded32d9f7a4349",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "vae",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "vae_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+          "source_type": "pretrained"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "stable_diffusion_lora",
+        "base_model_identifier": "stabilityai/stable-diffusion-2-1-base",
+        "lora_rank": 16,
+        "prediction_type": "epsilon",
+        "scheduler": "PNDMScheduler"
+      },
+      "generation_code_signature": "ea0f947b87a9c63bd2455fd195416fc84c012f20a2c1501872c3e7c55cef7225",
+      "scheduler": "PNDMScheduler",
+      "resolution": 512
     },
     {
       "generator_id": "05_ldm_basic_fromscratch",
@@ -101,16 +546,110 @@
       "filtered_directory": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_filtered",
       "filter_report": "results/diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 2722, "seed_strategy": "stateless_seed_per_image_v1", "base_seed": 42, "class_label": 1, "unet_version": "v2", "parameterization": "eps", "vae": "project custom VAE"},
-      "guidance_conditioning_configuration": {"guidance_scale": 1.5, "target_label": 1},
-      "filter_configuration": {"algorithm": "adaptive_mask", "selection": "top_k", "target": 1361},
-      "source_evidence": ["experiments/diffusers/05_ldm_basic_fromscratch/training_manifest.json", "experiments/diffusers/05_ldm_basic_fromscratch/evaluation/ldm_pipeline_manifest.json", "experiments/diffusers/05_ldm_basic_fromscratch/logs/generation_raw_state.json", "experiments/diffusers/05_ldm_basic_fromscratch/legacy_runtime_manifest.json"],
-      "known_limitations": ["Descriptive baseline only; no 05-to-06 lineage is asserted and downstream selection remains disabled."]
+      "generation_configuration": {
+        "pool_size": 2722,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "base_seed": 42,
+        "class_label": 1,
+        "unet_version": "v2",
+        "parameterization": "eps",
+        "vae": "project custom VAE"
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 1.5,
+        "target_label": 1
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "experiments/diffusers/05_ldm_basic_fromscratch/training_manifest.json",
+        "experiments/diffusers/05_ldm_basic_fromscratch/evaluation/ldm_pipeline_manifest.json",
+        "experiments/diffusers/05_ldm_basic_fromscratch/logs/generation_raw_state.json",
+        "experiments/diffusers/05_ldm_basic_fromscratch/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [
+        "Descriptive baseline only; no 05-to-06 lineage is asserted and downstream selection remains disabled."
+      ],
+      "parent_generator_id": null,
+      "model_components": [
+        {
+          "role": "architecture_config",
+          "identifier": "mammodiffusion-ldm-architecture-catalog-v1",
+          "path": "configs/ldm_architecture_identities.json",
+          "sha256": "6b808b0af86a578db16e8ab253fd9be152bcddb9ed684ffdab25ac34ea2cde4b",
+          "source_type": "shared"
+        },
+        {
+          "role": "latent_stats",
+          "identifier": "mammodiffusion-legacy-custom-vae-latent-stats",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/latents/latent_stats.npz",
+          "sha256": "3e4902a9d252318a873ded16059c5d0412b14ee322e7a54efe7be4be0d09702f",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_manifest",
+          "identifier": "mammodiffusion-legacy-custom-vae-latents-canonical-manifest",
+          "path": "configs/ldm_legacy_custom_vae_latents_manifest.json",
+          "sha256": "fa535a563a03a356308b4cec2e3e616c1698eae031f2275ddc558887c306aa50",
+          "source_type": "shared"
+        },
+        {
+          "role": "latents_train",
+          "identifier": "mammodiffusion-legacy-custom-vae-training-latents",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/latents/latents_train.npz",
+          "sha256": "456989ad9257d249bce7449a716fc1c7b3c184e726847ca0c80a31e554c463e3",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_validation",
+          "identifier": "mammodiffusion-legacy-custom-vae-validation-latents",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/latents/latents_val.npz",
+          "sha256": "dbad79c40c559bf8d59b2e6bf29eb33ed2df4ef500b4210477d391e995975510",
+          "source_type": "local"
+        },
+        {
+          "role": "ldm_unet",
+          "identifier": "mammodiffusion-legacy-v2-custom-vae-selected-ldm-unet-step-70000",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+          "sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703",
+          "source_type": "local"
+        },
+        {
+          "role": "vae_decoder",
+          "identifier": "mammodiffusion-legacy-custom-vae-decoder-best",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/models/vae_decoder_best.keras",
+          "sha256": "d4ce2cb3d701f4b282ec29bb0d86d4255cfdd67e36fc4324b2b7533e01c8fbf8",
+          "source_type": "local"
+        },
+        {
+          "role": "vae_encoder",
+          "identifier": "mammodiffusion-legacy-custom-vae-encoder-best",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/models/vae_encoder_best.keras",
+          "sha256": "b129f501ea55ed43b89afcf15375eecfabd0756461d517085d7a0d4ab71f4541",
+          "source_type": "local"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "latent_diffusion",
+        "base_model_identifier": null,
+        "vae_backend": "project_custom_vae_frozen",
+        "architecture_version": "v2",
+        "parameterization": "eps",
+        "min_snr_enabled": false,
+        "min_snr_gamma": 5.0,
+        "diffusion_train_steps": 1000
+      },
+      "generation_code_signature": "9bdf547c2a052afb854dbb031ce09d34ee3362c4cbcd5dd20d4341b51d4fd394",
+      "scheduler": "deterministic_strided_ddim_like_reverse_diffusion",
+      "resolution": 512
     },
     {
       "generator_id": "06_ldm_extra1361_fromscratch",
       "scientific_family": "from_scratch",
-      "candidate_role": "primary_candidate",
+      "candidate_role": "generation_pool_ablation",
       "checkpoint": "experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "model_checkpoint_identifier": "ldm-v2-custom-vae-best-eval-step-70000",
       "training_notebook_config_identifier": "notebooks/2_diffusers/06_LDM_Extra1361_FromScratch.ipynb:unet_v2,eps,80000_steps",
@@ -118,11 +657,103 @@
       "filtered_directory": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered",
       "filter_report": "results/diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 4083, "seed_strategy": "stateless_seed_per_image_v1", "base_seed": 42, "class_label": 1, "unet_version": "v2", "parameterization": "eps", "vae": "project custom VAE"},
-      "guidance_conditioning_configuration": {"guidance_scale": 1.5, "target_label": 1},
-      "filter_configuration": {"algorithm": "adaptive_mask", "selection": "top_k", "target": 1361},
-      "source_evidence": ["experiments/diffusers/06_ldm_extra1361_fromscratch/training_manifest.json", "experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/ldm_pipeline_manifest.json", "experiments/diffusers/06_ldm_extra1361_fromscratch/logs/generation_raw_state.json", "experiments/diffusers/06_ldm_extra1361_fromscratch/legacy_runtime_manifest.json"],
-      "known_limitations": []
+      "generation_configuration": {
+        "pool_size": 4083,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "base_seed": 42,
+        "class_label": 1,
+        "unet_version": "v2",
+        "parameterization": "eps",
+        "vae": "project custom VAE"
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 1.5,
+        "target_label": 1
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "experiments/diffusers/06_ldm_extra1361_fromscratch/training_manifest.json",
+        "experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/ldm_pipeline_manifest.json",
+        "experiments/diffusers/06_ldm_extra1361_fromscratch/logs/generation_raw_state.json",
+        "experiments/diffusers/06_ldm_extra1361_fromscratch/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [],
+      "parent_generator_id": "05_ldm_basic_fromscratch",
+      "model_components": [
+        {
+          "role": "architecture_config",
+          "identifier": "mammodiffusion-ldm-architecture-catalog-v1",
+          "path": "configs/ldm_architecture_identities.json",
+          "sha256": "6b808b0af86a578db16e8ab253fd9be152bcddb9ed684ffdab25ac34ea2cde4b",
+          "source_type": "shared"
+        },
+        {
+          "role": "latent_stats",
+          "identifier": "mammodiffusion-legacy-custom-vae-latent-stats",
+          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/latents/latent_stats.npz",
+          "sha256": "3e4902a9d252318a873ded16059c5d0412b14ee322e7a54efe7be4be0d09702f",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_manifest",
+          "identifier": "mammodiffusion-legacy-custom-vae-latents-canonical-manifest",
+          "path": "configs/ldm_legacy_custom_vae_latents_manifest.json",
+          "sha256": "fa535a563a03a356308b4cec2e3e616c1698eae031f2275ddc558887c306aa50",
+          "source_type": "shared"
+        },
+        {
+          "role": "latents_train",
+          "identifier": "mammodiffusion-legacy-custom-vae-training-latents",
+          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/latents/latents_train.npz",
+          "sha256": "456989ad9257d249bce7449a716fc1c7b3c184e726847ca0c80a31e554c463e3",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_validation",
+          "identifier": "mammodiffusion-legacy-custom-vae-validation-latents",
+          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/latents/latents_val.npz",
+          "sha256": "dbad79c40c559bf8d59b2e6bf29eb33ed2df4ef500b4210477d391e995975510",
+          "source_type": "local"
+        },
+        {
+          "role": "ldm_unet",
+          "identifier": "mammodiffusion-legacy-v2-custom-vae-selected-ldm-unet-step-70000",
+          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+          "sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703",
+          "source_type": "local"
+        },
+        {
+          "role": "vae_decoder",
+          "identifier": "mammodiffusion-legacy-custom-vae-decoder-best",
+          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/models/vae_decoder_best.keras",
+          "sha256": "d4ce2cb3d701f4b282ec29bb0d86d4255cfdd67e36fc4324b2b7533e01c8fbf8",
+          "source_type": "local"
+        },
+        {
+          "role": "vae_encoder",
+          "identifier": "mammodiffusion-legacy-custom-vae-encoder-best",
+          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/models/vae_encoder_best.keras",
+          "sha256": "b129f501ea55ed43b89afcf15375eecfabd0756461d517085d7a0d4ab71f4541",
+          "source_type": "local"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "latent_diffusion",
+        "base_model_identifier": null,
+        "vae_backend": "project_custom_vae_frozen",
+        "architecture_version": "v2",
+        "parameterization": "eps",
+        "min_snr_enabled": false,
+        "min_snr_gamma": 5.0,
+        "diffusion_train_steps": 1000
+      },
+      "generation_code_signature": "9bdf547c2a052afb854dbb031ce09d34ee3362c4cbcd5dd20d4341b51d4fd394",
+      "scheduler": "deterministic_strided_ddim_like_reverse_diffusion",
+      "resolution": 512
     },
     {
       "generator_id": "07_ldm_sdvae_extra1361",
@@ -135,11 +766,103 @@
       "filtered_directory": "data/synthetic/fromscratch_new/positive",
       "filter_report": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 4083, "seed_strategy": "stateless_seed_per_image_v1", "base_seed": 42, "class_label": 1, "unet_version": "v2", "parameterization": "eps", "vae": "stable-diffusion-2-1-base VAE frozen"},
-      "guidance_conditioning_configuration": {"guidance_scale": 1.5, "target_label": 1},
-      "filter_configuration": {"algorithm": "adaptive_mask", "selection": "top_k", "target": 1361},
-      "source_evidence": ["experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_manifest.json", "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw/.generation_manifest.json", "experiments/diffusers/07_ldm_sdvae_extra1361/evaluation/ldm_pipeline_manifest.json", "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json"],
-      "known_limitations": []
+      "generation_configuration": {
+        "pool_size": 4083,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "base_seed": 42,
+        "class_label": 1,
+        "unet_version": "v2",
+        "parameterization": "eps",
+        "vae": "stable-diffusion-2-1-base VAE frozen"
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 1.5,
+        "target_label": 1
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_manifest.json",
+        "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw/.generation_manifest.json",
+        "experiments/diffusers/07_ldm_sdvae_extra1361/evaluation/ldm_pipeline_manifest.json",
+        "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [],
+      "parent_generator_id": null,
+      "model_components": [
+        {
+          "role": "architecture_config",
+          "identifier": "mammodiffusion-ldm-architecture-catalog-v1",
+          "path": "configs/ldm_architecture_identities.json",
+          "sha256": "6b808b0af86a578db16e8ab253fd9be152bcddb9ed684ffdab25ac34ea2cde4b",
+          "source_type": "shared"
+        },
+        {
+          "role": "latent_stats",
+          "identifier": "mammodiffusion-sdvae-latent-stats",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latent_stats.npz",
+          "sha256": "b58333e08c01764c8bd155d83ad1a3269e760d6ecf06721210d8daacb65b983a",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_manifest",
+          "identifier": "mammodiffusion-07_ldm_sdvae_extra1361-executed-latents-manifest",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_manifest.json",
+          "sha256": "0820f523647d566352c3214d3abfda121aa3925b1b67aed95bab07f5b6950abd",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_train",
+          "identifier": "mammodiffusion-sdvae-training-latents",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_train.npz",
+          "sha256": "45f512628840cab032dbe8a7e60d83492052bad889e70189b68850cf8286f395",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_validation",
+          "identifier": "mammodiffusion-sdvae-validation-latents",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_val.npz",
+          "sha256": "c0c2a9d61f040280f50eb501d0cd4df122afafa618068d9e41da29924cdff9c1",
+          "source_type": "local"
+        },
+        {
+          "role": "ldm_unet",
+          "identifier": "mammodiffusion-07_ldm_sdvae_extra1361-selected-ldm-unet",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+          "sha256": "d9ec6db4740399bb08ddee933f05682e4cad34a403db66a92ce924af786a2ace",
+          "source_type": "local"
+        },
+        {
+          "role": "vae",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-used-by-ldm",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "vae_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+          "source_type": "pretrained"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "latent_diffusion",
+        "base_model_identifier": null,
+        "vae_backend": "stable_diffusion_2_1_base_frozen",
+        "architecture_version": "v2",
+        "parameterization": "eps",
+        "min_snr_enabled": false,
+        "min_snr_gamma": 5.0,
+        "diffusion_train_steps": 1000
+      },
+      "generation_code_signature": "9bdf547c2a052afb854dbb031ce09d34ee3362c4cbcd5dd20d4341b51d4fd394",
+      "scheduler": "deterministic_strided_ddim_like_reverse_diffusion",
+      "resolution": 512
     },
     {
       "generator_id": "08_ldm_v3_sdvae_fromscratch",
@@ -152,11 +875,104 @@
       "filtered_directory": "data/synthetic/fromscratch_v3/positive",
       "filter_report": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
       "sampling_steps": 100,
-      "generation_configuration": {"pool_size": 4083, "seed_strategy": "stateless_seed_per_image_v1", "base_seed": 42, "class_label": 1, "unet_version": "v3", "parameterization": "v", "min_snr_gamma": 5.0, "vae": "stable-diffusion-2-1-base VAE frozen"},
-      "guidance_conditioning_configuration": {"guidance_scale": 1.5, "target_label": 1},
-      "filter_configuration": {"algorithm": "adaptive_mask", "selection": "top_k", "target": 1361},
-      "source_evidence": ["experiments/diffusers/08_ldm_v3_sdvae_fromscratch/training_manifest.json", "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_manifest.json", "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw/.generation_manifest.json", "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json"],
-      "known_limitations": []
+      "generation_configuration": {
+        "pool_size": 4083,
+        "seed_strategy": "stateless_seed_per_image_v1",
+        "base_seed": 42,
+        "class_label": 1,
+        "unet_version": "v3",
+        "parameterization": "v",
+        "min_snr_gamma": 5.0,
+        "vae": "stable-diffusion-2-1-base VAE frozen"
+      },
+      "guidance_conditioning_configuration": {
+        "guidance_scale": 1.5,
+        "target_label": 1
+      },
+      "filter_configuration": {
+        "algorithm": "adaptive_mask",
+        "selection": "top_k",
+        "target": 1361
+      },
+      "source_evidence": [
+        "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/training_manifest.json",
+        "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_manifest.json",
+        "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw/.generation_manifest.json",
+        "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json"
+      ],
+      "known_limitations": [],
+      "parent_generator_id": null,
+      "model_components": [
+        {
+          "role": "architecture_config",
+          "identifier": "mammodiffusion-ldm-architecture-catalog-v1",
+          "path": "configs/ldm_architecture_identities.json",
+          "sha256": "6b808b0af86a578db16e8ab253fd9be152bcddb9ed684ffdab25ac34ea2cde4b",
+          "source_type": "shared"
+        },
+        {
+          "role": "latent_stats",
+          "identifier": "mammodiffusion-sdvae-latent-stats",
+          "path": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latent_stats.npz",
+          "sha256": "b58333e08c01764c8bd155d83ad1a3269e760d6ecf06721210d8daacb65b983a",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_manifest",
+          "identifier": "mammodiffusion-08_ldm_v3_sdvae_fromscratch-executed-latents-manifest",
+          "path": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_manifest.json",
+          "sha256": "c1f9c0db61d8bc5f341da934a62a755493a11bcd10bfd7d34e0a6ea8a5740cba",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_train",
+          "identifier": "mammodiffusion-sdvae-training-latents",
+          "path": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_train.npz",
+          "sha256": "45f512628840cab032dbe8a7e60d83492052bad889e70189b68850cf8286f395",
+          "source_type": "local"
+        },
+        {
+          "role": "latents_validation",
+          "identifier": "mammodiffusion-sdvae-validation-latents",
+          "path": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_val.npz",
+          "sha256": "c0c2a9d61f040280f50eb501d0cd4df122afafa618068d9e41da29924cdff9c1",
+          "source_type": "local"
+        },
+        {
+          "role": "ldm_unet",
+          "identifier": "mammodiffusion-08_ldm_v3_sdvae_fromscratch-selected-ldm-unet",
+          "path": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+          "sha256": "8abbeebac17ec6869787b45946b091c060c4b1a57b12fc611294d2f624bd6930",
+          "source_type": "local"
+        },
+        {
+          "role": "vae",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-used-by-ldm",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
+          "source_type": "pretrained"
+        },
+        {
+          "role": "vae_config",
+          "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
+          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
+          "source_type": "pretrained"
+        }
+      ],
+      "model_configuration": {
+        "model_type": "latent_diffusion",
+        "base_model_identifier": null,
+        "vae_backend": "stable_diffusion_2_1_base_frozen",
+        "architecture_version": "v3",
+        "parameterization": "v",
+        "min_snr_enabled": true,
+        "min_snr_gamma": 5.0,
+        "diffusion_train_steps": 1000
+      },
+      "generation_code_signature": "9bdf547c2a052afb854dbb031ce09d34ee3362c4cbcd5dd20d4341b51d4fd394",
+      "scheduler": "deterministic_strided_ddim_like_reverse_diffusion",
+      "resolution": 512
     }
   ]
 }

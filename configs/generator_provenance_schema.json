@@ -1,5 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "index_schema_version": 2,
+  "migration_policy": "Version 1 records require an explicit migration and are never interpreted as version 2.",
   "publication_policy": {
     "per_image_manifests": "local_runtime_artifacts_not_committed",
     "runtime_root": "results/publication_v2/generator_provenance/runtime",
@@ -7,13 +9,21 @@
   },
   "provenance_json": {
     "required_fields": [
-      "schema_version", "generator_id", "scientific_family", "candidate_role",
+      "schema_version", "generator_id", "scientific_family", "candidate_role", "parent_generator_id",
+      "model_components", "model_configuration", "model_identity_sha256",
+      "generation_identity", "generation_identity_sha256",
       "model_checkpoint_identifier", "checkpoint_path", "checkpoint_sha256",
       "training_notebook_config_identifier", "training_corpus_manifest",
       "raw_sample_manifest", "filtered_sample_manifest", "filter_mapping_manifest",
       "manifest_sha256", "training_dataset_identifier", "generation_configuration",
       "filter_configuration", "lineage_status"
     ],
+    "component_required_fields": ["role", "identifier", "path", "sha256", "source_type"],
+    "component_source_types": ["local", "shared", "pretrained"],
+    "identity_path_policy": "project_relative_only",
+    "identity_hash_policy": "SHA-256 over sorted role/identifier/content-hash triples plus canonical model configuration; storage path excluded",
+    "generation_hash_policy": "SHA-256 over model identity plus sampling, conditioning, representation and relevant code signature; Git HEAD excluded",
+    "runtime_manifest_nullable_only_when_lineage_incomplete": true,
     "path_policy": "project_relative_only"
   },
   "csv_manifests": {

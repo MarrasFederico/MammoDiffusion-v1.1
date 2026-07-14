@@ -122,10 +122,14 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         by_id = {entry["id"]: entry for entry in self.registry["generators"]}
         sd50 = by_id["01_sd21_baseline_50steps"]
         ldm = by_id["05_ldm_basic_fromscratch"]
+        pool_ablation = by_id["06_ldm_extra1361_fromscratch"]
         self.assertEqual((sd50["candidate_role"], sd50["sampling_steps"]), ("sampling_ablation", 50))
         self.assertFalse(sd50["eligible_for_downstream_selection"])
         self.assertEqual(ldm["candidate_role"], "descriptive_baseline")
         self.assertFalse(ldm["eligible_for_downstream_selection"])
+        self.assertEqual(pool_ablation["candidate_role"], "generation_pool_ablation")
+        self.assertEqual(pool_ablation["parent_generator_id"], "05_ldm_basic_fromscratch")
+        self.assertFalse(pool_ablation["eligible_for_downstream_selection"])
         self.assertTrue(sd50["benchmark"]["enabled"] and ldm["benchmark"]["enabled"])
 
     def _result(self, generator_id, count=1361):
@@ -133,17 +137,20 @@ class GeneratorBenchmarkTests(unittest.TestCase):
                 "test_access": False, "technical_gates_passed": True}
 
     def test_manual_selection_accepts_simple_json_shape(self):
-        selected = gb.validate_selected_generators("02_sd21_filtered_100steps", "06_ldm_extra1361_fromscratch",
-            self.registry, [self._result("02_sd21_filtered_100steps"), self._result("06_ldm_extra1361_fromscratch")])
-        self.assertEqual(selected, {"finetuned": "02_sd21_filtered_100steps", "from_scratch": "06_ldm_extra1361_fromscratch"})
+        selected = gb.validate_selected_generators("02_sd21_filtered_100steps", "07_ldm_sdvae_extra1361",
+            self.registry, [self._result("02_sd21_filtered_100steps"), self._result("07_ldm_sdvae_extra1361")])
+        self.assertEqual(selected, {"finetuned": "02_sd21_filtered_100steps", "from_scratch": "07_ldm_sdvae_extra1361"})
 
     def test_wrong_family_and_ineligible_selection_are_rejected(self):
         rows = [self._result("02_sd21_filtered_100steps"), self._result("06_ldm_extra1361_fromscratch"),
+                self._result("07_ldm_sdvae_extra1361"),
                 self._result("01_sd21_baseline_50steps")]
         with self.assertRaisesRegex(ValueError, "wrong family"):
-            gb.validate_selected_generators("06_ldm_extra1361_fromscratch", "02_sd21_filtered_100steps", self.registry, rows)
+            gb.validate_selected_generators("07_ldm_sdvae_extra1361", "02_sd21_filtered_100steps", self.registry, rows)
         with self.assertRaisesRegex(ValueError, "not selection-eligible"):
-            gb.validate_selected_generators("01_sd21_baseline_50steps", "06_ldm_extra1361_fromscratch", self.registry, rows)
+            gb.validate_selected_generators("01_sd21_baseline_50steps", "07_ldm_sdvae_extra1361", self.registry, rows)
+        with self.assertRaisesRegex(ValueError, "not selection-eligible"):
+            gb.validate_selected_generators("02_sd21_filtered_100steps", "06_ldm_extra1361_fromscratch", self.registry, rows)
 
     def test_embedding_cache_requires_and_round_trips_metadata(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -9,6 +9,7 @@ import csv
 import json
 import math
 import os
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -39,9 +40,44 @@ def experiment_dir(root: Path, architecture: str, condition: str, seed: int) -> 
     return Path(root) / "results/publication_v2/downstream" / architecture / condition / f"seed_{int(seed)}"
 
 
-def configure_visible_gpu(requested_gpu: int, *, probe=None) -> dict[str, Any]:
-    """Mask one physical GPU before framework initialization and verify the visible local device."""
-    requested = str(int(requested_gpu))
+GPU_UUID_PREFIX = "GPU-"
+
+
+def _normalize_uuid(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if text.startswith(GPU_UUID_PREFIX.lower()):
+        text = text[len(GPU_UUID_PREFIX):]
+    return text
+
+
+def _nvidia_smi_inventory() -> list[dict[str, Any]]:
+    """One nvidia-smi query mapping physical index -> UUID/name/memory, before any framework import."""
+    query = subprocess.run(
+        ["nvidia-smi", "--query-gpu=index,uuid,name,memory.total", "--format=csv,noheader,nounits"],
+        check=True, capture_output=True, text=True)
+    inventory = []
+    for line in query.stdout.splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) >= 4 and parts[0] != "":
+            inventory.append({"index": int(parts[0]), "uuid": parts[1], "name": parts[2],
+                              "memory_total": parts[3]})
+    return inventory
+
+
+def _torch_observe() -> dict[str, Any]:
+    import torch
+    if not torch.cuda.is_available():
+        return {"visible_count": 0}
+    if torch.cuda.device_count() != 1:
+        return {"visible_count": int(torch.cuda.device_count())}
+    properties = torch.cuda.get_device_properties(0)
+    raw_uuid = getattr(properties, "uuid", None)
+    return {"visible_count": int(torch.cuda.device_count()), "local_index": 0,
+            "name": torch.cuda.get_device_name(0), "memory_bytes": int(properties.total_memory),
+            "uuid": f"{GPU_UUID_PREFIX}{raw_uuid}" if raw_uuid is not None else ""}
+
+
+def _initialized_frameworks() -> list[str]:
     initialized = []
     torch_module = sys.modules.get("torch")
     if torch_module is not None and getattr(getattr(torch_module, "cuda", None), "is_initialized", lambda: False)():
@@ -52,35 +88,74 @@ def configure_visible_gpu(requested_gpu: int, *, probe=None) -> dict[str, Any]:
             if tensorflow_module.config.list_logical_devices("GPU"): initialized.append("TensorFlow")
         except Exception:
             pass
+    return initialized
+
+
+def _resolve_gpu_selector(selector: int | str, inventory: list[dict[str, Any]]) -> dict[str, Any]:
+    """Resolve a physical index or a GPU-... UUID to exactly one inventory row, or fail."""
+    if isinstance(selector, str) and selector.startswith(GPU_UUID_PREFIX):
+        matches = [row for row in inventory if _normalize_uuid(row["uuid"]) == _normalize_uuid(selector)]
+        if len(matches) != 1:
+            raise RuntimeError(f"GPU UUID {selector} is not present as exactly one device in the "
+                               f"nvidia-smi inventory ({len(matches)} matches)")
+        return matches[0]
+    try:
+        index = int(selector)
+    except (TypeError, ValueError):
+        raise RuntimeError(f"unsupported GPU selector {selector!r}: pass a physical index or a 'GPU-...' UUID")
+    matches = [row for row in inventory if int(row["index"]) == index]
+    if len(matches) != 1:
+        raise RuntimeError(f"physical GPU index {index} is not uniquely resolvable in the nvidia-smi "
+                           f"inventory ({len(matches)} matches); refusing to fall back to a CUDA index")
+    return matches[0]
+
+
+def configure_visible_gpu(selector: int | str, *, inventory=None, observe=None) -> dict[str, Any]:
+    """Mask exactly one physical GPU by UUID before any framework initialization, then verify identity.
+
+    ``selector`` is a physical nvidia-smi index (int or numeric str) or a ``GPU-...`` UUID. A physical
+    index is resolved to its UUID via a single nvidia-smi query *before* PyTorch/TensorFlow are
+    imported, and only the UUID is ever written to ``CUDA_VISIBLE_DEVICES`` — never the numeric index.
+    A selector that cannot be resolved to exactly one device, a UUID absent from the inventory, an
+    observed identity that differs from the request, or an already-initialized framework with a
+    different mask are all hard failures; there is no silent CUDA-index fallback and no warning-only
+    path. On success ``physical_identity_verified`` is always ``True``.
+    """
+    initialized = _initialized_frameworks()
+    entries = list(inventory() if inventory is not None else _nvidia_smi_inventory())
+    if not entries:
+        raise RuntimeError("nvidia-smi inventory is unavailable; refusing to select a GPU by CUDA index")
+    resolved = _resolve_gpu_selector(selector, entries)
+    resolved_uuid = resolved["uuid"]
+
     current = os.environ.get("CUDA_VISIBLE_DEVICES")
-    if initialized and current != requested:
+    if initialized and _normalize_uuid(current) != _normalize_uuid(resolved_uuid):
         raise RuntimeError(
-            f"GPU framework already initialized with CUDA_VISIBLE_DEVICES={current!r}; requested GPU {requested}. "
-            "Restart the kernel and run the GPU configuration cell first."
-        )
+            f"GPU framework already initialized with CUDA_VISIBLE_DEVICES={current!r}; requested "
+            f"{selector!r} -> {resolved_uuid}. Restart the kernel and run the GPU configuration cell first.")
     if not initialized:
-        os.environ["CUDA_VISIBLE_DEVICES"] = requested
+        os.environ["CUDA_VISIBLE_DEVICES"] = resolved_uuid
 
-    if probe is None:
-        import torch
-        if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
-            raise RuntimeError(f"Requested physical GPU {requested}, but exactly one CUDA device is not visible")
-        properties = torch.cuda.get_device_properties(0)
-        detected = {"local_index": 0, "name": torch.cuda.get_device_name(0),
-                    "memory_bytes": int(properties.total_memory), "visible_count": torch.cuda.device_count()}
-    else:
-        detected = dict(probe())
-    if int(detected.get("visible_count", 0)) != 1 or int(detected.get("local_index", -1)) != 0:
-        raise RuntimeError(f"Requested physical GPU {requested}, but visible-device verification failed: {detected}")
-    if "physical_index" in detected and int(detected["physical_index"]) != int(requested_gpu):
-        raise RuntimeError(f"Requested physical GPU {requested}, but probe detected physical GPU {detected['physical_index']}")
-    return {"requested_physical_index": int(requested_gpu), "local_index": 0,
-            "name": detected.get("name", "unknown"), "memory_bytes": int(detected.get("memory_bytes", 0)),
-            "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES"), "frameworks_already_initialized": initialized}
+    observed = dict(observe() if observe is not None else _torch_observe())
+    if int(observed.get("visible_count", 0)) != 1 or int(observed.get("local_index", -1)) != 0:
+        raise RuntimeError(f"expected exactly one visible CUDA device at local index 0 after masking "
+                           f"{resolved_uuid}: {observed}")
+    observed_uuid = observed.get("uuid") or ""
+    if not observed_uuid:
+        raise RuntimeError(f"could not read the visible device UUID to prove physical identity for "
+                           f"{resolved_uuid}; refusing to proceed")
+    if _normalize_uuid(observed_uuid) != _normalize_uuid(resolved_uuid):
+        raise RuntimeError(f"requested GPU UUID {resolved_uuid}, but CUDA local 0 reports UUID "
+                           f"{observed_uuid}. Restart the kernel.")
+    return {"requested_selector": selector, "resolved_physical_index": int(resolved["index"]),
+            "resolved_uuid": resolved_uuid, "observed_name": observed.get("name", "unknown"),
+            "observed_total_memory": observed.get("memory_bytes", observed.get("memory_total")),
+            "local_index": 0, "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES"),
+            "physical_identity_verified": True, "frameworks_already_initialized": initialized}
 
 
-def configure_environment(configuration: Mapping[str, Any], *, probe=None) -> dict[str, Any]:
-    result = configure_visible_gpu(int(configuration["gpu"]), probe=probe)
+def configure_environment(configuration: Mapping[str, Any], *, inventory=None, observe=None) -> dict[str, Any]:
+    result = configure_visible_gpu(configuration["gpu"], inventory=inventory, observe=observe)
     return {**result, "architecture": configuration["architecture"], "seed": configuration["seed"]}
 
 

@@ -148,21 +148,57 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
     def tearDown(self):
         os.environ.pop("CUDA_VISIBLE_DEVICES", None)
 
-    def test_requested_gpu_matches_visible_gpu(self):
-        result = de.configure_visible_gpu(2, probe=lambda: {"visible_count": 1, "local_index": 0,
-                                                            "physical_index": 2, "name": "fixture", "memory_bytes": 1024})
-        self.assertEqual((result["requested_physical_index"], result["local_index"]), (2, 0))
+    INVENTORY = [{"index": 0, "uuid": "GPU-0000", "name": "RTX 3060", "memory_total": "12288"},
+                 {"index": 1, "uuid": "GPU-right", "name": "RTX 5060 Ti", "memory_total": "16384"}]
 
-    def test_gpu_mismatch_fails_clearly(self):
-        with self.assertRaisesRegex(RuntimeError, "Requested physical GPU 2"):
-            de.configure_visible_gpu(2, probe=lambda: {"visible_count": 1, "local_index": 0, "physical_index": 1})
+    def _inventory(self):
+        return [dict(row) for row in self.INVENTORY]
+
+    def _observe(self, uuid="GPU-right", name="RTX 5060 Ti", visible=1, local=0):
+        return lambda: {"visible_count": visible, "local_index": local, "uuid": uuid,
+                        "name": name, "memory_bytes": 16 * 1024 ** 3}
+
+    def test_physical_index_is_resolved_to_uuid(self):
+        result = de.configure_visible_gpu(1, inventory=self._inventory, observe=self._observe())
+        self.assertEqual(result["resolved_uuid"], "GPU-right")
+        self.assertEqual(result["resolved_physical_index"], 1)
+        self.assertEqual(result["local_index"], 0)
+        self.assertTrue(result["physical_identity_verified"])
+        # CUDA_VISIBLE_DEVICES must be the UUID, never the numeric index.
+        self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "GPU-right")
+
+    def test_direct_uuid_selector_passes(self):
+        result = de.configure_visible_gpu("GPU-right", inventory=self._inventory, observe=self._observe())
+        self.assertEqual(result["resolved_uuid"], "GPU-right")
+        self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "GPU-right")
+        self.assertTrue(result["physical_identity_verified"])
+
+    def test_nonexistent_uuid_fails(self):
+        with self.assertRaisesRegex(RuntimeError, "not present as exactly one device"):
+            de.configure_visible_gpu("GPU-missing", inventory=self._inventory, observe=self._observe())
+
+    def test_unresolvable_index_fails_without_cuda_fallback(self):
+        with self.assertRaisesRegex(RuntimeError, "not uniquely resolvable"):
+            de.configure_visible_gpu(9, inventory=self._inventory, observe=self._observe())
+
+    def test_empty_inventory_fails(self):
+        with self.assertRaisesRegex(RuntimeError, "nvidia-smi inventory is unavailable"):
+            de.configure_visible_gpu(0, inventory=lambda: [], observe=self._observe())
+
+    def test_identity_mismatch_fails(self):
+        with self.assertRaisesRegex(RuntimeError, "reports UUID GPU-wrong"):
+            de.configure_visible_gpu(1, inventory=self._inventory, observe=self._observe(uuid="GPU-wrong"))
+
+    def test_missing_observed_uuid_fails(self):
+        with self.assertRaisesRegex(RuntimeError, "could not read the visible device UUID"):
+            de.configure_visible_gpu(1, inventory=self._inventory, observe=self._observe(uuid=""))
 
     def test_initialized_framework_requests_kernel_restart(self):
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+        os.environ["CUDA_VISIBLE_DEVICES"] = "GPU-0000"
         fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_initialized=lambda: True))
         with mock.patch.dict(sys.modules, {"torch": fake_torch}):
             with self.assertRaisesRegex(RuntimeError, "Restart the kernel"):
-                de.configure_visible_gpu(1, probe=lambda: {})
+                de.configure_visible_gpu(1, inventory=self._inventory, observe=self._observe())
 
     def _configuration(self, resume: bool, confirm: bool = False):
         return {"architecture": "maxvit512", "condition": "real_only", "seed": 17,

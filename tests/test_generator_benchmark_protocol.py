@@ -231,4 +231,21 @@ class CanonicalEfficiencyTests(unittest.TestCase):
         self.assertEqual(result["efficiency_status"], "checkpoint_size_only")
 
 
+class CorrectedArtifactEfficiencyTests(unittest.TestCase):
+    def test_no_corrected_file_marks_invalid_durations_available(self):
+        benchmark = ROOT / "results/publication_v2/generator_benchmark"
+        corrected = [benchmark / "generator_summary_corrected.csv",
+                     benchmark / "generator_ranking_corrected.csv"]
+        present = [path for path in corrected if path.is_file()]
+        if not present:
+            self.skipTest("corrected canonical files not present (run correct_efficiency_summary.py)")
+        invalid = {"02_sd21_filtered_100steps", "03_sd21_vae_finetuned", "04_sd21_lora"}
+        for path in present:
+            with path.open(newline="") as stream:
+                for row in csv.DictReader(stream):
+                    if row.get("generator_id") in invalid:
+                        self.assertNotEqual(row.get("efficiency_status"), "available",
+                                            f"{path.name}:{row['generator_id']} kept an invalid duration as available")
+
+
 if __name__ == "__main__": unittest.main()

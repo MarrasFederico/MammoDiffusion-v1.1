@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "artifact_type": "generator_selection_evidence",
+  "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
+  "benchmark_HEAD": "cd05886c0e7044325063d9e2db4bf2de6d285dc4",
+  "original_protocol_outcome": {
+    "official_candidates_measured": 5,
+    "eligible_under_original_gates": 0,
+    "original_gates": {
+      "maximum_perceptual_duplicate_rate": 0.02,
+      "minimum_rad_dino_coverage": 0.5
+    }
+  },
+  "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
+  "active_amendment_sha256": "d7179084f10a8aa9e7c5160215a11eccbb991a7b9b0b7994366c564586de215a",
+  "official_candidates": [
+    "02_sd21_filtered_100steps",
+    "03_sd21_vae_finetuned",
+    "04_sd21_lora",
+    "07_ldm_sdvae_extra1361",
+    "08_ldm_v3_sdvae_fromscratch"
+  ],
+  "amended_safety_gate_results": [
+    {
+      "generator_id": "02_sd21_filtered_100steps",
+      "family": "finetuned",
+      "amended_safety_gate_eligible": true,
+      "amended_safety_gate_failures": ""
+    },
+    {
+      "generator_id": "03_sd21_vae_finetuned",
+      "family": "finetuned",
+      "amended_safety_gate_eligible": true,
+      "amended_safety_gate_failures": ""
+    },
+    {
+      "generator_id": "04_sd21_lora",
+      "family": "finetuned",
+      "amended_safety_gate_eligible": true,
+      "amended_safety_gate_failures": ""
+    },
+    {
+      "generator_id": "07_ldm_sdvae_extra1361",
+      "family": "from_scratch",
+      "amended_safety_gate_eligible": true,
+      "amended_safety_gate_failures": ""
+    },
+    {
+      "generator_id": "08_ldm_v3_sdvae_fromscratch",
+      "family": "from_scratch",
+      "amended_safety_gate_eligible": true,
+      "amended_safety_gate_failures": ""
+    }
+  ],
+  "descriptive_family_ranking": {
+    "finetuned": [
+      {
+        "generator_id": "02_sd21_filtered_100steps",
+        "descriptive_family_rank": 1,
+        "selection_metric": "raddino_kid",
+        "selection_metric_value": 0.1990891096955254
+      },
+      {
+        "generator_id": "03_sd21_vae_finetuned",
+        "descriptive_family_rank": 2,
+        "selection_metric": "raddino_kid",
+        "selection_metric_value": 0.2759202242416565
+      },
+      {
+        "generator_id": "04_sd21_lora",
+        "descriptive_family_rank": 3,
+        "selection_metric": "raddino_kid",
+        "selection_metric_value": 0.28862337373765845
+      }
+    ],
+    "from_scratch": [
+      {
+        "generator_id": "07_ldm_sdvae_extra1361",
+        "descriptive_family_rank": 1,
+        "selection_metric": "raddino_kid",
+        "selection_metric_value": 0.08722443411855751
+      },
+      {
+        "generator_id": "08_ldm_v3_sdvae_fromscratch",
+        "descriptive_family_rank": 2,
+        "selection_metric": "raddino_kid",
+        "selection_metric_value": 0.13790452668038933
+      }
+    ]
+  },
+  "selected_generators": {
+    "finetuned": "02_sd21_filtered_100steps",
+    "from_scratch": "07_ldm_sdvae_extra1361"
+  },
+  "primary_metric": "raddino_kid",
+  "primary_metric_values": {
+    "finetuned": 0.1990891096955254,
+    "from_scratch": 0.08722443411855751
+  },
+  "source_runtime_artifact_paths": {
+    "amended_gate_results": "results/publication_v2/generator_benchmark/gate_audit/amended_gate_results.csv",
+    "generator_summary_corrected": "results/publication_v2/generator_benchmark/generator_summary_corrected.csv"
+  },
+  "source_runtime_artifact_sha256": {
+    "amended_gate_results": "244bcb75774164a168b2ac512faa2c4e367e9f6d37bb35bc2757c528f4955f5e",
+    "generator_summary_corrected": "8226be35dbe3f551365db12d276adf06378a9eabf75a762bfd14657676355786"
+  },
+  "test_access": false
+}

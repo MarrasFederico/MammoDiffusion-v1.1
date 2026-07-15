@@ -127,22 +127,33 @@ def format_limitations() -> str:
 
 
 def format_generator_benchmark_outcome(root: Path) -> str:
-    """Distinguish the original zero-eligible outcome from the post-benchmark Option B amendment."""
-    amendment = _optional_json(root / "configs/generator_benchmark_protocol_amendment_v1.json")
-    original = (amendment or {}).get("original_outcome", {})
-    measured = original.get("official_candidates_measured", "Not yet evaluated")
-    eligible = original.get("eligible_under_original_gates", "Not yet evaluated")
+    """Distinguish the original zero-eligible outcome from the amendment, entirely from the data.
+
+    The policy, the original outcome and the count of safety-eligible candidates are read from the
+    active amendment and the committed selection evidence; nothing is hardcoded, so the report stays
+    correct if the candidate count or amendment version changes.
+    """
+    protocol = _optional_json(root / "configs/generator_benchmark_protocol.json") or {}
+    amendment_relative = protocol.get("active_amendment", "configs/generator_benchmark_protocol_amendment_v1.json")
+    amendment = _optional_json(root / str(amendment_relative))
     if not amendment:
         return "Not yet evaluated"
+    original = amendment.get("original_outcome", {})
+    measured = original.get("official_candidates_measured", "Not yet evaluated")
+    eligible = original.get("eligible_under_original_gates", "Not yet evaluated")
+    evidence = _optional_json(root / "configs/generator_selection_evidence_v1.json") or {}
+    safety_results = evidence.get("amended_safety_gate_results", [])
+    safety_eligible = (sum(1 for row in safety_results if row.get("amended_safety_gate_eligible"))
+                       if safety_results else "Not yet evaluated")
     return "\n".join((
         "**Original protocol:**",
         f"- Official candidates measured: {measured}",
         f"- Eligible under original gates: {eligible}",
         "",
         "**Post-benchmark amendment:**",
-        f"- Policy: Option {amendment.get('selected_policy', 'B')} "
+        f"- Policy: Option {amendment.get('selected_policy', '?')} "
         f"({amendment.get('status', 'approved_post_benchmark')})",
-        "- Safety-eligible official candidates: 5",
+        f"- Safety-eligible official candidates: {safety_eligible}",
         "- Coverage balanced-point and pHash-only rate are descriptive metrics, not binary gates.",
     ))
 

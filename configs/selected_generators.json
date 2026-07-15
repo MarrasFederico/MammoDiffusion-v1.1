@@ -11,6 +11,8 @@
   "amended_gate_results_sha256": "244bcb75774164a168b2ac512faa2c4e367e9f6d37bb35bc2757c528f4955f5e",
   "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
   "active_amendment_sha256": "d7179084f10a8aa9e7c5160215a11eccbb991a7b9b0b7994366c564586de215a",
+  "selection_evidence_path": "configs/generator_selection_evidence_v1.json",
+  "selection_evidence_sha256": "8f3bfe7e423e96e03744e0940dca66fb0e44a5f10db05dfb1c49b2ac16946bcb",
   "original_protocol_result": {
     "official_candidates_measured": 5,
     "eligible_under_original_gates": 0,

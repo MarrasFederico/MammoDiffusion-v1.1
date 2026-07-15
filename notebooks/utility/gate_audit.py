@@ -507,6 +507,79 @@ def load_active_amendment(root: Path) -> dict[str, Any] | None:
     return json.loads((Path(root) / str(reference)).read_text())
 
 
+SELECTION_EVIDENCE_RELATIVE = "configs/generator_selection_evidence_v1.json"
+
+
+def build_selection_evidence(root: Path) -> dict[str, Any]:
+    """Derive a compact, committable selection-evidence record from existing benchmark results.
+
+    Portable proof of the decision: benchmark identity, original zero-eligible outcome, the active
+    amendment (with hash), the amended safety-gate results, the descriptive ranking and the selected
+    generators — all derived from the runtime artifacts, whose paths and SHA-256 are recorded so the
+    decision remains auditable without embedding thousands of rows in configuration.
+    """
+    import csv
+    root = Path(root)
+    protocol = gb.load_protocol(root)
+    amendment = load_active_amendment(root)
+    if amendment is None:
+        raise ValueError("no active amendment declared in the protocol")
+    amendment_relative = str(protocol["active_amendment"])
+    gate_relative = str(Path(gb.BENCHMARK_ROOT) / "gate_audit/amended_gate_results.csv")
+    summary_relative = str(Path(gb.BENCHMARK_ROOT) / "generator_summary_corrected.csv")
+    gate_path = root / gate_relative
+    if not gate_path.is_file():
+        raise ValueError(f"amended gate results are required to build evidence: {gate_relative}")
+    with gate_path.open(newline="") as stream:
+        gate_rows = list(csv.DictReader(stream))
+
+    safety_results, ranking = [], {"finetuned": [], "from_scratch": []}
+    primary_values = {}
+    for row in gate_rows:
+        gid = row["full_generator_id"]
+        family = row["family"]
+        eligible = str(row["amended_safety_gate_eligible"]).lower() in ("true", "1")
+        safety_results.append({"generator_id": gid, "family": family,
+                               "amended_safety_gate_eligible": eligible,
+                               "amended_safety_gate_failures": row.get("amended_safety_gate_failures", "")})
+        ranking[family].append({"generator_id": gid,
+                                "descriptive_family_rank": int(row["descriptive_family_rank"]),
+                                "selection_metric": row.get("selection_metric"),
+                                "selection_metric_value": float(row["selection_metric_value"])})
+    for family in ranking:
+        ranking[family].sort(key=lambda entry: entry["descriptive_family_rank"])
+    selected = {family: ranking[family][0]["generator_id"] for family in ranking if ranking[family]}
+    for family, gid in selected.items():
+        primary_values[family] = next(e["selection_metric_value"] for e in ranking[family] if e["generator_id"] == gid)
+
+    return {
+        "schema_version": 1,
+        "artifact_type": "generator_selection_evidence",
+        "benchmark_run_id": amendment["benchmark_run_id"],
+        "benchmark_HEAD": amendment["benchmark_HEAD"],
+        "original_protocol_outcome": amendment["original_outcome"],
+        "active_amendment": amendment_relative,
+        "active_amendment_sha256": gb.file_sha256(root / amendment_relative),
+        "official_candidates": [row["full_generator_id"] for row in gate_rows],
+        "amended_safety_gate_results": safety_results,
+        "descriptive_family_ranking": ranking,
+        "selected_generators": selected,
+        "primary_metric": protocol["selection"]["primary_metric"],
+        "primary_metric_values": primary_values,
+        "source_runtime_artifact_paths": {"amended_gate_results": gate_relative,
+                                          "generator_summary_corrected": summary_relative},
+        "source_runtime_artifact_sha256": {
+            "amended_gate_results": gb.file_sha256(gate_path),
+            "generator_summary_corrected": gb.file_sha256(root / summary_relative)
+            if (root / summary_relative).is_file() else None},
+        "test_access": False,
+    }
+
+
+def save_selection_evidence(root: Path) -> Path:
+    return gb.atomic_json(Path(root) / SELECTION_EVIDENCE_RELATIVE, build_selection_evidence(root))
+
+
 def confirmed_duplicate_rates(root: Path) -> dict[str, float]:
     """Map full generator_id -> confirmed_duplicate_rate from the pHash audit CSV (safety input)."""
     import csv
@@ -653,6 +726,8 @@ def save_amended_selection(root: Path, finetuned: str, from_scratch: str,
                                           amendment, confirmed, protocol["synthetic_pool_target"])
     ranks = _amended_rank_lookup(root)
     primary_metric = protocol["selection"]["primary_metric"]
+    # Portable, committed evidence of the decision (independent of the git-ignored runtime CSVs).
+    evidence_path = save_selection_evidence(root)
     payload = {
         # Backward-compatible minimal selection.
         "finetuned": selected["finetuned"], "from_scratch": selected["from_scratch"],
@@ -666,6 +741,8 @@ def save_amended_selection(root: Path, finetuned: str, from_scratch: str,
         "amended_gate_results_sha256": _relative_sha(root, AMENDED_GATE_RESULTS_RELATIVE),
         "active_amendment": str(protocol.get("active_amendment")),
         "active_amendment_sha256": _relative_sha(root, str(protocol.get("active_amendment"))),
+        "selection_evidence_path": SELECTION_EVIDENCE_RELATIVE,
+        "selection_evidence_sha256": gb.file_sha256(evidence_path),
         "original_protocol_result": amendment["original_outcome"],
         "post_benchmark_amendment": True,
         "test_access": False,

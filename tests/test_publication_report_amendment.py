@@ -20,10 +20,17 @@ def _build_report_fixture(tmp: Path) -> Path:
          "eligible_for_downstream_selection": True},
         {"id": "07_ldm_sdvae_extra1361", "scientific_family": "from_scratch",
          "eligible_for_downstream_selection": True}]}))
-    (tmp / "configs/generator_benchmark_protocol.json").write_text(json.dumps({"study_question": "RQ1: ..."}))
+    (tmp / "configs/generator_benchmark_protocol.json").write_text(json.dumps({
+        "study_question": "RQ1: ...",
+        "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json"}))
     (tmp / "configs/generator_benchmark_protocol_amendment_v1.json").write_text(json.dumps({
         "selected_policy": "B", "status": "approved_post_benchmark",
         "original_outcome": {"official_candidates_measured": 5, "eligible_under_original_gates": 0}}))
+    # Two safety-eligible candidates in the fixture: the report must derive the count, not hardcode 5.
+    (tmp / "configs/generator_selection_evidence_v1.json").write_text(json.dumps({
+        "amended_safety_gate_results": [
+            {"generator_id": "02_sd21_filtered_100steps", "amended_safety_gate_eligible": True},
+            {"generator_id": "07_ldm_sdvae_extra1361", "amended_safety_gate_eligible": True}]}))
     (tmp / "configs/selected_generators.json").write_text(json.dumps({
         "finetuned": "02_sd21_filtered_100steps", "from_scratch": "07_ldm_sdvae_extra1361",
         "schema_version": 2, "primary_metric": "raddino_kid", "benchmark_run_id": "run_x",
@@ -51,6 +58,8 @@ class PublicationReportAmendmentTests(unittest.TestCase):
         # Original zero-eligible outcome and Option B are both present.
         self.assertIn("Eligible under original gates: 0", report)
         self.assertIn("Option B", report)
+        # The safety-eligible count is derived from evidence (2 here), not the hardcoded 5.
+        self.assertIn("Safety-eligible official candidates: 2", report)
         # Selected generators and the post-benchmark amendment declaration.
         self.assertIn("02_sd21_filtered_100steps", report)
         self.assertIn("07_ldm_sdvae_extra1361", report)

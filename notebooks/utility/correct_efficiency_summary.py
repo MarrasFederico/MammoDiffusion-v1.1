@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import csv
 import json
-import shutil
 import sys
 from pathlib import Path
 
@@ -67,11 +66,20 @@ def main() -> None:
 
     corrected_summary = BENCHMARK / "generator_summary_corrected.csv"
     gb.write_csv_rows(corrected_summary, corrected_rows, fieldnames=fieldnames)
-    # Ranking does not depend on efficiency, so the corrected ranking is a byte copy of the run's ranking.
+    # The scientific ranking (family_rank) does not depend on efficiency, but a file named
+    # "corrected" must not keep the invalid microsecond durations: rewrite the efficiency columns
+    # through the same strict canonical parser while leaving the ranking order untouched.
     ranking_source = BENCHMARK / "generator_ranking.csv"
     corrected_ranking = BENCHMARK / "generator_ranking_corrected.csv"
     if ranking_source.is_file():
-        shutil.copy2(ranking_source, corrected_ranking)
+        ranking_rows = _read_csv(ranking_source)
+        ranking_fields = list(ranking_rows[0].keys()) if ranking_rows else []
+        corrected_ranking_rows = []
+        for row in ranking_rows:
+            fixed = gb.efficiency_from_manifest(ROOT, by_id[row["generator_id"]])
+            corrected_ranking_rows.append({**row, **{field: fixed.get(field)
+                                                     for field in EFFICIENCY_FIELDS if field in row}})
+        gb.write_csv_rows(corrected_ranking, corrected_ranking_rows, fieldnames=ranking_fields)
 
     AUDIT.mkdir(parents=True, exist_ok=True)
     correction = {

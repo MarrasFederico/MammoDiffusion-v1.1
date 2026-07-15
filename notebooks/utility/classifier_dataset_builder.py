@@ -27,6 +27,134 @@ AUGMENTED_DIR = "data/real_augmented"
 VALIDATION_METADATA = "data/processed/metadata/val.csv"
 _FILE_HASH_CACHE: dict[tuple[str, int, int, int], str] = {}
 
+SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+REQUIRED_MANIFEST_FIELDS = ("sample_id", "relative_path", "file_size", "sha256",
+                            "selection_rank", "source_raw_sample_id")
+_TEST_PATH_COMPONENTS = {"test", "historical_internal_test"}
+
+
+def _load_selection_payload(root: Path) -> dict | None:
+    try:
+        from . import downstream_protocol as dp
+    except ImportError:
+        import downstream_protocol as dp
+    return dp.load_selected_generators(root, required=False)
+
+
+def selected_family_for_generator(root: Path, generator_id: str) -> str | None:
+    """Return the primary family whose approved selection is this generator, or None (legacy)."""
+    payload = _load_selection_payload(root)
+    if not payload:
+        return None
+    for family in ("finetuned", "from_scratch"):
+        if payload.get(family) == generator_id:
+            return family
+    return None
+
+
+def load_selected_filtered_records(root: Path, payload: dict, family: str, *,
+                                   verify_file_content: bool = True) -> list[dict]:
+    """Load exactly the signed FILTERED manifest rows for a selected family (no directory rescan).
+
+    Opens only ``selection_identity[family]['filtered_manifest_path']``, verifies its SHA-256 against
+    the selection record, requires every mandatory column, and returns the rows deterministically
+    ordered by (numeric ``selection_rank``, ``sample_id``).  With ``verify_file_content`` each image is
+    checked (path, existence, size, SHA-256, extension, positive pool, no test path) before use.
+    """
+    root = Path(root)
+    identity = (payload.get("selection_identity") or {}).get(family)
+    if not identity:
+        raise ValueError(f"selection has no identity for family {family}")
+    manifest_relative = str(identity["filtered_manifest_path"])
+    manifest_path = root / manifest_relative
+    if Path(manifest_relative).is_absolute() or not manifest_path.is_file():
+        raise ValueError(f"FILTERED manifest missing or not a project-relative path: {manifest_relative}")
+    if _sha256_file_cached(manifest_path) != identity.get("filtered_manifest_sha256"):
+        raise ValueError(f"FILTERED manifest content changed for {family}: {manifest_relative}")
+    with manifest_path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    records: list[dict] = []
+    for row in rows:
+        for field in REQUIRED_MANIFEST_FIELDS:
+            if row.get(field) in (None, ""):
+                raise ValueError(f"FILTERED manifest row missing required field {field!r}: {manifest_relative}")
+        records.append({
+            "sample_id": row["sample_id"], "relative_path": row["relative_path"],
+            "file_size": int(row["file_size"]), "sha256": row["sha256"],
+            "selection_rank": int(row["selection_rank"]),
+            "source_raw_sample_id": row["source_raw_sample_id"],
+            "manifest_sha256": identity["filtered_manifest_sha256"]})
+    records.sort(key=lambda record: (record["selection_rank"], record["sample_id"]))
+    if verify_file_content:
+        verify_selected_filtered_records(root, records, identity)
+    return records
+
+
+def verify_selected_filtered_records(root: Path, records: list[dict], identity: dict) -> None:
+    """Per-image scientific-content verification of the signed FILTERED records."""
+    root = Path(root)
+    project_root = root.resolve()
+    n = len(records)
+    expected = int(identity.get("filtered_image_count", -1))
+    if n != expected:
+        raise ValueError(f"FILTERED manifest has {n} records, expected {expected}")
+    sample_ids = [record["sample_id"] for record in records]
+    relatives = [record["relative_path"] for record in records]
+    ranks = [record["selection_rank"] for record in records]
+    if len(set(sample_ids)) != n:
+        raise ValueError("duplicate sample_id in FILTERED manifest")
+    if len(set(relatives)) != n:
+        raise ValueError("duplicate relative_path in FILTERED manifest")
+    if sorted(ranks) != list(range(n)):
+        raise ValueError("selection_rank values are not a contiguous 0..n-1 range")
+    positive_pools = {Path(rel).parent.as_posix() for rel in relatives}
+    if len(positive_pools) != 1 or not next(iter(positive_pools)).endswith("/positive"):
+        raise ValueError("FILTERED records are not a single canonical positive pool")
+    if not next(iter(positive_pools)).startswith("data/synthetic/"):
+        raise ValueError("FILTERED positive pool is not under data/synthetic")
+    for record in records:
+        relative = record["relative_path"]
+        candidate = Path(relative)
+        if candidate.is_absolute():
+            raise ValueError(f"absolute relative_path in manifest: {relative}")
+        if _TEST_PATH_COMPONENTS & set(candidate.parts):
+            raise ValueError(f"manifest references a test path: {relative}")
+        if candidate.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+            raise ValueError(f"unsupported image extension: {relative}")
+        resolved = (root / candidate).resolve()
+        if not resolved.is_relative_to(project_root):
+            raise ValueError(f"manifest path resolves outside the project root: {relative}")
+        if not resolved.exists() or not resolved.is_file():
+            raise ValueError(f"manifest file is missing or not a regular file: {relative}")
+        stat = resolved.stat()
+        if stat.st_size != record["file_size"]:
+            raise ValueError(f"file_size mismatch for {relative}")
+        if _sha256_file_cached(resolved) != record["sha256"]:
+            raise ValueError(f"SHA-256 mismatch for {relative}")
+
+
+def audit_built_synthetic_set(root: Path, built_file_list: dict, records: list[dict]) -> dict:
+    """Compare a built synthetic positive set against the signed FILTERED records (identity, not count)."""
+    root = Path(root)
+    manifest_paths = [record["relative_path"] for record in records]
+    manifest_shas = [record["sha256"] for record in records]
+    built = [entry for entry in built_file_list.get("positive", []) if entry.get("source") == "synthetic"]
+    built_paths = [entry["path"] for entry in built]
+    built_shas = [entry.get("file_sha256") or _sha256_file_cached(root / entry["path"]) for entry in built]
+    manifest_path_set, built_path_set = set(manifest_paths), set(built_paths)
+    test_paths = sum(1 for path in built_paths if _TEST_PATH_COMPONENTS & set(Path(path).parts))
+    return {
+        "expected_count": len(records),
+        "actual_count": len(built),
+        "exact_path_set_match": manifest_path_set == built_path_set,
+        "exact_sha256_set_match": set(manifest_shas) == set(built_shas),
+        "extra_files": len(built_path_set - manifest_path_set),
+        "missing_files": len(manifest_path_set - built_path_set),
+        "duplicate_paths": len(built_paths) - len(built_path_set),
+        "duplicate_sample_ids": len(manifest_paths) - len(set(manifest_paths)),
+        "test_paths": test_paths,
+    }
+
 
 def _sha256_file_cached(path: Path) -> str:
     stat = path.stat()
@@ -177,22 +305,46 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
     augmented = {klass: values if klass in allowed_augmented else [] for klass, values in augmented.items()}
 
     synthetic: dict[str, list[str]] = {k: [] for k in CLASS_LABEL}
+    synthetic_records: dict[str, list[dict]] = {k: [] for k in CLASS_LABEL}
     gid = variant.get("synthetic_generator_id")
     if gid and variant.get("synthetic_count_by_class"):
-        if generator_registry is None:
-            generator_registry = json.loads((root / "configs/generator_registry.json").read_text())
-        entry = next((g for g in generator_registry["generators"] if g["id"] == gid), None)
-        if entry is None:
-            raise ValueError(f"generator {gid} referenced by variant {variant['dataset_variant_id']} not found in registry")
-        for klass, k_count in variant["synthetic_count_by_class"].items():
-            candidates, precision = _synthetic_candidate_files(root, entry, klass)
-            if len(candidates) < k_count:
-                raise ValueError(f"variant {variant['dataset_variant_id']}: only {len(candidates)} synthetic files on disk for "
-                                  f"{gid}/{klass} ({precision}), need {k_count}")
-            sig = deterministic_sample_signature(candidates, k_count, seed=variant.get("seed", 42))
-            synthetic[klass] = sig["picked"]
-            variant.setdefault("_resolved_synthetic_signature", {})[klass] = {
-                **{k: v for k, v in sig.items() if k != "picked"}, "file_source_precision": precision}
+        selected_family = selected_family_for_generator(root, gid)
+        if selected_family is not None:
+            # Publication path: consume exactly the signed FILTERED manifest, no scan/sampling.
+            payload = _load_selection_payload(root)
+            records = load_selected_filtered_records(root, payload, selected_family, verify_file_content=True)
+            manifest_sha = (payload["selection_identity"][selected_family]["filtered_manifest_sha256"])
+            for klass, k_count in variant["synthetic_count_by_class"].items():
+                if klass != "positive":
+                    raise ValueError(f"selected synthetic condition adds positives only, got class {klass}")
+                if len(records) != k_count:
+                    raise ValueError(f"variant {variant['dataset_variant_id']}: manifest has {len(records)} "
+                                     f"records, synthetic_count_by_class requires {k_count}")
+                synthetic[klass] = [record["relative_path"] for record in records]
+                synthetic_records[klass] = [{
+                    "path": record["relative_path"], "source": "synthetic", "generator_id": gid,
+                    "sample_id": record["sample_id"], "source_raw_sample_id": record["source_raw_sample_id"],
+                    "manifest_sha256": manifest_sha, "file_sha256": record["sha256"],
+                    "selection_rank": record["selection_rank"]} for record in records]
+            variant["_selected_manifest_provenance"] = {
+                "family": selected_family, "generator_id": gid, "manifest_sha256": manifest_sha,
+                "manifest_record_count": len(records)}
+        else:
+            # Legacy, non-publication utilities may still scan+sample an unselected generator.
+            if generator_registry is None:
+                generator_registry = json.loads((root / "configs/generator_registry.json").read_text())
+            entry = next((g for g in generator_registry["generators"] if g["id"] == gid), None)
+            if entry is None:
+                raise ValueError(f"generator {gid} referenced by variant {variant['dataset_variant_id']} not found in registry")
+            for klass, k_count in variant["synthetic_count_by_class"].items():
+                candidates, precision = _synthetic_candidate_files(root, entry, klass)
+                if len(candidates) < k_count:
+                    raise ValueError(f"variant {variant['dataset_variant_id']}: only {len(candidates)} synthetic files on disk for "
+                                      f"{gid}/{klass} ({precision}), need {k_count}")
+                sig = deterministic_sample_signature(candidates, k_count, seed=variant.get("seed", 42))
+                synthetic[klass] = sig["picked"]
+                variant.setdefault("_resolved_synthetic_signature", {})[klass] = {
+                    **{k: v for k, v in sig.items() if k != "picked"}, "file_source_precision": precision}
 
     files = {}
     for klass in CLASS_LABEL:
@@ -200,7 +352,10 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
                    for p in real.get(klass, [])]
         entries += [{**p, "source": "augmented"} if isinstance(p, dict) else {"path": p, "source": "augmented"}
                     for p in augmented.get(klass, [])]
-        entries += [{"path": p, "source": "synthetic"} for p in synthetic.get(klass, [])]
+        if synthetic_records[klass]:
+            entries += synthetic_records[klass]
+        else:
+            entries += [{"path": p, "source": "synthetic"} for p in synthetic.get(klass, [])]
         files[klass] = entries
     return files
 

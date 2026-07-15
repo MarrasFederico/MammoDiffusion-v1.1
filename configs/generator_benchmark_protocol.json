@@ -1,5 +1,8 @@
 {
   "schema_version": 2,
+  "protocol_version": 2.1,
+  "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
+  "amendment_note": "eligibility_gates below are the ORIGINAL preregistered gates, retained for the historical record; the active selection policy is Option B as defined in active_amendment (perceptual_hash-only rate and rad_dino_coverage are descriptive metrics, not binary gates). Transparent post-benchmark amendment.",
   "pipeline_namespace": "mammodiffusion.generator_benchmark.v2",
   "study_question": "RQ1: Which eligible fine-tuned generator and which eligible from-scratch generator provide the best balance of fidelity, diversity, coverage, efficiency, and absence of train memorization?",
   "primary_class": "positive",

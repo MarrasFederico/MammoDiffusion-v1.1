@@ -1,0 +1,61 @@
+{
+ "amendment_version": "v1",
+ "status": "approved_post_benchmark",
+ "approved_by": "human",
+ "approval_date": "2026-07-15",
+ "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
+ "benchmark_HEAD": "cd05886c0e7044325063d9e2db4bf2de6d285dc4",
+ "original_protocol_path": "results/publication_v2/generator_benchmark/gate_audit/original_protocol.json",
+ "original_protocol_SHA256": "c5f189d8f6e31d7ac8a02a682e4150e33529f7280b66c90d2ba5867970af3084",
+ "original_outcome": {
+  "official_candidates_measured": 5,
+  "eligible_under_original_gates": 0,
+  "original_gates": {
+   "maximum_perceptual_duplicate_rate": 0.02,
+   "minimum_rad_dino_coverage": 0.5
+  }
+ },
+ "methodological_issue_phash": "The original perceptual_hash_duplicate_rate gate counted an image as duplicated when any earlier image was within pHash distance 2. This is order-dependent and, crucially, pHash-only: it flags perceptual-hash-near pairs that are not confirmed duplicates. Under the preregistered confirmed-duplicate rule (exact hash, or pHash<=2 AND SSIM>=0.98) the confirmed_duplicate_rate is 0 for all five official candidates; the flagged pairs remain a descriptive signal of structural similarity and possible reduced diversity, not confirmed duplication. Perceptual-hash any-neighbour and component-excess rates also depend on pool size and must be compared size-matched, not full-pool (1361 vs 340 vs 73).",
+ "methodological_issue_coverage": "The original minimum_rad_dino_coverage=0.5 gate used a single balanced-point coverage from one 73-image synthetic subset. Coverage is unstable at this numerosity (200-repetition stability intervals are wide) and the 0.5 value was not derived from data. Real-vs-real coverage baselines (real train positives vs validation, and validation split-half) sit near 0.96-0.98 and provide an upper/reference benchmark, not a directly transferable synthetic eligibility threshold. Coverage is therefore retained as a descriptive/ranking metric rather than a binary hard gate.",
+ "new_blocking_gates": {
+  "minimum_valid_positive_images": 1361,
+  "maximum_exact_duplicate_rate": 0.01,
+  "maximum_confirmed_duplicate_rate": 0.02,
+  "maximum_train_memorization_rate": 0.01,
+  "maximum_corrupted_file_rate": 0.0,
+  "require_valid_filter_manifest": true,
+  "require_complete_raw_filtered_mapping": true,
+  "require_complete_metrics": true,
+  "require_lineage": true,
+  "require_provenance": true,
+  "forbid_test_access": true
+ },
+ "removed_blocking_gates": [
+  "maximum_perceptual_duplicate_rate",
+  "minimum_rad_dino_coverage"
+ ],
+ "new_descriptive_metrics": [
+  "perceptual_hash_duplicate_rate",
+  "phash_any_neighbour_rate",
+  "phash_component_excess_rate",
+  "raddino_coverage",
+  "raddino_precision",
+  "raddino_recall",
+  "raddino_density",
+  "raddino_fid",
+  "inception_kid",
+  "ms_ssim_diversity",
+  "validation_nearest_neighbour_distance"
+ ],
+ "selection_hierarchy": [
+  "raddino_kid",
+  "raddino_coverage",
+  "raddino_precision",
+  "raddino_fid",
+  "inception_kid",
+  "raddino_kid_std",
+  "generator_id"
+ ],
+ "selected_policy": "B",
+ "test_access": false
+}

@@ -82,6 +82,51 @@ def synthetic_manifest_audit(root: Path, generator_id: str) -> dict[str, Any]:
     }
 
 
+def _dataset_builder():
+    try:
+        from . import classifier_dataset_builder as builder
+    except ImportError:
+        import classifier_dataset_builder as builder
+    return builder
+
+
+def built_vs_manifest_audit(root: Path, condition: str) -> dict[str, Any]:
+    """Build the real synthetic file list (no model) and compare it to the signed manifest by content."""
+    root = Path(root)
+    builder = _dataset_builder()
+    variant = dp.resolve_condition(root, condition)
+    generator_id = variant["synthetic_generator_id"]
+    family = builder.selected_family_for_generator(root, generator_id)
+    payload = dp.load_selected_generators(root)
+    records = builder.load_selected_filtered_records(root, payload, family, verify_file_content=True)
+    file_list = builder.build_file_list(root, variant)
+    audit = builder.audit_built_synthetic_set(root, file_list, records)
+    # Directory extras that the signed-manifest path correctly ignores (informational only).
+    pool = Path(records[0]["relative_path"]).parent
+    on_disk = {p.relative_to(root).as_posix() for p in (root / pool).glob("*")
+               if p.is_file() and p.suffix.lower() in builder.SUPPORTED_IMAGE_EXTENSIONS}
+    manifest_paths = {record["relative_path"] for record in records}
+    modified = sum(1 for record in records
+                   if (root / record["relative_path"]).is_file()
+                   and (root / record["relative_path"]).stat().st_size != record["file_size"])
+    return {
+        "selected_generator": generator_id,
+        "selected_manifest": str(payload["selection_identity"][family]["filtered_manifest_path"]),
+        "manifest_sha256": payload["selection_identity"][family]["filtered_manifest_sha256"],
+        "manifest_record_count": len(records),
+        "built_synthetic_count": audit["actual_count"],
+        "directory_file_count": len(on_disk),
+        "directory_extras_ignored": len(on_disk - manifest_paths),
+        "exact_path_set_match": audit["exact_path_set_match"],
+        "exact_sha256_set_match": audit["exact_sha256_set_match"],
+        "test_paths": audit["test_paths"],
+        "missing_files": audit["missing_files"],
+        "modified_files": modified,
+        "duplicate_sample_ids": audit["duplicate_sample_ids"],
+        "duplicate_relative_paths": audit["duplicate_paths"],
+    }
+
+
 def audit_condition(root: Path, condition: str) -> dict[str, Any]:
     resolved = dp.resolve_condition(root, condition)
     report = {
@@ -95,6 +140,7 @@ def audit_condition(root: Path, condition: str) -> dict[str, Any]:
     }
     if resolved["synthetic_generator_id"]:
         report["synthetic"] = synthetic_manifest_audit(root, resolved["synthetic_generator_id"])
+        report["built"] = built_vs_manifest_audit(root, condition)
     return report
 
 
@@ -125,6 +171,15 @@ def main() -> None:
                   f"sources={syn['distinct_source_count']}")
             print(f"    test_paths={syn['test_paths_found']} dup_ids={syn['duplicate_sample_ids']} "
                   f"missing_files={syn['missing_files']}")
+        if "built" in entry:
+            b = entry["built"]
+            print(f"    built: manifest_records={b['manifest_record_count']} "
+                  f"built_synthetic={b['built_synthetic_count']} "
+                  f"directory_files={b['directory_file_count']} extras_ignored={b['directory_extras_ignored']}")
+            print(f"    built: exact_path_set_match={b['exact_path_set_match']} "
+                  f"exact_sha256_set_match={b['exact_sha256_set_match']} test_paths={b['test_paths']} "
+                  f"missing={b['missing_files']} modified={b['modified_files']} "
+                  f"dup_ids={b['duplicate_sample_ids']} dup_paths={b['duplicate_relative_paths']}")
 
 
 if __name__ == "__main__":

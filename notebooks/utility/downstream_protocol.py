@@ -111,40 +111,43 @@ def load_selected_generators(root: Path, *, required: bool = True) -> dict[str, 
     return payload
 
 
-def _require_content_hash(root: Path, relative: str | None, expected: str | None, label: str) -> None:
+def _require_content_hash(root: Path, relative: str | None, expected: str | None, label: str,
+                          *, required: bool = True) -> bool:
     if not relative or not expected:
-        raise ValueError(f"selection is missing the {label} content binding")
+        if required:
+            raise ValueError(f"selection is missing the {label} content binding")
+        return False
     path = Path(root) / str(relative)
     if not path.is_file():
-        raise ValueError(f"selection {label} content is missing: {relative}")
+        if required:
+            raise ValueError(f"selection {label} content is missing: {relative}")
+        return False
     if _file_sha256(path) != expected:
         raise ValueError(f"selection {label} content has changed since selection: {relative}")
+    return True
 
 
-def validate_selection_content(root: Path, payload: Mapping[str, Any]) -> None:
-    """Content-aware validation used before building any synthetic dataset.
+def validate_selection_decision(root: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Portable, publication-oriented validation of the selection *decision*.
 
-    Verifies that the amendment, benchmark summary, amended gate results and each selected generator's
-    model / generation identity and FILTERED manifest still match the content recorded at selection
-    time.  Validity depends only on scientific content, not on git state, locks, or approvals.
+    Uses only committed artifacts — the active amendment, the committed selection evidence and the
+    registry — so it runs in a clean ``git archive`` without the git-ignored runtime CSVs. Confirms the
+    selection matches the amended safety-gate results and the descriptive rank-1 recorded in evidence.
     """
-    import csv
     if int(payload.get("schema_version", 1)) < 2:
         raise ValueError("a synthetic condition requires a content-aware (schema_version >= 2) selection")
     if payload.get("test_access", False):
         raise ValueError("selection declares test_access = true")
-    if not payload.get("active_amendment"):
-        raise ValueError("selection has no active amendment")
     _require_content_hash(root, payload.get("active_amendment"), payload.get("active_amendment_sha256"), "amendment")
-    _require_content_hash(root, payload.get("benchmark_summary_path"), payload.get("benchmark_summary_sha256"),
-                          "benchmark summary")
-    _require_content_hash(root, payload.get("amended_gate_results_path"), payload.get("amended_gate_results_sha256"),
-                          "amended gate results")
-
-    gate_rows = {}
-    with (Path(root) / str(payload["amended_gate_results_path"])).open(newline="") as stream:
-        for row in csv.DictReader(stream):
-            gate_rows[str(row["full_generator_id"])] = row
+    _require_content_hash(root, payload.get("selection_evidence_path"), payload.get("selection_evidence_sha256"),
+                          "selection evidence")
+    evidence = json.loads((Path(root) / str(payload["selection_evidence_path"])).read_text())
+    if evidence.get("test_access", True) is not False:
+        raise ValueError("selection evidence declares test access")
+    if evidence.get("active_amendment_sha256") != payload.get("active_amendment_sha256"):
+        raise ValueError("selection evidence is bound to a different amendment")
+    safety = {row["generator_id"]: row for row in evidence.get("amended_safety_gate_results", [])}
+    ranking = evidence.get("descriptive_family_ranking", {})
     by_id = {entry["id"]: entry for entry in _load_registry(root)["generators"]}
     identity = payload.get("selection_identity", {})
     for family in ("finetuned", "from_scratch"):
@@ -154,12 +157,40 @@ def validate_selection_content(root: Path, payload: Mapping[str, Any]) -> None:
             raise ValueError(f"invalid selected {family} generator")
         if not entry.get("eligible_for_downstream_selection", False):
             raise ValueError(f"selected {generator_id} is not selection-eligible")
-        gate = gate_rows.get(generator_id)
-        if not gate or str(gate.get("amended_safety_gate_eligible")).lower() not in ("true", "1"):
-            raise ValueError(f"{generator_id} is not amended-safety-gate eligible")
-        if str(gate.get("descriptive_family_rank")) != "1":
-            raise ValueError(f"{generator_id} is not descriptive_family_rank 1")
+        if evidence.get("selected_generators", {}).get(family) != generator_id:
+            raise ValueError(f"selection evidence does not select {generator_id} for {family}")
+        record = safety.get(generator_id)
+        if not record or not bool(record.get("amended_safety_gate_eligible")):
+            raise ValueError(f"{generator_id} is not amended-safety-gate eligible in evidence")
+        family_ranks = {row["generator_id"]: row for row in ranking.get(family, [])}
+        if int(family_ranks.get(generator_id, {}).get("descriptive_family_rank", -1)) != 1:
+            raise ValueError(f"{generator_id} is not descriptive_family_rank 1 in evidence")
+        if identity.get(family, {}).get("descriptive_family_rank") != 1:
+            raise ValueError(f"{generator_id} recorded rank is not 1")
+    return evidence
 
+
+def validate_selection_content(root: Path, payload: Mapping[str, Any]) -> None:
+    """Full content-aware validation used before building any synthetic dataset.
+
+    First validates the portable decision (amendment + committed evidence), then binds each selected
+    generator to its model / generation identity and FILTERED manifest in the scientific runtime.
+    The git-ignored runtime CSV hashes are verified only when those files are present (forensic).
+    Validity depends only on scientific content, not on git state, locks, or approvals.
+    """
+    import csv
+    validate_selection_decision(root, payload)
+    # Optional forensic bindings to the git-ignored runtime CSVs.
+    _require_content_hash(root, payload.get("benchmark_summary_path"), payload.get("benchmark_summary_sha256"),
+                          "benchmark summary", required=False)
+    _require_content_hash(root, payload.get("amended_gate_results_path"), payload.get("amended_gate_results_sha256"),
+                          "amended gate results", required=False)
+
+    by_id = {entry["id"]: entry for entry in _load_registry(root)["generators"]}
+    identity = payload.get("selection_identity", {})
+    for family in ("finetuned", "from_scratch"):
+        generator_id = payload.get(family)
+        entry = by_id.get(generator_id)
         recorded = identity.get(family, {})
         if recorded.get("descriptive_family_rank") != 1:
             raise ValueError(f"{generator_id} recorded rank is not 1")
@@ -247,4 +278,5 @@ def logical_experiments() -> list[dict[str, Any]]:
 
 __all__ = ["ARCHITECTURES", "CONDITIONS", "NAMESPACE", "SEEDS", "atomic_json", "experiment_id",
            "load_jobs", "load_protocol", "load_selected_generators", "logical_experiments", "parse_experiment_id",
-           "resolve_condition", "resolve_job", "selection_summary", "validate_jobs", "validate_selection_content"]
+           "resolve_condition", "resolve_job", "selection_summary", "validate_jobs",
+           "validate_selection_content", "validate_selection_decision"]

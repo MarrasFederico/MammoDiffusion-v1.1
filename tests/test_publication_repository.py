@@ -65,8 +65,17 @@ class PublicationRepositoryTests(unittest.TestCase):
             text = (ROOT / relative).read_text()
             for question in ("RQ1", "RQ2", "RQ3"): self.assertIn(question, text)
 
-    def test_no_selection_is_hardcoded_before_benchmark(self):
-        self.assertFalse((ROOT / "configs/selected_generators.json").exists())
+    def test_selection_is_a_transparent_post_benchmark_amendment(self):
+        # Selection exists only after the benchmark + human-approved Option B amendment.
+        import json
+        selection = ROOT / "configs/selected_generators.json"
+        self.assertTrue(selection.exists())
+        payload = json.loads(selection.read_text())
+        self.assertEqual(payload["finetuned"], "02_sd21_filtered_100steps")
+        self.assertEqual(payload["from_scratch"], "07_ldm_sdvae_extra1361")
+        self.assertTrue(payload["post_benchmark_amendment"])
+        self.assertFalse(payload["test_access"])
+        self.assertEqual(payload["active_amendment"], "configs/generator_benchmark_protocol_amendment_v1.json")
 
     def test_no_tracked_model_cache_or_archive_artifacts(self):
         if not (ROOT / ".git").exists():

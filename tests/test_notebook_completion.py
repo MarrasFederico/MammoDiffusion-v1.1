@@ -132,15 +132,16 @@ class GeneratorCompletionTests(unittest.TestCase):
         fs = gb.rank_generator_family(rows, "from_scratch", protocol["eligibility_gates"])
         self.assertEqual(next(row["generator_id"] for row in fs if row["eligible"]), "06_primary")
 
-    def test_selection_notebook_has_proposal_override_and_explicit_save_guard(self):
+    def test_selection_notebook_records_amended_selection(self):
+        # After the benchmark and the human-approved post-benchmark amendment (Option B), notebook 06
+        # reads the active amendment, shows the original zero-eligible outcome alongside the amended
+        # safety-gate outcome, and records the explicit G02/G07 selection.
         text = (ROOT / "notebooks/3_generator_benchmark/06_Generator_Selection.ipynb").read_text()
-        for token in ("PROPOSED_FINETUNED_GENERATOR", "PROPOSED_FROM_SCRATCH_GENERATOR",
-                      "SELECTED_FINETUNED_GENERATOR = PROPOSED_FINETUNED_GENERATOR",
-                      "SELECTED_FROM_SCRATCH_GENERATOR = PROPOSED_FROM_SCRATCH_GENERATOR",
-                      "SAVE_SELECTION = False", "manual_override"):
+        for token in ("SELECTED_FINETUNED_GENERATOR", "SELECTED_FROM_SCRATCH_GENERATOR",
+                      "02_sd21_filtered_100steps", "07_ldm_sdvae_extra1361",
+                      "load_active_amendment", "amended_family_ranking", "save_amended_selection",
+                      "original_finetuned", "amended_finetuned", "SAVE_SELECTION"):
             self.assertIn(token, text)
-        self.assertIn("sampling_ablations", text)
-        self.assertIn("descriptive_baselines", text)
 
 
 class GPUResumeAndVisualizationTests(unittest.TestCase):

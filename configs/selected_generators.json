@@ -1,0 +1,18 @@
+{
+  "finetuned": "02_sd21_filtered_100steps",
+  "from_scratch": "07_ldm_sdvae_extra1361",
+  "primary_metric": "raddino_kid",
+  "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
+  "original_protocol_result": {
+    "official_candidates_measured": 5,
+    "eligible_under_original_gates": 0,
+    "original_gates": {
+      "maximum_perceptual_duplicate_rate": 0.02,
+      "minimum_rad_dino_coverage": 0.5
+    }
+  },
+  "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
+  "post_benchmark_amendment": true,
+  "selection_notes": "Post-benchmark amendment v1 (Option B), human-approved: coverage-point and pHash-only removed as binary gates; safety gates retained (exact/confirmed duplicate, train memorization, corruption, FILTERED validity, provenance, lineage, test access). All five official candidates pass the safety gates; the preregistered KID-primary hierarchy selects G02 (fine-tuned) and G07 (from-scratch). Downstream results must be interpreted with this amendment stated.",
+  "test_access": false
+}

@@ -26,9 +26,16 @@ class DownstreamProtocolTests(unittest.TestCase):
     def test_real_condition_does_not_require_selection(self):
         self.assertFalse(dp.resolve_condition(ROOT, "real_only")["synthetic_count_by_class"])
 
-    def test_synthetic_condition_requires_simple_selection_file(self):
-        self.assertFalse((ROOT / "configs/selected_generators.json").exists())
-        with self.assertRaises(FileNotFoundError): dp.resolve_condition(ROOT, "real_plus_best_finetuned_positive")
+    def test_synthetic_condition_resolves_after_amended_selection(self):
+        # The generator benchmark ran and the post-benchmark amendment (Option B) selected G02/G07;
+        # configs/selected_generators.json now exists and drives the synthetic downstream conditions.
+        selection = ROOT / "configs/selected_generators.json"
+        self.assertTrue(selection.exists())
+        payload = json.loads(selection.read_text())
+        self.assertEqual(payload["finetuned"], "02_sd21_filtered_100steps")
+        self.assertEqual(payload["from_scratch"], "07_ldm_sdvae_extra1361")
+        resolved = dp.resolve_condition(ROOT, "real_plus_best_finetuned_positive")
+        self.assertEqual(resolved["synthetic_generator_id"], "02_sd21_filtered_100steps")
 
     def test_pr_auc_controls_checkpoint_early_stopping_and_scheduler(self):
         protocol = dp.load_protocol(ROOT)

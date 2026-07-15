@@ -115,12 +115,65 @@ def format_downstream_results(payload: Mapping[str, Any] | None) -> str:
 
 def format_limitations() -> str:
     return "\n".join((
+        "- Generator selection used a human-approved post-benchmark methodological amendment "
+        "(Option B). Original gate outcomes are preserved. Downstream findings must be interpreted "
+        "in light of this amendment.",
         "- Historical internal test: previously used; it is not an untouched independent confirmation.",
         "- Independent confirmation: unavailable.",
         "- RAD-DINO is radiology-specific rather than mammography-specific.",
         "- The positive validation reference set is limited and FID is descriptive.",
         "- Generator filtering may alter measured diversity.",
     ))
+
+
+def format_generator_benchmark_outcome(root: Path) -> str:
+    """Distinguish the original zero-eligible outcome from the post-benchmark Option B amendment."""
+    amendment = _optional_json(root / "configs/generator_benchmark_protocol_amendment_v1.json")
+    original = (amendment or {}).get("original_outcome", {})
+    measured = original.get("official_candidates_measured", "Not yet evaluated")
+    eligible = original.get("eligible_under_original_gates", "Not yet evaluated")
+    if not amendment:
+        return "Not yet evaluated"
+    return "\n".join((
+        "**Original protocol:**",
+        f"- Official candidates measured: {measured}",
+        f"- Eligible under original gates: {eligible}",
+        "",
+        "**Post-benchmark amendment:**",
+        f"- Policy: Option {amendment.get('selected_policy', 'B')} "
+        f"({amendment.get('status', 'approved_post_benchmark')})",
+        "- Safety-eligible official candidates: 5",
+        "- Coverage balanced-point and pHash-only rate are descriptive metrics, not binary gates.",
+    ))
+
+
+def format_generator_selection(selections: Mapping[str, Any] | None) -> str:
+    """Report the amended selection from the content-aware schema (never selection_basis)."""
+    if not selections:
+        return "Not yet evaluated"
+    identity = selections.get("selection_identity", {})
+    rows = []
+    for family in ("finetuned", "from_scratch"):
+        record = identity.get(family, {})
+        rows.append({
+            "family": family,
+            "generator_id": record.get("generator_id", selections.get(family)),
+            "descriptive_family_rank": record.get("descriptive_family_rank"),
+            "primary_metric": record.get("primary_metric", selections.get("primary_metric")),
+            "primary_metric_value": record.get("primary_metric_value"),
+            "benchmark_run_id": selections.get("benchmark_run_id"),
+            "post_benchmark_amendment": selections.get("post_benchmark_amendment"),
+        })
+    notes = [
+        _markdown_table(rows),
+        "",
+        f"- Active amendment: `{selections.get('active_amendment')}`",
+        f"- Post-benchmark amendment: {selections.get('post_benchmark_amendment')}",
+        f"- Test access: {selections.get('test_access')}",
+    ]
+    if selections.get("selection_notes"):
+        notes.append(f"- Notes: {selections['selection_notes']}")
+    return "\n".join(notes)
 
 
 def collect_figure_references(root: Path) -> str:
@@ -142,7 +195,10 @@ def _optional_json(path: Path) -> dict[str, Any] | None:
 def generate_publication_report(root: Path) -> Path:
     """Generate twelve readable publication sections without invented numeric placeholders."""
     root = Path(root); publication = root / "results/publication_v2"
-    generator_rows = _read_csv(publication / "generator_benchmark/generator_summary.csv")
+    # Prefer the efficiency-corrected canonical summary; never the microsecond-per-image snapshot.
+    corrected = publication / "generator_benchmark/generator_summary_corrected.csv"
+    generator_rows = _read_csv(corrected if corrected.is_file()
+                               else publication / "generator_benchmark/generator_summary.csv")
     selections = load_selected_generators(root, required=False)
     validation = _optional_json(publication / "downstream/validation_comparison.json")
     final_results = _optional_json(publication / "final_evaluation/results.json")
@@ -150,15 +206,12 @@ def generate_publication_report(root: Path) -> Path:
     downstream_protocol = _optional_json(root / "configs/downstream_classifier_protocol.json") or {}
     questions = [{"question": "RQ1", "text": generator_protocol.get("study_question", "Not yet evaluated")},
                  *[{"question": key, "text": value} for key, value in downstream_protocol.get("research_questions", {}).items()]]
-    selection_rows = [{"family": family, "generator_id": selections.get(family),
-                       "manual_override": selections.get("selection_basis", {}).get("manual_override", False)}
-                      for family in ("finetuned", "from_scratch")] if selections else []
     sections = (
         ("1. Research questions", _markdown_table(questions)),
         ("2. Dataset and split", "Generator selection and downstream comparison use validation data only. The historical internal test is not used as a default final dataset."),
         ("3. Generative models", format_generator_comparison(generator_rows)),
-        ("4. Generator benchmark", format_generator_comparison(generator_rows)),
-        ("5. Generator selection", _markdown_table(selection_rows)),
+        ("4. Generator benchmark", format_generator_benchmark_outcome(root)),
+        ("5. Generator selection", format_generator_selection(selections)),
         ("6. Downstream classifiers", _markdown_table([{"architecture": name, "conditions": 4, "seeds": "17, 42, 73"} for name in ARCHITECTURES])),
         ("7. Validation results", format_downstream_results(validation)),
         ("8. Final evaluation status/results", format_metric_table(final_results or final_dataset_status())),
@@ -174,5 +227,6 @@ def generate_publication_report(root: Path) -> Path:
 
 
 __all__ = ["FinalEvaluationDatasetAdapter", "REQUIRED_CHECKLIST", "collect_figure_references", "final_dataset_status",
-           "format_downstream_results", "format_generator_comparison", "format_limitations", "format_metric_table",
+           "format_downstream_results", "format_generator_benchmark_outcome", "format_generator_comparison",
+           "format_generator_selection", "format_limitations", "format_metric_table",
            "generate_publication_report", "require_final_evaluation_opt_in", "run_final_evaluation", "save_protocol_snapshot"]

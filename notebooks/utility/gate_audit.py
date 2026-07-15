@@ -141,6 +141,198 @@ def legacy_order_dependent_phash_rate(hash_ints: Sequence[int], max_hamming_dist
 
 
 # ---------------------------------------------------------------------------
+# Content-aware perceptual-hash cache (compute once per image, reuse everywhere)
+# ---------------------------------------------------------------------------
+
+PHASH_IMPLEMENTATION_VERSION = "dct8x8-median-v1"  # matches generator_benchmark.perceptual_hash
+
+
+class PerceptualHashCache:
+    """Persistent, content-aware perceptual-hash + SHA-256 cache.
+
+    Each entry is keyed by absolute path and validated against file size and the perceptual-hash
+    implementation version; the SHA-256 is stored as part of the content identity.  The cache lets the
+    size-matched audit compute a pool's hashes once and reuse them across all 200 repetitions instead
+    of re-reading and re-hashing the same images.
+    """
+
+    def __init__(self, cache_dir: str | Path):
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.index_path = self.cache_dir / "phash_index.json"
+        self.index: dict[str, dict[str, Any]] = {}
+        if self.index_path.exists():
+            try:
+                self.index = json.loads(self.index_path.read_text())
+            except Exception:
+                self.index = {}
+        self._dirty = False
+
+    def _entry(self, path: str | Path) -> dict[str, Any]:
+        resolved = Path(path)
+        key = str(resolved.resolve())
+        size = resolved.stat().st_size
+        cached = self.index.get(key)
+        if cached and cached.get("file_size") == size \
+                and cached.get("phash_version") == PHASH_IMPLEMENTATION_VERSION:
+            return cached
+        entry = {"path": key, "file_size": size, "sha256": gb.file_sha256(resolved),
+                 "phash_hex": gb.perceptual_hash(resolved), "phash_version": PHASH_IMPLEMENTATION_VERSION}
+        self.index[key] = entry
+        self._dirty = True
+        return entry
+
+    def phash_int(self, path: str | Path) -> int:
+        return int(self._entry(path)["phash_hex"], 16)
+
+    def sha256(self, path: str | Path) -> str:
+        return self._entry(path)["sha256"]
+
+    def hash_ints(self, paths: Sequence[str | Path]) -> list[int]:
+        return [self.phash_int(path) for path in paths]
+
+    def exact_hashes(self, paths: Sequence[str | Path]) -> list[str]:
+        return [self.sha256(path) for path in paths]
+
+    def save(self) -> None:
+        if self._dirty:
+            gb.atomic_json(self.index_path, self.index)
+            self._dirty = False
+
+
+# ---------------------------------------------------------------------------
+# Size-matched perceptual-hash diagnostics (compare like-sized pools only)
+# ---------------------------------------------------------------------------
+
+def phash_pool_evidence(paths: Sequence[str | Path], *, cache: PerceptualHashCache | None = None,
+                        max_hamming_distance: int = 2, ssim_threshold: float = 0.98,
+                        ssim_fn: Callable[[Path, Path], float] | None = None) -> dict[str, Any]:
+    """Precompute, once for a pool, everything needed to derive size-matched subset diagnostics.
+
+    Returns the pool size and the global neighbour / confirmed / exact pair sets.  SSIM is evaluated
+    only on the pHash-near pairs, once.  All downstream repetition metrics are obtained by restricting
+    these pair sets to a sampled subset, so no image is read or hashed more than once.
+    """
+    resolved = [Path(path) for path in paths]
+    if cache is not None:
+        hash_ints = cache.hash_ints(resolved)
+        exact = cache.exact_hashes(resolved)
+    else:
+        hash_ints = perceptual_hash_ints(resolved)
+        exact = [gb.file_sha256(path) for path in resolved]
+    if ssim_fn is None:
+        ssim_fn = _default_ssim
+
+    neighbour_pairs = set(phash_neighbour_pairs(hash_ints, max_hamming_distance))
+    by_hash: dict[str, list[int]] = {}
+    for index, digest in enumerate(exact):
+        by_hash.setdefault(digest, []).append(index)
+    exact_pairs = {(a, b) for indices in by_hash.values() if len(indices) > 1
+                   for i, a in enumerate(indices) for b in indices[i + 1:]}
+    confirmed_pairs = set(exact_pairs)
+    for left, right in neighbour_pairs:
+        if (left, right) in exact_pairs:
+            continue
+        if float(ssim_fn(resolved[left], resolved[right])) >= ssim_threshold:
+            confirmed_pairs.add((left, right))
+    return {"n": len(resolved), "hash_ints": hash_ints, "neighbour_pairs": neighbour_pairs,
+            "confirmed_pairs": confirmed_pairs, "exact_pairs": exact_pairs}
+
+
+def _subset_phash_metrics(evidence: Mapping[str, Any], subset: Sequence[int]) -> dict[str, Any]:
+    members = set(int(index) for index in subset)
+    position = {index: order for order, index in enumerate(subset)}
+    n = len(subset)
+    neighbour = [(a, b) for a, b in evidence["neighbour_pairs"] if a in members and b in members]
+    confirmed = [(a, b) for a, b in evidence["confirmed_pairs"] if a in members and b in members]
+    exact = [(a, b) for a, b in evidence["exact_pairs"] if a in members and b in members]
+    neighbour_nodes = {node for pair in neighbour for node in pair}
+    confirmed_nodes = {node for pair in confirmed for node in pair}
+    exact_nodes = {node for pair in exact for node in pair}
+    components = connected_components(n, [(position[a], position[b]) for a, b in neighbour])
+    excess = sum(len(group) - 1 for group in components if len(group) >= 2)
+    largest = max((len(group) for group in components), default=0)
+    return {"sample_size": n,
+            "phash_any_neighbour_rate": len(neighbour_nodes) / n if n else 0.0,
+            "phash_component_excess_rate": excess / n if n else 0.0,
+            "confirmed_duplicate_rate": len(confirmed_nodes) / n if n else 0.0,
+            "exact_duplicate_rate": len(exact_nodes) / n if n else 0.0,
+            "largest_component_size": largest}
+
+
+def repeated_size_matched_phash(evidence: Mapping[str, Any], *, subset_size: int, repetitions: int,
+                                seed: int) -> list[dict[str, Any]]:
+    """200-style repeated size-matched perceptual-hash diagnostics via without-replacement subsampling.
+
+    Deterministic under ``seed`` and independent of the pool's storage order.
+    """
+    pool = int(evidence["n"])
+    if subset_size > pool:
+        raise ValueError(f"subset_size {subset_size} exceeds pool size {pool}")
+    rows = []
+    for repetition in range(int(repetitions)):
+        rng = np.random.default_rng(int(seed) + repetition)
+        subset = [int(index) for index in rng.choice(pool, int(subset_size), replace=False)]
+        rows.append({"repetition": repetition, "seed": int(seed) + repetition,
+                     **_subset_phash_metrics(evidence, subset)})
+    return rows
+
+
+SIZE_MATCHED_METRICS = ("phash_any_neighbour_rate", "phash_component_excess_rate",
+                        "confirmed_duplicate_rate", "exact_duplicate_rate", "largest_component_size")
+
+
+def summarize_size_matched(rows: Sequence[Mapping[str, Any]], metric: str) -> dict[str, Any]:
+    values = gb.summarize([float(row[metric]) for row in rows if row.get(metric) is not None])
+    return {"metric_name": metric, "repetitions": len(rows),
+            "metric_mean": values["mean"], "metric_median": values["median"],
+            "metric_std": values["standard_deviation"],
+            "stability_interval_low": values["percentile_2_5"],
+            "stability_interval_high": values["percentile_97_5"]}
+
+
+# ---------------------------------------------------------------------------
+# Amended (Option B) safety-gate eligibility
+# ---------------------------------------------------------------------------
+
+def amended_safety_gate_failures(row: Mapping[str, Any], gates: Mapping[str, Any], *,
+                                 confirmed_duplicate_rate: float | None = None) -> list[str]:
+    """Option B eligibility: block only on safety gates, never on pHash-only or coverage.
+
+    ``perceptual_duplicate_rate`` (pHash-only) and ``rad_dino_coverage`` are deliberately *not* gates
+    here; they are descriptive / ranking metrics under the approved amendment.  ``confirmed_duplicate_rate``
+    (exact | pHash<=2 AND SSIM>=0.98) is the duplicate safety gate and must be supplied from the audit
+    when it is not already on the row.
+    """
+    confirmed = confirmed_duplicate_rate
+    if confirmed is None:
+        confirmed = gb._metric_value(row, "confirmed_duplicate_rate", default=math.inf)
+    checks = [
+        (int(gb._metric_value(row, "valid_positive_images", default=0)) >= int(gates["minimum_valid_positive_images"]),
+         "valid_positive_images"),
+        (gb._metric_value(row, "synthetic_exact_duplicate_rate", default=math.inf) <= gates["maximum_exact_duplicate_rate"],
+         "exact_duplicate_rate"),
+        (float(confirmed) <= gates["maximum_confirmed_duplicate_rate"], "confirmed_duplicate_rate"),
+        (gb._metric_value(row, "train_memorization_rate", default=math.inf) <= gates["maximum_train_memorization_rate"],
+         "train_memorization_rate"),
+        (gb._metric_value(row, "corrupted_rate", "n_corrupt", default=0.0) <= gates["maximum_corrupted_file_rate"],
+         "corrupt_files"),
+        (gb._as_bool(row.get("filter_manifest_valid")), "filter_manifest"),
+        (gb._as_bool(row.get("filter_provenance_complete")), "filter_mapping"),
+        (gb._as_bool(row.get("metrics_complete")), "metrics_complete"),
+        (not gb._as_bool(row.get("test_access")), "test_access"),
+    ]
+    if gates.get("require_lineage", True):
+        checks.append((gb._as_bool(row.get("lineage_complete")), "lineage"))
+    if gates.get("require_provenance", True):
+        checks.append((gb._as_bool(row.get("provenance_manifest_valid")), "provenance"))
+    checks.append((gb._as_bool(row.get("training_corpus_manifest_valid")), "training_corpus"))
+    if not gb._as_bool(row.get("eligible_for_selection", row.get("eligible_for_downstream_selection", False))):
+        checks.append((False, "registry_role"))
+    return [name for passed, name in checks if not passed]
+
+
+# ---------------------------------------------------------------------------
 # Confirmed duplicates (exact hash OR pHash<=2 AND SSIM>=0.98)
 # ---------------------------------------------------------------------------
 
@@ -293,13 +485,15 @@ INVALID_DURATION_STATUS = "unavailable_invalid_duration_semantics"
 
 
 def efficiency_from_manifest_strict(root: Path, entry: Mapping[str, Any]) -> dict[str, Any]:
-    """Import runtime efficiency without ever inferring seconds-per-image from ambiguous durations.
+    """Import runtime efficiency without ever trusting an unverified duration.
 
-    ``generation_seconds_per_image`` is derived from ``elapsed_seconds`` only when the manifest
-    explicitly declares ``duration_semantics == 'wall_clock_full_generation'``,
-    ``duration_unit == 'seconds'`` and ``measurement_complete == true``.  Otherwise it is ``None`` and
-    ``efficiency_status`` is ``unavailable_invalid_duration_semantics``.  ``energy_kwh`` and
-    ``peak_vram_mb`` are imported only when their own semantics are declared verified.
+    ``generation_seconds_per_image`` is accepted only when the manifest explicitly declares
+    ``duration_semantics in {'wall_clock_full_generation', 'verified_seconds_per_image'}``,
+    ``duration_unit == 'seconds'`` and ``measurement_complete == true``.  This holds even when the
+    manifest already carries a ``seconds_per_image`` field directly: an unverified ``seconds_per_image``
+    is *not* trusted.  Otherwise the value is ``None`` and ``generation_efficiency_status`` is
+    ``unavailable_invalid_duration_semantics``.  ``energy_kwh`` and ``peak_vram_mb`` are imported only
+    when their own semantics are declared verified.
     """
     base = {"generation_seconds_per_image": None, "peak_vram_mb": None, "energy_kwh": None,
             "checkpoint_size_bytes": None, "efficiency_source": None,
@@ -328,17 +522,24 @@ def efficiency_from_manifest_strict(root: Path, entry: Mapping[str, Any]) -> dic
     if not count and payload.get("n_per_class") and payload.get("generated_classes"):
         count = int(payload["n_per_class"]) * len(payload["generated_classes"])
 
-    seconds_per_image = payload.get("seconds_per_image")
-    generation_status = "available" if seconds_per_image is not None else "unavailable"
     duration_ok = (
-        str(payload.get("duration_semantics")) == "wall_clock_full_generation"
+        str(payload.get("duration_semantics")) in {"wall_clock_full_generation", "verified_seconds_per_image"}
         and str(payload.get("duration_unit")) == "seconds"
-        and bool(payload.get("measurement_complete")) is True
+        and payload.get("measurement_complete") is True
     )
-    if seconds_per_image is None and payload.get("elapsed_seconds") is not None and count:
+    seconds_per_image = None
+    generation_status = "unavailable"
+    direct = payload.get("seconds_per_image")
+    elapsed = payload.get("elapsed_seconds")
+    if direct is not None:
+        # A directly recorded seconds_per_image is trusted only with verified duration semantics.
         if duration_ok:
-            seconds_per_image = float(payload["elapsed_seconds"]) / int(count)
-            generation_status = "available"
+            seconds_per_image, generation_status = float(direct), "available"
+        else:
+            generation_status = INVALID_DURATION_STATUS
+    elif elapsed is not None and count:
+        if duration_ok:
+            seconds_per_image, generation_status = float(elapsed) / int(count), "available"
         else:
             generation_status = INVALID_DURATION_STATUS
 
@@ -356,3 +557,117 @@ def efficiency_from_manifest_strict(root: Path, entry: Mapping[str, Any]) -> dic
     efficiency_status = generation_status if generation_status == INVALID_DURATION_STATUS else (
         "available" if available else "unavailable")
     return {**values, "efficiency_status": efficiency_status, "generation_efficiency_status": generation_status}
+
+
+# ---------------------------------------------------------------------------
+# Amendment-aware selection (Option B) for notebook 06
+# ---------------------------------------------------------------------------
+
+def load_active_amendment(root: Path) -> dict[str, Any] | None:
+    """Return the active protocol amendment payload, or ``None`` when the protocol declares none."""
+    protocol = gb.load_protocol(root)
+    reference = protocol.get("active_amendment")
+    if not reference:
+        return None
+    import json
+    return json.loads((Path(root) / str(reference)).read_text())
+
+
+def confirmed_duplicate_rates(root: Path) -> dict[str, float]:
+    """Map full generator_id -> confirmed_duplicate_rate from the pHash audit CSV (safety input)."""
+    import csv
+    path = Path(root) / gb.BENCHMARK_ROOT / "gate_audit/perceptual_hash_diagnostics.csv"
+    if not path.is_file():
+        return {}
+    rates: dict[str, float] = {}
+    with path.open(newline="") as stream:
+        for row in csv.DictReader(stream):
+            key = row.get("full_generator_id") or row.get("generator_id")
+            rates[str(key)] = float(row["confirmed_duplicate_rate"])
+    return rates
+
+
+def amended_family_ranking(rows: Sequence[Mapping[str, Any]], family: str, amendment: Mapping[str, Any],
+                           confirmed_by_gen: Mapping[str, float]) -> list[dict[str, Any]]:
+    """Rank a family by the preregistered hierarchy, gating on Option B safety gates only."""
+    gates = amendment["new_blocking_gates"]
+    candidates = []
+    for source in rows:
+        if str(source.get("family", source.get("scientific_family"))) != family:
+            continue
+        row = dict(source)
+        confirmed = confirmed_by_gen.get(str(row.get("generator_id")))
+        failures = amended_safety_gate_failures(row, gates, confirmed_duplicate_rate=confirmed)
+        row["amended_exclusion_reasons"] = sorted(set(failures))
+        row["eligible"] = not row["amended_exclusion_reasons"]
+        row["confirmed_duplicate_rate"] = confirmed
+        candidates.append(row)
+
+    def key(row: Mapping[str, Any]):
+        return (not row["eligible"],
+                gb._metric_value(row, "raddino_kid", "raddino_kid_mean"),
+                -gb._metric_value(row, "raddino_coverage", "coverage", default=-math.inf),
+                -gb._metric_value(row, "raddino_precision", "precision", default=-math.inf),
+                gb._metric_value(row, "raddino_fid", "fid_descriptive"),
+                gb._metric_value(row, "inception_kid", "inception_kid_mean"),
+                gb._metric_value(row, "raddino_kid_std", "kid_standard_deviation"),
+                str(row.get("generator_id", "")))
+    ordered = sorted(candidates, key=key)
+    return [{**row, "family_rank": index + 1 if row["eligible"] else None}
+            for index, row in enumerate(ordered)]
+
+
+def validate_amended_selection(root: Path, finetuned: str, from_scratch: str, registry: Mapping[str, Any],
+                               benchmark_rows: Sequence[Mapping[str, Any]], amendment: Mapping[str, Any],
+                               confirmed_by_gen: Mapping[str, float],
+                               synthetic_pool_target: int = 1361) -> dict[str, str]:
+    """Validate a selection against family, provenance and the Option B safety gates (never coverage/pHash)."""
+    by_id = {entry["id"]: entry for entry in registry["generators"]}
+    results = {str(row["generator_id"]): row for row in benchmark_rows if row.get("condition") == "FILTERED"}
+    gates = amendment["new_blocking_gates"]
+    for family, generator_id in (("finetuned", finetuned), ("from_scratch", from_scratch)):
+        entry = by_id.get(generator_id)
+        if not entry:
+            raise ValueError(f"unknown generator ID: {generator_id}")
+        if entry.get("scientific_family") != family:
+            raise ValueError(f"{generator_id} has wrong family")
+        if not entry.get("eligible_for_downstream_selection", False):
+            raise ValueError(f"{generator_id} is not selection-eligible")
+        row = results.get(generator_id)
+        if not row:
+            raise ValueError(f"benchmark incomplete for {generator_id}")
+        if not gb._as_bool(row.get("metrics_complete")):
+            raise ValueError(f"benchmark metrics incomplete for {generator_id}")
+        if int(gb._metric_value(row, "valid_positive_images", default=0)) < int(synthetic_pool_target):
+            raise ValueError(f"insufficient images for {generator_id}")
+        if gb._as_bool(row.get("test_access")):
+            raise ValueError("generator selection must not use test data")
+        failures = amended_safety_gate_failures(row, gates,
+                                                confirmed_duplicate_rate=confirmed_by_gen.get(generator_id))
+        if failures:
+            raise ValueError(f"amended safety gates failed for {generator_id}: {failures}")
+    return {"finetuned": finetuned, "from_scratch": from_scratch}
+
+
+def save_amended_selection(root: Path, finetuned: str, from_scratch: str,
+                           benchmark_rows: Sequence[Mapping[str, Any]], *, notes: str = "") -> Path:
+    """Validate and write configs/selected_generators.json for a post-benchmark amended selection."""
+    import json
+    registry = gb.load_registry(root)
+    protocol = gb.load_protocol(root)
+    amendment = load_active_amendment(root)
+    if amendment is None:
+        raise ValueError("no active amendment declared in the protocol")
+    confirmed = confirmed_duplicate_rates(root)
+    selected = validate_amended_selection(root, finetuned, from_scratch, registry, benchmark_rows,
+                                          amendment, confirmed, protocol["synthetic_pool_target"])
+    payload = {
+        "finetuned": selected["finetuned"], "from_scratch": selected["from_scratch"],
+        "primary_metric": protocol["selection"]["primary_metric"],
+        "benchmark_run_id": amendment["benchmark_run_id"],
+        "original_protocol_result": amendment["original_outcome"],
+        "active_amendment": str(protocol.get("active_amendment")),
+        "post_benchmark_amendment": True,
+        "selection_notes": notes,
+        "test_access": False}
+    return gb.atomic_json(Path(root) / "configs/selected_generators.json", payload)

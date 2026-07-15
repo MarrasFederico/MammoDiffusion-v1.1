@@ -60,15 +60,24 @@ gate_audit/
   `minimum_rad_dino_coverage` (0.5).
 * **Perceptual hash:** the active gate uses an order-dependent count (flag an image if any *earlier*
   image is within pHash distance 2). Under the order-independent audit and the preregistered
-  confirmed-duplicate rule, **`confirmed_duplicate_rate` is 0.0 for all five candidates** — every
-  flagged pair is a perceptual-hash collision between visually distinct images (low SSIM, large
-  RAD-DINO distance), not a true duplicate. Real train positives have `phash_any_neighbour_rate` ≈ 0.006
-  and validation positives ≈ 0.0; the deliberately similar augmentation pool (labelled separately) is
-  ≈ 0.98 and is excluded from the primary baseline.
-* **RAD-DINO coverage:** the gate uses a single balanced-point coverage from one 73-image subset. The
-  real-vs-real baselines put coverage at ≈ 0.96 (real train vs validation) and ≈ 0.98 (validation
-  split-half), while the best candidate (G07) reaches ≈ 0.42. The 0.5 threshold is therefore neither
-  calibrated to real-real behaviour nor achievable by any candidate.
+  confirmed-duplicate rule, **`confirmed_duplicate_rate` is 0.0 for all five candidates**. The flagged
+  pairs are **pHash-near pairs not confirmed as duplicates under the pHash ≤ 2 and SSIM ≥ 0.98 rule**
+  (they show low SSIM and large RAD-DINO distance); they are not described as mere hash collisions —
+  they remain a descriptive signal of structural similarity and possible reduced diversity. Perceptual
+  hash any-neighbour and component-excess rates also depend on pool size and must be read
+  **size-matched** (`gate_audit/phash_size_matched_summary.csv`): matched to n=73, the candidates fall
+  to ≈ 0.004–0.018 (vs full-pool 0.06–0.17), against real validation ≈ 0.0 and real train positives
+  (n=340) ≈ 0.006. The deliberately similar augmentation pool (labelled separately) is ≈ 0.98 and is
+  excluded from the primary baseline.
+* **RAD-DINO coverage:** the gate uses a single balanced-point coverage from one 73-image subset,
+  which is unstable (wide 200-repetition stability intervals; see
+  `gate_audit/coverage_stability_summary.csv`). The real-vs-real baselines put coverage at ≈ 0.96
+  (real train vs validation) and ≈ 0.98 (validation split-half), while the best candidate (G07)
+  reaches a point of ≈ 0.42 (stability mean ≈ 0.458, fraction of repetitions ≥ 0.5 ≈ 0.375).
+  **Real-real coverage estimates provide an upper/reference benchmark, not a directly transferable
+  synthetic eligibility threshold**; they are not used here to calibrate a synthetic gate value, and
+  no new coverage threshold is introduced. Under the approved amendment (Option B) coverage is a
+  descriptive/ranking metric, not a binary gate.
 * **Descriptive ranking (gate-independent):** fine-tuned G02 → G03 → G04; from-scratch G07 → G08.
 * **Efficiency:** the G02/G03/G04 manifests record an `elapsed_seconds` that implies physically
   impossible microsecond-per-image generation and carry no `duration_semantics`. The corrected parser

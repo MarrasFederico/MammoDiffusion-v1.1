@@ -165,6 +165,15 @@ class SignedManifestConsumptionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 builder.build_file_list(root, variant)
 
+    def test_manifest_path_traversal_outside_root_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, _ = build_tree(Path(tmp), count=6)
+            payload = json.loads((root / "configs/selected_generators.json").read_text())
+            # A '..' traversal that resolves outside the repository must be rejected.
+            payload["selection_identity"]["finetuned"]["filtered_manifest_path"] = "../outside/filtered_samples.csv"
+            with self.assertRaisesRegex(ValueError, "escapes the project root"):
+                builder.load_selected_filtered_records(root, payload, "finetuned")
+
 
 class LegacyAndRealIndependenceTests(unittest.TestCase):
     def test_no_selection_file_means_legacy_family_none(self):

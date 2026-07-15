@@ -67,8 +67,12 @@ def load_selected_filtered_records(root: Path, payload: dict, family: str, *,
         raise ValueError(f"selection has no identity for family {family}")
     manifest_relative = str(identity["filtered_manifest_path"])
     manifest_path = root / manifest_relative
-    if Path(manifest_relative).is_absolute() or not manifest_path.is_file():
-        raise ValueError(f"FILTERED manifest missing or not a project-relative path: {manifest_relative}")
+    resolved_manifest = manifest_path.resolve()
+    if Path(manifest_relative).is_absolute() or not resolved_manifest.is_relative_to(root.resolve()):
+        # Reject absolute paths and any '..' traversal that resolves outside the repository.
+        raise ValueError(f"FILTERED manifest path escapes the project root: {manifest_relative}")
+    if not manifest_path.is_file():
+        raise ValueError(f"FILTERED manifest missing: {manifest_relative}")
     if _sha256_file_cached(manifest_path) != identity.get("filtered_manifest_sha256"):
         raise ValueError(f"FILTERED manifest content changed for {family}: {manifest_relative}")
     with manifest_path.open(newline="", encoding="utf-8") as stream:

@@ -60,6 +60,12 @@ class PublicationRepositoryTests(unittest.TestCase):
         for name in removed: self.assertFalse((ROOT / "scripts" / name).exists(), name)
         self.assertFalse((ROOT / "notebooks/4_downstream_classifiers/10_Locked_Test_and_Final_Report.ipynb").exists())
 
+    def test_temporary_cleanup_inventory_is_not_tracked(self):
+        # cleanup_inventory_before_push.md is a throwaway audit note, not a publication artifact.
+        result = subprocess.run(["git", "ls-files", "cleanup_inventory_before_push.md"],
+                                cwd=ROOT, text=True, capture_output=True)
+        self.assertEqual(result.stdout.strip(), "", "cleanup_inventory_before_push.md must not be tracked")
+
     def test_required_research_questions_are_documented(self):
         for relative in ("README.md", "docs/publication_experimental_design.md", "docs/experimental_protocol.md"):
             text = (ROOT / relative).read_text()

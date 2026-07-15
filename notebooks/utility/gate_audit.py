@@ -17,6 +17,7 @@ Nothing here changes the active gate policy or the protocol configuration.
 """
 from __future__ import annotations
 
+import json
 import math
 from collections import Counter
 from pathlib import Path
@@ -481,82 +482,15 @@ def descriptive_generator_ranking(rows: Sequence[Mapping[str, Any]], family: str
 # Strict efficiency parser
 # ---------------------------------------------------------------------------
 
-INVALID_DURATION_STATUS = "unavailable_invalid_duration_semantics"
+INVALID_DURATION_STATUS = gb.INVALID_DURATION_STATUS  # single source of truth in generator_benchmark
 
 
 def efficiency_from_manifest_strict(root: Path, entry: Mapping[str, Any]) -> dict[str, Any]:
-    """Import runtime efficiency without ever trusting an unverified duration.
+    """Deprecated alias: the strict semantics now live in the canonical ``efficiency_from_manifest``.
 
-    ``generation_seconds_per_image`` is accepted only when the manifest explicitly declares
-    ``duration_semantics in {'wall_clock_full_generation', 'verified_seconds_per_image'}``,
-    ``duration_unit == 'seconds'`` and ``measurement_complete == true``.  This holds even when the
-    manifest already carries a ``seconds_per_image`` field directly: an unverified ``seconds_per_image``
-    is *not* trusted.  Otherwise the value is ``None`` and ``generation_efficiency_status`` is
-    ``unavailable_invalid_duration_semantics``.  ``energy_kwh`` and ``peak_vram_mb`` are imported only
-    when their own semantics are declared verified.
+    Kept as a thin delegator so there is a single implementation that cannot drift.
     """
-    base = {"generation_seconds_per_image": None, "peak_vram_mb": None, "energy_kwh": None,
-            "checkpoint_size_bytes": None, "efficiency_source": None,
-            "efficiency_status": "unavailable", "generation_efficiency_status": "unavailable"}
-    value = entry.get("efficiency_manifest")
-    path = Path(root) / str(value) if value else None
-    checkpoint = Path(root) / str(entry.get("checkpoint", ""))
-    checkpoint_size = checkpoint.stat().st_size if checkpoint.is_file() else None
-    if not path or not path.is_file():
-        return {**base, "checkpoint_size_bytes": checkpoint_size,
-                "efficiency_source": str(value) if value else None,
-                "efficiency_status": "unavailable" if checkpoint_size is None else "checkpoint_size_only",
-                "generation_efficiency_status": "unavailable"}
-    try:
-        payload = gb._read_manifest(path)
-    except Exception:
-        return {**base, "checkpoint_size_bytes": checkpoint_size,
-                "efficiency_status": "unavailable_unreadable_manifest",
-                "generation_efficiency_status": "unavailable_unreadable_manifest"}
-    if not isinstance(payload, Mapping):
-        return {**base, "checkpoint_size_bytes": checkpoint_size,
-                "efficiency_status": "unavailable_unreadable_manifest",
-                "generation_efficiency_status": "unavailable_unreadable_manifest"}
-
-    count = payload.get("images_generated") or payload.get("n_generated")
-    if not count and payload.get("n_per_class") and payload.get("generated_classes"):
-        count = int(payload["n_per_class"]) * len(payload["generated_classes"])
-
-    duration_ok = (
-        str(payload.get("duration_semantics")) in {"wall_clock_full_generation", "verified_seconds_per_image"}
-        and str(payload.get("duration_unit")) == "seconds"
-        and payload.get("measurement_complete") is True
-    )
-    seconds_per_image = None
-    generation_status = "unavailable"
-    direct = payload.get("seconds_per_image")
-    elapsed = payload.get("elapsed_seconds")
-    if direct is not None:
-        # A directly recorded seconds_per_image is trusted only with verified duration semantics.
-        if duration_ok:
-            seconds_per_image, generation_status = float(direct), "available"
-        else:
-            generation_status = INVALID_DURATION_STATUS
-    elif elapsed is not None and count:
-        if duration_ok:
-            seconds_per_image, generation_status = float(elapsed) / int(count), "available"
-        else:
-            generation_status = INVALID_DURATION_STATUS
-
-    energy_verified = bool(payload.get("energy_semantics_verified")) or bool(payload.get("energy_provenance_verified"))
-    vram_verified = payload.get("peak_vram_mb") is not None and bool(payload.get("vram_semantics_verified"))
-    values = {
-        "generation_seconds_per_image": seconds_per_image,
-        "peak_vram_mb": payload.get("peak_vram_mb") if vram_verified else None,
-        "energy_kwh": payload.get("energy_kwh") if energy_verified else None,
-        "checkpoint_size_bytes": checkpoint_size,
-        "efficiency_source": str(value),
-    }
-    available = any(values[name] is not None for name in
-                    ("generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes"))
-    efficiency_status = generation_status if generation_status == INVALID_DURATION_STATUS else (
-        "available" if available else "unavailable")
-    return {**values, "efficiency_status": efficiency_status, "generation_efficiency_status": generation_status}
+    return gb.efficiency_from_manifest(root, entry)
 
 
 # ---------------------------------------------------------------------------
@@ -649,10 +583,66 @@ def validate_amended_selection(root: Path, finetuned: str, from_scratch: str, re
     return {"finetuned": finetuned, "from_scratch": from_scratch}
 
 
+SELECTION_SCHEMA_VERSION = 2
+CANONICAL_SUMMARY_RELATIVE = str(Path(gb.BENCHMARK_ROOT) / "generator_summary_corrected.csv")
+AMENDED_GATE_RESULTS_RELATIVE = str(Path(gb.BENCHMARK_ROOT) / "gate_audit/amended_gate_results.csv")
+
+
+def _amended_rank_lookup(root: Path) -> dict[str, dict[str, Any]]:
+    import csv
+    path = Path(root) / AMENDED_GATE_RESULTS_RELATIVE
+    if not path.is_file():
+        return {}
+    lookup: dict[str, dict[str, Any]] = {}
+    with path.open(newline="") as stream:
+        for row in csv.DictReader(stream):
+            lookup[str(row["full_generator_id"])] = row
+    return lookup
+
+
+def selection_identity_entry(root: Path, generator_id: str, family: str,
+                             rank_row: Mapping[str, Any] | None, primary_metric: str) -> dict[str, Any]:
+    """Derive the content identity of one selected generator from its verified provenance manifest."""
+    import csv
+    registry = gb.load_registry(root)
+    entry = next(item for item in registry["generators"] if item["id"] == generator_id)
+    provenance = json.loads((Path(root) / entry["provenance_manifest"]).read_text())
+    filtered_manifest = str(provenance["filtered_sample_manifest"])
+    manifest_path = Path(root) / filtered_manifest
+    with manifest_path.open(newline="") as stream:
+        filtered_count = sum(1 for _ in csv.DictReader(stream))
+    metric_value = None
+    rank = None
+    if rank_row is not None:
+        rank = int(rank_row["descriptive_family_rank"]) if rank_row.get("descriptive_family_rank") not in (None, "") else None
+        metric_value = float(rank_row["selection_metric_value"]) if rank_row.get("selection_metric_value") not in (None, "") else None
+    return {
+        "generator_id": generator_id,
+        "family": family,
+        "descriptive_family_rank": rank,
+        "primary_metric": primary_metric,
+        "primary_metric_value": metric_value,
+        "model_identity_sha256": provenance["model_identity_sha256"],
+        "generation_identity_sha256": provenance["generation_identity_sha256"],
+        "filtered_manifest_path": filtered_manifest,
+        "filtered_manifest_sha256": provenance["manifest_sha256"]["filtered_samples"],
+        "filtered_image_count": filtered_count,
+    }
+
+
+def _relative_sha(root: Path, relative: str) -> str | None:
+    path = Path(root) / relative
+    return gb.file_sha256(path) if path.is_file() else None
+
+
 def save_amended_selection(root: Path, finetuned: str, from_scratch: str,
                            benchmark_rows: Sequence[Mapping[str, Any]], *, notes: str = "") -> Path:
-    """Validate and write configs/selected_generators.json for a post-benchmark amended selection."""
-    import json
+    """Validate and write a content-aware configs/selected_generators.json (schema_version 2).
+
+    Backward-compatible ``finetuned`` / ``from_scratch`` fields are retained.  The selection is bound to
+    the benchmark summary, the amended gate results, the active amendment, and each generator's model /
+    generation identity and FILTERED manifest by SHA-256 so later silent edits can be detected.
+    """
     registry = gb.load_registry(root)
     protocol = gb.load_protocol(root)
     amendment = load_active_amendment(root)
@@ -661,13 +651,29 @@ def save_amended_selection(root: Path, finetuned: str, from_scratch: str,
     confirmed = confirmed_duplicate_rates(root)
     selected = validate_amended_selection(root, finetuned, from_scratch, registry, benchmark_rows,
                                           amendment, confirmed, protocol["synthetic_pool_target"])
+    ranks = _amended_rank_lookup(root)
+    primary_metric = protocol["selection"]["primary_metric"]
     payload = {
+        # Backward-compatible minimal selection.
         "finetuned": selected["finetuned"], "from_scratch": selected["from_scratch"],
-        "primary_metric": protocol["selection"]["primary_metric"],
+        "schema_version": SELECTION_SCHEMA_VERSION,
+        "primary_metric": primary_metric,
+        "benchmark_HEAD": amendment["benchmark_HEAD"],
         "benchmark_run_id": amendment["benchmark_run_id"],
-        "original_protocol_result": amendment["original_outcome"],
+        "benchmark_summary_path": CANONICAL_SUMMARY_RELATIVE,
+        "benchmark_summary_sha256": _relative_sha(root, CANONICAL_SUMMARY_RELATIVE),
+        "amended_gate_results_path": AMENDED_GATE_RESULTS_RELATIVE,
+        "amended_gate_results_sha256": _relative_sha(root, AMENDED_GATE_RESULTS_RELATIVE),
         "active_amendment": str(protocol.get("active_amendment")),
+        "active_amendment_sha256": _relative_sha(root, str(protocol.get("active_amendment"))),
+        "original_protocol_result": amendment["original_outcome"],
         "post_benchmark_amendment": True,
+        "test_access": False,
         "selection_notes": notes,
-        "test_access": False}
+        "selection_identity": {
+            "finetuned": selection_identity_entry(root, selected["finetuned"], "finetuned",
+                                                  ranks.get(selected["finetuned"]), primary_metric),
+            "from_scratch": selection_identity_entry(root, selected["from_scratch"], "from_scratch",
+                                                    ranks.get(selected["from_scratch"]), primary_metric)},
+    }
     return gb.atomic_json(Path(root) / "configs/selected_generators.json", payload)

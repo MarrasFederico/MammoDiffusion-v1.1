@@ -168,4 +168,67 @@ class GeneratorBenchmarkTests(unittest.TestCase):
             self.assertEqual(restored, metadata)
 
 
+class CanonicalEfficiencyTests(unittest.TestCase):
+    def _entry(self, tmp: Path, payload: dict, *, checkpoint: bool = True) -> tuple[Path, dict]:
+        (tmp / "m.json").write_text(json.dumps(payload))
+        entry = {"efficiency_manifest": "m.json"}
+        if checkpoint:
+            (tmp / "ckpt.bin").write_bytes(b"x" * 42)
+            entry["checkpoint"] = "ckpt.bin"
+        return tmp, entry
+
+    def test_elapsed_without_semantics_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, entry = self._entry(Path(tmp), {"elapsed_seconds": 0.0067, "n_per_class": 2722,
+                                                  "generated_classes": ["0", "1"]})
+            result = gb.efficiency_from_manifest(root, entry)
+        self.assertIsNone(result["generation_seconds_per_image"])
+        self.assertEqual(result["generation_efficiency_status"], gb.INVALID_DURATION_STATUS)
+        self.assertEqual(result["checkpoint_size_bytes"], 42)
+
+    def test_direct_seconds_per_image_without_semantics_is_unavailable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, entry = self._entry(Path(tmp), {"seconds_per_image": 1.5})
+            result = gb.efficiency_from_manifest(root, entry)
+        self.assertIsNone(result["generation_seconds_per_image"])
+        self.assertEqual(result["generation_efficiency_status"], gb.INVALID_DURATION_STATUS)
+
+    def test_wall_clock_full_generation_is_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, entry = self._entry(Path(tmp), {"elapsed_seconds": 5444.0, "n_per_class": 2722,
+                                                  "generated_classes": ["0", "1"],
+                                                  "duration_semantics": "wall_clock_full_generation",
+                                                  "duration_unit": "seconds", "measurement_complete": True})
+            result = gb.efficiency_from_manifest(root, entry)
+        self.assertAlmostEqual(result["generation_seconds_per_image"], 1.0)
+        self.assertEqual(result["efficiency_status"], "available")
+
+    def test_verified_seconds_per_image_is_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, entry = self._entry(Path(tmp), {"seconds_per_image": 2.25,
+                                                  "duration_semantics": "verified_seconds_per_image",
+                                                  "duration_unit": "seconds", "measurement_complete": True})
+            result = gb.efficiency_from_manifest(root, entry)
+        self.assertEqual(result["generation_seconds_per_image"], 2.25)
+        self.assertEqual(result["generation_efficiency_status"], "available")
+
+    def test_energy_and_vram_without_verified_semantics_are_dropped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, entry = self._entry(Path(tmp), {"elapsed_seconds": 0.0067, "n_per_class": 10,
+                                                  "generated_classes": ["1"], "energy_kwh": 2.7e-5,
+                                                  "peak_vram_mb": 1498.7})
+            result = gb.efficiency_from_manifest(root, entry)
+        self.assertIsNone(result["energy_kwh"])
+        self.assertIsNone(result["peak_vram_mb"])
+
+    def test_no_manifest_keeps_checkpoint_size_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "ckpt.bin").write_bytes(b"y" * 7)
+            result = gb.efficiency_from_manifest(tmp, {"checkpoint": "ckpt.bin"})
+        self.assertIsNone(result["generation_seconds_per_image"])
+        self.assertEqual(result["checkpoint_size_bytes"], 7)
+        self.assertEqual(result["efficiency_status"], "checkpoint_size_only")
+
+
 if __name__ == "__main__": unittest.main()

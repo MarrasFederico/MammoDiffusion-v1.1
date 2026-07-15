@@ -1,0 +1,101 @@
+"""Regenerate the canonical generator summary with strict, verified efficiency semantics.
+
+This does NOT recompute any generative metric, embedding, or benchmark quantity.  It reads the
+existing ``generator_summary.csv`` run snapshot and rewrites *only* the efficiency columns through
+the corrected canonical ``generator_benchmark.efficiency_from_manifest``, which refuses to report a
+duration as available without verified semantics.  The frozen originals under ``gate_audit/`` are
+never touched.
+
+Outputs (runtime artifacts):
+
+* ``generator_summary_corrected.csv`` / ``generator_ranking_corrected.csv`` — canonical sources for
+  reports and downstream;
+* ``gate_audit/efficiency_correction.json`` — traceability (source/corrected SHA-256, old/new values).
+
+Run from the repository root: ``python notebooks/utility/correct_efficiency_summary.py``.
+"""
+from __future__ import annotations
+
+import csv
+import json
+import shutil
+import sys
+from pathlib import Path
+
+ROOT = next(path for path in [Path.cwd(), *Path.cwd().parents] if (path / "configs").is_dir())
+sys.path.insert(0, str(ROOT / "notebooks/utility"))
+import generator_benchmark as gb  # noqa: E402
+
+BENCHMARK = ROOT / gb.BENCHMARK_ROOT
+AUDIT = BENCHMARK / "gate_audit"
+RUN_ID = "generator_benchmark_20260714T221055Z_cd05886c"
+BENCHMARK_HEAD = "cd05886c0e7044325063d9e2db4bf2de6d285dc4"
+
+EFFICIENCY_FIELDS = ("generation_seconds_per_image", "peak_vram_mb", "energy_kwh",
+                     "checkpoint_size_bytes", "efficiency_source", "efficiency_status",
+                     "generation_efficiency_status")
+
+
+def _read_csv(path: Path) -> list[dict]:
+    with path.open(newline="") as stream:
+        return list(csv.DictReader(stream))
+
+
+def main() -> None:
+    registry = gb.load_registry(ROOT)
+    by_id = {entry["id"]: entry for entry in registry["generators"]}
+    summary_path = BENCHMARK / "generator_summary.csv"
+    rows = _read_csv(summary_path)
+    fieldnames = list(rows[0].keys()) if rows else []
+
+    old_values: dict[str, dict] = {}
+    new_values: dict[str, dict] = {}
+    affected: list[str] = []
+    corrected_rows = []
+    for row in rows:
+        entry = by_id[row["generator_id"]]
+        fixed = gb.efficiency_from_manifest(ROOT, entry)
+        key = f"{row['generator_id']}:{row['condition']}"
+        before = {field: row.get(field) for field in EFFICIENCY_FIELDS}
+        after = {field: fixed.get(field) for field in EFFICIENCY_FIELDS}
+        if before != {field: ("" if after[field] is None else after[field]) for field in EFFICIENCY_FIELDS} \
+                and str(before.get("generation_seconds_per_image")) != str(after.get("generation_seconds_per_image")):
+            affected.append(key)
+            old_values[key] = before
+            new_values[key] = after
+        corrected_rows.append({**row, **{field: fixed.get(field) for field in EFFICIENCY_FIELDS}})
+
+    corrected_summary = BENCHMARK / "generator_summary_corrected.csv"
+    gb.write_csv_rows(corrected_summary, corrected_rows, fieldnames=fieldnames)
+    # Ranking does not depend on efficiency, so the corrected ranking is a byte copy of the run's ranking.
+    ranking_source = BENCHMARK / "generator_ranking.csv"
+    corrected_ranking = BENCHMARK / "generator_ranking_corrected.csv"
+    if ranking_source.is_file():
+        shutil.copy2(ranking_source, corrected_ranking)
+
+    AUDIT.mkdir(parents=True, exist_ok=True)
+    correction = {
+        "source_generator_summary_sha256": gb.file_sha256(summary_path),
+        "corrected_generator_summary_sha256": gb.file_sha256(corrected_summary),
+        "correction_reason": ("The recorded elapsed_seconds imply physically impossible microsecond-per-image "
+                              "generation and the manifests declare no verified duration semantics; the strict "
+                              "canonical parser marks such durations unavailable_invalid_duration_semantics and "
+                              "drops unverified energy_kwh / peak_vram_mb while keeping checkpoint_size_bytes."),
+        "affected_generators": sorted(set(k.split(":")[0] for k in affected)),
+        "old_values": old_values,
+        "new_values": new_values,
+        "benchmark_run_id": RUN_ID,
+        "benchmark_HEAD": BENCHMARK_HEAD,
+        "test_access": False,
+    }
+    (AUDIT / "efficiency_correction.json").write_text(json.dumps(correction, indent=1))
+    print("corrected summary ->", corrected_summary)
+    print("affected generators:", correction["affected_generators"])
+    for key in sorted(new_values):
+        print(f"  {key}: seconds_per_image={new_values[key]['generation_seconds_per_image']} "
+              f"status={new_values[key]['efficiency_status']} energy={new_values[key]['energy_kwh']} "
+              f"vram={new_values[key]['peak_vram_mb']} ckpt={new_values[key]['checkpoint_size_bytes']}")
+
+
+if __name__ == "__main__":
+    main()

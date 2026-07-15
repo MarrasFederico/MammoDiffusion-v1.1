@@ -2040,33 +2040,80 @@ def practical_equivalence(paired: Mapping[str, Any], protocol: Mapping[str, Any]
             "practically_similar": includes_zero and abs(mean) <= margin}
 
 
+INVALID_DURATION_STATUS = "unavailable_invalid_duration_semantics"
+VERIFIED_DURATION_SEMANTICS = {"wall_clock_full_generation", "verified_seconds_per_image"}
+
+
 def efficiency_from_manifest(root: Path, entry: Mapping[str, Any]) -> dict[str, Any]:
-    """Import only explicitly recorded runtime measurements; never estimate missing values."""
-    unavailable = {"generation_seconds_per_image": None, "peak_vram_mb": None, "energy_kwh": None,
-                   "checkpoint_size_bytes": None, "efficiency_source": None,
-                   "efficiency_status": "unavailable", "generation_efficiency_status": "unavailable"}
+    """Import runtime efficiency without ever trusting an unverified duration.
+
+    ``generation_seconds_per_image`` is accepted only when the manifest explicitly declares
+    ``duration_semantics in {'wall_clock_full_generation', 'verified_seconds_per_image'}``,
+    ``duration_unit == 'seconds'`` and ``measurement_complete == true``.  This holds even when the
+    manifest carries a ``seconds_per_image`` field directly: an unverified ``seconds_per_image`` is
+    *not* trusted, and an ``elapsed_seconds`` is divided by the image count only under
+    ``wall_clock_full_generation``.  Otherwise the value is ``None`` and
+    ``generation_efficiency_status`` is ``unavailable_invalid_duration_semantics``.  ``energy_kwh`` and
+    ``peak_vram_mb`` are imported only when their own semantics are declared verified;
+    ``checkpoint_size_bytes`` is kept whenever it is directly computable from the file.
+    """
+    base = {"generation_seconds_per_image": None, "peak_vram_mb": None, "energy_kwh": None,
+            "checkpoint_size_bytes": None, "efficiency_source": None,
+            "efficiency_status": "unavailable", "generation_efficiency_status": "unavailable"}
     value = entry.get("efficiency_manifest")
     path = Path(root) / str(value) if value else None
-    if not path or not path.is_file(): return unavailable
+    checkpoint = Path(root) / str(entry.get("checkpoint", ""))
+    checkpoint_size = checkpoint.stat().st_size if checkpoint.is_file() else None
+    if not path or not path.is_file():
+        return {**base, "checkpoint_size_bytes": checkpoint_size,
+                "efficiency_source": str(value) if value else None,
+                "efficiency_status": "unavailable" if checkpoint_size is None else "checkpoint_size_only",
+                "generation_efficiency_status": "unavailable"}
     try:
         payload = _read_manifest(path)
-        if not isinstance(payload, Mapping): return unavailable
-        count = payload.get("images_generated") or payload.get("n_generated")
-        if not count and payload.get("n_per_class") and payload.get("generated_classes"):
-            count = int(payload["n_per_class"]) * len(payload["generated_classes"])
-        seconds_per_image = payload.get("seconds_per_image")
-        if seconds_per_image is None and payload.get("elapsed_seconds") is not None and count:
-            seconds_per_image = float(payload["elapsed_seconds"]) / int(count)
-        checkpoint = Path(root) / str(entry.get("checkpoint", ""))
-        values = {"generation_seconds_per_image": seconds_per_image,
-                  "peak_vram_mb": payload.get("peak_vram_mb"), "energy_kwh": payload.get("energy_kwh"),
-                  "checkpoint_size_bytes": checkpoint.stat().st_size if checkpoint.is_file() else None,
-                  "efficiency_source": str(value)}
-        status = "available" if any(values[key] is not None for key in (
-            "generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes")) else "unavailable"
-        return {**values, "efficiency_status": status, "generation_efficiency_status": status}
     except Exception:
-        return unavailable
+        return {**base, "checkpoint_size_bytes": checkpoint_size,
+                "efficiency_status": "unavailable_unreadable_manifest",
+                "generation_efficiency_status": "unavailable_unreadable_manifest"}
+    if not isinstance(payload, Mapping):
+        return {**base, "checkpoint_size_bytes": checkpoint_size,
+                "efficiency_status": "unavailable_unreadable_manifest",
+                "generation_efficiency_status": "unavailable_unreadable_manifest"}
+
+    count = payload.get("images_generated") or payload.get("n_generated")
+    if not count and payload.get("n_per_class") and payload.get("generated_classes"):
+        count = int(payload["n_per_class"]) * len(payload["generated_classes"])
+
+    unit_ok = str(payload.get("duration_unit")) == "seconds" and payload.get("measurement_complete") is True
+    semantics = str(payload.get("duration_semantics"))
+    seconds_per_image = None
+    generation_status = "unavailable"
+    direct = payload.get("seconds_per_image")
+    elapsed = payload.get("elapsed_seconds")
+    if direct is not None:
+        # A directly recorded seconds_per_image requires verified_seconds_per_image semantics.
+        if unit_ok and semantics == "verified_seconds_per_image":
+            seconds_per_image, generation_status = float(direct), "available"
+        else:
+            generation_status = INVALID_DURATION_STATUS
+    elif elapsed is not None and count:
+        # elapsed_seconds may be divided by the image count only for a full wall-clock measurement.
+        if unit_ok and semantics == "wall_clock_full_generation":
+            seconds_per_image, generation_status = float(elapsed) / int(count), "available"
+        else:
+            generation_status = INVALID_DURATION_STATUS
+
+    energy_verified = bool(payload.get("energy_semantics_verified")) or bool(payload.get("energy_provenance_verified"))
+    vram_verified = payload.get("peak_vram_mb") is not None and bool(payload.get("vram_semantics_verified"))
+    values = {"generation_seconds_per_image": seconds_per_image,
+              "peak_vram_mb": payload.get("peak_vram_mb") if vram_verified else None,
+              "energy_kwh": payload.get("energy_kwh") if energy_verified else None,
+              "checkpoint_size_bytes": checkpoint_size, "efficiency_source": str(value)}
+    available = any(values[name] is not None for name in
+                    ("generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes"))
+    efficiency_status = generation_status if generation_status == INVALID_DURATION_STATUS else (
+        "available" if available else "unavailable")
+    return {**values, "efficiency_status": efficiency_status, "generation_efficiency_status": generation_status}
 
 
 def write_csv_rows(path: Path, rows: Sequence[Mapping[str, Any]], fieldnames: Sequence[str] | None = None) -> Path:

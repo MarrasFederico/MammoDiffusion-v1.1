@@ -173,6 +173,15 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
         self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "GPU-right")
         self.assertTrue(result["physical_identity_verified"])
 
+    def test_manual_configuration_preserves_gpu_selector_and_standard_path(self):
+        for selector in (1, "GPU-right"):
+            configuration = de.experiment_configuration(
+                ROOT, "maxvit512", "real_only", 17, gpu=selector)
+            self.assertEqual(configuration["gpu"], selector)
+            self.assertEqual(
+                Path(configuration["results_dir"]),
+                ROOT / "results/publication_v2/downstream/maxvit512/real_only/seed_17")
+
     def test_nonexistent_uuid_fails(self):
         with self.assertRaisesRegex(RuntimeError, "not present as exactly one device"):
             de.configure_visible_gpu("GPU-missing", inventory=self._inventory, observe=self._observe())
@@ -199,6 +208,29 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"torch": fake_torch}):
             with self.assertRaisesRegex(RuntimeError, "Restart the kernel"):
                 de.configure_visible_gpu(1, inventory=self._inventory, observe=self._observe())
+
+    def test_dataset_guard_rejects_historical_test_paths(self):
+        for path in ("data/processed/train/../test/1/x.png",
+                     "results/final_evaluation/x.png",
+                     "data/historical_test/x.png"):
+            with self.subTest(path=path), self.assertRaises(RuntimeError):
+                de.assert_no_forbidden_data_paths(ROOT, [{"path": path, "label": 1}])
+
+    def test_resume_continuity_records_portable_gpu_change(self):
+        payload = {
+            "global_step": 10,
+            "model_state_dict": {"weight": 1},
+            "optimizer_state_dict": {"step": 10},
+            "scheduler_state_dict": {"step": 10},
+            "rng_states": {"python": 1},
+            "gpu_uuid": "GPU-old",
+        }
+        continuity = de.verify_resume_continuity(
+            payload, current_gpu_uuid="GPU-right", max_optimizer_updates=20)
+        self.assertTrue(continuity["gpu_changed"])
+        self.assertEqual(continuity["checkpoint_gpu_uuid"], "GPU-old")
+        self.assertEqual(continuity["runtime_gpu_uuid"], "GPU-right")
+        self.assertEqual(continuity["next_step"], 11)
 
     def _configuration(self, resume: bool, confirm: bool = False):
         return {"architecture": "maxvit512", "condition": "real_only", "seed": 17,

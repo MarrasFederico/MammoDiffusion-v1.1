@@ -46,7 +46,8 @@ class PublicationRepositoryTests(unittest.TestCase):
     def test_configuration_cells_and_final_guard_exist(self):
         for relative in NOTEBOOKS[2:4]:
             text = (ROOT / relative).read_text()
-            for token in ('CONDITION =', 'SEED =', 'GPU_SELECTOR =', 'RESUME =', 'RUN_MODE ='):
+            for token in ('CONDITION =', 'SEED =', 'GPU_SELECTOR =', 'RESUME =',
+                          'RUN_TRAINING = False', 'RUN_VALIDATION = False'):
                 self.assertIn(token, text)
         final = (ROOT / NOTEBOOKS[-1]).read_text()
         self.assertIn("RUN_FINAL_EVALUATION = False", final)

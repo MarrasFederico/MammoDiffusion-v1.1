@@ -33,8 +33,9 @@ class NotebookRenameTests(unittest.TestCase):
         self.assertFalse((ROOT / "notebooks/4_downstream_classifiers").exists())
 
     def test_no_reference_to_old_notebook_dir(self):
-        result = subprocess.run(["git", "grep", "-l", "notebooks/4_downstream_classifiers"],
-                                cwd=ROOT, capture_output=True, text=True)
+        # Exclude this test file, which necessarily embeds the old path literal it checks for.
+        result = subprocess.run(["git", "grep", "-l", "notebooks/4_downstream_classifiers",
+                                 "--", ":!tests/test_smoke_mode.py"], cwd=ROOT, capture_output=True, text=True)
         self.assertEqual(result.stdout.strip(), "")
 
 

@@ -67,7 +67,7 @@ class PublicationRepositoryTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "", "cleanup_inventory_before_push.md must not be tracked")
 
     def test_required_research_questions_are_documented(self):
-        for relative in ("README.md", "docs/publication_experimental_design.md", "docs/experimental_protocol.md"):
+        for relative in ("README.md", "docs/PROTOCOL.md"):
             text = (ROOT / relative).read_text()
             for question in ("RQ1", "RQ2", "RQ3"): self.assertIn(question, text)
 
@@ -93,7 +93,7 @@ class PublicationRepositoryTests(unittest.TestCase):
 
     def test_logo_and_final_dataset_status(self):
         self.assertTrue((ROOT / "assets/logo_MammoDiffusion.png").is_file())
-        status = (ROOT / "docs/final_evaluation_dataset_status.md").read_text()
+        status = (ROOT / "docs/PROTOCOL.md").read_text()
         self.assertIn("historically reused internal evaluation set", status)
         self.assertIn("not an independent external confirmation", status)
 

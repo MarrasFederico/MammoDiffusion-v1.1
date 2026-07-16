@@ -33,16 +33,16 @@ Checkpoint, early stopping e scheduler downstream monitorano validation PR-AUC. 
 
 ## Risultati e dati legacy
 
-Il nuovo codice scopre soltanto `results/publication_v2/`. I risultati V1 e della matrice ritirata restano nelle posizioni storiche e non contaminano il protocollo corrente. Il precedente test interno risulta storicamente riutilizzato: non è una conferma indipendente incontaminata. Vedere [stato del dataset finale](docs/final_evaluation_dataset_status.md).
+Il nuovo codice scopre soltanto `results/publication_v2/`. I risultati V1 e della matrice ritirata restano nelle posizioni storiche e non contaminano il protocollo corrente. Il precedente test interno risulta storicamente riutilizzato: non è una conferma indipendente incontaminata. Vedere [protocollo consolidato — stato del dataset finale](docs/PROTOCOL.md#7-historical-internal-test--status-and-limitation).
 
 La pipeline scripted precedente è archiviata nel tag `publication-pipeline-scripted-v1`; la matrice da 300 job nel tag `classifier-matrix-v2-full`.
 
 ## Documentazione
 
-- [Disegno sperimentale](docs/publication_experimental_design.md)
-- [Protocollo benchmark generativo](docs/generator_benchmark_protocol.md)
-- [Protocollo downstream](docs/downstream_classifier_protocol.md)
-- [Guida di esecuzione manuale](docs/execution_guide.md)
-- [Stato del dataset di valutazione finale](docs/final_evaluation_dataset_status.md)
+- [Protocollo consolidato](docs/PROTOCOL.md) — disegno sperimentale, benchmark generativo, amendment Option B, selezione G02/G07, protocollo downstream 2 × 4 × 3, stato del test storico ed esecuzione manuale.
+- [Stato dei generatori](docs/GENERATOR_STATUS.md)
+- [Asset SD2.1/Diffusers condivisi](docs/SHARED_ASSETS.md)
+- [Analisi di sostenibilità](docs/SUSTAINABILITY_ANALYSIS.md)
+- [Licenza accademica Mammo-FM](docs/mammo_fm_license_note.md)
 
 Dataset, immagini sintetiche, embedding e pesi restano locali e non devono essere committati. I pesi Mammo-FM sono soggetti alla relativa licenza accademica e non sono redistribuiti.

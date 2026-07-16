@@ -1,32 +1,30 @@
-"""Canonical train/validation adapters for the four classifier architectures.
-
-Imports of TensorFlow, torch, timm and transformers are deliberately lazy.  The tiny adapter
-is a dependency-free executable contract used by integration tests and notebook dry-runs; it
-is selected only with ``--tiny``/``MAMMO_CLASSIFIER_TINY=1`` and is never an implicit fallback.
-"""
+"""Training and validation adapters for MaxViT-512 and Mammo-FM."""
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
 import random
-import hashlib
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 ARCHITECTURES = ("maxvit512", "mammofm")
-
-
-class TransitionCheckpointReady(RuntimeError):
-    """Test seam used to emulate a process exit immediately after the durable TF transition."""
+ACCOUNTING_FIELDS = (
+    "real_negative_seen",
+    "real_positive_seen",
+    "traditional_augmented_seen",
+    "finetuned_synthetic_seen",
+    "fromscratch_synthetic_seen",
+)
 
 
 class _FixedBatchLoader:
-    """Repeat a loader deterministically so every condition validates after the same update budget."""
-
     def __init__(self, loader, batch_count):
-        self.loader, self.batch_count = loader, int(batch_count)
+        self.loader = loader
+        self.batch_count = int(batch_count)
 
     def __len__(self):
         return self.batch_count
@@ -37,28 +35,21 @@ class _FixedBatchLoader:
             cycle_count = 0
             for batch in self.loader:
                 yield batch
-                emitted += 1; cycle_count += 1
-                if emitted >= self.batch_count: return
-            if cycle_count == 0: raise RuntimeError("training loader is empty")
+                emitted += 1
+                cycle_count += 1
+                if emitted >= self.batch_count:
+                    return
+            if cycle_count == 0:
+                raise RuntimeError("training loader is empty")
 
 
 def _pytorch_resume_position(payload: dict) -> tuple[int, int]:
-    """Safe restart policy when the local DataLoader generator was not checkpointed."""
     return int(payload["epoch"]), 0
-
-
-def _numpy_weights_sha256(weights) -> str:
-    digest = hashlib.sha256()
-    for weight in weights:
-        array = np.asarray(weight)
-        digest.update(str(array.dtype).encode("ascii"))
-        digest.update(str(array.shape).encode("ascii"))
-        digest.update(array.tobytes(order="C"))
-    return digest.hexdigest()
 
 
 def _dataframes(train_rows, validation_rows):
     import pandas as pd
+
     return pd.DataFrame(train_rows), pd.DataFrame(validation_rows)
 
 
@@ -66,17 +57,28 @@ def _accounting_metadata(rows):
     output = []
     for index, row in enumerate(rows):
         source = str(row.get("source", "")).lower()
-        field = ("traditional_augmented_seen" if "augment" in source else
-                 "finetuned_synthetic_seen" if "finetuned" in source else
-                 "fromscratch_synthetic_seen" if "from_scratch" in source or "fromscratch" in source else
-                 "real_positive_seen" if int(row.get("label", 0)) == 1 else "real_negative_seen")
-        output.append({"sample_id": str(row.get("image_id") or row.get("sample_id") or index),
-                       "source": str(row.get("source", "unknown")), "accounting_field": field})
+        field = (
+            "traditional_augmented_seen"
+            if "augment" in source
+            else "finetuned_synthetic_seen"
+            if "finetuned" in source
+            else "fromscratch_synthetic_seen"
+            if "from_scratch" in source or "fromscratch" in source
+            else "real_positive_seen"
+            if int(row.get("label", 0)) == 1
+            else "real_negative_seen"
+        )
+        output.append(
+            {
+                "sample_id": str(row.get("image_id") or row.get("sample_id") or index),
+                "source": str(row.get("source", "unknown")),
+                "accounting_field": field,
+            }
+        )
     return output
 
 
 def _torch_payload(raw):
-    """Normalize common checkpoint wrappers and a uniform DataParallel prefix."""
     if not isinstance(raw, dict):
         raise ValueError("checkpoint must be a mapping")
     state = raw
@@ -90,192 +92,153 @@ def _torch_payload(raw):
     if any(has_module) and not all(has_module):
         raise ValueError("checkpoint has a non-uniform module. prefix")
     if all(has_module):
-        state = {key[len("module."):]: value for key, value in state.items()}
+        state = {key.removeprefix("module."): value for key, value in state.items()}
     return state
 
 
-class TinyAdapter:
-    """Small deterministic logistic learner proving the orchestration end to end."""
+def _normalized_gpu_uuid(value) -> str:
+    return str(value or "").strip().lower().removeprefix("gpu-")
 
-    def __init__(self, architecture, policy, root):
-        self.architecture, self.policy, self.root = architecture, policy, Path(root)
 
-    def build_model(self, seed=42, **_):
-        return {"bias": (int(seed) % 13 - 6) / 100.0}
+def _gpu_resume_provenance(payload, runtime_gpu_uuid):
+    checkpoint_gpu_uuid = payload.get("gpu_uuid") if payload is not None else None
+    gpu_changed = bool(
+        payload is not None
+        and checkpoint_gpu_uuid
+        and runtime_gpu_uuid
+        and _normalized_gpu_uuid(checkpoint_gpu_uuid)
+        != _normalized_gpu_uuid(runtime_gpu_uuid)
+    )
+    return {
+        "checkpoint_gpu_uuid": checkpoint_gpu_uuid,
+        "runtime_gpu_uuid": runtime_gpu_uuid,
+        "gpu_changed": gpu_changed,
+    }
 
-    def build_train_dataloaders(self, train_rows, validation_rows, **_):
-        return list(train_rows), list(validation_rows)
 
-    def build_validation_dataloader(self, validation_rows, **_):
-        return list(validation_rows)
-
-    def save_checkpoint(self, model, path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
-        temporary.write_text(json.dumps({"architecture": self.architecture, "state_dict": model}, sort_keys=True) + "\n")
-        os.replace(temporary, path)
-        return path
-
-    def load_checkpoint(self, path, **_):
-        payload = json.loads(Path(path).read_text())
-        if payload.get("architecture") != self.architecture:
-            raise ValueError("tiny checkpoint architecture mismatch")
-        return payload["state_dict"]
-
-    def validate_checkpoint_compatibility(self, path):
-        try:
-            self.load_checkpoint(path)
-        except Exception as exc:
-            return False, str(exc)
-        return True, "compatible"
-
-    def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **context):
-        import classifier_checkpoint_io as ckio
-        labels = [int(row["label"]) for row in train_rows]
-        prevalence = sum(labels) / max(len(labels), 1)
-        model = {"bias": prevalence + (int(seed) % 7) * 1e-4}
-        gpu_uuid = context.get("gpu_uuid")
-        if context.get("run_dir"):
-            expected = {key: context[key] for key in ("architecture", "experiment_id", "dataset_variant_id",
-                        "training_policy", "config_signature", "dataset_signature")}; expected["seed"] = int(seed)
-            prior, source = ckio.load_resume_checkpoint(Path(context["run_dir"]), expected) if context.get("resume", True) else (None, "resume disabled")
-            if prior is not None and gpu_uuid and prior.get("gpu_uuid"):
-                norm = lambda value: str(value or "").strip().lower().removeprefix("gpu-")
-                if norm(prior["gpu_uuid"]) != norm(gpu_uuid):
-                    raise RuntimeError(f"resume GPU identity {prior['gpu_uuid']} does not match current {gpu_uuid}")
-            global_step = int((prior or {}).get("global_step", 0)) + 1
-            ckio.save_resume_checkpoint(Path(context["run_dir"]), {**expected, "model_state_dict": model,
-                "optimizer_state_dict": {"step": global_step}, "scheduler_state_dict": {"step": global_step},
-                "scaler_state_dict": None, "epoch": global_step, "batch_index": -1, "global_step": global_step,
-                "checkpoint_metric": "val_pr_auc", "best_metric": prevalence, "best_epoch": global_step, "early_stopping_counter": 0,
-                "history": {"loss": [0.0]}, "rng_states": {"python": random.getstate()}, "gpu_uuid": gpu_uuid,
-                "resume_segment_id": f"tiny-{global_step}"}, best=True)
-        self.save_checkpoint(model, checkpoint_path)
-        prior_accounting = None
-        accounting_path = Path(context["run_dir"]) / "source_accounting.json" if context.get("run_dir") else None
-        if accounting_path and accounting_path.is_file():
-            prior_accounting = json.loads(accounting_path.read_text())
-        return {"checkpoint": str(checkpoint_path), "history": {"loss": [0.0]},
-                "optimizer_updates": global_step if context.get("run_dir") else 1,
-                "resumed_from": source if context.get("run_dir") and prior else None,
-                "processed_sample_rows": list(train_rows),
-                "previous_source_accounting": prior_accounting}
-
-    def predict_validation(self, checkpoint_path, validation_rows, **_):
-        model = self.load_checkpoint(checkpoint_path)
-        bias = float(model["bias"])
-        labels, probs = [], []
-        for index, row in enumerate(validation_rows):
-            label = int(row["label"])
-            labels.append(label)
-            # Deterministic, non-perfect probabilities; orchestration tests need both classes.
-            probs.append(max(0.001, min(0.999, 0.25 + 0.5 * label + bias * 0.01 + index * 1e-7)))
-        return {"labels": labels, "probabilities": probs,
-                "sample_ids": [row.get("image_id", str(i)) for i, row in enumerate(validation_rows)]}
-
-    def predict_locked_test(self, checkpoint_path, test_rows, *, lock_verified=False, **kwargs):
-        if not lock_verified:
-            raise PermissionError("a verified downstream test lock is required")
-        return self.predict_validation(checkpoint_path, test_rows, **kwargs)
-
-    def estimate_memory_profile(self, **_):
-        return {"mode": "tiny", "estimated_peak_mb": 32}
+def _validate_resume_payload(payload: dict) -> None:
+    required = (
+        "model_state_dict",
+        "optimizer_state_dict",
+        "scheduler_state_dict",
+        "epoch",
+        "global_step",
+        "rng_states",
+        "source_accounting",
+    )
+    missing = [key for key in required if key not in payload]
+    if missing:
+        raise RuntimeError(f"resume checkpoint is incomplete: {missing}")
+    accounting = payload["source_accounting"]
+    if accounting.get("accounting_mode") != "actual":
+        raise RuntimeError("resume checkpoint lacks actual source accounting")
+    missing_accounting = [field for field in ACCOUNTING_FIELDS if field not in accounting]
+    if missing_accounting:
+        raise RuntimeError(f"resume checkpoint source accounting is incomplete: {missing_accounting}")
 
 
 class ArchitectureAdapter:
     def __init__(self, architecture, policy, root):
         if architecture not in ARCHITECTURES:
             raise ValueError(f"unsupported architecture: {architecture}")
-        self.architecture, self.policy, self.root = architecture, policy, Path(root)
+        self.architecture = architecture
+        self.policy = policy
+        self.root = Path(root)
 
     def build_model(self, pretrained=True, seed=42):
         random.seed(seed)
-        if self.architecture == "resnet50":
-            weights = Path.home() / ".keras/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
-            if pretrained and not weights.is_file():
-                raise RuntimeError("ResNet50 ImageNet weights are not cached locally; downloads in workers are disabled")
-            from resnet50_utils import build_resnet50_model
-            return build_resnet50_model(tuple(self.policy["input_size"]), pretrained=pretrained)[0]
         if self.architecture == "maxvit512":
             os.environ.setdefault("HF_HUB_OFFLINE", "1")
             import maxvit_utils as utils
+
             return utils.build_maxvit_model(num_classes=1, pretrained=pretrained)
         if self.architecture == "mammofm":
             import mammofm_utils as utils
+
             local = os.environ.get("MAMMOFM_LOCAL_CHECKPOINT_PATH")
             if not local or not Path(local).is_file():
-                raise RuntimeError("MAMMO-FM matrix training requires MAMMOFM_LOCAL_CHECKPOINT_PATH; downloads in workers are disabled")
+                raise RuntimeError(
+                    "MAMMO-FM requires MAMMOFM_LOCAL_CHECKPOINT_PATH to reference a local checkpoint"
+                )
             return utils.build_mammofm_model(
                 hf_repo=os.environ.get("MAMMOFM_HF_REPO", utils.DEFAULT_HF_REPO),
-                checkpoint_name=os.environ.get("MAMMOFM_CHECKPOINT_NAME", utils.DEFAULT_CHECKPOINT_NAME),
-                use_local_checkpoint=bool(local), local_checkpoint_path=local,
+                checkpoint_name=os.environ.get(
+                    "MAMMOFM_CHECKPOINT_NAME", utils.DEFAULT_CHECKPOINT_NAME
+                ),
+                use_local_checkpoint=True,
+                local_checkpoint_path=local,
             )[0]
-        import medfoundation_utils as utils
-        local = os.environ.get("RADDINO_MODEL_PATH")
-        if not local or not Path(local).is_dir():
-            raise RuntimeError("RAD-DINO matrix training requires a local RADDINO_MODEL_PATH; downloads in workers are disabled")
-        os.environ.setdefault("HF_HUB_OFFLINE", "1"); os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-        return utils.build_medfoundation_model(local)[0]
+        raise ValueError(f"unsupported architecture: {self.architecture}")
 
     def build_train_dataloaders(self, train_rows, validation_rows, seed=42):
         train_df, val_df = _dataframes(train_rows, validation_rows)
         batch = int(self.policy["physical_batch_size"])
         workers = int(self.policy.get("dataloader_workers", 0))
-        if self.architecture == "resnet50":
-            from resnet50_utils import make_dataset
-            size = tuple(self.policy["input_size"])
-            return (make_dataset(train_rows, size, batch, True, seed),
-                    make_dataset(validation_rows, size, batch, False, seed))
         if self.architecture == "maxvit512":
             import maxvit_utils as utils
-            mean, std = self.policy["normalization"]["mean"], self.policy["normalization"]["std"]
+
+            mean = self.policy["normalization"]["mean"]
+            std = self.policy["normalization"]["std"]
             size = int(self.policy["input_size"][0])
-            return (utils.make_dataloader(train_df, "processed_path", "label", mean, std, size, batch, True, True, seed, workers,
-                                          metadata=_accounting_metadata(train_rows)),
-                    utils.make_dataloader(val_df, "processed_path", "label", mean, std, size, batch, False, False, seed, workers))
+            return (
+                utils.make_dataloader(
+                    train_df, "processed_path", "label", mean, std, size, batch,
+                    True, True, seed, workers, metadata=_accounting_metadata(train_rows)
+                ),
+                utils.make_dataloader(
+                    val_df, "processed_path", "label", mean, std, size, batch,
+                    False, False, seed, workers
+                ),
+            )
         if self.architecture == "mammofm":
             import mammofm_utils as utils
-            return (utils.make_mammofm_dataloader(train_df, "processed_path", "label", utils.DEFAULT_MAMMOFM_MEAN,
-                    utils.DEFAULT_MAMMOFM_STD, utils.DEFAULT_IMG_SIZE, batch_size=batch, shuffle=True,
-                    augment=True, seed=seed, num_workers=workers, drop_last=False,
-                    metadata=_accounting_metadata(train_rows)),
-                    utils.make_mammofm_dataloader(val_df, "processed_path", "label", utils.DEFAULT_MAMMOFM_MEAN,
-                    utils.DEFAULT_MAMMOFM_STD, utils.DEFAULT_IMG_SIZE, batch_size=batch, shuffle=False,
-                    augment=False, seed=seed, num_workers=workers, drop_last=False))
-        import medfoundation_utils as utils
-        mean, std, size = utils.resolve_normalization_medfoundation()
-        return (utils.make_medfoundation_dataloader(train_df, "processed_path", "label", mean, std, size, batch, True, True, workers, seed, False),
-                utils.make_medfoundation_dataloader(val_df, "processed_path", "label", mean, std, size, batch, False, False, workers, seed, False))
+
+            return (
+                utils.make_mammofm_dataloader(
+                    train_df, "processed_path", "label", utils.DEFAULT_MAMMOFM_MEAN,
+                    utils.DEFAULT_MAMMOFM_STD, utils.DEFAULT_IMG_SIZE, batch_size=batch,
+                    shuffle=True, augment=True, seed=seed, num_workers=workers,
+                    drop_last=False, metadata=_accounting_metadata(train_rows)
+                ),
+                utils.make_mammofm_dataloader(
+                    val_df, "processed_path", "label", utils.DEFAULT_MAMMOFM_MEAN,
+                    utils.DEFAULT_MAMMOFM_STD, utils.DEFAULT_IMG_SIZE, batch_size=batch,
+                    shuffle=False, augment=False, seed=seed, num_workers=workers,
+                    drop_last=False
+                ),
+            )
+        raise ValueError(f"unsupported architecture: {self.architecture}")
 
     def build_validation_dataloader(self, validation_rows, seed=42):
         return self.build_train_dataloaders(validation_rows, validation_rows, seed)[1]
 
     def save_checkpoint(self, model, path):
+        import torch
+
         path.parent.mkdir(parents=True, exist_ok=True)
         temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
-        if self.architecture == "resnet50":
-            # TF/Keras 2.15 cannot serialize the ResNet application through its native
-            # `.keras` writer (the config contains an Ellipsis object).  A single-file HDF5
-            # model without optimizer state is stable, reloadable in a fresh process, and can
-            # still keep the canonical `model.keras` filename used by the matrix layout.
-            model.save(temporary, save_format="h5", include_optimizer=False)
-        else:
-            import torch
-            torch.save({"schema_version": 1, "architecture": self.architecture,
-                        "model_state_dict": model.state_dict()}, temporary)
+        torch.save(
+            {
+                "schema_version": 1,
+                "architecture": self.architecture,
+                "model_state_dict": model.state_dict(),
+            },
+            temporary,
+        )
         os.replace(temporary, path)
         return path
 
     def load_checkpoint(self, path, model=None, strict=True):
-        if self.architecture == "resnet50":
-            from resnet50_utils import load_keras_checkpoint
-            return load_keras_checkpoint(Path(path))
         import torch
+
         model = model or self.build_model(pretrained=False)
         state = _torch_payload(torch.load(path, map_location="cpu", weights_only=False))
         result = model.load_state_dict(state, strict=strict)
         if strict and (result.missing_keys or result.unexpected_keys):
-            raise ValueError(f"checkpoint mismatch: missing={result.missing_keys}, unexpected={result.unexpected_keys}")
+            raise ValueError(
+                f"checkpoint mismatch: missing={result.missing_keys}, "
+                f"unexpected={result.unexpected_keys}"
+            )
         return model
 
     def validate_checkpoint_compatibility(self, path):
@@ -285,353 +248,314 @@ class ArchitectureAdapter:
             return False, str(exc)
         return True, "compatible"
 
-    def _epochs(self, train_size):
-        return min(int(self.policy.get("max_epochs_secondary_limit", 60)),
-                   max(1, math.ceil(int(self.policy["max_optimizer_updates"]) /
-                                    int(self.policy["validation_interval_updates"]))))
+    def _epochs(self):
+        return min(
+            int(self.policy.get("max_epochs_secondary_limit", 60)),
+            max(
+                1,
+                math.ceil(
+                    int(self.policy["max_optimizer_updates"])
+                    / int(self.policy["validation_interval_updates"])
+                ),
+            ),
+        )
 
     def train(self, train_rows, validation_rows, checkpoint_path, seed=42, **context):
         import classifier_checkpoint_io as ckio
+
         run_dir = Path(context["run_dir"])
-        expected = {key: context[key] for key in (
-            "architecture", "experiment_id", "dataset_variant_id", "training_policy",
-            "config_signature", "dataset_signature")}
-        expected["seed"] = int(seed)
-        resume, resume_source = ckio.load_resume_checkpoint(run_dir, expected) if context.get("resume", True) else (None, "resume disabled")
-        if resume is None and resume_source != "no resume checkpoint":
-            # A resume file existed (checkpoint_latest and/or checkpoint_previous) but every
-            # one was corrupted or scientifically incompatible - silently falling through to
-            # start_epoch=1 here would discard however many hours of training already ran
-            # without anyone deciding that on purpose.
-            allow_discard = os.environ.get("ALLOW_DISCARD_INVALID_RESUME") == "True" or bool(context.get("allow_discard_invalid_resume"))
-            if not allow_discard:
-                raise RuntimeError(
-                    f"resume checkpoint(s) present for {run_dir} but all invalid/incompatible "
-                    f"({resume_source}); refusing to silently restart from scratch. Set "
-                    "ALLOW_DISCARD_INVALID_RESUME=True (env var) to explicitly discard and start over."
-                )
-        gpu_uuid = context.get("gpu_uuid")
-        if resume is not None and gpu_uuid and resume.get("gpu_uuid"):
-            _norm = lambda value: str(value or "").strip().lower().removeprefix("gpu-")
-            if _norm(resume["gpu_uuid"]) != _norm(gpu_uuid):
-                raise RuntimeError(f"resume GPU identity {resume['gpu_uuid']} does not match current {gpu_uuid}")
-        model = self.build_model(pretrained=True, seed=seed)
-        results_dir = run_dir
-        if context.get("run_dir"):
-            # All publication-v2 artifacts share the already-resolved canonical run directory.
-            results_dir.mkdir(parents=True, exist_ok=True)
-            if self.architecture == "resnet50":
-                params = int(model.count_params()); trainable = sum(int(v.shape.num_elements()) for v in model.trainable_weights)
-            else:
-                params = sum(p.numel() for p in model.parameters()); trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-            (results_dir / "model_summary.txt").write_text(f"architecture: {self.architecture}\nparameters: {params}\ntrainable_before_policy: {trainable}\n")
-            (results_dir / "model_architecture.json").write_text(json.dumps({"architecture":self.architecture,"parameters":params,
-                "trainable_before_policy":trainable,"input_size":self.policy["input_size"]},indent=2)+"\n")
-        train_loader, val_loader = self.build_train_dataloaders(train_rows, validation_rows, seed)
-        accumulation = int(self.policy.get("gradient_accumulation_steps", 1))
-        train_loader = _FixedBatchLoader(train_loader, int(self.policy["validation_interval_updates"]) * accumulation)
-        epochs = self._epochs(len(train_rows))
-        best_epoch = None
-        if self.architecture == "resnet50":
-            import tensorflow as tf
-            # Two protocol phases: head first, then conv4+ with BatchNorm frozen.
-            backbone = next(layer for layer in model.layers if layer.name == "resnet50")
-            from resnet50_utils import set_fine_tuning, set_head_training
-            head_epochs = max(1, epochs // 5)
-            phase = (resume or {}).get("phase", "head")
-            prior_history = dict((resume or {}).get("history", {}))
-            labels = [int(row["label"]) for row in train_rows]
-            positives, negatives = sum(labels), len(labels) - sum(labels)
-            class_weight = {0: len(labels) / max(2 * negatives, 1), 1: len(labels) / max(2 * positives, 1)}
-            global_step = int((resume or {}).get("global_step", 0))
-
-            if phase == "complete":
-                model.set_weights(resume["model_state"])
-                self.save_checkpoint(model, Path(checkpoint_path))
-                return {"checkpoint": str(checkpoint_path), "history": prior_history,
-                        "resumed_from": resume_source, "optimizer_updates_limit": int(self.policy["max_optimizer_updates"]),
-                        "epochs": epochs, "best_epoch": resume.get("best_epoch")}
-
-            def configure(current_phase):
-                if current_phase == "head":
-                    set_head_training(backbone); optimizer = tf.keras.optimizers.Adam(1e-3); loss = "binary_crossentropy"
-                else:
-                    set_fine_tuning(backbone); optimizer = tf.keras.optimizers.Adam(1e-5)
-                    loss = tf.keras.losses.BinaryFocalCrossentropy(gamma=2.0, alpha=0.75)
-                model.compile(optimizer, loss, metrics=[tf.keras.metrics.AUC(name="auc")])
-                return optimizer
-
-            def restore_model_state():
-                if not resume: return
-                model.set_weights(resume["model_state"])
-
-            def restore_optimizer_state(optimizer):
-                if not resume: return
-                if hasattr(optimizer, "build"): optimizer.build(model.trainable_variables)
-                for variable, value in zip(optimizer.variables, resume.get("optimizer_state", [])): variable.assign(value)
-                states = resume.get("rng_states", {})
-                if states.get("python"): random.setstate(states["python"])
-                if states.get("numpy"): np.random.set_state(states["numpy"])
-                try:
-                    if states.get("tensorflow") is not None: tf.random.get_global_generator().state.assign(states["tensorflow"])
-                except Exception as exc:
-                    raise RuntimeError("TensorFlow RNG state is incompatible with this resume environment") from exc
-
-            def restore_callback_state(reduce_cb, early_cb, resume_phase, current_phase):
-                # Gated on the *checkpoint's own* recorded phase, never the outer mutable
-                # `phase` variable: a head->finetune transition in the same run must never
-                # apply head-phase scheduler/early-stopping state to the new finetune objects.
-                if not resume or resume_phase != current_phase:
-                    return
-                for key, value in (resume.get("scheduler_state", {}) or {}).items():
-                    if hasattr(reduce_cb, key): setattr(reduce_cb, key, value)
-                if resume.get("best_metric") is not None:
-                    early_cb.best = float(resume["best_metric"])
-                early_cb.wait = int(resume.get("early_stopping_counter", 0))
-
-            class DurableResume(tf.keras.callbacks.Callback):
-                def __init__(self, optimizer, current_phase, initial_epoch):
-                    super().__init__(); self.optimizer=optimizer; self.phase=current_phase; self.epoch=initial_epoch
-                    self.global_step=int((resume or {}).get("global_step", global_step)); self.best=float((resume or {}).get("best_metric", "-inf")); self.best_epoch=(resume or {}).get("best_epoch")
-                    self.wait=int((resume or {}).get("early_stopping_counter", 0)); self.history=prior_history
-                def payload(self, batch):
-                    try: tf_rng=tf.random.get_global_generator().state.numpy()
-                    except Exception: tf_rng=None
-                    scheduler_state={key:getattr(self.reduce,key) for key in ("best","wait","cooldown_counter","factor","patience","min_lr","mode","monitor") if hasattr(self.reduce,key)}
-                    return {**expected, "model_state": model.get_weights(), "optimizer_state": [v.numpy() for v in self.optimizer.variables],
-                            "scheduler_state": scheduler_state, "scaler_state": None, "phase": self.phase,
-                            "epoch": int(self.epoch), "batch_index": int(batch), "global_step": self.global_step,
-                            "checkpoint_metric": "val_pr_auc", "best_metric": self.best, "best_epoch": self.best_epoch, "early_stopping_counter": self.wait,
-                            "history": self.history, "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "tensorflow": tf_rng},
-                            "gpu_uuid": gpu_uuid,
-                            "resume_segment_id": hashlib.sha256(os.urandom(16)).hexdigest()[:16]}
-                def on_train_batch_end(self, batch, logs=None):
-                    self.global_step += 1
-                    if self.global_step % self.interval == 0:
-                        ckio.save_resume_checkpoint(run_dir, self.payload(batch))
-                    if self.global_step >= int(self.max_updates): self.model.stop_training = True
-                def on_epoch_end(self, epoch, logs=None):
-                    self.epoch=epoch+1; logs=logs or {}; metric=float(logs.get("val_auc", float("-inf")))
-                    if metric > self.best: self.best=metric; self.best_epoch=self.epoch; self.wait=0; best=True
-                    else: self.wait += 1; best=False
-                    for key,value in logs.items(): self.history.setdefault(key,[]).append(float(value))
-                    ckio.save_resume_checkpoint(run_dir, self.payload(-1), best=best)
-            def fit_phase(current_phase, start, stop):
-                optimizer=configure(current_phase)
-                resume_phase = (resume or {}).get("phase")
-                if resume_phase in (current_phase, "transition"):
-                    restore_model_state()
-                expected_transition = context.get("expected_transition_weights_sha256")
-                if resume_phase == "transition" and expected_transition:
-                    actual_transition = _numpy_weights_sha256(model.get_weights())
-                    if actual_transition != expected_transition:
-                        raise RuntimeError("transition model weights were not restored before fine-tuning")
-                if resume_phase == current_phase:
-                    restore_optimizer_state(optimizer)
-                reduce=tf.keras.callbacks.ReduceLROnPlateau(**self.policy["scheduler_params"])
-                durable=DurableResume(optimizer,current_phase,start); durable.reduce=reduce
-                durable.interval=int(self.policy.get("checkpoint_interval_updates",250)); durable.max_updates=int(self.policy["max_optimizer_updates"])
-                early=tf.keras.callbacks.EarlyStopping(monitor="val_auc",mode="max",patience=int(self.policy["early_stopping"]["patience"]),restore_best_weights=True)
-                # Keras resets EarlyStopping's own best/wait to their defaults inside its own
-                # on_train_begin, which model.fit() triggers - restoring them here, before
-                # fit() is called, would just be overwritten. Restoring from durable's
-                # on_train_begin instead (registered after `early` in the callback list) runs
-                # after Keras's own reset, so it actually sticks.
-                durable.early = early
-                original_on_train_begin = durable.on_train_begin
-                def on_train_begin(logs=None, _orig=original_on_train_begin):
-                    _orig(logs)
-                    restore_callback_state(reduce, early, resume_phase, current_phase)
-                durable.on_train_begin = on_train_begin
-                return model.fit(train_loader, validation_data=val_loader, initial_epoch=start, epochs=stop, class_weight=class_weight, verbose=2, callbacks=[reduce,early,durable])
-            h1 = fit_phase("head", int((resume or {}).get("epoch",0)) if phase=="head" else 0, head_epochs) if phase == "head" else None
-            if h1 is not None:
-                resume, _ = ckio.load_resume_checkpoint(run_dir, expected)
-                # Preserve trained head weights in memory; a new fine-tuning optimizer must not
-                # receive incompatible head-phase slot variables. Persisted to disk (not just
-                # the local variable) so a crash between head completion and the first
-                # fine-tuning batch can never re-train an already-complete head on resume.
-                resume = {**(resume or {}), "model_state": model.get_weights(),
-                          "optimizer_state": [], "scheduler_state": {}, "phase": "transition",
-                          "epoch": 0, "batch_index": -1, "early_stopping_counter": 0, "gpu_uuid": gpu_uuid}
-                ckio.save_resume_checkpoint(run_dir, resume)
-                if context.get("stop_after_transition"):
-                    raise TransitionCheckpointReady("transition checkpoint written before fine-tuning")
-            phase = "finetune"
-            h2 = fit_phase("finetune", int((resume or {}).get("epoch",0)) if (resume or {}).get("phase")=="finetune" else 0, epochs)
-            history = prior_history
-            for part in (h1,h2):
-                if part:
-                    for key,values in part.history.items(): history.setdefault(key,[]).extend(list(values))
-            # Same disk-backed global-best guarantee as the PyTorch branch: checkpoint_best.pkl
-            # was kept current by DurableResume.on_epoch_end(best=...) throughout both phases.
-            best_path = ckio.resume_checkpoint_path(run_dir, "checkpoint_best")
-            if best_path.is_file():
-                try:
-                    best_payload = ckio.read_resume_checkpoint(best_path)
-                except Exception:
-                    best_payload = None
-                if best_payload is not None and best_payload.get("model_state") is not None:
-                    model.set_weights(best_payload["model_state"])
-                    best_epoch = best_payload.get("best_epoch")
-            latest_payload, _ = ckio.load_resume_checkpoint(run_dir, expected)
-            complete_base = latest_payload or resume or {}
-            ckio.save_resume_checkpoint(run_dir, {**complete_base, **expected,
-                "model_state": model.get_weights(), "optimizer_state": [], "scheduler_state": {},
-                "phase": "complete", "epoch": epochs, "batch_index": -1,
-                "global_step": int(complete_base.get("global_step", global_step)),
-                "best_epoch": best_epoch, "history": history, "gpu_uuid": gpu_uuid})
-        else:
-            import torch
-            import maxvit_utils as common
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            model.to(device)
-            if self.architecture == "maxvit512":
-                common.freeze_all(model); common.unfreeze_head(model)
-                if hasattr(model, "stages"): common.unfreeze_stages_from(model, max(0, len(model.stages)-2))
-            elif self.architecture == "mammofm":
-                import mammofm_utils as u
-                u.freeze_backbone_all(model); u.unfreeze_head(model); u.unfreeze_last_n_blocks(model, 2)
-            else:
-                import medfoundation_utils as u
-                u.freeze_backbone_all(model); u.unfreeze_head(model); u.unfreeze_last_n_blocks(model, 2)
-            params = [p for p in model.parameters() if p.requires_grad]
-            optimizer = torch.optim.AdamW(params, lr=float(self.policy["training_phases"][0]["learning_rate"]),
-                                          weight_decay=float(self.policy.get("weight_decay", 0.0)))
-            criterion = common.BinaryFocalLoss()
-            early = common.EarlyStopping(patience=int(self.policy["early_stopping"]["patience"]), mode="max")
-            # The Mammo-FM loop is architecture-agnostic and adds AMP, clipping and gradient
-            # accumulation missing from the older MaxViT loop; using it keeps the registered
-            # effective batch size unchanged for all three torch families.
-            import mammofm_utils as amp_utils
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode="max", factor=float(self.policy["scheduler_params"]["factor"]),
-                patience=int(self.policy["scheduler_params"]["patience"]),
-                min_lr=float(self.policy["scheduler_params"]["min_lr"]))
-            scaler = torch.amp.GradScaler("cuda") if bool(self.policy.get("amp")) and device.type == "cuda" else None
-            start_epoch, start_batch, global_step = 1, 0, 0
-            prior_history: dict = {}
-            accounting_fields = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
-                                 "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
-            actual_source_counts = {field: 0 for field in accounting_fields}
-            if resume:
-                model.load_state_dict(resume["model_state_dict"], strict=True)
-                optimizer.load_state_dict(resume["optimizer_state_dict"])
-                scheduler.load_state_dict(resume["scheduler_state_dict"])
-                if scaler is not None and resume.get("scaler_state_dict"): scaler.load_state_dict(resume["scaler_state_dict"])
-                start_epoch, start_batch = _pytorch_resume_position(resume)
-                # The DataLoader owns a locally-seeded generator whose sampler state is not
-                # serialized.  Resume conservatively at the start of an incomplete epoch;
-                # completed epochs and optimizer state are retained, and at most this one
-                # epoch is repeated.
-                global_step = int(resume["global_step"])
-                # EarlyStopping's real patience-counter attribute is `wait`, not `counter` -
-                # restoring the wrong name silently restored nothing on every resume.
-                early.wait = int(resume.get("early_stopping_counter", 0))
-                if resume.get("best_metric") is not None: early.best = float(resume["best_metric"])
-                early.best_secondary = float(resume.get("best_validation_loss", float("inf")))
-                best_epoch = resume.get("best_epoch")
-                prior_history = dict(resume.get("history", {}))
-                previous_accounting = resume.get("source_accounting", {})
-                if previous_accounting.get("accounting_mode") == "actual":
-                    actual_source_counts.update({field: int(previous_accounting.get(field, 0)) for field in accounting_fields})
-                if resume.get("rng_states", {}).get("python"): random.setstate(resume["rng_states"]["python"])
-                if resume.get("rng_states", {}).get("numpy"): np.random.set_state(resume["rng_states"]["numpy"])
-                if resume.get("rng_states", {}).get("torch") is not None: torch.set_rng_state(resume["rng_states"]["torch"])
-                if torch.cuda.is_available() and resume.get("rng_states", {}).get("torch_cuda"):
-                    torch.cuda.set_rng_state_all(resume["rng_states"]["torch_cuda"])
-            segment = hashlib.sha256(os.urandom(16)).hexdigest()[:16]
-            def record_processed_batch(metadata):
-                if not isinstance(metadata, dict) or "accounting_field" not in metadata:
-                    raise RuntimeError("training batch is missing sample_id/source accounting metadata")
-                for field in metadata["accounting_field"]:
-                    if field not in actual_source_counts:
-                        raise RuntimeError(f"unknown source accounting field: {field}")
-                    actual_source_counts[field] += 1
-            def actual_accounting():
-                return {"schema_version": 1, "accounting_mode": "actual", **actual_source_counts,
-                        "total_samples_seen": sum(actual_source_counts.values())}
-            # `current` tracks the *real* in-progress epoch/history so a periodic (intra-epoch)
-            # checkpoint never reports the previous epoch's number or wipes history to {}.
-            current = {"epoch": start_epoch, "history": prior_history, "best_epoch": best_epoch}
-            def save_torch(step, batch, epoch=None, history=None, best=False, best_epoch=None):
-                epoch = current["epoch"] if epoch is None else epoch
-                history = current["history"] if history is None else history
-                payload = {**expected, "model_state_dict": model.state_dict(), "optimizer_state_dict": optimizer.state_dict(),
-                    "scheduler_state_dict": scheduler.state_dict(), "scaler_state_dict": scaler.state_dict() if scaler else None,
-                    "epoch": epoch, "batch_index": batch, "global_step": step,
-                    "checkpoint_metric": "val_pr_auc", "best_metric": getattr(early, "best", None),
-                    "best_validation_loss": getattr(early, "best_secondary", None),
-                    "best_epoch": current["best_epoch"] if best_epoch is None else best_epoch,
-                    "early_stopping_counter": getattr(early, "wait", 0), "history": history or {},
-                    "source_accounting": actual_accounting(), "gpu_uuid": gpu_uuid,
-                    "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "torch": torch.get_rng_state(),
-                                   "torch_cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}, "resume_segment_id": segment}
-                ckio.save_resume_checkpoint(run_dir, payload, best=best)
-            interval = int(self.policy.get("checkpoint_interval_updates", 250))
-            warmup = int(self.policy.get("warmup_updates", 0))
-            target_lr = float(self.policy["training_phases"][0]["learning_rate"])
-            def before_optimizer_step(step, _batch):
-                if warmup and step <= warmup:
-                    for group in optimizer.param_groups: group["lr"] = target_lr * step / warmup
-            def epoch_begin(epoch):
-                current["epoch"] = epoch
-            def periodic(step, batch):
-                if step % interval == 0: save_torch(step, batch)
-            def epoch_end(epoch, step, _scaler, hist, metrics, improved):
-                current["epoch"] = epoch
-                hist.history.setdefault("learning_rate", []).append(float(optimizer.param_groups[0]["lr"]))
-                hist.history.setdefault("optimizer_steps", []).append(int(step))
-                current["history"] = hist.history
-                if improved: current["best_epoch"] = epoch
-                scheduler.step(metrics["pr_auc"])
-                save_torch(step, -1, epoch + 1, hist.history, best=improved)
-            history_obj = amp_utils.fit_mammofm(
-                model, train_loader, val_loader, optimizer, criterion, epochs, device,
-                early_stopping=early, use_amp=bool(self.policy.get("amp", False)),
-                grad_clip_norm=self.policy.get("gradient_clipping"),
-                accumulation_steps=int(self.policy.get("gradient_accumulation_steps", 1)),
-                lr_scheduler=None, start_epoch=start_epoch, start_batch=start_batch, global_step=global_step,
-                max_optimizer_updates=int(self.policy["max_optimizer_updates"]), scaler=scaler,
-                on_optimizer_step=periodic, on_before_optimizer_step=before_optimizer_step,
-                on_epoch_begin=epoch_begin, on_epoch_end=epoch_end, resume_history=prior_history,
-                on_batch_processed=record_processed_batch,
+        expected = {
+            key: context[key]
+            for key in (
+                "architecture",
+                "experiment_id",
+                "dataset_variant_id",
+                "training_policy",
+                "config_signature",
+                "dataset_signature",
             )
-            history = history_obj.history if hasattr(history_obj, "history") else vars(history_obj)
-            # The in-memory early.best_state does not survive a process restart; the disk-backed
-            # checkpoint_best.pkl (written by save_torch(..., best=True) above) does, so the
-            # final model is always the true global best, even if it predates an interruption.
-            best_path = ckio.resume_checkpoint_path(run_dir, "checkpoint_best")
-            if best_path.is_file():
-                try:
-                    best_payload = ckio.read_resume_checkpoint(best_path)
-                except Exception:
-                    best_payload = None
-                if best_payload is not None and best_payload.get("best_metric") is not None:
-                    if getattr(early, "best", float("-inf")) is None or best_payload["best_metric"] >= getattr(early, "best", float("-inf")):
-                        model.load_state_dict(best_payload["model_state_dict"], strict=True)
-                        best_epoch = best_payload.get("best_epoch")
+        }
+        expected["seed"] = int(seed)
+        resume, resume_source = ckio.load_resume_checkpoint(run_dir, expected)
+        checkpoint_files_exist = any(run_dir.glob("checkpoint_*"))
+        if resume is None and resume_source == "no resume checkpoint" and checkpoint_files_exist:
+            raise RuntimeError(
+                f"checkpoint files exist in {run_dir}, but no resumable checkpoint is available. "
+                "Move or remove this run directory to start from zero."
+            )
+        if resume is None and resume_source != "no resume checkpoint":
+            raise RuntimeError(
+                f"resume checkpoint(s) exist in {run_dir} but are corrupt or incompatible: "
+                f"{resume_source}. Move or remove this run directory to start from zero."
+            )
+        if resume is not None:
+            _validate_resume_payload(resume)
+
+        runtime_gpu_uuid = context.get("gpu_uuid")
+        gpu_provenance = _gpu_resume_provenance(resume, runtime_gpu_uuid)
+
+        model = self.build_model(pretrained=True, seed=seed)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        train_loader, val_loader = self.build_train_dataloaders(
+            train_rows, validation_rows, seed
+        )
+        accumulation = int(self.policy.get("gradient_accumulation_steps", 1))
+        train_loader = _FixedBatchLoader(
+            train_loader,
+            int(self.policy["validation_interval_updates"]) * accumulation,
+        )
+        epochs = self._epochs()
+
+        import torch
+        import maxvit_utils as common
+        import mammofm_utils as amp_utils
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.to(device)
+        if self.architecture == "maxvit512":
+            common.freeze_all(model)
+            common.unfreeze_head(model)
+            if hasattr(model, "stages"):
+                common.unfreeze_stages_from(model, max(0, len(model.stages) - 2))
+        else:
+            amp_utils.freeze_backbone_all(model)
+            amp_utils.unfreeze_head(model)
+            amp_utils.unfreeze_last_n_blocks(model, 2)
+
+        parameters = sum(parameter.numel() for parameter in model.parameters())
+        trainable_parameters = sum(
+            parameter.numel() for parameter in model.parameters() if parameter.requires_grad
+        )
+        (run_dir / "model_summary.json").write_text(
+            json.dumps(
+                {
+                    "architecture": self.architecture,
+                    "parameters": parameters,
+                    "trainable_parameters": trainable_parameters,
+                    "input_size": self.policy["input_size"],
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+
+        parameters_to_optimize = [
+            parameter for parameter in model.parameters() if parameter.requires_grad
+        ]
+        optimizer = torch.optim.AdamW(
+            parameters_to_optimize,
+            lr=float(self.policy["training_phases"][0]["learning_rate"]),
+            weight_decay=float(self.policy.get("weight_decay", 0.0)),
+        )
+        criterion = common.BinaryFocalLoss()
+        early = common.EarlyStopping(
+            patience=int(self.policy["early_stopping"]["patience"]), mode="max"
+        )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="max",
+            factor=float(self.policy["scheduler_params"]["factor"]),
+            patience=int(self.policy["scheduler_params"]["patience"]),
+            min_lr=float(self.policy["scheduler_params"]["min_lr"]),
+        )
+        scaler = (
+            torch.amp.GradScaler("cuda")
+            if bool(self.policy.get("amp")) and device.type == "cuda"
+            else None
+        )
+        start_epoch, start_batch, global_step = 1, 0, 0
+        best_epoch = None
+        prior_history = {}
+        actual_source_counts = {field: 0 for field in ACCOUNTING_FIELDS}
+
+        if resume is not None:
+            model.load_state_dict(resume["model_state_dict"], strict=True)
+            optimizer.load_state_dict(resume["optimizer_state_dict"])
+            scheduler.load_state_dict(resume["scheduler_state_dict"])
+            if scaler is not None and resume.get("scaler_state_dict"):
+                scaler.load_state_dict(resume["scaler_state_dict"])
+            start_epoch, start_batch = _pytorch_resume_position(resume)
+            global_step = int(resume["global_step"])
+            early.wait = int(resume.get("early_stopping_counter", 0))
+            if resume.get("best_metric") is not None:
+                early.best = float(resume["best_metric"])
+            early.best_secondary = float(
+                resume.get("best_validation_loss", float("inf"))
+            )
+            best_epoch = resume.get("best_epoch")
+            prior_history = dict(resume.get("history", {}))
+            actual_source_counts.update(
+                {
+                    field: int(resume["source_accounting"].get(field, 0))
+                    for field in ACCOUNTING_FIELDS
+                }
+            )
+            states = resume["rng_states"]
+            if states.get("python"):
+                random.setstate(states["python"])
+            if states.get("numpy"):
+                np.random.set_state(states["numpy"])
+            if states.get("torch") is not None:
+                torch.set_rng_state(states["torch"])
+            if torch.cuda.is_available() and states.get("torch_cuda"):
+                torch.cuda.set_rng_state_all(states["torch_cuda"])
+
+        def actual_accounting():
+            return {
+                "schema_version": 1,
+                "accounting_mode": "actual",
+                **actual_source_counts,
+                "total_samples_seen": sum(actual_source_counts.values()),
+            }
+
+        def record_processed_batch(metadata):
+            if not isinstance(metadata, dict) or "accounting_field" not in metadata:
+                raise RuntimeError(
+                    "training batch is missing sample_id/source accounting metadata"
+                )
+            for field in metadata["accounting_field"]:
+                if field not in actual_source_counts:
+                    raise RuntimeError(f"unknown source accounting field: {field}")
+                actual_source_counts[field] += 1
+
+        segment = hashlib.sha256(os.urandom(16)).hexdigest()[:16]
+        current = {
+            "epoch": start_epoch,
+            "history": prior_history,
+            "best_epoch": best_epoch,
+        }
+
+        def save_torch(step, batch, epoch=None, history=None, best=False, best_epoch=None):
+            epoch = current["epoch"] if epoch is None else epoch
+            history = current["history"] if history is None else history
+            payload = {
+                **expected,
+                **gpu_provenance,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "scheduler_state_dict": scheduler.state_dict(),
+                "scaler_state_dict": scaler.state_dict() if scaler else None,
+                "epoch": epoch,
+                "batch_index": batch,
+                "global_step": step,
+                "checkpoint_metric": "val_pr_auc",
+                "best_metric": getattr(early, "best", None),
+                "best_validation_loss": getattr(early, "best_secondary", None),
+                "best_epoch": current["best_epoch"] if best_epoch is None else best_epoch,
+                "early_stopping_counter": getattr(early, "wait", 0),
+                "history": history or {},
+                "source_accounting": actual_accounting(),
+                "gpu_uuid": runtime_gpu_uuid,
+                "rng_states": {
+                    "python": random.getstate(),
+                    "numpy": np.random.get_state(),
+                    "torch": torch.get_rng_state(),
+                    "torch_cuda": (
+                        torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
+                    ),
+                },
+                "resume_segment_id": segment,
+            }
+            ckio.save_resume_checkpoint(run_dir, payload, best=best)
+
+        interval = int(self.policy.get("checkpoint_interval_updates", 250))
+        warmup = int(self.policy.get("warmup_updates", 0))
+        target_lr = float(self.policy["training_phases"][0]["learning_rate"])
+
+        def before_optimizer_step(step, _batch):
+            if warmup and step <= warmup:
+                for group in optimizer.param_groups:
+                    group["lr"] = target_lr * step / warmup
+
+        def epoch_begin(epoch):
+            current["epoch"] = epoch
+
+        def periodic(step, batch):
+            if step % interval == 0:
+                save_torch(step, batch)
+
+        def epoch_end(epoch, step, _scaler, history_object, values, improved):
+            current["epoch"] = epoch
+            history_object.history.setdefault("learning_rate", []).append(
+                float(optimizer.param_groups[0]["lr"])
+            )
+            history_object.history.setdefault("optimizer_steps", []).append(int(step))
+            current["history"] = history_object.history
+            if improved:
+                current["best_epoch"] = epoch
+            scheduler.step(values["pr_auc"])
+            save_torch(step, -1, epoch + 1, history_object.history, best=improved)
+
+        history_object = amp_utils.fit_mammofm(
+            model,
+            train_loader,
+            val_loader,
+            optimizer,
+            criterion,
+            epochs,
+            device,
+            early_stopping=early,
+            use_amp=bool(self.policy.get("amp", False)),
+            grad_clip_norm=self.policy.get("gradient_clipping"),
+            accumulation_steps=accumulation,
+            lr_scheduler=None,
+            start_epoch=start_epoch,
+            start_batch=start_batch,
+            global_step=global_step,
+            max_optimizer_updates=int(self.policy["max_optimizer_updates"]),
+            scaler=scaler,
+            on_optimizer_step=periodic,
+            on_before_optimizer_step=before_optimizer_step,
+            on_epoch_begin=epoch_begin,
+            on_epoch_end=epoch_end,
+            resume_history=prior_history,
+            on_batch_processed=record_processed_batch,
+        )
+        history = (
+            history_object.history
+            if hasattr(history_object, "history")
+            else vars(history_object)
+        )
+
+        best_path = ckio.resume_checkpoint_path(run_dir, "checkpoint_best")
+        if best_path.is_file():
+            best_payload = ckio.read_resume_checkpoint(best_path)
+            if best_payload.get("best_metric") is not None and (
+                getattr(early, "best", float("-inf")) is None
+                or best_payload["best_metric"] >= getattr(early, "best", float("-inf"))
+            ):
+                model.load_state_dict(best_payload["model_state_dict"], strict=True)
+                best_epoch = best_payload.get("best_epoch")
+
         self.save_checkpoint(model, Path(checkpoint_path))
-        return {"checkpoint": str(checkpoint_path), "history": history, "resumed_from": resume_source if resume else None,
-                "optimizer_updates_limit": int(self.policy["max_optimizer_updates"]), "epochs": epochs,
-                "best_epoch": best_epoch,
-                **({"source_accounting": actual_accounting()} if self.architecture != "resnet50" else {})}
+        return {
+            "checkpoint": str(checkpoint_path),
+            "history": history,
+            "resumed_from": resume_source if resume is not None else None,
+            "optimizer_updates_limit": int(self.policy["max_optimizer_updates"]),
+            "epochs": epochs,
+            "best_epoch": best_epoch,
+            "source_accounting": actual_accounting(),
+            **gpu_provenance,
+        }
 
     def predict_validation(self, checkpoint_path, validation_rows, seed=42, **_):
+        import torch
+        import maxvit_utils as utils
+
         loader = self.build_validation_dataloader(validation_rows, seed)
         model = self.load_checkpoint(checkpoint_path)
-        if self.architecture == "resnet50":
-            from resnet50_utils import predict_validation
-            labels, probabilities = predict_validation(model, loader)
-        else:
-            import torch
-            import maxvit_utils as utils
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            model.to(device)
-            labels, probabilities = utils.predict_probs(model, loader, device)
-            labels, probabilities = labels.astype(int).tolist(), probabilities.astype(float).tolist()
-        return {"labels": labels, "probabilities": probabilities,
-                "sample_ids": [row.get("image_id", str(i)) for i, row in enumerate(validation_rows)]}
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.to(device)
+        labels, probabilities = utils.predict_probs(model, loader, device)
+        return {
+            "labels": labels.astype(int).tolist(),
+            "probabilities": probabilities.astype(float).tolist(),
+            "sample_ids": [
+                row.get("image_id", str(index))
+                for index, row in enumerate(validation_rows)
+            ],
+        }
 
     def predict_locked_test(self, checkpoint_path, test_rows, *, lock_verified=False, **kwargs):
         if not lock_verified:
@@ -639,18 +563,19 @@ class ArchitectureAdapter:
         return self.predict_validation(checkpoint_path, test_rows, **kwargs)
 
     def estimate_memory_profile(self, **_):
-        return {"resource_profile": self.policy.get("expected_vram_profile"),
-                "physical_batch_size": self.policy.get("physical_batch_size"),
-                "effective_batch_size": self.policy.get("effective_batch_size")}
+        return {
+            "resource_profile": self.policy.get("expected_vram_profile"),
+            "physical_batch_size": self.policy.get("physical_batch_size"),
+            "effective_batch_size": self.policy.get("effective_batch_size"),
+        }
 
 
-def get_adapter(architecture, policy=None, root=None, tiny=False):
+def get_adapter(architecture, policy=None, root=None):
     if architecture not in ARCHITECTURES:
         raise ValueError(f"unknown architecture: {architecture}")
     if policy is None:
         raise ValueError("training policy is required")
-    use_tiny = bool(tiny) or os.environ.get("MAMMO_CLASSIFIER_TINY") == "1"
-    return (TinyAdapter if use_tiny else ArchitectureAdapter)(architecture, policy, root or Path.cwd())
+    return ArchitectureAdapter(architecture, policy, root or Path.cwd())
 
 
-__all__ = ["ARCHITECTURES", "ArchitectureAdapter", "TinyAdapter", "get_adapter", "_torch_payload"]
+__all__ = ["ARCHITECTURES", "ArchitectureAdapter", "get_adapter", "_torch_payload"]

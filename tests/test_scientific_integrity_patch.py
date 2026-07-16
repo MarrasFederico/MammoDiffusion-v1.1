@@ -185,14 +185,11 @@ class StatisticsMemorizationAccountingTests(unittest.TestCase):
             self.assertEqual(rows[0]["exact_match_train_ids"], ["neg"])
             self.assertEqual(rows[0]["nearest_train_label"], 1)
 
-    def test_actual_accounting_stop_and_resume_and_estimate_labels(self):
+    def test_actual_accounting_is_additive_across_resume(self):
         first = de.source_accounting([{"label": 0, "source": "real"}, {"label": 1, "source": "finetuned_synthetic"}])
         self.assertEqual((first["real_negative_seen"], first["finetuned_synthetic_seen"]), (1, 1))
         resumed = de.source_accounting([{"label": 1, "source": "traditional_augmentation"}], first)
         self.assertEqual(resumed["total_samples_seen"], 3); self.assertEqual(resumed["accounting_mode"], "actual")
-        estimate = de.proportional_source_accounting({"source_distribution": {"real": 2}}, 1, 2)
-        self.assertEqual(estimate["accounting_mode"], "proportional_estimate")
-        self.assertFalse(any(key.endswith("_seen") for key in estimate))
 
     def test_publication_adapter_does_not_write_legacy_namespace(self):
         adapter = (ROOT / "notebooks/utility/classifier_architecture_adapters.py").read_text()

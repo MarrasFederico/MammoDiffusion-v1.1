@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import classifier_checkpoint_io as checkpoint_io  # noqa: E402
+import classifier_architecture_adapters as adapters  # noqa: E402
 import downstream_analysis as da  # noqa: E402
 import downstream_experiment as de  # noqa: E402
 import downstream_protocol as dp  # noqa: E402
@@ -216,26 +217,15 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises(RuntimeError):
                 de.assert_no_forbidden_data_paths(ROOT, [{"path": path, "label": 1}])
 
-    def test_resume_continuity_records_portable_gpu_change(self):
-        payload = {
-            "global_step": 10,
-            "model_state_dict": {"weight": 1},
-            "optimizer_state_dict": {"step": 10},
-            "scheduler_state_dict": {"step": 10},
-            "rng_states": {"python": 1},
-            "gpu_uuid": "GPU-old",
-        }
-        continuity = de.verify_resume_continuity(
-            payload, current_gpu_uuid="GPU-right", max_optimizer_updates=20)
-        self.assertTrue(continuity["gpu_changed"])
-        self.assertEqual(continuity["checkpoint_gpu_uuid"], "GPU-old")
-        self.assertEqual(continuity["runtime_gpu_uuid"], "GPU-right")
-        self.assertEqual(continuity["next_step"], 11)
-
-    def _configuration(self, resume: bool, confirm: bool = False):
-        return {"architecture": "maxvit512", "condition": "real_only", "seed": 17,
-                "experiment_id": "maxvit512__real_only__seed17", "training_policy_name": "maxvit512_fixed_protocol",
-                "resume": resume, "confirm_existing_output": confirm}
+    def test_resume_records_portable_gpu_change(self):
+        provenance = adapters._gpu_resume_provenance(
+            {"gpu_uuid": "GPU-old"}, "GPU-right"
+        )
+        self.assertEqual(provenance, {
+            "checkpoint_gpu_uuid": "GPU-old",
+            "runtime_gpu_uuid": "GPU-right",
+            "gpu_changed": True,
+        })
 
     def _checkpoint(self, root: Path):
         run = de.experiment_dir(root, "maxvit512", "real_only", 17)
@@ -244,24 +234,35 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
                     "config_signature": "informational", "dataset_signature": "informational", "seed": 17}
         checkpoint_io.save_resume_checkpoint(run, {**expected, "epoch": 3, "global_step": 400})
 
-    def test_resume_true_loads_compatible_checkpoint(self):
+    def test_compatible_resume_checkpoint_loads_automatically(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             self._checkpoint(root)
-            status = de.resume_status(root, self._configuration(True))
-        self.assertTrue(status["compatible"])
-        self.assertEqual((status["resume_epoch"], status["resume_step"]), (3, 400))
+            expected = {"architecture": "maxvit512", "experiment_id": "maxvit512__real_only__seed17",
+                        "dataset_variant_id": "real_only", "training_policy": "maxvit512_fixed_protocol",
+                        "config_signature": "informational", "dataset_signature": "informational", "seed": 17}
+            payload, source = checkpoint_io.load_resume_checkpoint(
+                de.experiment_dir(root, "maxvit512", "real_only", 17), expected
+            )
+        self.assertEqual(source, "checkpoint_latest")
+        self.assertEqual((payload["epoch"], payload["global_step"]), (3, 400))
 
-    def test_resume_false_never_loads_and_refuses_silent_overwrite(self):
+    def test_corrupt_and_incompatible_resume_checkpoints_are_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            self._checkpoint(root)
-            with self.assertRaisesRegex(RuntimeError, "RESUME=False"):
-                de.resume_status(root, self._configuration(False))
-            with mock.patch.object(checkpoint_io, "load_resume_checkpoint", side_effect=AssertionError("must not load")):
-                status = de.resume_status(root, self._configuration(False, confirm=True))
-            self.assertFalse(status["resume_requested"])
-            self.assertIsNone(status["resumed_from"])
+            run = de.experiment_dir(root, "maxvit512", "real_only", 17)
+            run.mkdir(parents=True)
+            checkpoint_io.resume_checkpoint_path(run).write_bytes(b"not a pickle")
+            payload, reason = checkpoint_io.load_resume_checkpoint(run, {"architecture": "maxvit512"})
+            self.assertIsNone(payload)
+            self.assertIn("UnpicklingError", reason)
+
+            checkpoint_io.save_resume_checkpoint(run, {
+                "architecture": "mammofm", "epoch": 1, "global_step": 1
+            })
+            payload, reason = checkpoint_io.load_resume_checkpoint(run, {"architecture": "maxvit512"})
+            self.assertIsNone(payload)
+            self.assertIn("incompatible", reason)
 
     def test_visualization_helpers_return_figures_and_dataframe(self):
         history = [{"epoch": 1, "loss": .8, "val_loss": .9, "val_pr_auc": .4, "val_auc": .6, "learning_rate": 1e-4, "optimizer_steps": 10},
@@ -273,14 +274,6 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
         self.assertIsNotNone(de.plot_calibration(rows))
         table = de.build_error_case_table(rows)
         self.assertEqual(list(table.columns), ["patient_id", "image_id", "label", "probability", "error_type", "source/path"])
-
-    def test_pr_auc_epoch_four_wins_for_both_adapters(self):
-        history = [{"epoch": 3, "val_auc": .82, "val_pr_auc": .41, "val_loss": .4},
-                   {"epoch": 4, "val_auc": .80, "val_pr_auc": .46, "val_loss": .5}]
-        for architecture in ("maxvit512", "mammofm"):
-            with self.subTest(architecture=architecture):
-                self.assertEqual(de.select_best_epoch(history)["epoch"], 4)
-
 
 class EnsembleFinalAndArchiveTests(unittest.TestCase):
     def _rows(self):

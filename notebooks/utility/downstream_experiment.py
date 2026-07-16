@@ -1,8 +1,4 @@
-"""Direct notebook API for one MaxViT-512 or Mammo-FM experiment.
-
-The API deliberately exposes dataset construction, audit, model loading, training and
-validation as separate notebook steps.  Nothing runs at import time.
-"""
+"""Direct notebook API for one manual MaxViT-512 or Mammo-FM experiment."""
 from __future__ import annotations
 
 import csv
@@ -33,14 +29,14 @@ FORBIDDEN_DATA_TOKENS = ("test.csv", "final_evaluation", "locked_test", "histori
 FORBIDDEN_PATH_COMPONENTS = ("test", "historical_internal_test")
 
 
-def experiment_configuration(root: Path, architecture: str, condition: str, seed: int, *, gpu: int | str = 0,
-                             resume: bool = True) -> dict[str, Any]:
+def experiment_configuration(root: Path, architecture: str, condition: str, seed: int, *,
+                             gpu: int | str = 0) -> dict[str, Any]:
     if architecture not in ARCHITECTURES or condition not in CONDITIONS or int(seed) not in SEEDS:
         raise ValueError("configuration is outside the 2 x 4 x 3 protocol")
     resolved = resolve_job(Path(root), architecture, condition, int(seed))
     policy = dict(resolved["policy"])
     configuration = {**resolved, "policy": policy, "architecture": architecture, "condition": condition,
-                     "seed": int(seed), "gpu": gpu, "resume": bool(resume)}
+                     "seed": int(seed), "gpu": gpu}
     configuration["results_dir"] = str(experiment_dir(root, architecture, condition, seed))
     return configuration
 
@@ -91,12 +87,6 @@ def _initialized_frameworks() -> list[str]:
     torch_module = sys.modules.get("torch")
     if torch_module is not None and getattr(getattr(torch_module, "cuda", None), "is_initialized", lambda: False)():
         initialized.append("PyTorch")
-    tensorflow_module = sys.modules.get("tensorflow")
-    if tensorflow_module is not None:
-        try:
-            if tensorflow_module.config.list_logical_devices("GPU"): initialized.append("TensorFlow")
-        except Exception:
-            pass
     return initialized
 
 
@@ -203,7 +193,7 @@ def audit_dataset(train_rows: Sequence[Mapping[str, Any]], validation_rows: Sequ
     }
 
 
-def training_budget(configuration: Mapping[str, Any]) -> dict[str, Any]:
+def _training_budget(configuration: Mapping[str, Any]) -> dict[str, Any]:
     policy = configuration["policy"]
     max_updates = int(policy["max_optimizer_updates"])
     return {"max_optimizer_updates": max_updates,
@@ -242,20 +232,6 @@ def assert_no_forbidden_data_paths(root: Path, rows: Sequence[Mapping[str, Any]]
             raise RuntimeError(f"dataset references a forbidden (test/final-evaluation) path: {raw} -> {resolved}")
 
 
-def source_exposure(audit: Mapping[str, Any], optimizer_steps: int, effective_batch_size: int) -> dict[str, Any]:
-    total_seen = int(optimizer_steps) * int(effective_batch_size)
-    distribution = audit.get("source_distribution", {})
-    total = sum(int(value) for value in distribution.values())
-    rows = []
-    for source, count in sorted(distribution.items()):
-        seen = total_seen * int(count) / total if total else 0.0
-        rows.append({"source": source, "available_samples": int(count), "expected_samples_exposed": seen,
-                     "effective_epochs": seen / int(count) if count else 0.0})
-    return {"optimizer_steps": int(optimizer_steps), "effective_batch_size": int(effective_batch_size),
-            "expected_source_exposure": rows, "accounting_mode": "proportional_estimate",
-            "sampler_policy": "documented proportional sampling; no hidden oversampling"}
-
-
 SOURCE_ACCOUNTING_FIELDS = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
                             "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
 
@@ -277,77 +253,45 @@ def source_accounting(processed_rows: Sequence[Mapping[str, Any]], previous: Map
             "total_samples_seen": sum(counts.values())}
 
 
-def proportional_source_accounting(audit: Mapping[str, Any], optimizer_updates: int,
-                                   effective_batch_size: int) -> dict[str, Any]:
-    """Explicit fallback: expected exposure, never fields named ``*_seen``."""
-    exposure = source_exposure(audit, optimizer_updates, effective_batch_size)
-    return {"schema_version": 1, "accounting_mode": "proportional_estimate",
-            "optimizer_updates": int(optimizer_updates), "effective_batch_size": int(effective_batch_size),
-            "expected_source_exposure": exposure["expected_source_exposure"]}
+def load_adapter(configuration: Mapping[str, Any]):
+    return get_adapter(configuration["architecture"], configuration["policy"], Path(configuration.get("root", ".")))
 
 
-def select_best_epoch(history: Sequence[Mapping[str, Any]], *, tolerance: float = 1e-12) -> Mapping[str, Any]:
-    """Maximise PR-AUC; ties use lower validation loss, then the earlier epoch."""
-    if not history: raise ValueError("history is empty")
-    best = history[0]
-    for candidate in history[1:]:
-        pr_candidate, pr_best = float(candidate["val_pr_auc"]), float(best["val_pr_auc"])
-        if pr_candidate > pr_best and not math.isclose(pr_candidate, pr_best, abs_tol=tolerance, rel_tol=tolerance):
-            best = candidate
-        elif math.isclose(pr_candidate, pr_best, abs_tol=tolerance, rel_tol=tolerance):
-            loss_candidate, loss_best = float(candidate["val_loss"]), float(best["val_loss"])
-            if loss_candidate < loss_best and not math.isclose(loss_candidate, loss_best, abs_tol=tolerance, rel_tol=tolerance):
-                best = candidate
-            elif math.isclose(loss_candidate, loss_best, abs_tol=tolerance, rel_tol=tolerance) and int(candidate["epoch"]) < int(best["epoch"]):
-                best = candidate
-    return best
-
-
-def load_model(configuration: Mapping[str, Any], *, tiny: bool = False):
-    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(configuration.get("root", ".")), tiny=tiny)
-    model = adapter.build_model(seed=configuration["seed"])
-    return adapter, model
-
-
-def load_adapter(configuration: Mapping[str, Any], *, tiny: bool = False):
-    return get_adapter(configuration["architecture"], configuration["policy"], Path(configuration.get("root", ".")), tiny=tiny)
-
-
-def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any], *, tiny: bool = False) -> dict[str, Any]:
+def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any]) -> dict[str, Any]:
     """Train only when this function is explicitly called from notebook section 10."""
     output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
     resume_configuration = {**configuration, "dataset_signature": dataset["provenance"].get("signature", "informational")}
-    resume = resume_status(root, resume_configuration)
+    resume = _resume_status(root, resume_configuration)
     output.mkdir(parents=True, exist_ok=True)
     active_audit = dataset["audit"]["full"]
     gpu_uuid = configuration.get("gpu_uuid")
-    checkpoint = output / "checkpoint_best"
-    suffix = ".pt" if configuration["policy"]["framework"].startswith("pytorch") else ".keras"
-    checkpoint = checkpoint.with_suffix(suffix)
-    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root), tiny=tiny)
+    checkpoint = (output / "checkpoint_best").with_suffix(".pt")
+    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root))
     result = adapter.train(dataset["train_rows"], dataset["validation_rows"], checkpoint,
                            seed=configuration["seed"], run_dir=output, architecture=configuration["architecture"],
                            experiment_id=configuration["experiment_id"], dataset_variant_id=configuration["condition"],
                            training_policy=configuration["training_policy_name"], config_signature="informational",
                            dataset_signature=dataset["provenance"].get("signature", "informational"),
-                           resume=bool(configuration["resume"]), gpu_uuid=gpu_uuid)
-    optimizer_updates = int(result.get("optimizer_updates", configuration["policy"]["max_optimizer_updates"]))
-    configuration_payload = {key: configuration[key] for key in ("architecture", "condition", "seed", "gpu", "resume")}
-    configuration_payload["training_budget"] = training_budget(configuration)
+                           gpu_uuid=gpu_uuid)
+    configuration_payload = {key: configuration[key] for key in ("architecture", "condition", "seed", "gpu")}
+    configuration_payload["training_budget"] = _training_budget(configuration)
+    for key in ("checkpoint_gpu_uuid", "runtime_gpu_uuid", "gpu_changed"):
+        if key in result:
+            configuration_payload[key] = result[key]
     atomic_json(output / "configuration.json", configuration_payload)
     dataset_summary = {**active_audit, "validation_manifest": "data/processed/metadata/val.csv",
                        "validation_signature": dataset["provenance"].get("validation_signature")}
     atomic_json(output / "dataset_summary.json", dataset_summary)
     _write_csv(output / "training_history.csv", _history_rows(result.get("history", {})))
-    exposure = source_exposure(active_audit, optimizer_updates, int(configuration["policy"]["effective_batch_size"]))
-    atomic_json(output / "source_exposure.json", exposure)
-    if result.get("processed_sample_rows") is not None:
-        accounting = source_accounting(result["processed_sample_rows"], result.get("previous_source_accounting"))
-    else:
-        accounting = result.get("source_accounting") or proportional_source_accounting(
-            active_audit, optimizer_updates, int(configuration["policy"]["effective_batch_size"]))
+    accounting = result.get("source_accounting")
+    if not accounting or accounting.get("accounting_mode") != "actual":
+        raise RuntimeError("training did not return actual source accounting")
+    missing = [field for field in (*SOURCE_ACCOUNTING_FIELDS, "schema_version", "total_samples_seen")
+               if field not in accounting]
+    if missing:
+        raise RuntimeError(f"actual source accounting is incomplete: {missing}")
     atomic_json(output / "source_accounting.json", accounting)
-    return {**result, "checkpoint": str(checkpoint), "output_dir": str(output), "source_exposure": exposure,
+    return {**result, "checkpoint": str(checkpoint), "output_dir": str(output),
             "source_accounting": accounting, "resume_status": resume}
 
 
@@ -366,9 +310,9 @@ def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> Path:
     os.replace(temporary, path); return path
 
 
-def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any], checkpoint: str | Path,
-                   *, tiny: bool = False) -> dict[str, Any]:
-    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root), tiny=tiny)
+def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any],
+                   checkpoint: str | Path) -> dict[str, Any]:
+    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root))
     prediction = adapter.predict_validation(Path(checkpoint), dataset["validation_rows"], seed=configuration["seed"])
     rows = [{"patient_id": source.get("patient_id"), "image_id": source.get("image_id"), "label": int(label),
              "probability": float(probability), "source": source.get("source"),
@@ -382,17 +326,11 @@ def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mappin
     return {"rows": rows, "metrics": report, "prediction_path": str(output / "validation_predictions.csv")}
 
 
-def resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
+def _resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
     output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
     candidates = sorted(output.glob("checkpoint_*.pkl")) + sorted(output.glob("checkpoint_best.*"))
-    requested = bool(configuration["resume"])
-    if not requested and candidates and not bool(configuration.get("confirm_existing_output", False)):
-        raise RuntimeError(
-            f"RESUME=False and checkpoints already exist in {output}. Choose a new RUN_NAME/output directory "
-            "or set an explicit overwrite confirmation; nothing was deleted."
-        )
-    payload, source = None, "resume disabled"
-    if requested and candidates:
+    payload, source = None, "no resume checkpoint"
+    if candidates:
         try:
             from . import classifier_checkpoint_io as checkpoint_io
         except ImportError:
@@ -404,51 +342,11 @@ def resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any
         payload, source = checkpoint_io.load_resume_checkpoint(output, expected)
         if payload is None and source != "no resume checkpoint":
             raise RuntimeError(f"No compatible resume checkpoint for architecture/condition/seed: {source}")
-    return {"resume_requested": requested, "available": bool(candidates), "compatible": payload is not None,
+    return {"automatic": True, "available": bool(candidates), "compatible": payload is not None,
             "resumed_from": source if payload is not None else None,
             "resume_epoch": payload.get("epoch") if payload else None,
             "resume_step": payload.get("global_step") if payload else None,
             "candidates": [str(path) for path in candidates]}
-
-
-def _present(payload: Mapping[str, Any], *keys: str) -> bool:
-    return any(payload.get(key) not in (None, "") for key in keys)
-
-
-def verify_resume_continuity(payload: Mapping[str, Any], *, current_gpu_uuid: str,
-                             max_optimizer_updates: int = 2) -> dict[str, Any]:
-    """Verify a real resume checkpoint continues training instead of restarting from zero.
-
-    Accepts either checkpoint convention (``model_state_dict``/``optimizer_state_dict`` for
-    PyTorch/Tiny, ``model_state``/``optimizer_state`` for Keras).  Requires ``global_step`` >= 1, model
-    and optimizer state. A recorded GPU UUID is retained as provenance, but a change of GPU does not
-    make an otherwise portable checkpoint incompatible. For the PyTorch/Tiny format
-    (``*_state_dict``) it also requires ``scheduler_state_dict`` and ``rng_states``.  A missing/zero
-    step is a hard failure.
-    """
-    if not _present(payload, "model_state_dict", "model_state"):
-        raise RuntimeError("resume checkpoint is missing model state")
-    if not _present(payload, "optimizer_state_dict", "optimizer_state"):
-        raise RuntimeError("resume checkpoint is missing optimizer state")
-    if payload.get("gpu_uuid") in (None, ""):
-        raise RuntimeError("resume checkpoint is missing gpu_uuid")
-    if payload.get("global_step") in (None, ""):
-        raise RuntimeError("resume checkpoint is missing global_step")
-    if "model_state_dict" in payload:  # PyTorch / Tiny format
-        for key in ("scheduler_state_dict", "rng_states"):
-            if key not in payload:
-                raise RuntimeError(f"pytorch resume checkpoint is missing {key}")
-    step = int(payload["global_step"])
-    if step < 1:
-        raise RuntimeError("resume checkpoint has global_step < 1; refusing to restart silently from zero")
-    gpu_changed = _normalize_uuid(payload["gpu_uuid"]) != _normalize_uuid(current_gpu_uuid)
-    if step >= int(max_optimizer_updates):
-        return {"resume_step": step, "next_step": step, "complete": True,
-                "checkpoint_gpu_uuid": payload["gpu_uuid"], "runtime_gpu_uuid": current_gpu_uuid,
-                "gpu_changed": gpu_changed}
-    return {"resume_step": step, "next_step": step + 1, "complete": False,
-            "checkpoint_gpu_uuid": payload["gpu_uuid"], "runtime_gpu_uuid": current_gpu_uuid,
-            "gpu_changed": gpu_changed}
 
 
 def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
@@ -464,7 +362,7 @@ def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[
         predictions = [{**row, "label": int(row["label"]), "probability": float(row["probability"])} for row in predictions]
     validation_metrics = json.loads((output / "validation_metrics.json").read_text()) if (output / "validation_metrics.json").is_file() else None
     accounting = json.loads((output / "source_accounting.json").read_text()) if (output / "source_accounting.json").is_file() else None
-    checkpoints = sorted(path for path in output.glob("checkpoint_best.*") if path.suffix in {".pt", ".pth", ".keras", ".h5"})
+    checkpoints = sorted(path for path in output.glob("checkpoint_best.*") if path.suffix in {".pt", ".pth"})
     return {"history": history, "predictions": predictions, "validation_metrics": validation_metrics,
             "source_accounting": accounting, "checkpoint": str(checkpoints[0]) if checkpoints else None}
 
@@ -491,15 +389,10 @@ def plot_training_history(history: Sequence[Mapping[str, Any]]):
 def plot_source_accounting(accounting: Mapping[str, Any]):
     import matplotlib.pyplot as plt
     if accounting.get("accounting_mode") != "actual":
-        rows = accounting.get("expected_source_exposure", [])
-        fields = [str(row["source"]) for row in rows]
-        values = [float(row["expected_samples_exposed"]) for row in rows]
-        ylabel = "Expected samples exposed (proportional estimate)"
-    else:
-        fields = ("real_negative_seen", "real_positive_seen", "traditional_augmented_seen",
-                  "finetuned_synthetic_seen", "fromscratch_synthetic_seen")
-        values = [float(accounting.get(name, 0)) for name in fields]
-        ylabel = "Samples actually processed"
+        raise ValueError("source accounting must use accounting_mode='actual'")
+    fields = SOURCE_ACCOUNTING_FIELDS
+    values = [float(accounting.get(name, 0)) for name in fields]
+    ylabel = "Samples actually processed"
     figure, axis = plt.subplots(figsize=(9, 4)); axis.bar(fields, values)
     axis.tick_params(axis="x", rotation=30); axis.set_ylabel(ylabel); figure.tight_layout(); return figure
 
@@ -550,14 +443,9 @@ def build_error_case_table(rows: Sequence[Mapping[str, Any]], threshold: float =
     return pd.DataFrame(selected, columns=["patient_id", "image_id", "label", "probability", "error_type", "source/path"])
 
 
-def saved_artifacts(root: Path, configuration: Mapping[str, Any]) -> list[str]:
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
-    return [str(path.relative_to(root)) for path in sorted(output.rglob("*")) if path.is_file()]
-
-
 __all__ = ["assert_no_forbidden_data_paths", "audit_dataset", "build_error_case_table", "configure_environment",
            "configure_visible_gpu", "construct_dataset", "experiment_configuration",
-           "experiment_dir", "load_adapter", "load_existing_outputs", "load_model", "load_prediction_rows", "plot_calibration", "plot_source_accounting", "plot_training_history",
-           "plot_validation_curves", "resume_status", "run_validation", "saved_artifacts",
-           "STANDARD_RESULTS_ROOT", "verify_resume_continuity",
-           "proportional_source_accounting", "select_best_epoch", "source_accounting", "source_exposure", "train", "training_budget"]
+           "experiment_dir", "load_adapter", "load_existing_outputs", "load_prediction_rows",
+           "plot_calibration", "plot_source_accounting", "plot_training_history",
+           "plot_validation_curves", "run_validation", "STANDARD_RESULTS_ROOT",
+           "source_accounting", "train"]

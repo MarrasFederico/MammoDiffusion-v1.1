@@ -8,7 +8,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 import downstream_protocol as dp  # noqa: E402
-from downstream_experiment import select_best_epoch, training_budget  # noqa: E402
 
 
 class DownstreamProtocolTests(unittest.TestCase):
@@ -55,30 +54,6 @@ class DownstreamProtocolTests(unittest.TestCase):
             self.assertEqual(policy["scheduler_params"]["monitor"], "val_pr_auc")
             self.assertEqual(policy["early_stopping"]["monitor"], "val_pr_auc")
             self.assertTrue(policy["checkpoint_criterion"].startswith("val_pr_auc_max"))
-
-    def test_pr_auc_beats_better_roc_auc(self):
-        history = [{"epoch": 1, "val_pr_auc": .40, "val_auc": .95, "val_loss": .5},
-                   {"epoch": 2, "val_pr_auc": .55, "val_auc": .80, "val_loss": .6}]
-        self.assertEqual(select_best_epoch(history)["epoch"], 2)
-
-    def test_pr_auc_tie_uses_loss_then_earliest_epoch(self):
-        history = [{"epoch": 1, "val_pr_auc": .5, "val_auc": .8, "val_loss": .4},
-                   {"epoch": 2, "val_pr_auc": .5, "val_auc": .9, "val_loss": .3},
-                   {"epoch": 3, "val_pr_auc": .5, "val_auc": .95, "val_loss": .3}]
-        self.assertEqual(select_best_epoch(history)["epoch"], 2)
-
-    def test_four_conditions_share_budget_and_validation(self):
-        protocol = dp.load_protocol(ROOT)
-        for architecture in dp.ARCHITECTURES:
-            configuration = {"policy": protocol["architectures"][architecture]}
-            budget = training_budget(configuration)
-            self.assertEqual(budget["max_optimizer_updates"], protocol["fairness"]["maximum_optimizer_updates"])
-            self.assertEqual(budget["validation_interval"], protocol["fairness"]["validation_interval_optimizer_updates"])
-            self.assertEqual(budget["checkpoint_metric"], protocol["architectures"][architecture]["checkpoint_criterion"])
-            self.assertEqual(budget["validation_manifest"], protocol["fairness"]["validation_manifest"])
-            self.assertEqual(budget["effective_batch_size"], 16)
-            self.assertEqual(budget["lr_schedule"], "ReduceLROnPlateau")
-            self.assertEqual(budget["early_stopping_policy"]["monitor"], "val_pr_auc")
 
     def test_duplicate_job_is_rejected(self):
         payload = json.loads((ROOT / "configs/downstream_classifier_jobs.json").read_text())

@@ -4,7 +4,7 @@ Sostituisce `mammodino_utils.py` (ora archiviato in `_deprecated_mammodino/`): i
 MammoDINO (GE HealthCare, arXiv:2510.11883) non risultano pubblicamente disponibili, mentre
 **Mammo-FM** (batmanlab, arXiv:2512.00198) e' un foundation model mammografico con checkpoint
 pubblici su Hugging Face (`batmanLab/Mammo-FM`). Segue lo stesso stile dei moduli helper del
-progetto (`maxvit_utils.py`, `medfoundation_utils.py`): le callback in stile Keras
+progetto (`maxvit_utils.py`): le callback in stile Keras
 (EarlyStopping, ModelCheckpoint, CSVLogger) sono riusate da `maxvit_utils`.
 
 Architettura verificata direttamente sul checkpoint reale (`Mammo-FM_BatmanlabTrained_CLIP.tar`,

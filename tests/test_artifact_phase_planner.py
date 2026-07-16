@@ -55,8 +55,8 @@ class ArtifactPhasePlannerTests(unittest.TestCase):
   for p in sorted((ROOT/'notebooks/2_diffusers').glob('0[1-8]_*.ipynb')):
    text=p.read_text(); self.assertIn('IDEMPOTENT_PHASE_MODES_V1',text); self.assertIn('TRAIN_MODE',text); self.assertIn('GENERATION_MODE',text)
  def test_downstream_training_notebooks_are_parameterized_and_keep_test_separate(self):
-  paths=[ROOT/'notebooks/4_downstream_classifiers/07_MaxViT512_Downstream.ipynb',
-         ROOT/'notebooks/4_downstream_classifiers/08_MammoFM_Downstream.ipynb']
+  paths=[ROOT/'notebooks/04_classifiers/07_MaxViT512_Downstream.ipynb',
+         ROOT/'notebooks/04_classifiers/08_MammoFM_Downstream.ipynb']
   for p in paths:
    text=p.read_text(); self.assertIn('CONDITION =',text); self.assertIn('SEED =',text)
    self.assertNotIn('run_downstream_locked_test.py',text)

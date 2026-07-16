@@ -10,10 +10,10 @@ ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOKS = [
     "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb",
     "notebooks/3_generator_benchmark/06_Generator_Selection.ipynb",
-    "notebooks/4_downstream_classifiers/07_MaxViT512_Downstream.ipynb",
-    "notebooks/4_downstream_classifiers/08_MammoFM_Downstream.ipynb",
-    "notebooks/4_downstream_classifiers/09_Downstream_Validation_Comparison.ipynb",
-    "notebooks/4_downstream_classifiers/10_Final_Evaluation_and_Report.ipynb",
+    "notebooks/04_classifiers/07_MaxViT512_Downstream.ipynb",
+    "notebooks/04_classifiers/08_MammoFM_Downstream.ipynb",
+    "notebooks/04_classifiers/09_Downstream_Validation_Comparison.ipynb",
+    "notebooks/04_classifiers/10_Final_Evaluation_and_Report.ipynb",
 ]
 
 
@@ -46,7 +46,7 @@ class PublicationRepositoryTests(unittest.TestCase):
     def test_configuration_cells_and_final_guard_exist(self):
         for relative in NOTEBOOKS[2:4]:
             text = (ROOT / relative).read_text()
-            for token in ('CONDITION =', 'SEED =', 'GPU =', 'RESUME ='):
+            for token in ('CONDITION =', 'SEED =', 'GPU_SELECTOR =', 'RESUME =', 'RUN_MODE ='):
                 self.assertIn(token, text)
         final = (ROOT / NOTEBOOKS[-1]).read_text()
         self.assertIn("RUN_FINAL_EVALUATION = False", final)
@@ -58,7 +58,7 @@ class PublicationRepositoryTests(unittest.TestCase):
                    "finalize_downstream_validation.py", "lock_downstream_test.py", "run_downstream_locked_test.py",
                    "finalize_publication_report.py")
         for name in removed: self.assertFalse((ROOT / "scripts" / name).exists(), name)
-        self.assertFalse((ROOT / "notebooks/4_downstream_classifiers/10_Locked_Test_and_Final_Report.ipynb").exists())
+        self.assertFalse((ROOT / "notebooks/04_classifiers/10_Locked_Test_and_Final_Report.ipynb").exists())
 
     def test_temporary_cleanup_inventory_is_not_tracked(self):
         # cleanup_inventory_before_push.md is a throwaway audit note, not a publication artifact.

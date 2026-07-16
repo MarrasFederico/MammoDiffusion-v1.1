@@ -27,17 +27,55 @@ except ImportError:
     from downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, resolve_job
 
 
-def experiment_configuration(root: Path, architecture: str, condition: str, seed: int, *, gpu: int = 0,
-                             resume: bool = True) -> dict[str, Any]:
+RUN_MODES = ("standard", "smoke")
+STANDARD_RESULTS_ROOT = "results/publication_v2/downstream"
+SMOKE_RESULTS_ROOT = "results/smoke"
+SMOKE_MIN_PER_CLASS = 8
+SMOKE_BUDGET = {"physical_batch_size": 2, "gradient_accumulation_steps": 1, "max_optimizer_updates": 2,
+                "validation_batches": 1, "checkpoint_interval_updates": 1, "dataloader_workers": 0}
+# Any data path that resolves to one of these tokens is rejected in smoke mode.
+FORBIDDEN_DATA_TOKENS = ("test.csv", "final_evaluation", "locked_test", "historical_test")
+FORBIDDEN_PATH_COMPONENTS = ("test", "historical_internal_test")
+
+
+def _check_run_mode(run_mode: str) -> str:
+    if run_mode not in RUN_MODES:
+        raise ValueError(f"unknown RUN_MODE {run_mode!r}; expected one of {RUN_MODES}")
+    return run_mode
+
+
+def experiment_configuration(root: Path, architecture: str, condition: str, seed: int, *, gpu: int | str = 0,
+                             resume: bool = True, run_mode: str = "standard") -> dict[str, Any]:
     if architecture not in ARCHITECTURES or condition not in CONDITIONS or int(seed) not in SEEDS:
         raise ValueError("configuration is outside the 2 x 4 x 3 protocol")
+    _check_run_mode(run_mode)
     resolved = resolve_job(Path(root), architecture, condition, int(seed))
-    return {**resolved, "architecture": architecture, "condition": condition, "seed": int(seed),
-            "gpu": int(gpu), "resume": bool(resume), "results_dir": str(experiment_dir(root, architecture, condition, seed))}
+    policy = dict(resolved["policy"])
+    if run_mode == "smoke":
+        policy = smoke_policy(policy)  # runtime copy; the official protocol is never mutated
+    return {**resolved, "policy": policy, "architecture": architecture, "condition": condition, "seed": int(seed),
+            "gpu": gpu, "resume": bool(resume), "run_mode": run_mode,
+            "results_dir": str(experiment_dir(root, architecture, condition, seed, run_mode=run_mode))}
 
 
-def experiment_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
-    return Path(root) / "results/publication_v2/downstream" / architecture / condition / f"seed_{int(seed)}"
+def smoke_policy(policy: Mapping[str, Any]) -> dict[str, Any]:
+    """Runtime copy of a training policy limited to two optimizer updates for a smoke run."""
+    smoke = dict(policy)
+    smoke["max_optimizer_updates"] = SMOKE_BUDGET["max_optimizer_updates"]
+    smoke["effective_batch_size"] = SMOKE_BUDGET["physical_batch_size"] * SMOKE_BUDGET["gradient_accumulation_steps"]
+    smoke["physical_batch_size"] = SMOKE_BUDGET["physical_batch_size"]
+    smoke["gradient_accumulation_steps"] = SMOKE_BUDGET["gradient_accumulation_steps"]
+    smoke["validation_interval_updates"] = 1
+    smoke["validation_batches"] = SMOKE_BUDGET["validation_batches"]
+    smoke["checkpoint_interval_updates"] = SMOKE_BUDGET["checkpoint_interval_updates"]
+    smoke["dataloader_workers"] = SMOKE_BUDGET["dataloader_workers"]
+    return smoke
+
+
+def experiment_dir(root: Path, architecture: str, condition: str, seed: int, *, run_mode: str = "standard") -> Path:
+    _check_run_mode(run_mode)
+    base = SMOKE_RESULTS_ROOT if run_mode == "smoke" else STANDARD_RESULTS_ROOT
+    return Path(root) / base / architecture / condition / f"seed_{int(seed)}"
 
 
 GPU_UUID_PREFIX = "GPU-"
@@ -169,6 +207,17 @@ def construct_dataset(root: Path, configuration: Mapping[str, Any]) -> dict[str,
     audit = audit_dataset(train_rows, validation_rows)
     if audit["train_validation_patient_overlap"]:
         raise RuntimeError("patient leakage detected before training")
+    run_mode = _check_run_mode(configuration.get("run_mode", "standard"))
+    if run_mode == "smoke":
+        include_synthetic = bool(configuration["variant"].get("synthetic_generator_id"))
+        train_rows = deterministic_smoke_subset(train_rows, include_synthetic=include_synthetic)
+        validation_rows = deterministic_smoke_subset(validation_rows, include_synthetic=False)
+        assert_no_forbidden_data_paths(train_rows + validation_rows)
+        if not verify_smoke_synthetic_membership(root, train_rows, configuration["condition"]):
+            raise RuntimeError("smoke synthetic rows are not members of the signed FILTERED manifest")
+        audit = audit_dataset(train_rows, validation_rows)
+        if audit["train_validation_patient_overlap"]:
+            raise RuntimeError("patient leakage detected in smoke subset")
     return {"train_rows": train_rows, "validation_rows": validation_rows,
             "provenance": provenance, "audit": audit}
 
@@ -195,7 +244,11 @@ def audit_dataset(train_rows: Sequence[Mapping[str, Any]], validation_rows: Sequ
 
 def training_budget(configuration: Mapping[str, Any]) -> dict[str, Any]:
     policy = configuration["policy"]
-    return {"max_optimizer_updates": int(policy["max_optimizer_updates"]),
+    run_mode = _check_run_mode(configuration.get("run_mode", "standard"))
+    max_updates = int(policy["max_optimizer_updates"])
+    if run_mode == "smoke" and max_updates > SMOKE_BUDGET["max_optimizer_updates"]:
+        raise RuntimeError("Smoke runs are limited to two optimizer updates.")
+    return {"max_optimizer_updates": max_updates, "run_mode": run_mode,
             "checkpoint_metric": policy["checkpoint_criterion"],
             "scheduler_monitor": policy["scheduler_params"]["monitor"],
             "early_stopping_monitor": policy["early_stopping"]["monitor"],
@@ -204,6 +257,64 @@ def training_budget(configuration: Mapping[str, Any]) -> dict[str, Any]:
             "lr_schedule": policy.get("scheduler"),
             "early_stopping_policy": dict(policy["early_stopping"]),
             "validation_manifest": "data/processed/metadata/val.csv"}
+
+
+def _row_path(row: Mapping[str, Any]) -> str:
+    return str(row.get("relative_path") or row.get("processed_path") or row.get("path") or "")
+
+
+def assert_no_forbidden_data_paths(rows: Sequence[Mapping[str, Any]]) -> None:
+    """Reject any row whose resolved data path references a test/final-evaluation split."""
+    for row in rows:
+        path = _row_path(row)
+        lowered = path.lower()
+        parts = set(Path(path).parts)
+        if any(token in lowered for token in FORBIDDEN_DATA_TOKENS) or (FORBIDDEN_PATH_COMPONENTS_SET & parts):
+            raise RuntimeError(f"smoke dataset references a forbidden (test/final-evaluation) path: {path}")
+
+
+FORBIDDEN_PATH_COMPONENTS_SET = set(FORBIDDEN_PATH_COMPONENTS)
+
+
+def deterministic_smoke_subset(rows: Sequence[Mapping[str, Any]], *, min_per_class: int = SMOKE_MIN_PER_CLASS,
+                               include_synthetic: bool = False) -> list[dict[str, Any]]:
+    """Deterministic smoke subset: >= min_per_class real negatives and positives (+ synthetic when asked).
+
+    Ordered by (patient_id, image_id, path); no unregistered random sampling.
+    """
+    def key(row: Mapping[str, Any]):
+        return (str(row.get("patient_id")), str(row.get("image_id")), _row_path(row))
+    real = [row for row in rows if "synthetic" not in str(row.get("source", ""))]
+    synthetic = [row for row in rows if "synthetic" in str(row.get("source", ""))]
+    negatives = sorted((row for row in real if int(row["label"]) == 0), key=key)
+    positives = sorted((row for row in real if int(row["label"]) == 1), key=key)
+    if len(negatives) < min_per_class or len(positives) < min_per_class:
+        raise RuntimeError(f"smoke subset needs >= {min_per_class} real negatives and positives, "
+                           f"found {len(negatives)}/{len(positives)}")
+    picked = [dict(row) for row in negatives[:min_per_class]] + [dict(row) for row in positives[:min_per_class]]
+    if include_synthetic:
+        synthetic_sorted = sorted(synthetic, key=key)
+        if len(synthetic_sorted) < min_per_class:
+            raise RuntimeError(f"smoke subset needs >= {min_per_class} synthetic positives, found {len(synthetic_sorted)}")
+        picked += [dict(row) for row in synthetic_sorted[:min_per_class]]
+    return picked
+
+
+def verify_smoke_synthetic_membership(root: Path, rows: Sequence[Mapping[str, Any]], condition: str) -> bool:
+    """Every synthetic smoke row must belong (by SHA-256) to the selected generator's signed manifest."""
+    synthetic = [row for row in rows if "synthetic" in str(row.get("source", ""))]
+    if not synthetic:
+        return True
+    try:
+        from . import downstream_protocol as dp, classifier_dataset_builder as builder
+    except ImportError:
+        import downstream_protocol as dp, classifier_dataset_builder as builder
+    family = "finetuned" if "finetuned" in condition else "from_scratch"
+    payload = dp.load_selected_generators(Path(root))
+    # The manifest file's own SHA-256 is verified here; per-image content is verified at resolve time.
+    records = builder.load_selected_filtered_records(Path(root), payload, family, verify_file_content=False)
+    signed = {record["sha256"] for record in records}
+    return all(row.get("sha256") in signed for row in synthetic)
 
 
 def source_exposure(audit: Mapping[str, Any], optimizer_steps: int, effective_batch_size: int) -> dict[str, Any]:
@@ -279,7 +390,7 @@ def load_adapter(configuration: Mapping[str, Any], *, tiny: bool = False):
 
 def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any], *, tiny: bool = False) -> dict[str, Any]:
     """Train only when this function is explicitly called from notebook section 10."""
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"], run_mode=configuration.get("run_mode", "standard"))
     resume_configuration = {**configuration, "dataset_signature": dataset["provenance"].get("signature", "informational")}
     resume = resume_status(root, resume_configuration)
     output.mkdir(parents=True, exist_ok=True)
@@ -342,13 +453,13 @@ def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mappin
     probabilities = [row["probability"] for row in rows]
     if any(not math.isfinite(value) or not 0 <= value <= 1 for value in probabilities): raise ValueError("invalid probabilities")
     report = metrics.full_report([row["label"] for row in rows], probabilities)
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"], run_mode=configuration.get("run_mode", "standard"))
     _write_csv(output / "validation_predictions.csv", rows); atomic_json(output / "validation_metrics.json", report)
     return {"rows": rows, "metrics": report, "prediction_path": str(output / "validation_predictions.csv")}
 
 
 def resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"], run_mode=configuration.get("run_mode", "standard"))
     candidates = sorted(output.glob("checkpoint_*.pkl")) + sorted(output.glob("checkpoint_best.*"))
     requested = bool(configuration["resume"])
     if not requested and candidates and not bool(configuration.get("confirm_existing_output", False)):
@@ -376,8 +487,31 @@ def resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any
             "candidates": [str(path) for path in candidates]}
 
 
+RESUME_REQUIRED_KEYS = ("global_step", "model_state", "optimizer_state", "gpu_uuid")
+
+
+def verify_resume_continuity(payload: Mapping[str, Any], *, current_gpu_uuid: str,
+                             max_optimizer_updates: int = 2) -> dict[str, Any]:
+    """Verify a resume checkpoint continues training instead of silently restarting from zero.
+
+    Requires a global step, model and optimizer state, and a matching GPU identity.  Returns the step
+    to continue from and the next step; a missing/zero global step or a GPU mismatch is a hard failure.
+    """
+    missing = [key for key in RESUME_REQUIRED_KEYS if payload.get(key) in (None, "")]
+    if missing:
+        raise RuntimeError(f"resume checkpoint is missing required state: {missing}")
+    step = int(payload["global_step"])
+    if step < 1:
+        raise RuntimeError("resume checkpoint has global_step < 1; refusing to restart silently from zero")
+    if _normalize_uuid(payload["gpu_uuid"]) != _normalize_uuid(current_gpu_uuid):
+        raise RuntimeError(f"resume GPU identity {payload['gpu_uuid']} does not match current {current_gpu_uuid}")
+    if step >= int(max_optimizer_updates):
+        return {"resume_step": step, "next_step": step, "complete": True}
+    return {"resume_step": step, "next_step": step + 1, "complete": False}
+
+
 def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"], run_mode=configuration.get("run_mode", "standard"))
     history = []
     if (output / "training_history.csv").is_file():
         with (output / "training_history.csv").open(newline="", encoding="utf-8") as stream:
@@ -476,11 +610,18 @@ def build_error_case_table(rows: Sequence[Mapping[str, Any]], threshold: float =
 
 
 def saved_artifacts(root: Path, configuration: Mapping[str, Any]) -> list[str]:
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"], run_mode=configuration.get("run_mode", "standard"))
     return [str(path.relative_to(root)) for path in sorted(output.rglob("*")) if path.is_file()]
 
 
-__all__ = ["audit_dataset", "build_error_case_table", "configure_environment", "configure_visible_gpu", "construct_dataset", "experiment_configuration",
+def smoke_summary(*, test_accessed: bool = False, completed: bool = True) -> dict[str, Any]:
+    """Content of a smoke run's smoke.json (written only by a real smoke run, not by this module)."""
+    return {"mode": "smoke", "test_accessed": bool(test_accessed), "completed": bool(completed)}
+
+
+__all__ = ["assert_no_forbidden_data_paths", "audit_dataset", "build_error_case_table", "configure_environment",
+           "configure_visible_gpu", "construct_dataset", "deterministic_smoke_subset", "experiment_configuration",
            "experiment_dir", "load_adapter", "load_existing_outputs", "load_model", "load_prediction_rows", "plot_calibration", "plot_source_accounting", "plot_training_history",
-           "plot_validation_curves", "resume_status", "run_validation", "saved_artifacts",
+           "plot_validation_curves", "resume_status", "run_validation", "RUN_MODES", "saved_artifacts", "smoke_policy", "smoke_summary",
+           "SMOKE_BUDGET", "SMOKE_RESULTS_ROOT", "STANDARD_RESULTS_ROOT", "verify_resume_continuity", "verify_smoke_synthetic_membership",
            "proportional_source_accounting", "select_best_epoch", "source_accounting", "source_exposure", "train", "training_budget"]

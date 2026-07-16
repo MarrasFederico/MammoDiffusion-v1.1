@@ -1072,7 +1072,7 @@ class ParallelGenerationTests(unittest.TestCase):
         self.assertIn("return", typing.get_type_hints(sd_vae_utils.image_batch_to_sd_tensor))
 
     def test_downstream_comparison_notebook_compiles_and_does_not_open_test(self) -> None:
-        notebook = json.loads((ROOT / "notebooks" / "4_downstream_classifiers" / "09_Downstream_Validation_Comparison.ipynb").read_text(encoding="utf-8"))
+        notebook = json.loads((ROOT / "notebooks" / "04_classifiers" / "09_Downstream_Validation_Comparison.ipynb").read_text(encoding="utf-8"))
         cells = ["".join(cell.get("source", [])) for cell in notebook["cells"] if cell.get("cell_type") == "code"]
         joined = "\n".join(cells)
         self.assertIn("from notebooks.utility.downstream_analysis import", joined)

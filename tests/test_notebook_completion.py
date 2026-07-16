@@ -299,7 +299,7 @@ class EnsembleFinalAndArchiveTests(unittest.TestCase):
         self.assertNotIn("```json", text)
 
     def test_final_paths_have_no_unimplemented_error(self):
-        paths = [ROOT / "notebooks/3_generator_benchmark", ROOT / "notebooks/4_downstream_classifiers", ROOT / "notebooks/utility"]
+        paths = [ROOT / "notebooks/3_generator_benchmark", ROOT / "notebooks/04_classifiers", ROOT / "notebooks/utility"]
         matches = [path for directory in paths for path in directory.rglob("*")
                    if path.is_file() and "NotImplementedError" in path.read_text(errors="ignore")]
         self.assertEqual(matches, [])

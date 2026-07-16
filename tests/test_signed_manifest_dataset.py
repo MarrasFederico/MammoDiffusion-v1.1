@@ -13,6 +13,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 import classifier_dataset_builder as builder  # noqa: E402
+import classifier_architecture_adapters as adapters  # noqa: E402
 
 POOL = "data/synthetic/g/positive"
 
@@ -110,6 +111,30 @@ class SignedManifestConsumptionTests(unittest.TestCase):
         self.assertEqual({e["file_sha256"] for e in built}, {r["sha256"] for r in records})
         self.assertEqual({e["sample_id"] for e in built}, {r["sample_id"] for r in records})
 
+    def test_build_flatten_and_adapter_accounting_preserve_signed_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root, variant = build_tree(Path(tmp), count=5)
+            file_list = builder.build_file_list(root, variant)
+            rows = builder.rows_from_file_list(root, file_list)
+            metadata = adapters._accounting_metadata(rows)
+
+        synthetic = [row for row in rows if row["source"] == "synthetic"]
+        self.assertEqual(len(synthetic), 5)
+        for row in synthetic:
+            self.assertEqual(row["synthetic_family"], "finetuned")
+            self.assertEqual(row["generator_id"], "G")
+            for field in ("sample_id", "source_raw_sample_id", "manifest_sha256",
+                          "file_sha256", "selection_rank"):
+                self.assertIn(field, row)
+        self.assertEqual(
+            {item["accounting_field"] for item in metadata},
+            {"finetuned_synthetic_seen"},
+        )
+
+    def test_synthetic_without_valid_family_is_rejected_by_adapter(self):
+        with self.assertRaisesRegex(ValueError, "invalid synthetic_family"):
+            adapters._accounting_metadata([{"source": "synthetic", "label": 1}])
+
     def test_no_sampling_functions_are_called_for_selected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root, variant = build_tree(Path(tmp), count=4)
@@ -176,6 +201,26 @@ class SignedManifestConsumptionTests(unittest.TestCase):
 
 
 class LegacyAndRealIndependenceTests(unittest.TestCase):
+    def test_csv_string_labels_build_real_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metadata = root / "data/processed/metadata/train.csv"
+            metadata.parent.mkdir(parents=True)
+            with metadata.open("w", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=["patient_id", "image_id", "label", "processed_path"])
+                writer.writeheader()
+                for label in ("0", "1"):
+                    path = root / f"data/processed/train/{label}/i{label}.png"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(label.encode())
+                    writer.writerow({"patient_id": f"p{label}", "image_id": f"i{label}",
+                                     "label": label, "processed_path": path.relative_to(root)})
+            variant = {"dataset_variant_id": "real_only", "status": "ready", "real_source": True,
+                       "augmentation_source": False, "synthetic_generator_id": None,
+                       "synthetic_count_by_class": {}}
+            rows = builder.rows_from_file_list(root, builder.build_file_list(root, variant))
+        self.assertEqual(sorted(row["label"] for row in rows), [0, 1])
+
     def test_no_selection_file_means_legacy_family_none(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

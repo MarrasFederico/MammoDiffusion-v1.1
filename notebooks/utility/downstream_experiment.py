@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -37,6 +38,9 @@ def experiment_configuration(root: Path, architecture: str, condition: str, seed
     policy = dict(resolved["policy"])
     configuration = {**resolved, "policy": policy, "architecture": architecture, "condition": condition,
                      "seed": int(seed), "gpu": gpu}
+    canonical_policy = json.dumps(policy, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    configuration["policy_signature"] = hashlib.sha256(canonical_policy.encode("utf-8")).hexdigest()
+    configuration["config_signature"] = configuration["policy_signature"]
     configuration["results_dir"] = str(experiment_dir(root, architecture, condition, seed))
     return configuration
 
@@ -178,14 +182,13 @@ def audit_dataset(train_rows: Sequence[Mapping[str, Any]], validation_rows: Sequ
     validation_patients = {str(row.get("patient_id")) for row in validation_rows if row.get("patient_id")}
     sources = Counter(str(row.get("source", "unknown")) for row in train_rows)
     labels = Counter(int(row["label"]) for row in train_rows)
-    def source_count(*tokens: str) -> int:
-        return sum(count for source, count in sources.items() if any(token in source.lower() for token in tokens))
+    accounting = Counter(_source_field(row) for row in train_rows)
     return {
-        "number_of_real_negatives": sum(1 for row in train_rows if int(row["label"]) == 0 and "synthetic" not in str(row.get("source", ""))),
-        "number_of_real_positives": sum(1 for row in train_rows if int(row["label"]) == 1 and "synthetic" not in str(row.get("source", "")) and "augment" not in str(row.get("source", ""))),
-        "number_of_traditional_augmentations": source_count("augment"),
-        "number_of_finetuned_synthetic_positives": source_count("finetuned"),
-        "number_of_fromscratch_synthetic_positives": source_count("from_scratch", "fromscratch"),
+        "number_of_real_negatives": accounting["real_negative_seen"],
+        "number_of_real_positives": accounting["real_positive_seen"],
+        "number_of_traditional_augmentations": accounting["traditional_augmented_seen"],
+        "number_of_finetuned_synthetic_positives": accounting["finetuned_synthetic_seen"],
+        "number_of_fromscratch_synthetic_positives": accounting["fromscratch_synthetic_seen"],
         "number_of_patients": len(train_patients), "number_of_images": len(train_rows),
         "train_validation_patient_overlap": sorted(train_patients & validation_patients),
         "source_distribution": dict(sorted(sources.items())), "class_balance": dict(sorted(labels.items())),
@@ -238,9 +241,12 @@ SOURCE_ACCOUNTING_FIELDS = ("real_negative_seen", "real_positive_seen", "traditi
 
 def _source_field(row: Mapping[str, Any]) -> str:
     source = str(row.get("source", "")).lower()
-    if "augment" in source: return "traditional_augmented_seen"
-    if "finetuned" in source: return "finetuned_synthetic_seen"
-    if "from_scratch" in source or "fromscratch" in source: return "fromscratch_synthetic_seen"
+    if source == "augmented": return "traditional_augmented_seen"
+    if source == "synthetic":
+        family = str(row.get("synthetic_family", "")).lower()
+        if family == "finetuned": return "finetuned_synthetic_seen"
+        if family == "from_scratch": return "fromscratch_synthetic_seen"
+        raise ValueError(f"synthetic row has invalid synthetic_family: {row.get('synthetic_family')!r}")
     return "real_positive_seen" if int(row.get("label", 0)) == 1 else "real_negative_seen"
 
 
@@ -260,7 +266,7 @@ def load_adapter(configuration: Mapping[str, Any]):
 def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any]) -> dict[str, Any]:
     """Train only when this function is explicitly called from notebook section 10."""
     output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
-    resume_configuration = {**configuration, "dataset_signature": dataset["provenance"].get("signature", "informational")}
+    resume_configuration = {**configuration, "dataset_signature": dataset["provenance"]["signature"]}
     resume = _resume_status(root, resume_configuration)
     output.mkdir(parents=True, exist_ok=True)
     active_audit = dataset["audit"]["full"]
@@ -270,10 +276,12 @@ def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, An
     result = adapter.train(dataset["train_rows"], dataset["validation_rows"], checkpoint,
                            seed=configuration["seed"], run_dir=output, architecture=configuration["architecture"],
                            experiment_id=configuration["experiment_id"], dataset_variant_id=configuration["condition"],
-                           training_policy=configuration["training_policy_name"], config_signature="informational",
-                           dataset_signature=dataset["provenance"].get("signature", "informational"),
+                           training_policy=configuration["training_policy_name"],
+                           config_signature=configuration["policy_signature"],
+                           dataset_signature=dataset["provenance"]["signature"],
                            gpu_uuid=gpu_uuid)
     configuration_payload = {key: configuration[key] for key in ("architecture", "condition", "seed", "gpu")}
+    configuration_payload["policy_signature"] = configuration["policy_signature"]
     configuration_payload["training_budget"] = _training_budget(configuration)
     for key in ("checkpoint_gpu_uuid", "runtime_gpu_uuid", "gpu_changed"):
         if key in result:
@@ -337,8 +345,8 @@ def _resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, An
             import classifier_checkpoint_io as checkpoint_io
         expected = {"architecture": configuration["architecture"], "experiment_id": configuration["experiment_id"],
                     "dataset_variant_id": configuration["condition"], "training_policy": configuration["training_policy_name"],
-                    "config_signature": str(configuration.get("config_signature", "informational")),
-                    "dataset_signature": str(configuration.get("dataset_signature", "informational")), "seed": int(configuration["seed"])}
+                    "config_signature": str(configuration["policy_signature"]),
+                    "dataset_signature": str(configuration["dataset_signature"]), "seed": int(configuration["seed"])}
         payload, source = checkpoint_io.load_resume_checkpoint(output, expected)
         if payload is None and source != "no resume checkpoint":
             raise RuntimeError(f"No compatible resume checkpoint for architecture/condition/seed: {source}")

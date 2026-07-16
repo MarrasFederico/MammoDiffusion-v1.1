@@ -184,7 +184,10 @@ def _real_files_by_class(root: Path) -> dict[str, list[dict]]:
     label_to_class = {v: k for k, v in CLASS_LABEL.items()}
     by_class: dict[str, list[str]] = {k: [] for k in CLASS_LABEL}
     for row in rows:
-        klass = label_to_class.get(row["label"])
+        try:
+            klass = label_to_class.get(int(row["label"]))
+        except (TypeError, ValueError):
+            klass = None
         if klass is None:
             continue
         processed_path = row.get("processed_path")
@@ -226,7 +229,10 @@ def _augmented_files_by_class(root: Path) -> dict[str, list[dict]]:
     for row in rows:
         if row.get("source") == "real":
             continue  # metadata.csv also re-lists the real source rows; only augmented here
-        klass = label_to_class.get(row.get("label"))
+        try:
+            klass = label_to_class.get(int(row.get("label", "")))
+        except (TypeError, ValueError):
+            klass = None
         if klass is None:
             continue
         patient_id = row.get("patient_id")
@@ -327,6 +333,7 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
                 synthetic[klass] = [record["relative_path"] for record in records]
                 synthetic_records[klass] = [{
                     "path": record["relative_path"], "source": "synthetic", "generator_id": gid,
+                    "synthetic_family": selected_family,
                     "sample_id": record["sample_id"], "source_raw_sample_id": record["source_raw_sample_id"],
                     "manifest_sha256": manifest_sha, "file_sha256": record["sha256"],
                     "selection_rank": record["selection_rank"]} for record in records]
@@ -441,9 +448,14 @@ def rows_from_file_list(root: Path, file_list: dict) -> list[dict]:
             if key in seen:
                 raise ValueError(f"duplicate dataset file: {path}")
             seen.add(key)
-            rows.append({"processed_path": key, "label": int(label), "source": entry["source"],
-                         "patient_id": entry.get("patient_id"),
-                         "image_id": entry.get("image_id") or path.stem})
+            row = {"processed_path": key, "label": int(label), "source": entry["source"],
+                   "patient_id": entry.get("patient_id"),
+                   "image_id": entry.get("image_id") or path.stem}
+            for field in ("synthetic_family", "generator_id", "sample_id", "source_raw_sample_id",
+                          "manifest_sha256", "file_sha256", "selection_rank"):
+                if field in entry:
+                    row[field] = entry[field]
+            rows.append(row)
     return rows
 
 

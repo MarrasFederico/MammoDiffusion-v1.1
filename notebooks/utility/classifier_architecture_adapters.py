@@ -44,6 +44,8 @@ class _FixedBatchLoader:
 
 
 def _pytorch_resume_position(payload: dict) -> tuple[int, int]:
+    if int(payload.get("batch_index", -1)) != -1:
+        raise RuntimeError("classifier resume checkpoints must be saved at a validated block boundary")
     return int(payload["epoch"]), 0
 
 
@@ -57,17 +59,18 @@ def _accounting_metadata(rows):
     output = []
     for index, row in enumerate(rows):
         source = str(row.get("source", "")).lower()
-        field = (
-            "traditional_augmented_seen"
-            if "augment" in source
-            else "finetuned_synthetic_seen"
-            if "finetuned" in source
-            else "fromscratch_synthetic_seen"
-            if "from_scratch" in source or "fromscratch" in source
-            else "real_positive_seen"
-            if int(row.get("label", 0)) == 1
-            else "real_negative_seen"
-        )
+        family = str(row.get("synthetic_family", "")).lower()
+        if source == "augmented":
+            field = "traditional_augmented_seen"
+        elif source == "synthetic":
+            if family == "finetuned":
+                field = "finetuned_synthetic_seen"
+            elif family == "from_scratch":
+                field = "fromscratch_synthetic_seen"
+            else:
+                raise ValueError(f"synthetic row has invalid synthetic_family: {row.get('synthetic_family')!r}")
+        else:
+            field = "real_positive_seen" if int(row.get("label", 0)) == 1 else "real_negative_seen"
         output.append(
             {
                 "sample_id": str(row.get("image_id") or row.get("sample_id") or index),
@@ -458,7 +461,6 @@ class ArchitectureAdapter:
             }
             ckio.save_resume_checkpoint(run_dir, payload, best=best)
 
-        interval = int(self.policy.get("checkpoint_interval_updates", 250))
         warmup = int(self.policy.get("warmup_updates", 0))
         target_lr = float(self.policy["training_phases"][0]["learning_rate"])
 
@@ -470,9 +472,10 @@ class ArchitectureAdapter:
         def epoch_begin(epoch):
             current["epoch"] = epoch
 
-        def periodic(step, batch):
-            if step % interval == 0:
-                save_torch(step, batch)
+        def periodic(_step, _batch):
+            # Resumable checkpoints are published by epoch_end, after validation of the
+            # fixed-size block. Mid-batch resume is intentionally unsupported.
+            return None
 
         def epoch_end(epoch, step, _scaler, history_object, values, improved):
             current["epoch"] = epoch

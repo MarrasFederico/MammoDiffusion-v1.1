@@ -186,7 +186,8 @@ class StatisticsMemorizationAccountingTests(unittest.TestCase):
             self.assertEqual(rows[0]["nearest_train_label"], 1)
 
     def test_actual_accounting_is_additive_across_resume(self):
-        first = de.source_accounting([{"label": 0, "source": "real"}, {"label": 1, "source": "finetuned_synthetic"}])
+        first = de.source_accounting([{"label": 0, "source": "real"},
+                                      {"label": 1, "source": "synthetic", "synthetic_family": "finetuned"}])
         self.assertEqual((first["real_negative_seen"], first["finetuned_synthetic_seen"]), (1, 1))
         resumed = de.source_accounting([{"label": 1, "source": "traditional_augmentation"}], first)
         self.assertEqual(resumed["total_samples_seen"], 3); self.assertEqual(resumed["accounting_mode"], "actual")

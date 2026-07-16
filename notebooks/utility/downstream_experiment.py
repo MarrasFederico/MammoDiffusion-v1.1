@@ -301,7 +301,8 @@ def deterministic_smoke_subset(rows: Sequence[Mapping[str, Any]], *, min_per_cla
     def key(row: Mapping[str, Any]):
         return (str(row.get("patient_id")), str(row.get("image_id")), _row_path(row))
     real = [row for row in rows if "synthetic" not in str(row.get("source", ""))]
-    synthetic = [row for row in rows if "synthetic" in str(row.get("source", ""))]
+    synthetic = [row for row in rows if str(row.get("source", "")).lower() == "synthetic"
+                 and int(row["label"]) == 1]
     negatives = sorted((row for row in real if int(row["label"]) == 0), key=key)
     positives = sorted((row for row in real if int(row["label"]) == 1), key=key)
     if len(negatives) < min_per_class or len(positives) < min_per_class:
@@ -415,10 +416,14 @@ def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, An
     gpu_uuid = configuration.get("gpu_uuid")
     if run_mode == "smoke" and not gpu_uuid:
         raise RuntimeError("smoke train() requires configuration['gpu_uuid']; run configure_environment first")
-    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root), tiny=tiny)
     checkpoint = output / "checkpoint_best"
     suffix = ".pt" if configuration["policy"]["framework"].startswith("pytorch") else ".keras"
     checkpoint = checkpoint.with_suffix(suffix)
+    if run_mode == "smoke":
+        # Preserve pre-training provenance when adapter construction or training fails.
+        write_smoke_run_config(output, configuration)
+        atomic_json(output / "dataset_audit.json", dataset["audit"])
+    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root), tiny=tiny)
     result = adapter.train(dataset["train_rows"], dataset["validation_rows"], checkpoint,
                            seed=configuration["seed"], run_dir=output, architecture=configuration["architecture"],
                            experiment_id=configuration["experiment_id"], dataset_variant_id=configuration["condition"],
@@ -427,8 +432,6 @@ def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, An
                            resume=bool(configuration["resume"]), gpu_uuid=gpu_uuid, run_mode=run_mode)
     optimizer_updates = int(result.get("optimizer_updates", configuration["policy"]["max_optimizer_updates"]))
     if run_mode == "smoke":
-        write_smoke_run_config(output, configuration)
-        atomic_json(output / "dataset_audit.json", dataset["audit"])
         _write_csv(output / "train_log.csv", _history_rows(result.get("history", {})))
         return {**result, "checkpoint": str(checkpoint), "output_dir": str(output), "resume_status": resume,
                 "optimizer_updates": optimizer_updates}
@@ -464,6 +467,10 @@ def write_smoke_run_config(output: Path, configuration: Mapping[str, Any]) -> Pa
 
 def finalize_smoke_run(output: Path, *, optimizer_updates: int, resumed: bool) -> Path:
     """Write smoke.json only after training and validation both complete."""
+    if int(optimizer_updates) != SMOKE_BUDGET["max_optimizer_updates"]:
+        raise RuntimeError("Smoke finalization requires exactly two optimizer updates.")
+    if not resumed:
+        raise RuntimeError("Smoke finalization requires a resumed training run.")
     payload = {"mode": "smoke", "test_accessed": False, "completed": True,
                "optimizer_updates": int(optimizer_updates), "resumed": bool(resumed)}
     return atomic_json(Path(output) / "smoke.json", payload)
@@ -673,15 +680,10 @@ def saved_artifacts(root: Path, configuration: Mapping[str, Any]) -> list[str]:
     return [str(path.relative_to(root)) for path in sorted(output.rglob("*")) if path.is_file()]
 
 
-def smoke_summary(*, test_accessed: bool = False, completed: bool = True) -> dict[str, Any]:
-    """Content of a smoke run's smoke.json (written only by a real smoke run, not by this module)."""
-    return {"mode": "smoke", "test_accessed": bool(test_accessed), "completed": bool(completed)}
-
-
 __all__ = ["assert_no_forbidden_data_paths", "audit_dataset", "build_error_case_table", "configure_environment",
            "configure_visible_gpu", "construct_dataset", "deterministic_smoke_subset", "experiment_configuration",
            "finalize_smoke_run", "write_smoke_run_config",
            "experiment_dir", "load_adapter", "load_existing_outputs", "load_model", "load_prediction_rows", "plot_calibration", "plot_source_accounting", "plot_training_history",
-           "plot_validation_curves", "resume_status", "run_validation", "RUN_MODES", "saved_artifacts", "smoke_policy", "smoke_summary",
+           "plot_validation_curves", "resume_status", "run_validation", "RUN_MODES", "saved_artifacts", "smoke_policy",
            "SMOKE_BUDGET", "SMOKE_RESULTS_ROOT", "STANDARD_RESULTS_ROOT", "verify_resume_continuity", "verify_smoke_synthetic_membership",
            "proportional_source_accounting", "select_best_epoch", "source_accounting", "source_exposure", "train", "training_budget"]

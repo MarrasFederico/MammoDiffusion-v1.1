@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import os
+import json
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 UTILITY = ROOT / "notebooks/utility"
@@ -57,6 +59,15 @@ class NotebookRenameTests(unittest.TestCase):
             except OSError:
                 pass
         self.assertEqual(offenders, [])
+
+    def test_standard_notebooks_ignore_invalid_smoke_update_environment(self):
+        for name in ("07_MaxViT512_Downstream.ipynb", "08_MammoFM_Downstream.ipynb"):
+            source = json.loads((ROOT / "notebooks/04_classifiers" / name).read_text())["cells"][2]["source"]
+            smoke_line = next(line for line in source.splitlines() if line.startswith("SMOKE_UPDATES ="))
+            with mock.patch.dict(os.environ, {"MAMMODIFFUSION_SMOKE_UPDATES": "invalid"}):
+                namespace = {"os": os, "RUN_MODE": "standard"}
+                exec(smoke_line, namespace)
+            self.assertEqual(namespace["SMOKE_UPDATES"], 2)
 
 
 class RunModeTests(unittest.TestCase):
@@ -112,6 +123,17 @@ class SubsetTests(unittest.TestCase):
                              if r["source"] == "synthetic"), 0)
         self.assertEqual(sum(1 for r in de.deterministic_smoke_subset(rows, include_synthetic=True)
                              if r["source"] == "synthetic"), 8)
+
+    def test_only_exact_positive_synthetic_rows_are_accepted(self):
+        rows = _rows(n_syn=8)
+        rows += [
+            {"patient_id": None, "image_id": "wrong-source", "label": 1, "source": "synthetic_augmented"},
+            {"patient_id": None, "image_id": "wrong-label", "label": 0, "source": "synthetic"},
+        ]
+        picked = de.deterministic_smoke_subset(rows, include_synthetic=True)
+        synthetic = [row for row in picked if row["source"] == "synthetic"]
+        self.assertEqual(len(synthetic), 8)
+        self.assertTrue(all(row["label"] == 1 for row in synthetic))
 
     def test_insufficient_class_is_rejected(self):
         with self.assertRaises(RuntimeError):
@@ -177,7 +199,7 @@ _WORKER = textwrap.dedent("""
     run_dir = Path({run_dir!r})
     adapter = TinyAdapter("maxvit512", {{}}, ".")
     rows = [{{"label": 0}}, {{"label": 1}}]
-    result = adapter.train(rows, rows, run_dir / "checkpoint.pt", seed=17, run_dir=run_dir,
+    result = adapter.train(rows, rows, run_dir / "checkpoint_best.pt", seed=17, run_dir=run_dir,
         architecture="maxvit512", experiment_id="maxvit512__real_only__seed17",
         dataset_variant_id="real_only", training_policy="p", config_signature="c",
         dataset_signature="d", resume=True, gpu_uuid={gpu_uuid!r}, run_mode="smoke")
@@ -224,8 +246,7 @@ class TwoProcessResumeTests(unittest.TestCase):
 
 
 class SmokeOutputAndIgnoreTests(unittest.TestCase):
-    def test_smoke_summary_and_finalize(self):
-        self.assertEqual(de.smoke_summary(), {"mode": "smoke", "test_accessed": False, "completed": True})
+    def test_finalize_writes_only_completed_resumed_two_update_run(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             de.write_smoke_run_config(out, {"architecture": "maxvit512", "condition": "real_only", "seed": 17,
@@ -238,6 +259,36 @@ class SmokeOutputAndIgnoreTests(unittest.TestCase):
             smoke = json.loads((out / "smoke.json").read_text())
             self.assertEqual(smoke, {"mode": "smoke", "test_accessed": False, "completed": True,
                                      "optimizer_updates": 2, "resumed": True})
+
+    def test_finalize_rejects_incomplete_conditions_without_smoke_json(self):
+        for updates, resumed in ((1, True), (2, False), (1, False)):
+            with self.subTest(optimizer_updates=updates, resumed=resumed), tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp)
+                with self.assertRaisesRegex(RuntimeError, "Smoke finalization requires"):
+                    de.finalize_smoke_run(out, optimizer_updates=updates, resumed=resumed)
+                self.assertFalse((out / "smoke.json").exists())
+
+    def test_smoke_pretraining_artifacts_survive_training_error(self):
+        class FailingAdapter:
+            def train(self, *args, **kwargs):
+                raise RuntimeError("intentional training error")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            configuration = de.experiment_configuration(ROOT, "maxvit512", "real_only", 17, gpu=1,
+                                                         run_mode="smoke", smoke_updates=2)
+            configuration.update({"gpu_uuid": "GPU-abc", "gpu_name": "RTX", "gpu_physical_index": 1})
+            dataset = {"train_rows": _rows()[:16], "validation_rows": _rows()[:16],
+                       "provenance": {"signature": "dataset"},
+                       "audit": {"full": {"full": True}, "smoke": {"smoke": True}}}
+            with mock.patch.object(de, "get_adapter", return_value=FailingAdapter()):
+                with self.assertRaisesRegex(RuntimeError, "intentional training error"):
+                    de.train(root, configuration, dataset, tiny=True)
+            output = de.experiment_dir(root, "maxvit512", "real_only", 17, run_mode="smoke")
+            self.assertTrue((output / "run_config.json").is_file())
+            self.assertTrue((output / "dataset_audit.json").is_file())
+            self.assertFalse((output / "train_log.csv").exists())
+            self.assertFalse((output / "smoke.json").exists())
 
     def test_results_smoke_rule_in_gitignore_without_git(self):
         # Read .gitignore directly; must not depend on git or the .git directory.

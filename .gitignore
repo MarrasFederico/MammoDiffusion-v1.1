@@ -165,7 +165,6 @@ lightning_logs/
 # ================================
 # CONFIGURAZIONI LOCALI
 # ================================
-.claude/
 .env
 config_local.py
 *.local.py

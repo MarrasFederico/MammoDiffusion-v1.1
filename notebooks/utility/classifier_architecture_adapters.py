@@ -134,16 +134,21 @@ class TinyAdapter:
         labels = [int(row["label"]) for row in train_rows]
         prevalence = sum(labels) / max(len(labels), 1)
         model = {"bias": prevalence + (int(seed) % 7) * 1e-4}
+        gpu_uuid = context.get("gpu_uuid")
         if context.get("run_dir"):
             expected = {key: context[key] for key in ("architecture", "experiment_id", "dataset_variant_id",
                         "training_policy", "config_signature", "dataset_signature")}; expected["seed"] = int(seed)
             prior, source = ckio.load_resume_checkpoint(Path(context["run_dir"]), expected) if context.get("resume", True) else (None, "resume disabled")
+            if prior is not None and gpu_uuid and prior.get("gpu_uuid"):
+                norm = lambda value: str(value or "").strip().lower().removeprefix("gpu-")
+                if norm(prior["gpu_uuid"]) != norm(gpu_uuid):
+                    raise RuntimeError(f"resume GPU identity {prior['gpu_uuid']} does not match current {gpu_uuid}")
             global_step = int((prior or {}).get("global_step", 0)) + 1
             ckio.save_resume_checkpoint(Path(context["run_dir"]), {**expected, "model_state_dict": model,
                 "optimizer_state_dict": {"step": global_step}, "scheduler_state_dict": {"step": global_step},
                 "scaler_state_dict": None, "epoch": global_step, "batch_index": -1, "global_step": global_step,
                 "checkpoint_metric": "val_pr_auc", "best_metric": prevalence, "best_epoch": global_step, "early_stopping_counter": 0,
-                "history": {"loss": [0.0]}, "rng_states": {"python": random.getstate()},
+                "history": {"loss": [0.0]}, "rng_states": {"python": random.getstate()}, "gpu_uuid": gpu_uuid,
                 "resume_segment_id": f"tiny-{global_step}"}, best=True)
         self.save_checkpoint(model, checkpoint_path)
         prior_accounting = None
@@ -305,6 +310,11 @@ class ArchitectureAdapter:
                     f"({resume_source}); refusing to silently restart from scratch. Set "
                     "ALLOW_DISCARD_INVALID_RESUME=True (env var) to explicitly discard and start over."
                 )
+        gpu_uuid = context.get("gpu_uuid")
+        if resume is not None and gpu_uuid and resume.get("gpu_uuid"):
+            _norm = lambda value: str(value or "").strip().lower().removeprefix("gpu-")
+            if _norm(resume["gpu_uuid"]) != _norm(gpu_uuid):
+                raise RuntimeError(f"resume GPU identity {resume['gpu_uuid']} does not match current {gpu_uuid}")
         model = self.build_model(pretrained=True, seed=seed)
         results_dir = run_dir
         if context.get("run_dir"):
@@ -393,6 +403,7 @@ class ArchitectureAdapter:
                             "epoch": int(self.epoch), "batch_index": int(batch), "global_step": self.global_step,
                             "checkpoint_metric": "val_pr_auc", "best_metric": self.best, "best_epoch": self.best_epoch, "early_stopping_counter": self.wait,
                             "history": self.history, "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "tensorflow": tf_rng},
+                            "gpu_uuid": gpu_uuid,
                             "resume_segment_id": hashlib.sha256(os.urandom(16)).hexdigest()[:16]}
                 def on_train_batch_end(self, batch, logs=None):
                     self.global_step += 1
@@ -442,7 +453,7 @@ class ArchitectureAdapter:
                 # fine-tuning batch can never re-train an already-complete head on resume.
                 resume = {**(resume or {}), "model_state": model.get_weights(),
                           "optimizer_state": [], "scheduler_state": {}, "phase": "transition",
-                          "epoch": 0, "batch_index": -1, "early_stopping_counter": 0}
+                          "epoch": 0, "batch_index": -1, "early_stopping_counter": 0, "gpu_uuid": gpu_uuid}
                 ckio.save_resume_checkpoint(run_dir, resume)
                 if context.get("stop_after_transition"):
                     raise TransitionCheckpointReady("transition checkpoint written before fine-tuning")
@@ -469,7 +480,7 @@ class ArchitectureAdapter:
                 "model_state": model.get_weights(), "optimizer_state": [], "scheduler_state": {},
                 "phase": "complete", "epoch": epochs, "batch_index": -1,
                 "global_step": int(complete_base.get("global_step", global_step)),
-                "best_epoch": best_epoch, "history": history})
+                "best_epoch": best_epoch, "history": history, "gpu_uuid": gpu_uuid})
         else:
             import torch
             import maxvit_utils as common
@@ -553,7 +564,7 @@ class ArchitectureAdapter:
                     "best_validation_loss": getattr(early, "best_secondary", None),
                     "best_epoch": current["best_epoch"] if best_epoch is None else best_epoch,
                     "early_stopping_counter": getattr(early, "wait", 0), "history": history or {},
-                    "source_accounting": actual_accounting(),
+                    "source_accounting": actual_accounting(), "gpu_uuid": gpu_uuid,
                     "rng_states": {"python": random.getstate(), "numpy": np.random.get_state(), "torch": torch.get_rng_state(),
                                    "torch_cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}, "resume_segment_id": segment}
                 ckio.save_resume_checkpoint(run_dir, payload, best=best)

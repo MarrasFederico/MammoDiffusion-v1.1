@@ -7,10 +7,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-import downstream_protocol as dp  # noqa: E402
+import classifier_protocol as dp  # noqa: E402
 
 
-class DownstreamProtocolTests(unittest.TestCase):
+class ClassifierProtocolTests(unittest.TestCase):
     def test_exact_primary_matrix(self):
         jobs = dp.load_jobs(ROOT)["jobs"]
         self.assertEqual(len(jobs), 24)
@@ -56,7 +56,7 @@ class DownstreamProtocolTests(unittest.TestCase):
             self.assertTrue(policy["checkpoint_criterion"].startswith("val_pr_auc_max"))
 
     def test_duplicate_job_is_rejected(self):
-        payload = json.loads((ROOT / "configs/downstream_classifier_jobs.json").read_text())
+        payload = json.loads((ROOT / "configs/classifier_jobs.json").read_text())
         payload["jobs"][-1] = dict(payload["jobs"][0])
         with self.assertRaises(ValueError): dp.validate_jobs(payload)
 

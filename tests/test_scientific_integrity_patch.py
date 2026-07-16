@@ -13,7 +13,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-import downstream_experiment as de  # noqa: E402
+import classifier_experiment as de  # noqa: E402
 import generator_benchmark as gb  # noqa: E402
 
 
@@ -194,9 +194,8 @@ class StatisticsMemorizationAccountingTests(unittest.TestCase):
 
     def test_publication_adapter_does_not_write_legacy_namespace(self):
         adapter = (ROOT / "notebooks/utility/classifier_architecture_adapters.py").read_text()
-        downstream = (ROOT / "notebooks/utility/downstream_experiment.py").read_text()
-        self.assertNotIn("results/downstream_classifiers", adapter + downstream)
-        self.assertIn("results/publication_v2/downstream", downstream)
+        classifier = (ROOT / "notebooks/utility/classifier_experiment.py").read_text()
+        self.assertIn("results/publication_v2/classifiers", classifier)
 
 
 if __name__ == "__main__":

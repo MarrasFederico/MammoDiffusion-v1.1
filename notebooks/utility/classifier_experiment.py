@@ -17,14 +17,14 @@ import numpy as np
 try:
     from . import classifier_metrics as metrics
     from .classifier_architecture_adapters import get_adapter
-    from .downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, resolve_job
+    from .classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, resolve_job
 except ImportError:
     import classifier_metrics as metrics
     from classifier_architecture_adapters import get_adapter
-    from downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, resolve_job
+    from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, resolve_job
 
 
-STANDARD_RESULTS_ROOT = "results/publication_v2/downstream"
+STANDARD_RESULTS_ROOT = "results/publication_v2/classifiers"
 # Any data path that resolves to one of these tokens is rejected before training or validation.
 FORBIDDEN_DATA_TOKENS = ("test.csv", "final_evaluation", "locked_test", "historical_test")
 FORBIDDEN_PATH_COMPONENTS = ("test", "historical_internal_test")

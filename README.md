@@ -18,9 +18,9 @@ MammoDiffusion è un progetto notebook-first per studiare immagini mammografiche
 2. Eseguire `05_Unified_Generator_Benchmark.ipynb`.
 3. Ispezionare metriche RAW/FILTERED e pannelli diagnostici.
 4. In `06_Generator_Selection.ipynb`, scegliere manualmente un generatore fine-tuned e uno from-scratch.
-5. Eseguire `07_MaxViT512_Downstream.ipynb` per 4 condizioni × 3 seed.
-6. Eseguire `08_MammoFM_Downstream.ipynb` per 4 condizioni × 3 seed.
-7. Eseguire `09_Downstream_Validation_Comparison.ipynb` e congelare decisioni e soglie sulla validation.
+5. Eseguire `07_MaxViT512.ipynb` per 4 condizioni × 3 seed.
+6. Eseguire `08_MammoFM.ipynb` per 4 condizioni × 3 seed.
+7. Eseguire `09_Validation_Comparison.ipynb` e congelare decisioni e soglie sulla validation.
 8. Eseguire opzionalmente `10_Final_Evaluation_and_Report.ipynb` solo dopo aver identificato onestamente il dataset finale.
 
 Il protocollo conserva esattamente **2 architetture × 4 condizioni × 3 seed = 24 esperimenti**. Le architetture sono MaxViT-512 e Mammo-FM; RAD-DINO è soltanto un feature extractor medico nel benchmark generativo. ResNet-50 è una baseline storica V1.

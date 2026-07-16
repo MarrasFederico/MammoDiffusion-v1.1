@@ -21,9 +21,9 @@ sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import classifier_checkpoint_io as checkpoint_io  # noqa: E402
 import classifier_architecture_adapters as adapters  # noqa: E402
-import downstream_analysis as da  # noqa: E402
-import downstream_experiment as de  # noqa: E402
-import downstream_protocol as dp  # noqa: E402
+import classifier_analysis as da  # noqa: E402
+import classifier_experiment as de  # noqa: E402
+import classifier_protocol as dp  # noqa: E402
 import final_evaluation as fe  # noqa: E402
 import generator_benchmark as gb  # noqa: E402
 
@@ -181,7 +181,7 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
             self.assertEqual(configuration["gpu"], selector)
             self.assertEqual(
                 Path(configuration["results_dir"]),
-                ROOT / "results/publication_v2/downstream/maxvit512/real_only/seed_17")
+                ROOT / "results/publication_v2/classifiers/maxvit512/real_only/seed_17")
 
     def test_nonexistent_uuid_fails(self):
         with self.assertRaisesRegex(RuntimeError, "not present as exactly one device"):
@@ -315,7 +315,7 @@ class EnsembleFinalAndArchiveTests(unittest.TestCase):
             root = Path(temporary)
             (root / "configs").mkdir()
             (root / "configs/generator_benchmark_protocol.json").write_text(json.dumps({"study_question": "RQ1 fixture"}))
-            (root / "configs/downstream_classifier_protocol.json").write_text(json.dumps({"research_questions": {"RQ2": "fixture", "RQ3": "fixture"}}))
+            (root / "configs/classifier_protocol.json").write_text(json.dumps({"research_questions": {"RQ2": "fixture", "RQ3": "fixture"}}))
             path = fe.generate_publication_report(root)
             text = path.read_text()
         self.assertIn("## 12. Conclusions", text)

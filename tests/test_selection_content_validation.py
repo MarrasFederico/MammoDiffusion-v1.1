@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-import downstream_protocol as dp  # noqa: E402
+import classifier_protocol as dp  # noqa: E402
 
 BENCHMARK = "results/publication_v2/generator_benchmark"
 
@@ -249,9 +249,9 @@ class RealConditionsNeedNoSelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             # Provide only the downstream protocol; no selected_generators.json at all.
-            shutil_src = ROOT / "configs/downstream_classifier_protocol.json"
+            shutil_src = ROOT / "configs/classifier_protocol.json"
             (tmp / "configs").mkdir(parents=True)
-            (tmp / "configs/downstream_classifier_protocol.json").write_text(shutil_src.read_text())
+            (tmp / "configs/classifier_protocol.json").write_text(shutil_src.read_text())
             self.assertFalse((tmp / "configs/selected_generators.json").exists())
             for condition in ("real_only", "real_augmented"):
                 resolved = dp.resolve_condition(tmp, condition)

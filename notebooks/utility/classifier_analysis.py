@@ -13,14 +13,14 @@ import numpy as np
 try:
     from . import classifier_metrics as metrics
     from .classifier_statistics import holm_correction, paired_stratified_bootstrap
-    from .downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
+    from .classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
 except ImportError:
     import classifier_metrics as metrics
     from classifier_statistics import holm_correction, paired_stratified_bootstrap
-    from downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
+    from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
 
-PUBLICATION_RESULTS = Path("results/publication_v2/downstream")
-ENSEMBLE_RESULTS = Path("results/publication_v2/downstream_ensembles")
+PUBLICATION_RESULTS = Path("results/publication_v2/classifiers")
+ENSEMBLE_RESULTS = Path("results/publication_v2/classifier_ensembles")
 
 
 def result_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
@@ -168,7 +168,7 @@ def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None
                                 "condition_a": left, "condition_b": right, "metric": "pr_auc", **comparison})
     payload = {"split": "validation", "primary_metric": "pr_auc", "patient_level": True,
                "ensembles": list(by_key.values()), "comparisons": comparisons, "holm_correction": holm_correction(p_values)}
-    atomic_json(Path(root) / "results/publication_v2/downstream/validation_comparison.json", payload)
+    atomic_json(Path(root) / "results/publication_v2/classifiers/validation_comparison.json", payload)
     return payload
 
 

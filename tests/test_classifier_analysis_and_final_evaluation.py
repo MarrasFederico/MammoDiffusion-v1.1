@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-from downstream_analysis import aggregate_patient, align_seed_predictions, discover_experiments  # noqa: E402
+from classifier_analysis import aggregate_patient, align_seed_predictions, discover_experiments  # noqa: E402
 from final_evaluation import require_final_evaluation_opt_in, save_protocol_snapshot  # noqa: E402
 
 

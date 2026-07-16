@@ -134,10 +134,10 @@ were selected under the approved amendment, not the original preregistered thres
 
 `configs/selected_generators.json` is content-aware (schema 2): it binds the benchmark identity, the
 active amendment, the committed selection evidence, and each generator's model/generation identity and
-FILTERED manifest (path, SHA-256, 1361 records) so silent edits are detected. Downstream synthetic
+FILTERED manifest (path, SHA-256, 1361 records) so silent edits are detected. Classifier synthetic
 conditions consume exactly those signed 1,361 FILTERED records (no directory scan or resampling).
 
-## 6. Downstream design (2 × 4 × 3)
+## 6. Classifier design (2 × 4 × 3)
 
 Fixed primary design: architectures **MaxViT-512** and **Mammo-FM**; conditions `real_only`,
 `real_augmented`, `real_plus_best_finetuned_positive`, `real_plus_best_fromscratch_positive`; seeds
@@ -150,7 +150,7 @@ scheduler, early stopping and checkpoint criterion. The primary checkpoint metri
 PR-AUC; an equal PR-AUC uses lower validation loss, then the earlier epoch; ROC-AUC never selects the
 checkpoint. No hidden oversampling; samples seen per source, optimizer updates and effective epochs
 are reported. Each run writes under
-`results/publication_v2/downstream/<architecture>/<condition>/seed_<seed>/` (`configuration.json`,
+`results/publication_v2/classifiers/<architecture>/<condition>/seed_<seed>/` (`configuration.json`,
 `dataset_summary.json`, checkpoint/resume, `training_history.csv`, `validation_predictions.csv`,
 `validation_metrics.json`, `interpretability/` when produced).
 
@@ -183,11 +183,11 @@ No script launches or replaces a scientific notebook.
 2. Execute `05_Unified_Generator_Benchmark.ipynb`; review RAW/FILTERED tables, repeated-subsampling
    intervals, duplication, train memorization, validation similarity and efficiency.
 3. In `06_Generator_Selection.ipynb`, review the original and amended outcomes and save the selection.
-4. In `07_MaxViT512_Downstream.ipynb`, set `CONDITION`, `SEED`, `GPU`, `RESUME`, run all cells; repeat
+4. In `07_MaxViT512.ipynb`, set `CONDITION`, `SEED`, `GPU`, `RESUME`, run all cells; repeat
    its 12 combinations. `GPU` accepts a physical nvidia-smi index or a `GPU-…` UUID (resolved to a
    UUID before any framework import; verified by physical identity).
-5. Repeat with `08_MammoFM_Downstream.ipynb`.
-6. Execute `09_Downstream_Validation_Comparison.ipynb` after all 24 prediction files exist.
+5. Repeat with `08_MammoFM.ipynb`.
+6. Execute `09_Validation_Comparison.ipynb` after all 24 prediction files exist.
 7. Freeze selections, thresholds and comparisons on validation; identify an honest final-evaluation
    dataset and execute `10_Final_Evaluation_and_Report.ipynb` only when ready.
 

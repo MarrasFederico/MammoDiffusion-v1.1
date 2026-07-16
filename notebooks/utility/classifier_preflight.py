@@ -1,4 +1,4 @@
-"""Metadata-only preflight audit of the four downstream conditions.
+"""Metadata-only preflight audit of the four classifier conditions.
 
 Resolves each condition and inspects the synthetic manifests and real metadata *without* loading any
 model, training anything, running inference, or reading the test split.  It reports counts and
@@ -15,7 +15,7 @@ from typing import Any
 _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
-import downstream_protocol as dp  # noqa: E402
+import classifier_protocol as dp  # noqa: E402
 import generator_benchmark as gb  # noqa: E402
 
 CONDITIONS = dp.CONDITIONS

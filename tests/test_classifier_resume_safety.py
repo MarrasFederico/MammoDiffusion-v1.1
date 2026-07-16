@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import classifier_architecture_adapters as adapters  # noqa: E402
 import classifier_checkpoint_io as checkpoint_io  # noqa: E402
-import downstream_experiment as experiment  # noqa: E402
+import classifier_experiment as experiment  # noqa: E402
 
 
 class ClassifierResumeBoundaryTests(unittest.TestCase):
@@ -98,7 +98,7 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
                     self.assertIn("config_signature", reason)
 
     def test_validation_cells_reload_checkpoint_after_kernel_restart(self):
-        for name in ("07_MaxViT512_Downstream.ipynb", "08_MammoFM_Downstream.ipynb"):
+        for name in ("07_MaxViT512.ipynb", "08_MammoFM.ipynb"):
             notebook = json.loads((ROOT / "notebooks/04_classifiers" / name).read_text())
             validation_cells = [
                 "".join(cell.get("source", []))

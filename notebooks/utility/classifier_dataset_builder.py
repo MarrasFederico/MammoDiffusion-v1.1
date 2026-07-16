@@ -35,9 +35,9 @@ _TEST_PATH_COMPONENTS = {"test", "historical_internal_test"}
 
 def _load_selection_payload(root: Path) -> dict | None:
     try:
-        from . import downstream_protocol as dp
+        from . import classifier_protocol as dp
     except ImportError:
-        import downstream_protocol as dp
+        import classifier_protocol as dp
     return dp.load_selected_generators(root, required=False)
 
 

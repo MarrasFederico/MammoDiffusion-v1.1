@@ -1,4 +1,4 @@
-"""Checkpoint/resume provenance for one compact downstream experiment."""
+"""Checkpoint/resume provenance for one compact classifier experiment."""
 from __future__ import annotations
 
 import os

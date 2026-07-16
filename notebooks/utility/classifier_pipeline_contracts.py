@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
-PIPELINE_NAMESPACE = "mammodiffusion.downstream_validation.v1"
+PIPELINE_NAMESPACE = "mammodiffusion.classifier_validation.v1"
 CONTRACT_SCHEMA_VERSION = 2
 REQUIRED_SEEDS = (17, 42, 73)
 ARCHITECTURES = ("maxvit512", "mammofm")

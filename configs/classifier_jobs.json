@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "pipeline_namespace": "mammodiffusion.downstream_validation.v2",
+  "pipeline_namespace": "mammodiffusion.classifier_validation.v2",
   "note": "Exactly 24 notebook-run job definitions. Synthetic conditions require the simple configs/selected_generators.json created in notebook 06.",
   "architectures": [
     "maxvit512",

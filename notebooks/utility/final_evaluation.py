@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 try:
-    from .downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, load_selected_generators
+    from .classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, load_selected_generators
 except ImportError:
-    from downstream_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, load_selected_generators
+    from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, load_selected_generators
 
 
 REQUIRED_CHECKLIST = (
@@ -102,7 +102,7 @@ def format_generator_comparison(rows: Sequence[Mapping[str, Any]] | None) -> str
     return _markdown_table(rows, [name for name in preferred if any(name in row for row in rows)])
 
 
-def format_downstream_results(payload: Mapping[str, Any] | None) -> str:
+def format_classifier_results(payload: Mapping[str, Any] | None) -> str:
     if not payload: return "Not yet evaluated"
     rows = []
     for ensemble in payload.get("ensembles", []):
@@ -116,7 +116,7 @@ def format_downstream_results(payload: Mapping[str, Any] | None) -> str:
 def format_limitations() -> str:
     return "\n".join((
         "- Generator selection used a human-approved post-benchmark methodological amendment "
-        "(Option B). Original gate outcomes are preserved. Downstream findings must be interpreted "
+        "(Option B). Original gate outcomes are preserved. Classifier findings must be interpreted "
         "in light of this amendment.",
         "- Historical internal test: previously used; it is not an untouched independent confirmation.",
         "- Independent confirmation: unavailable.",
@@ -211,20 +211,20 @@ def generate_publication_report(root: Path) -> Path:
     generator_rows = _read_csv(corrected if corrected.is_file()
                                else publication / "generator_benchmark/generator_summary.csv")
     selections = load_selected_generators(root, required=False)
-    validation = _optional_json(publication / "downstream/validation_comparison.json")
+    validation = _optional_json(publication / "classifiers/validation_comparison.json")
     final_results = _optional_json(publication / "final_evaluation/results.json")
     generator_protocol = _optional_json(root / "configs/generator_benchmark_protocol.json") or {}
-    downstream_protocol = _optional_json(root / "configs/downstream_classifier_protocol.json") or {}
+    classifier_protocol = _optional_json(root / "configs/classifier_protocol.json") or {}
     questions = [{"question": "RQ1", "text": generator_protocol.get("study_question", "Not yet evaluated")},
-                 *[{"question": key, "text": value} for key, value in downstream_protocol.get("research_questions", {}).items()]]
+                 *[{"question": key, "text": value} for key, value in classifier_protocol.get("research_questions", {}).items()]]
     sections = (
         ("1. Research questions", _markdown_table(questions)),
-        ("2. Dataset and split", "Generator selection and downstream comparison use validation data only. The historical internal test is not used as a default final dataset."),
+        ("2. Dataset and split", "Generator selection and classifier comparison use validation data only. The historical internal test is not used as a default final dataset."),
         ("3. Generative models", format_generator_comparison(generator_rows)),
         ("4. Generator benchmark", format_generator_benchmark_outcome(root)),
         ("5. Generator selection", format_generator_selection(selections)),
-        ("6. Downstream classifiers", _markdown_table([{"architecture": name, "conditions": 4, "seeds": "17, 42, 73"} for name in ARCHITECTURES])),
-        ("7. Validation results", format_downstream_results(validation)),
+        ("6. Classifiers", _markdown_table([{"architecture": name, "conditions": 4, "seeds": "17, 42, 73"} for name in ARCHITECTURES])),
+        ("7. Validation results", format_classifier_results(validation)),
         ("8. Final evaluation status/results", format_metric_table(final_results or final_dataset_status())),
         ("9. Interpretability", collect_figure_references(root)),
         ("10. Efficiency", format_metric_table([{key: row.get(key) for key in ("generator_id", "generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes", "efficiency_source", "efficiency_status")} for row in generator_rows] if generator_rows else None)),
@@ -238,6 +238,6 @@ def generate_publication_report(root: Path) -> Path:
 
 
 __all__ = ["FinalEvaluationDatasetAdapter", "REQUIRED_CHECKLIST", "collect_figure_references", "final_dataset_status",
-           "format_downstream_results", "format_generator_benchmark_outcome", "format_generator_comparison",
+           "format_classifier_results", "format_generator_benchmark_outcome", "format_generator_comparison",
            "format_generator_selection", "format_limitations", "format_metric_table",
            "generate_publication_report", "require_final_evaluation_opt_in", "run_final_evaluation", "save_protocol_snapshot"]

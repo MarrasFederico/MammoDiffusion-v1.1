@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-import downstream_preflight as pre  # noqa: E402
+import classifier_preflight as pre  # noqa: E402
 
 
 def _write_metadata(path: Path, rows: list[tuple[str, str, str]]) -> None:

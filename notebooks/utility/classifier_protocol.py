@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
-NAMESPACE = "mammodiffusion.downstream_validation.v2"
+NAMESPACE = "mammodiffusion.classifier_validation.v2"
 ARCHITECTURES = ("maxvit512", "mammofm")
 CONDITIONS = ("real_only", "real_augmented", "real_plus_best_finetuned_positive",
               "real_plus_best_fromscratch_positive")
@@ -24,8 +24,8 @@ def atomic_json(path: Path, value: Any) -> Path:
 
 
 def load_protocol(root: Path) -> dict[str, Any]:
-    payload = json.loads((Path(root) / "configs/downstream_classifier_protocol.json").read_text())
-    if payload.get("pipeline_namespace") != NAMESPACE: raise ValueError("unsupported downstream protocol")
+    payload = json.loads((Path(root) / "configs/classifier_protocol.json").read_text())
+    if payload.get("pipeline_namespace") != NAMESPACE: raise ValueError("unsupported classifier protocol")
     for architecture in ARCHITECTURES:
         policy = payload["architectures"][architecture]
         if policy["scheduler_params"]["monitor"] != "val_pr_auc": raise ValueError("scheduler must monitor val_pr_auc")
@@ -47,9 +47,9 @@ def parse_experiment_id(value: str) -> dict[str, Any]:
 
 
 def validate_jobs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-    if payload.get("pipeline_namespace") != NAMESPACE: raise ValueError("unsupported downstream job namespace")
+    if payload.get("pipeline_namespace") != NAMESPACE: raise ValueError("unsupported classifier job namespace")
     jobs = payload.get("jobs")
-    if not isinstance(jobs, list) or len(jobs) != 24: raise ValueError("primary downstream matrix must contain 24 jobs")
+    if not isinstance(jobs, list) or len(jobs) != 24: raise ValueError("primary classifier matrix must contain 24 jobs")
     keys = []
     for job in jobs:
         key = job.get("architecture"), job.get("condition"), int(job.get("seed", -1))
@@ -62,7 +62,7 @@ def validate_jobs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def load_jobs(root: Path) -> dict[str, Any]:
-    payload = json.loads((Path(root) / "configs/downstream_classifier_jobs.json").read_text())
+    payload = json.loads((Path(root) / "configs/classifier_jobs.json").read_text())
     validate_jobs(payload)
     return payload
 

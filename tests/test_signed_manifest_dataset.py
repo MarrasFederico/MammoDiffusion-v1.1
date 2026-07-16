@@ -1,4 +1,4 @@
-"""Downstream synthetic sets must come from the signed FILTERED manifest, never a directory scan."""
+"""Classifier synthetic sets must come from the signed FILTERED manifest, never a directory scan."""
 from __future__ import annotations
 
 import csv

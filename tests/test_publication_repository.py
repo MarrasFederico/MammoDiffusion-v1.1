@@ -22,11 +22,11 @@ class PublicationRepositoryTests(unittest.TestCase):
 
     def test_main_publication_files_exist(self):
         required = (
-            "notebooks/04_classifiers/07_MaxViT512_Downstream.ipynb",
-            "notebooks/04_classifiers/08_MammoFM_Downstream.ipynb",
-            "notebooks/04_classifiers/09_Downstream_Validation_Comparison.ipynb",
+            "notebooks/04_classifiers/07_MaxViT512.ipynb",
+            "notebooks/04_classifiers/08_MammoFM.ipynb",
+            "notebooks/04_classifiers/09_Validation_Comparison.ipynb",
             "notebooks/04_classifiers/10_Final_Evaluation_and_Report.ipynb",
-            "notebooks/utility/downstream_experiment.py",
+            "notebooks/utility/classifier_experiment.py",
             "notebooks/utility/classifier_architecture_adapters.py",
         )
         self.assertTrue(all((ROOT / path).is_file() for path in required))

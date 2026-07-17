@@ -319,6 +319,21 @@ def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mappin
     return {"rows": rows, "metrics": report, "prediction_path": str(output / "validation_predictions.csv")}
 
 
+def run_test(root: Path, configuration: Mapping[str, Any], checkpoint: str | Path, test_rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root))
+    prediction = adapter.predict_validation(Path(checkpoint), list(test_rows), seed=configuration["seed"])
+    rows = [{"patient_id": source.get("patient_id"), "image_id": source.get("image_id"), "label": int(label),
+             "probability": float(probability), "source": source.get("source"),
+             "processed_path": source.get("processed_path") or source.get("path")} for source, label, probability in zip(
+                 test_rows, prediction["labels"], prediction["probabilities"])]
+    probabilities = [row["probability"] for row in rows]
+    if any(not math.isfinite(value) or not 0 <= value <= 1 for value in probabilities): raise ValueError("invalid probabilities")
+    report = metrics.full_report([row["label"] for row in rows], probabilities)
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    _write_csv(output / "test_predictions.csv", rows); atomic_json(output / "test_metrics.json", report)
+    return {"rows": rows, "metrics": report, "prediction_path": str(output / "test_predictions.csv")}
+
+
 def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
     output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
     history = []

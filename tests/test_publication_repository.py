@@ -33,8 +33,8 @@ class PublicationRepositoryTests(unittest.TestCase):
 
     def test_final_evaluation_guard_exists(self):
         final = (ROOT / "notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb").read_text()
-        self.assertIn("RUN_FINAL_EVALUATION = False", final)
-        self.assertIn("PLANNED_COMPARISONS", final)
+        self.assertIn("RUN_TEST_INFERENCE", final)
+        self.assertIn("split='test'", final)
 
     def test_selection_is_a_transparent_post_benchmark_amendment(self):
         # Selection exists only after the benchmark + human-approved Option B amendment.

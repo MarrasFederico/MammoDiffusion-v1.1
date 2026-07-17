@@ -223,7 +223,7 @@ def generate_publication_report(root: Path) -> Path:
         ("5. Generator selection", format_generator_selection(selections)),
         ("6. Classifiers", _markdown_table([{"architecture": name, "conditions": 4, "seeds": "17, 42, 73"} for name in ARCHITECTURES])),
         ("7. Validation results", format_classifier_results(validation)),
-        ("8. Final evaluation status/results", format_metric_table(final_results or final_dataset_status())),
+        ("8. Final evaluation status/results", format_classifier_results(final_results) if final_results else format_metric_table(final_dataset_status())),
         ("9. Interpretability", collect_figure_references(root)),
         ("10. Efficiency", format_metric_table([{key: row.get(key) for key in ("generator_id", "generation_seconds_per_image", "peak_vram_mb", "energy_kwh", "checkpoint_size_bytes", "efficiency_source", "efficiency_status")} for row in generator_rows] if generator_rows else None)),
         ("11. Limitations", format_limitations()),

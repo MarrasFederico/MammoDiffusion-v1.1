@@ -25,6 +25,7 @@ def deterministic_sample_signature(paths: list[str], count: int, seed: int) -> d
 REAL_TRAIN_DIR = "data/processed/train"
 AUGMENTED_DIR = "data/real_augmented"
 VALIDATION_METADATA = "data/processed/metadata/val.csv"
+TEST_METADATA = "data/processed/metadata/test.csv"
 _FILE_HASH_CACHE: dict[tuple[str, int, int, int], str] = {}
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
@@ -475,6 +476,25 @@ def validation_rows(root: Path) -> list[dict]:
             "patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
         })
     assert_no_synthetic_evaluation(rows, split="validation")
+    return rows
+
+
+def test_rows(root: Path) -> list[dict]:
+    """Load the real patient-held-out test split; synthetic data is forbidden here."""
+    metadata = root / TEST_METADATA
+    with metadata.open(newline="", encoding="utf-8") as fh:
+        source_rows = list(csv.DictReader(fh))
+    rows = []
+    for row in source_rows:
+        raw = row.get("processed_path") or f"data/processed/test/{row['label']}/{row['image_id']}.png"
+        path = resolve_project_path(root, raw)
+        if not path.is_file():
+            raise FileNotFoundError(f"test file does not exist: {path}")
+        rows.append({
+            "processed_path": str(path), "label": int(row["label"]), "source": "real_test",
+            "patient_id": row.get("patient_id"), "image_id": row.get("image_id"),
+        })
+    assert_no_synthetic_evaluation(rows, split="test")
     return rows
 
 

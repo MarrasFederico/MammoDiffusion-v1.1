@@ -21,6 +21,11 @@ except ImportError:
 
 PUBLICATION_RESULTS = Path("results/publication_v2/classifiers")
 ENSEMBLE_RESULTS = Path("results/publication_v2/classifier_ensembles")
+TEST_ENSEMBLE_RESULTS = Path("results/publication_v2/final_evaluation/ensembles")
+
+
+def _ensemble_root(split: str) -> Path:
+    return ENSEMBLE_RESULTS if split == "validation" else TEST_ENSEMBLE_RESULTS
 
 ARCHITECTURE_DISPLAY_NAMES = {
     "maxvit512": "MaxViT-512",
@@ -118,12 +123,13 @@ def patient_bootstrap_intervals(rows: Sequence[Mapping[str, Any]], *, iterations
             for name, metric_values in values.items()}
 
 
-def build_validation_ensemble(root: Path, architecture: str, condition: str) -> dict[str, Any]:
+def build_validation_ensemble(root: Path, architecture: str, condition: str, split: str = "validation") -> dict[str, Any]:
     summaries = [json.loads((result_dir(root, architecture, condition, seed) / "dataset_summary.json").read_text()) for seed in SEEDS]
-    validation_descriptors = {(row.get("validation_manifest"), row.get("validation_signature")) for row in summaries}
-    if len(validation_descriptors) != 1 or next(iter(validation_descriptors))[0] is None:
+    validation_descriptors = {(row.get(f"{split}_manifest"), row.get(f"{split}_signature")) for row in summaries}
+    if split == "validation" and (len(validation_descriptors) != 1 or next(iter(validation_descriptors))[0] is None):
         raise ValueError("all seeds must use the same validation manifest and signature")
-    per_seed = {seed: _read_predictions(result_dir(root, architecture, condition, seed) / "validation_predictions.csv")
+    manifest, signature = next(iter(validation_descriptors)) if len(validation_descriptors) == 1 else (None, None)
+    per_seed = {seed: _read_predictions(result_dir(root, architecture, condition, seed) / f"{split}_predictions.csv")
                 for seed in SEEDS}
     image_rows = align_seed_predictions(per_seed); patient_rows = aggregate_patient(image_rows)
     report = metrics.full_report([row["label"] for row in patient_rows], [row["probability"] for row in patient_rows])
@@ -139,33 +145,33 @@ def build_validation_ensemble(root: Path, architecture: str, condition: str) -> 
     variability = {name: {"mean": mean(float(row[name]) for row in seed_reports),
                           "standard_deviation": stdev(float(row[name]) for row in seed_reports)}
                    for name in ("pr_auc", "roc_auc", "brier_score", "ece")}
-    output = Path(root) / ENSEMBLE_RESULTS / architecture / condition
+    output = Path(root) / _ensemble_root(split) / architecture / condition
     _write_csv(output / "ensemble_predictions.csv", image_rows)
     _write_csv(output / "patient_level_predictions.csv", patient_rows)
     _write_csv(output / "seed_metrics.csv", seed_reports)
     payload = {"architecture": architecture, "condition": condition, "seeds": list(SEEDS),
                "method": "mean_probability", "metrics": report, "confidence_intervals": confidence_intervals,
                "seed_metrics": seed_reports,
-               "seed_variability": variability, "patient_level": True, "split": "validation",
-               "validation_manifest": next(iter(validation_descriptors))[0],
-               "validation_signature": next(iter(validation_descriptors))[1]}
+               "seed_variability": variability, "patient_level": True, "split": split,
+               "validation_manifest": manifest,
+               "validation_signature": signature}
     atomic_json(output / "ensemble_metrics.json", payload)
     return payload
 
 
-def build_all_validation_ensembles(root: Path) -> list[dict[str, Any]]:
-    return [build_validation_ensemble(root, architecture, condition)
+def build_all_validation_ensembles(root: Path, split: str = "validation") -> list[dict[str, Any]]:
+    return [build_validation_ensemble(root, architecture, condition, split=split)
             for architecture in ARCHITECTURES for condition in CONDITIONS]
 
 
-def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None = None) -> dict[str, Any]:
+def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None = None, split: str = "validation") -> dict[str, Any]:
     protocol = load_protocol(root)
-    by_key = {(row["architecture"], row["condition"]): row for row in (ensembles or build_all_validation_ensembles(root))}
+    by_key = {(row["architecture"], row["condition"]): row for row in (ensembles or build_all_validation_ensembles(root, split=split))}
     comparisons, p_values = [], {}
     for architecture in ARCHITECTURES:
         for left, right in protocol["evaluation"]["primary_comparisons_per_architecture"]:
-            left_rows = _read_patient_rows(Path(root) / ENSEMBLE_RESULTS / architecture / left / "patient_level_predictions.csv")
-            right_rows = _read_patient_rows(Path(root) / ENSEMBLE_RESULTS / architecture / right / "patient_level_predictions.csv")
+            left_rows = _read_patient_rows(Path(root) / _ensemble_root(split) / architecture / left / "patient_level_predictions.csv")
+            right_rows = _read_patient_rows(Path(root) / _ensemble_root(split) / architecture / right / "patient_level_predictions.csv")
             if [row["patient_id"] for row in left_rows] != [row["patient_id"] for row in right_rows]:
                 raise ValueError("patient alignment differs between conditions")
             labels = [row["label"] for row in left_rows]
@@ -177,9 +183,11 @@ def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None
             comparison_id = f"{architecture}:{left}_vs_{right}"; p_values[comparison_id] = comparison["p_value_two_sided"]
             comparisons.append({"comparison_id": comparison_id, "architecture": architecture,
                                 "condition_a": left, "condition_b": right, "metric": "pr_auc", **comparison})
-    payload = {"split": "validation", "primary_metric": "pr_auc", "patient_level": True,
+    payload = {"split": split, "primary_metric": "pr_auc", "patient_level": True,
                "ensembles": list(by_key.values()), "comparisons": comparisons, "holm_correction": holm_correction(p_values)}
-    atomic_json(Path(root) / "results/publication_v2/classifiers/validation_comparison.json", payload)
+    output_path = (Path(root) / "results/publication_v2/classifiers/validation_comparison.json" if split == "validation"
+                   else Path(root) / "results/publication_v2/final_evaluation/results.json")
+    atomic_json(output_path, payload)
     return payload
 
 
@@ -219,11 +227,11 @@ def plot_ensemble_overview(ensembles: Sequence[Mapping[str, Any]]):
     figure.tight_layout(rect=(0, 0, 1, 0.93)); return figure
 
 
-def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]]):
+def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]], split: str = "validation"):
     import matplotlib.pyplot as plt
     figure, axes = plt.subplots(2, 3, figsize=(16, 10))
     for row in ensembles:
-        path = Path(root) / ENSEMBLE_RESULTS / row["architecture"] / row["condition"] / "patient_level_predictions.csv"
+        path = Path(root) / _ensemble_root(split) / row["architecture"] / row["condition"] / "patient_level_predictions.csv"
         values = _read_patient_rows(path); labels = np.asarray([item["label"] for item in values]); probabilities = np.asarray([item["probability"] for item in values])
         order = np.argsort(-probabilities); ordered = labels[order]; tp, fp = np.cumsum(ordered == 1), np.cumsum(ordered == 0)
         recall = tp / max(1, int((labels == 1).sum())); precision = tp / np.maximum(tp + fp, 1); fpr = fp / max(1, int((labels == 0).sum()))
@@ -237,10 +245,10 @@ def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]]):
         axes[arch_index, 2].plot(predicted, observed, marker="o", label=label)
     for index, architecture in enumerate(ARCHITECTURES):
         architecture_label = ARCHITECTURE_DISPLAY_NAMES.get(architecture, architecture)
-        axes[index, 0].set_title(f"{architecture_label} validation PR curves"); axes[index, 1].set_title(f"{architecture_label} validation ROC curves"); axes[index, 2].set_title(f"{architecture_label} validation calibration")
+        axes[index, 0].set_title(f"{architecture_label} {split} PR curves"); axes[index, 1].set_title(f"{architecture_label} {split} ROC curves"); axes[index, 2].set_title(f"{architecture_label} {split} calibration")
         axes[index, 2].plot([0, 1], [0, 1], "--", color="black")
         for axis in axes[index]: axis.legend(fontsize=7)
-    figure.suptitle("Validation ensemble curves | Patient-level mean of seeds 17, 42 and 73",
+    figure.suptitle(f"{split.capitalize()} ensemble curves | Patient-level mean of seeds 17, 42 and 73",
                     fontsize=14, fontweight="bold")
     figure.tight_layout(rect=(0, 0, 1, 0.95)); return figure
 

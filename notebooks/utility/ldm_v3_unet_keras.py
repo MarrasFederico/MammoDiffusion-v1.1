@@ -14,7 +14,7 @@ Rispetto alla versione v2 (`train_ldm_v2.build_ldm_unet`) introduce:
   loop senza altre modifiche.
 
 Il modulo puo' essere importato da `train_ldm_v2.py` quando l'utente passa
-`--unet-version v3`, oppure caricato da un notebook per uno smoke test dedicato.
+`--unet-version v3`, oppure caricato da un notebook per una prova rapida dedicata.
 """
 from __future__ import annotations
 

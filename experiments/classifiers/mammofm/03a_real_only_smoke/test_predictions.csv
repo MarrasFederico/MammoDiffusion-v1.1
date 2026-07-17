@@ -1,9 +1,0 @@
-path,label,probability,prediction,split,source
-/home/fede/Documenti/MammoDiffusion/data/processed/test/0/40472_1685193800_L_MLO.png,0,0.5597729682922363,1,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/0/15409_1596026020_R_MLO.png,0,0.49082261323928833,0,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/0/12839_599809899_R_MLO.png,0,0.5283862352371216,1,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/0/59398_1707535651_L_MLO.png,0,0.48257339000701904,0,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/1/15078_1719011144_R_MLO.png,1,0.45279523730278015,0,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/1/60629_306442803_L_MLO.png,1,0.44514331221580505,0,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/1/26664_1982155258_R_MLO.png,1,0.49924522638320923,0,test,real_test
-/home/fede/Documenti/MammoDiffusion/data/processed/test/1/10130_1672636630_L_MLO.png,1,0.54237961769104,1,test,real_test

@@ -158,7 +158,7 @@ def parse_args() -> argparse.Namespace:
         "--max-eval-images",
         type=int,
         default=None,
-        help="Limite leggero per smoke test delle metriche; default usa tutti gli input.",
+        help="Limite leggero sul numero di immagini per le metriche; default usa tutti gli input.",
     )
     parser.add_argument("--reverse-labels", default="1,0")
     parser.add_argument("--reverse-steps-to-show", type=int, default=10)
@@ -665,7 +665,7 @@ def write_parallel_generation_parent_artifacts(args: argparse.Namespace, paths, 
     if canonical_run:
         write_pipeline_manifest(paths, payload, args.results_stage_name)
     else:
-        write_json(log_dir / "generation_manifest_smoke.json", payload)
+        write_json(log_dir / "generation_manifest_trial.json", payload)
 
 
 def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
@@ -679,7 +679,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
     log_dir = (
         paths.logs_dir / class_name_for_label(args.target_label)
         if canonical_run
-        else raw_dir.parent / "generation_logs_smoke"
+        else raw_dir.parent / "generation_logs_trial"
     )
     if args.generation_worker:
         # No worker writes aggregate state, manifests or shared JSONL files.
@@ -955,7 +955,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
         if canonical_run and not args.generation_worker:
             write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
         else:
-            write_json(log_dir / "generation_manifest_smoke.json", manifest_payload)
+            write_json(log_dir / "generation_manifest_trial.json", manifest_payload)
 
         del compiled_sampler
         del ldm_model
@@ -1019,12 +1019,12 @@ def run_filter(args: argparse.Namespace, paths) -> None:
     output_dir = (
         get_class_metrics_dir(results_paths, args.target_label)
         if canonical_run
-        else filtered_dir.parent / "filter_outputs_smoke"
+        else filtered_dir.parent / "filter_outputs_trial"
     )
     plots_dir = (
         results_paths.plots_dir / class_name
         if canonical_run
-        else filtered_dir.parent / "filter_plots_smoke"
+        else filtered_dir.parent / "filter_plots_trial"
     )
     with maybe_measure(args, paths, "ldm_filter_raw"):
         summary = filter_generated_directory(
@@ -1061,7 +1061,7 @@ def run_filter(args: argparse.Namespace, paths) -> None:
         mirror_positive_legacy_outputs(plots_dir, results_paths.plots_dir, args.target_label)
         write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
     else:
-        write_json(output_dir / "filter_manifest_smoke.json", manifest_payload)
+        write_json(output_dir / "filter_manifest_trial.json", manifest_payload)
 
 
 def readable_png_paths(directory: Path, limit: int | None = None) -> list[Path]:
@@ -1071,7 +1071,7 @@ def readable_png_paths(directory: Path, limit: int | None = None) -> list[Path]:
 
 
 def select_metric_paths(paths: list[Path], limit: int | None) -> list[Path]:
-    """Applica il limite di smoke test (max_eval_images) alla lista di path da passare al calcolo delle metriche."""
+    """Applica il limite (max_eval_images) alla lista di path da passare al calcolo delle metriche."""
     return paths[:limit] if limit is not None else paths
 
 
@@ -1114,7 +1114,7 @@ def run_validate(args: argparse.Namespace, paths) -> None:
     output_dir = (
         get_class_evaluation_dir(paths, args.target_label)
         if canonical_run
-        else filtered_dir.parent / "validation_outputs_smoke"
+        else filtered_dir.parent / "validation_outputs_trial"
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     from parallel_generation_utils import exact_filtered_png_paths, ldm_raw_png_paths
@@ -1234,7 +1234,7 @@ def run_validate(args: argparse.Namespace, paths) -> None:
         })
         write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
     else:
-        write_json(output_dir / "validation_manifest_smoke.json", manifest_payload)
+        write_json(output_dir / "validation_manifest_trial.json", manifest_payload)
     print("Salvato:", csv_path)
     print("Salvato:", json_path)
 
@@ -1264,7 +1264,7 @@ def evaluate_filtered_command(args: argparse.Namespace, paths, filtered_dir: Pat
         command.append("--force-recompute")
     _, canonical_filtered_dir = get_class_image_dirs(paths, args.target_label)
     if filtered_dir != canonical_filtered_dir:
-        command.extend(["--output-dir", str(filtered_dir.parent / "test_outputs_smoke")])
+        command.extend(["--output-dir", str(filtered_dir.parent / "test_outputs_trial")])
         command.append("--no-canonical-results")
     return command
 
@@ -1286,11 +1286,11 @@ def run_test(args: argparse.Namespace, paths) -> None:
         "filtered_dir": str(filtered_dir),
         "target_label": int(args.target_label),
         "csv": str(
-            (canonical_evaluation_dir if canonical_run else filtered_dir.parent / "test_outputs_smoke")
+            (canonical_evaluation_dir if canonical_run else filtered_dir.parent / "test_outputs_trial")
             / "final_filtered_vs_test.csv"
         ),
         "json": str(
-            (canonical_evaluation_dir if canonical_run else filtered_dir.parent / "test_outputs_smoke")
+            (canonical_evaluation_dir if canonical_run else filtered_dir.parent / "test_outputs_trial")
             / "final_filtered_vs_test.json"
         ),
         "canonical_run": canonical_run,
@@ -1299,7 +1299,7 @@ def run_test(args: argparse.Namespace, paths) -> None:
     if canonical_run:
         write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
     else:
-        write_json(filtered_dir.parent / "test_manifest_smoke.json", manifest_payload)
+        write_json(filtered_dir.parent / "test_manifest_trial.json", manifest_payload)
 
 
 def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:

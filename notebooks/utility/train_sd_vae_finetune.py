@@ -73,7 +73,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--mixed-precision", choices=("no", "fp16", "bf16"), default="fp16")
     parser.add_argument("--max-train-images", type=int, default=None,
-                        help="Se impostato, limita il training set (utile per smoke test).")
+                        help="Se impostato, limita il training set (utile per esecuzioni di prova).")
     parser.add_argument("--early-stopping-patience", type=int, default=4,
                         help="Numero di epoche senza miglioramento di val_loss prima dello stop. 0 disattiva.")
     parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4,
@@ -190,7 +190,7 @@ def maybe_load_lpips(device, allow_fallback: bool = False):
     LPIPS viene usato davvero quando ``lpips_weight > 0``. Se non e' caricabile,
     di default il training si ferma con un errore leggibile: questo evita di
     eseguire per ore pensando di usare LPIPS mentre in realta' si sta facendo
-    solo L1. Passa ``--allow-lpips-fallback`` solo per debug/smoke test.
+    solo L1. Passa ``--allow-lpips-fallback`` solo per debug/prove rapide.
     """
     try:
         import lpips  # type: ignore

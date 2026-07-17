@@ -63,7 +63,7 @@ Per un hand-off completo caricare `notebooks/`, `configs/`, `experiments/`, `res
 - `notebooks/pretrained_model/stable-diffusion-2-1-base`;
 - i dataset sintetici filtrati usati dal benchmark e dai classificatori.
 
-Conservare checkpoint, latenti, cache di checkpoint-validation, output di evaluation ed embedding cache. Escludere soltanto cache Hugging Face/composizioni rigenerabili, `__pycache__`, file `*.pyc`, smoke test e code di lavoro vuote. `experiments/diffusers/` può essere caricato come primo blocco, ma da solo non basta a riprendere l'esecuzione su un'altra macchina.
+Conservare checkpoint, latenti, cache di checkpoint-validation, output di evaluation ed embedding cache. Escludere soltanto cache Hugging Face/composizioni rigenerabili, `__pycache__`, file `*.pyc` e code di lavoro vuote. `experiments/diffusers/` può essere caricato come primo blocco, ma da solo non basta a riprendere l'esecuzione su un'altra macchina.
 
 ## Documentazione
 

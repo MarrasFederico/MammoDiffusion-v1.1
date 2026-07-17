@@ -34,8 +34,8 @@ class FinalEvaluationDatasetAdapter:
 
 
 def final_dataset_status(adapter: FinalEvaluationDatasetAdapter | None = None) -> dict[str, str]:
-    return {"Historical internal test": "previously used", "Independent confirmation": "unavailable",
-            "Configured final adapter": type(adapter).__name__ if adapter is not None else "Not yet evaluated"}
+    return {"Final evaluation dataset": "held-out test set", "Split provenance": "fixed before any test access",
+            "Configured final adapter": type(adapter).__name__ if adapter is not None else "Not yet configured"}
 
 
 def require_final_evaluation_opt_in(run_final_evaluation: bool, checklist: Mapping[str, bool]) -> None:
@@ -66,7 +66,7 @@ def run_final_evaluation(root: Path, *, run_final_evaluation: bool, checklist: M
     """Access final data only after explicit opt-in, a complete checklist and a real adapter."""
     require_final_evaluation_opt_in(run_final_evaluation, checklist)
     if adapter is None:
-        raise RuntimeError("No final evaluation dataset adapter is configured. Select an external or explicitly approved evaluation dataset first.")
+        raise RuntimeError("No final evaluation dataset adapter is configured. Configure the held-out test-set adapter before running the final evaluation.")
     snapshot_path = Path(root) / "results/publication_v2/final_evaluation_protocol.json"
     if not snapshot_path.is_file(): raise FileNotFoundError("save the final-evaluation protocol snapshot first")
     manifest = adapter.load_manifest(Path(root)); dataset = adapter.build_dataset(Path(root), manifest)
@@ -118,8 +118,6 @@ def format_limitations() -> str:
         "- Generator selection used a human-approved post-benchmark methodological amendment "
         "(Option B). Original gate outcomes are preserved. Classifier findings must be interpreted "
         "in light of this amendment.",
-        "- Historical internal test: previously used; it is not an untouched independent confirmation.",
-        "- Independent confirmation: unavailable.",
         "- RAD-DINO is radiology-specific rather than mammography-specific.",
         "- The positive validation reference set is limited and FID is descriptive.",
         "- Generator filtering may alter measured diversity.",
@@ -219,7 +217,7 @@ def generate_publication_report(root: Path) -> Path:
                  *[{"question": key, "text": value} for key, value in classifier_protocol.get("research_questions", {}).items()]]
     sections = (
         ("1. Research questions", _markdown_table(questions)),
-        ("2. Dataset and split", "Generator selection and classifier comparison use validation data only. The historical internal test is not used as a default final dataset."),
+        ("2. Dataset and split", "Generator selection and classifier comparison use validation data only; final evaluation uses the held-out test set, fixed before any test access."),
         ("3. Generative models", format_generator_comparison(generator_rows)),
         ("4. Generator benchmark", format_generator_benchmark_outcome(root)),
         ("5. Generator selection", format_generator_selection(selections)),

@@ -40,8 +40,8 @@ before another machine attempts to run or evaluate the project.
 
 Keep scientific restart/evaluation state: canonical checkpoint histories, latent archives,
 checkpoint-validation caches, evaluation outputs and embedding caches. Do not upload disposable
-runtime state: `.cache/huggingface`, `.cache/mammodiffusion`, `__pycache__`, `*.pyc`, smoke-test
-outputs or empty work queues. The VAE-composed SD pipeline under `.cache/mammodiffusion` is rebuilt
+runtime state: `.cache/huggingface`, `.cache/mammodiffusion`, `__pycache__`, `*.pyc`
+or empty work queues. The VAE-composed SD pipeline under `.cache/mammodiffusion` is rebuilt
 automatically from the shared SD2.1 base and the standalone experiment-03 VAE.
 
 Checkpoint ownership is intentionally unique:

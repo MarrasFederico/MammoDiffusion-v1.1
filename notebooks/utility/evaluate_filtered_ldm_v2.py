@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-canonical-results",
         action="store_true",
-        help="Non copiare CSV/JSON nello stage results canonico (utile per smoke test).",
+        help="Non copiare CSV/JSON nello stage results canonico (utile per esecuzioni di prova).",
     )
     return parser.parse_args()
 

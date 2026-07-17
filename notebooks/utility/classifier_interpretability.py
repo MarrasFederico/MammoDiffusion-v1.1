@@ -79,6 +79,43 @@ def largest_ft_fs_disagreements(finetuned_rows: Sequence[Mapping], fromscratch_r
     return sorted(rows, key=lambda row: (-row["absolute_disagreement"], row["patient_id"], row["image_id"]))[:limit]
 
 
+def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path):
+    """Overlay each preregistered case's saved heatmap on its source image.
+
+    Top row: original mammogram with the Grad-CAM heatmap over it. Bottom row: the
+    isolated heatmap. Reads the ``{category}_{index}.npy`` files written next to the run.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    directory = Path(attribution_dir)
+    cases = list(cases)
+    columns = max(len(cases), 1)
+    figure, axes = plt.subplots(2, columns, figsize=(4 * columns, 8), squeeze=False)
+    for index, case in enumerate(cases):
+        heatmap = normalize_heatmap(np.load(directory / f"{case['category']}_{index}.npy"))
+        image = Image.open(case["processed_path"]).convert("L")
+        base = np.asarray(image, dtype="float32") / 255.0
+        upscaled = np.asarray(
+            Image.fromarray((heatmap * 255).astype("uint8")).resize(image.size, Image.BILINEAR),
+            dtype="float32",
+        ) / 255.0
+        overlay = axes[0][index]
+        overlay.imshow(base, cmap="gray")
+        overlay.imshow(upscaled, cmap="jet", alpha=0.4)
+        overlay.set_title(
+            f"{case['category']} · p={float(case['probability']):.2f} · y={int(case['label'])}",
+            fontsize=11,
+        )
+        overlay.axis("off")
+        isolated = axes[1][index]
+        isolated.imshow(heatmap, cmap="jet")
+        isolated.set_title("Grad-CAM", fontsize=11)
+        isolated.axis("off")
+    return figure
+
+
 def write_manifest(path: Path, *, architecture: str, method: str, samples: Sequence[Mapping]) -> Path:
     if architecture not in {"maxvit512", "mammofm"}:
         raise ValueError("interpretability is defined only for the two downstream architectures")
@@ -91,4 +128,5 @@ def write_manifest(path: Path, *, architecture: str, method: str, samples: Seque
 
 
 __all__ = ["ensemble_heatmaps", "largest_ft_fs_disagreements", "mammofm_attribution",
-           "normalize_heatmap", "preregistered_cases", "torch_spatial_attribution", "write_manifest"]
+           "normalize_heatmap", "preregistered_cases", "render_attribution_overlays",
+           "torch_spatial_attribution", "write_manifest"]

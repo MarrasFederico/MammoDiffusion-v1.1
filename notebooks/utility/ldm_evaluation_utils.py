@@ -66,7 +66,7 @@ def real_paths_from_metadata(metadata_df, data_processed_dir: Path, label: int) 
 
 def compute_prdc_metrics(real_features, fake_features, nearest_k: int = 3) -> dict[str, float]:
     """Calcola Precision/Recall/Density/Coverage tra due insiemi di feature, riducendo k se il batch è troppo piccolo per supportare quello richiesto."""
-    # prdc internally queries k + 1 neighbours, so tiny smoke runs need at least
+    # prdc internally queries k + 1 neighbours, so tiny trial runs need at least
     # k + 2 samples per side.
     k = min(int(nearest_k), len(real_features) - 2, len(fake_features) - 2)
     if k < 1:

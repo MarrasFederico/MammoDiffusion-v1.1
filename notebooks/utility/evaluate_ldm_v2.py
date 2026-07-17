@@ -165,7 +165,7 @@ def parse_args() -> argparse.Namespace:
         "--inception-weights",
         choices=["imagenet", "none"],
         default="imagenet",
-        help="Use 'none' only for smoke tests; metrics are not meaningful.",
+        help="Use 'none' only for limited trial runs; metrics are not meaningful.",
     )
     parser.add_argument(
         "--force-recompute",

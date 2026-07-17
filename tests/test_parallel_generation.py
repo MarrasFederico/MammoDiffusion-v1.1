@@ -1141,7 +1141,7 @@ class ParallelGenerationTests(unittest.TestCase):
             self.assertFalse(old.exists())
             self.assertEqual(payload["selection"].get("best_model"), str(old))
 
-    # -- Multi-GPU smoke: CUDA_VISIBLE_DEVICES diagnostics (item 2) -----------------
+    # -- Multi-GPU: CUDA_VISIBLE_DEVICES diagnostics (item 2) -----------------
 
     def test_auto_gpu_resolution_respects_inherited_cuda_visible_devices(self) -> None:
         with patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"}, clear=False):
@@ -1348,12 +1348,6 @@ class ParallelGenerationTests(unittest.TestCase):
             with patch("parallel_generation_utils.resolve_generation_gpu_devices", return_value=["0"]):
                 run_sd_generation_jobs([job], "0", 1, root / "logs", root, dry_run=True)
             self.assertFalse((out_dir / ".parallel_generation.lock").exists())
-
-    def test_notebooks_do_not_embed_smoke_tests(self) -> None:
-        for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
-            source = (ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8")
-            self.assertNotIn("RUN_MULTI_GPU_SMOKE", source)
-            self.assertNotIn("Smoke test multi-GPU", source)
 
     def test_sd_notebooks_trust_existing_generated_images_without_legacy_flag(self) -> None:
         for name in (

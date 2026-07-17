@@ -46,7 +46,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from ldm_project_paths import find_project_root
+from ldm_project_paths import KERAS_V2_RESULTS_STAGE_NAME, find_project_root
 
 import numpy as np
 import pandas as pd
@@ -180,13 +180,13 @@ def parse_args() -> argparse.Namespace:
         default="sd_vae_original",
         help=(
             "Informativo: identifica il VAE usato per produrre i latenti (es. "
-            "'sd_vae_original' o 'sd_vae_finetuned_03c'). Salvato in training_manifest.json."
+            "'sd_vae_original' o 'sd_vae_finetuned_03'). Salvato in training_manifest.json."
         ),
     )
     parser.add_argument(
-        "--uses-vae-ft-from-03c",
+        "--uses-vae-ft-from-03",
         action="store_true",
-        help="Informativo: marca nel manifest che i latenti vengono dal VAE fine-tuned di 03c.",
+        help="Informativo: marca nel manifest che i latenti vengono dal VAE fine-tuned di 03.",
     )
     parser.add_argument(
         "--notebook-name",
@@ -195,7 +195,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--results-stage-name",
-        default="04_ldm_keras_v2",
+        default=KERAS_V2_RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare il log EcoTracker LDM.",
     )
     return parser.parse_args()
@@ -329,7 +329,7 @@ def write_training_manifest(final_model_path: Optional[Path], total_steps: Optio
         "use_min_snr": USE_MIN_SNR,
         "min_snr_gamma": MIN_SNR_GAMMA,
         "vae_source": ARGS.vae_source,
-        "uses_vae_ft_from_03c": ARGS.uses_vae_ft_from_03c,
+        "uses_vae_ft_from_03": ARGS.uses_vae_ft_from_03,
         "total_steps": total_steps,
         "final_model": str(final_model_path) if final_model_path is not None else None,
     }

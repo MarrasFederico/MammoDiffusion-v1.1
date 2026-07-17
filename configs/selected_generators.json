@@ -6,13 +6,13 @@
   "benchmark_HEAD": "cd05886c0e7044325063d9e2db4bf2de6d285dc4",
   "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
   "benchmark_summary_path": "results/publication_v2/generator_benchmark/generator_summary_corrected.csv",
-  "benchmark_summary_sha256": "8226be35dbe3f551365db12d276adf06378a9eabf75a762bfd14657676355786",
+  "benchmark_summary_sha256": "a64e98b4ad3b0a9aedfc1ec8bc3ff53e6ada6a6b410f6c23373adac1f2179200",
   "amended_gate_results_path": "results/publication_v2/generator_benchmark/gate_audit/amended_gate_results.csv",
   "amended_gate_results_sha256": "244bcb75774164a168b2ac512faa2c4e367e9f6d37bb35bc2757c528f4955f5e",
   "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
   "active_amendment_sha256": "d7179084f10a8aa9e7c5160215a11eccbb991a7b9b0b7994366c564586de215a",
   "selection_evidence_path": "configs/generator_selection_evidence_v1.json",
-  "selection_evidence_sha256": "8f3bfe7e423e96e03744e0940dca66fb0e44a5f10db05dfb1c49b2ac16946bcb",
+  "selection_evidence_sha256": "8ada7a4b5c1cec6b8759ae09489ba8536f7df0f41e18185387ca0009e679fbf2",
   "original_protocol_result": {
     "official_candidates_measured": 5,
     "eligible_under_original_gates": 0,
@@ -23,7 +23,7 @@
   },
   "post_benchmark_amendment": true,
   "test_access": false,
-  "selection_notes": "Post-benchmark amendment v1 (Option B), human-approved. Coverage-point and pHash-only removed as binary gates; safety gates retained. KID-primary ranking selects G02 (fine-tuned) and G07 (from-scratch). Downstream results interpreted with this amendment stated.",
+  "selection_notes": "Post-benchmark amendment v1 (Option B), human-approved: coverage-point and pHash-only removed as binary gates; safety gates retained (exact/confirmed duplicate, train memorization, corruption, FILTERED validity, provenance, lineage, test access). All five official candidates pass the safety gates; the preregistered KID-primary hierarchy selects G02 (fine-tuned) and G07 (from-scratch). Downstream results must be interpreted with this amendment stated.",
   "selection_identity": {
     "finetuned": {
       "generator_id": "02_sd21_filtered_100steps",
@@ -34,7 +34,7 @@
       "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
       "generation_identity_sha256": "327ad1f379c161d6d67d42621628896ba67c812186a0066d23884674d66ea20b",
       "filtered_manifest_path": "results/publication_v2/generator_provenance/runtime/02_sd21_filtered_100steps/filtered_samples.csv",
-      "filtered_manifest_sha256": "77a6a7b483fbac50d8199eda0c2d483fab76d0b889823406d7d660391448420c",
+      "filtered_manifest_sha256": "3f6632a791b66ddd7df489a925940fd21ca69847a2875b2a2245867ef5e616cd",
       "filtered_image_count": 1361
     },
     "from_scratch": {
@@ -43,10 +43,10 @@
       "descriptive_family_rank": 1,
       "primary_metric": "raddino_kid",
       "primary_metric_value": 0.08722443411855751,
-      "model_identity_sha256": "6a1fd367b1bac08dde79e06a4eb1a492298f2e924a42afd3d99e713735aac617",
-      "generation_identity_sha256": "e2fcbc2272920863c1c3b7bdfa3044df5922c26c19f941226fb8edf7b15bbef8",
+      "model_identity_sha256": "79c6b7d776a186a236d521526aec71643c4c019ba21daa6c336696d9d2d6886d",
+      "generation_identity_sha256": "ca98e1612ae0279dd691d29b228c40abba85ce3d65a2ff7890940025d32c15c5",
       "filtered_manifest_path": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filtered_samples.csv",
-      "filtered_manifest_sha256": "18fbba23bcee22b8d46f4e37abeb75fb550d73c567a7f492999d7c82058a0266",
+      "filtered_manifest_sha256": "1e1052419f1078346ec11407932c5e3418263bc1a6b939a6595778dad789c4c5",
       "filtered_image_count": 1361
     }
   }

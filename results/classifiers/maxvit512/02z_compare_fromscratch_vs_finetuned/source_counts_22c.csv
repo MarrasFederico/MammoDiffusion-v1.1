@@ -1,7 +1,0 @@
-experiment_key,source_label,source_detail,sano_0,malato_1,totale
-FromScratch_SD_VAE,From-Scratch SD-VAE,FromScratch_SD_VAE,1361,1361,2722
-FromScratch_SD_VAE,From-Scratch SD-VAE,real_train,1701,340,2041
-FromScratch_SD_VAE,From-Scratch SD-VAE,traditional_positive_augmentation,0,1020,1020
-FineTuned_SD2.1,Fine-Tuned SD2.1,FineTuned_SD2.1,1361,1361,2722
-FineTuned_SD2.1,Fine-Tuned SD2.1,real_train,1701,340,2041
-FineTuned_SD2.1,Fine-Tuned SD2.1,traditional_positive_augmentation,0,1020,1020

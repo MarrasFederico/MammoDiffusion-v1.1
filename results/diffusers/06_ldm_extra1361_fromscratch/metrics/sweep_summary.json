@@ -3,10 +3,10 @@
   "n_gen_per_class": 100,
   "sample_steps": 100,
   "guidance_scale": 1.5,
-  "results_csv": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/evaluation/sweep_results.csv",
+  "results_csv": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/sweep_results.csv",
   "canonical_results_csv": "/workspace/MammoDiffusion/results/04b_ldm_keras_v2_extra1361/metrics/sweep_results.csv",
   "best_metric": "fid_1",
-  "checkpoint_metrics_json": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/evaluation/checkpoint_metrics.json",
+  "checkpoint_metrics_json": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/checkpoint_metrics.json",
   "canonical_checkpoint_metrics_json": "/workspace/MammoDiffusion/results/04b_ldm_keras_v2_extra1361/metrics/checkpoint_metrics.json",
   "plots": {
     "best_checkpoint_summary.png": "/workspace/MammoDiffusion/results/04b_ldm_keras_v2_extra1361/plots/best_checkpoint_summary.png",
@@ -21,6 +21,6 @@
   "selection_reason": "Best generation quality for the positive mammography class",
   "best_checkpoint_id": "step_70000",
   "best_step": 70000,
-  "best_checkpoint": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step070000.keras",
-  "best_eval_model": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras"
+  "best_checkpoint": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step070000.keras",
+  "best_eval_model": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras"
 }

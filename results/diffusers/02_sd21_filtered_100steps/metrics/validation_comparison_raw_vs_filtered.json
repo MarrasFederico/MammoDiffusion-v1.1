@@ -1,6 +1,6 @@
 {
   "timestamp": "2026-06-19T13:20:40",
-  "experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
+  "experiment": "diffusers/02_sd21_filtered_100steps",
   "evaluation_reference": "validation",
   "metrics": [
     {

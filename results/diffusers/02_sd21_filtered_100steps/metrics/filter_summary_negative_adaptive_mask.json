@@ -1,10 +1,10 @@
 {
   "timestamp": "2026-06-14T11:12:16",
-  "experiment": "20260611_sd21_rsna_mlo_512_inference_100_steps",
+  "experiment": "diffusers/02_sd21_filtered_100steps",
   "class": "negative",
   "label": 0,
-  "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative",
-  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260611_sd21_rsna_mlo_512_inference_100_steps/generated_images/final/negative_filtered_1361_adaptive_mask",
+  "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/02_sd21_filtered_100steps/generated_images/final/negative",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/02_sd21_filtered_100steps/generated_images/final/negative_filtered_1361_adaptive_mask",
   "n_raw": 2722,
   "n_accepted": 2124,
   "n_rejected": 598,

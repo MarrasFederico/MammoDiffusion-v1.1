@@ -1,0 +1,9 @@
+{
+  "architecture": "maxvit512",
+  "parameters": 30537097,
+  "trainable_parameters": 29074385,
+  "input_size": [
+    512,
+    512
+  ]
+}

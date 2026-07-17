@@ -30631,7 +30631,7 @@
   },
   "metrics_input_signature": {
     "vae_model_signature": {
-      "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base",
+      "path": "/mnt/MammoDiffusion/MammoDiffusion/notebooks/pretrained_model/stable-diffusion-2-1-base",
       "components": {
         "model_index.json": {
           "size": 543,
@@ -35519,7 +35519,7 @@
     "sd_vae_batch_size": 1
   },
   "vae_model_signature": {
-    "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base",
+    "path": "/mnt/MammoDiffusion/MammoDiffusion/notebooks/pretrained_model/stable-diffusion-2-1-base",
     "components": {
       "model_index.json": {
         "size": 543,
@@ -41541,7 +41541,7 @@
     "unet_version": "v3",
     "parameterization": "v",
     "vae_source": "sd_vae_original",
-    "uses_vae_ft_from_03c": false,
+    "uses_vae_ft_from_03": false,
     "fid_0": 110.5736,
     "fid_1": 114.4976,
     "fid_mean": 112.5356,

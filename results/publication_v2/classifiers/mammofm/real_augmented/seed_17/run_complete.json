@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "architecture": "mammofm",
+  "experiment_id": "mammofm__real_augmented__seed17",
+  "dataset_variant_id": "real_augmented",
+  "training_policy": "mammofm_fixed_protocol",
+  "config_signature": "44cb945b6f6cec3d393fb3f695a18e47398f11eb258cb4600d4d1f179cc5e2ae",
+  "dataset_signature": "7b9100b515b4a00b2a28b54d00bbe3fd9103e4bd3e0ee70e8c4d7b4a2132f762",
+  "seed": 17,
+  "completion_reason": "early_stopping",
+  "optimizer_updates_limit": 6400,
+  "optimizer_updates_completed": 3250,
+  "next_epoch": 14,
+  "best_epoch": 3,
+  "early_stopping_counter": 10,
+  "checkpoint_gpu_uuid": "GPU-9a95e5e1-599d-6315-52fb-b6a602960eb8",
+  "runtime_gpu_uuid": "GPU-9a95e5e1-599d-6315-52fb-b6a602960eb8",
+  "gpu_changed": false,
+  "final_checkpoint": "checkpoint_best.pt",
+  "artifacts": [
+    "checkpoint_best.pt",
+    "configuration.json",
+    "dataset_summary.json",
+    "model_summary.json",
+    "source_accounting.json",
+    "training_history.csv"
+  ]
+}

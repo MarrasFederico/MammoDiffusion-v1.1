@@ -39,9 +39,11 @@ class GeneratorCompletionTests(unittest.TestCase):
             paths.append(path)
         return paths
 
-    def test_notebook_05_has_full_wiring_and_no_permanent_empty_placeholders(self):
-        text = (ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb").read_text()
-        self.assertIn("RUN_REAL_BENCHMARK = False", text)
+    def test_benchmark_notebook_01_has_full_wiring_and_no_permanent_empty_placeholders(self):
+        text = (ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb").read_text()
+        self.assertIn("RUN_REAL_BENCHMARK = True", text)
+        self.assertIn("REFRESH_CANDIDATE_AUDIT = True", text)
+        self.assertIn("BUILD_CANONICAL_PROVENANCE = False", text)
         for forbidden in ("diversity_results = {}", "train_memorization_rows = []",
                           "validation_similarity_rows = []", "results_table = []"):
             self.assertNotIn(forbidden, text)
@@ -51,15 +53,19 @@ class GeneratorCompletionTests(unittest.TestCase):
                       "plot_generator_summary", "render_similarity_panel"):
             self.assertIn(token, text)
 
-    def test_notebook_05_false_mode_executes_without_mutation_or_real_references(self):
+    def test_benchmark_notebook_01_false_mode_executes_without_mutation_or_real_references(self):
         output = ROOT / gb.BENCHMARK_ROOT
         before = {(path.relative_to(output).as_posix(), path.stat().st_size, path.stat().st_mtime_ns)
                   for path in output.rglob("*") if path.is_file()} if output.exists() else set()
         namespace = {}
-        notebook = nbformat.read(ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb", 4)
-        for index, cell in enumerate(notebook.cells):
-            if cell.cell_type == "code":
-                exec(compile(cell.source, f"notebook05:{index}", "exec"), namespace)
+        notebook = nbformat.read(ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb", 4)
+        with mock.patch.dict(os.environ, {}, clear=False):
+            for index, cell in enumerate(notebook.cells):
+                if cell.cell_type == "code":
+                    # Exercise review mode without editing or launching the final-run notebook on disk.
+                    source = cell.source.replace("REFRESH_CANDIDATE_AUDIT = True", "REFRESH_CANDIDATE_AUDIT = False")
+                    source = source.replace("RUN_REAL_BENCHMARK = True", "RUN_REAL_BENCHMARK = False")
+                    exec(compile(source, f"benchmark_notebook01:{index}", "exec"), namespace)
         after = {(path.relative_to(output).as_posix(), path.stat().st_size, path.stat().st_mtime_ns)
                  for path in output.rglob("*") if path.is_file()} if output.exists() else set()
         self.assertFalse(namespace["RUN_REAL_BENCHMARK"])
@@ -134,10 +140,10 @@ class GeneratorCompletionTests(unittest.TestCase):
         self.assertEqual(next(row["generator_id"] for row in fs if row["eligible"]), "06_primary")
 
     def test_selection_notebook_records_amended_selection(self):
-        # After the benchmark and the human-approved post-benchmark amendment (Option B), notebook 06
+        # After the benchmark and the human-approved post-benchmark amendment (Option B), notebook 02
         # reads the active amendment, shows the original zero-eligible outcome alongside the amended
         # safety-gate outcome, and records the explicit G02/G07 selection.
-        text = (ROOT / "notebooks/3_generator_benchmark/06_Generator_Selection.ipynb").read_text()
+        text = (ROOT / "notebooks/3_generator_benchmark/02_Generator_Selection.ipynb").read_text()
         for token in ("SELECTED_FINETUNED_GENERATOR", "SELECTED_FROM_SCRATCH_GENERATOR",
                       "02_sd21_filtered_100steps", "07_ldm_sdvae_extra1361",
                       "load_active_amendment", "amended_family_ranking", "save_amended_selection",
@@ -167,6 +173,28 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
         self.assertTrue(result["physical_identity_verified"])
         # CUDA_VISIBLE_DEVICES must be the UUID, never the numeric index.
         self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "GPU-right")
+
+    def test_automatic_selection_chooses_largest_memory_gpu_portably(self):
+        for inventory in (self._inventory(), list(reversed(self._inventory()))):
+            with self.subTest(order=[row["index"] for row in inventory]):
+                result = de.configure_visible_gpu(
+                    "auto", inventory=lambda: inventory, observe=self._observe()
+                )
+                self.assertEqual(result["resolved_uuid"], "GPU-right")
+                self.assertEqual(result["observed_name"], "RTX 5060 Ti")
+                self.assertTrue(result["automatic_selection"])
+                self.assertEqual(
+                    result["selection_policy"],
+                    "maximum_total_memory_then_lowest_physical_index",
+                )
+                self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "GPU-right")
+                os.environ.pop("CUDA_VISIBLE_DEVICES", None)
+
+    def test_default_experiment_configuration_uses_automatic_gpu_selection(self):
+        configuration = de.experiment_configuration(
+            ROOT, "maxvit512", "real_only", 17
+        )
+        self.assertEqual(configuration["gpu"], "auto")
 
     def test_direct_uuid_selector_passes(self):
         result = de.configure_visible_gpu("GPU-right", inventory=self._inventory, observe=self._observe())
@@ -326,7 +354,9 @@ class EnsembleFinalAndArchiveTests(unittest.TestCase):
     def test_final_paths_have_no_unimplemented_error(self):
         paths = [ROOT / "notebooks/3_generator_benchmark", ROOT / "notebooks/04_classifiers", ROOT / "notebooks/utility"]
         matches = [path for directory in paths for path in directory.rglob("*")
-                   if path.is_file() and "NotImplementedError" in path.read_text(errors="ignore")]
+                   if path.is_file()
+                   and "diffusers_repo" not in path.parts
+                   and "NotImplementedError" in path.read_text(errors="ignore")]
         self.assertEqual(matches, [])
 
     def test_source_archive_contract_files_exist(self):

@@ -126,8 +126,8 @@ class MammoFMConfigError(RuntimeError):
     """Sollevato quando Mammo-FM non e' configurato o i pesi non sono disponibili/compatibili.
 
     Deliberatamente NON viene mai gestito con un fallback silenzioso su un backbone generico
-    (DINOv2/RAD-DINO/ImageNet): il notebook deve fermarsi e l'utente deve correggere la
-    configurazione (MAMMOFM_HF_REPO/MAMMOFM_CHECKPOINT_NAME o MAMMOFM_LOCAL_CHECKPOINT_PATH).
+    (DINOv2/RAD-DINO/ImageNet): il notebook deve fermarsi e l'utente deve rendere disponibile
+    il checkpoint Mammo-FM ufficiale nella cache Hugging Face locale.
     """
 
 
@@ -180,23 +180,23 @@ class MammoFMClassifier(nn.Module):
 
 
 def _resolve_checkpoint_path(hf_repo: Optional[str], checkpoint_name: Optional[str],
-                              use_local_checkpoint: bool, local_checkpoint_path: Optional[str]) -> str:
+                              use_local_checkpoint: bool, local_checkpoint_path: Optional[str],
+                              local_files_only: bool = False) -> str:
     if use_local_checkpoint:
         if not local_checkpoint_path or not Path(local_checkpoint_path).is_file():
             raise MammoFMConfigError(
                 f"USE_LOCAL_CHECKPOINT=True ma il checkpoint '{local_checkpoint_path}' non "
-                "esiste. Imposta MAMMOFM_LOCAL_CHECKPOINT_PATH su un file .tar valido con i "
-                "pesi Mammo-FM (es. scaricato manualmente da "
+                "esiste. Passa un percorso locale valido con i pesi Mammo-FM (es. scaricato "
+                "manualmente da "
                 "https://huggingface.co/batmanLab/Mammo-FM)."
             )
         return str(local_checkpoint_path)
 
     if not hf_repo or not checkpoint_name:
         raise MammoFMConfigError(
-            "Mammo-FM non configurato: imposta MAMMOFM_HF_REPO e MAMMOFM_CHECKPOINT_NAME "
-            "(repository/checkpoint Hugging Face ufficiali batmanLab/Mammo-FM), oppure "
-            "USE_LOCAL_CHECKPOINT=True con MAMMOFM_LOCAL_CHECKPOINT_PATH valorizzato. Questo "
-            "notebook non usera' mai un backbone generico come sostituto silenzioso."
+            "Mammo-FM non configurato: specifica repository e nome del checkpoint Hugging Face "
+            "ufficiale batmanLab/Mammo-FM, oppure passa direttamente un checkpoint locale. "
+            "Questo notebook non usera' mai un backbone generico come sostituto silenzioso."
         )
     try:
         from huggingface_hub import hf_hub_download
@@ -206,14 +206,22 @@ def _resolve_checkpoint_path(hf_repo: Optional[str], checkpoint_name: Optional[s
             "checkpoint Mammo-FM. Installa con: pip install huggingface_hub"
         ) from exc
     try:
-        return hf_hub_download(repo_id=hf_repo, filename=checkpoint_name)
+        return hf_hub_download(
+            repo_id=hf_repo,
+            filename=checkpoint_name,
+            local_files_only=local_files_only,
+        )
     except Exception as exc:
+        availability = (
+            "Il notebook usa esclusivamente la cache locale: scarica prima il file autorizzato "
+            "nella cache Hugging Face standard."
+            if local_files_only
+            else "Verifica la connessione di rete e il nome del repository/file."
+        )
         raise MammoFMConfigError(
             f"Impossibile scaricare il checkpoint Mammo-FM '{checkpoint_name}' dal repository "
             f"Hugging Face '{hf_repo}': {exc}\n"
-            "Verifica la connessione di rete e il nome del repository/file, oppure imposta "
-            "USE_LOCAL_CHECKPOINT=True con un checkpoint gia' scaricato manualmente. Nessun "
-            "fallback automatico su un modello generico."
+            f"{availability} Nessun fallback automatico su un modello generico."
         ) from exc
 
 
@@ -257,6 +265,7 @@ def build_mammofm_model(
     local_checkpoint_path: Optional[str] = None,
     num_classes: int = 1,
     dropout: float = 0.1,
+    local_files_only: bool = False,
 ):
     """Costruisce il classificatore Mammo-FM fine-tunabile (EfficientNet-B5 + testa lineare).
 
@@ -265,7 +274,13 @@ def build_mammofm_model(
     o non e' compatibile con l'architettura attesa: non sostituisce mai silenziosamente
     Mammo-FM con un backbone generico.
     """
-    ckpt_path = _resolve_checkpoint_path(hf_repo, checkpoint_name, use_local_checkpoint, local_checkpoint_path)
+    ckpt_path = _resolve_checkpoint_path(
+        hf_repo,
+        checkpoint_name,
+        use_local_checkpoint,
+        local_checkpoint_path,
+        local_files_only,
+    )
     raw = _load_raw_checkpoint(ckpt_path)
 
     try:
@@ -288,7 +303,7 @@ def build_mammofm_model(
         raise MammoFMConfigError(
             f"Il checkpoint '{ckpt_path}' non sembra compatibile con l'architettura "
             f"'{arch_name}' (solo {len(matched_keys)}/{len(backbone_keys)} tensori "
-            "corrispondenti per nome). Verifica MAMMOFM_CHECKPOINT_NAME/il file di checkpoint: "
+            "corrispondenti per nome). Verifica il file di checkpoint ufficiale: "
             "il notebook non procede con un caricamento parziale/errato spacciandolo per "
             "Mammo-FM."
         )

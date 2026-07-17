@@ -1,3 +1,0 @@
-experiment_key,source_label,experiment_name,date,fine_tune_mode,n_train,n_val,batch_size,seed,synthetic_source
-FromScratch_SD_VAE,From-Scratch SD-VAE,exp_maxvit512_real_aug_synth_fromscratch_sdvae_partial,2026-07-05,partial,5783,437,8,42,data/synthetic/fromscratch_new
-FineTuned_SD2.1,Fine-Tuned SD2.1,exp_maxvit512_real_aug_synth_finetuned_sd21_partial,2026-07-05,partial,5783,437,8,42,data/synthetic/fine_tuned

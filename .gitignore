@@ -30,6 +30,8 @@ data/
 
 # Cache/modelli locali condivisi dai notebook
 notebooks/pretrained_model/
+notebooks/utility/diffusers_repo/
+/.cache/
 recovered_legacy_candidates/
 pre_sol_recovery_*/
 archive_before_github/

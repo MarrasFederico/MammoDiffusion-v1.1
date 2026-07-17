@@ -1,5 +1,0 @@
-Modello,Classe_reale,N_campioni,Media_prob,Std_prob,Pct_fascia_centrale,Pct_overconfidence_errata
-Real+Synth_Part,Cancro (1),73,0.3968,0.1932,46.6,6.8
-Real+Synth_Part,No cancro (0),364,0.2719,0.1902,51.6,0.0
-Real+Synth_All_Layers,Cancro (1),73,0.2896,0.2585,54.8,31.5
-Real+Synth_All_Layers,No cancro (0),364,0.1796,0.2065,68.4,0.5

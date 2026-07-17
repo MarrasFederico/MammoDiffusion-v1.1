@@ -1,4 +1,4 @@
-"""Static guarantees that notebook 05 only ever extracts through the configured
+"""Static guarantees that benchmark notebook 01 only extracts through the configured
 local encoders, and that the frozen extractor exposes the reuse/close contract.
 
 These checks parse the notebook as text and introspect the module; they never
@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import generator_benchmark as gb  # noqa: E402
 
-NOTEBOOK = ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb"
+NOTEBOOK = ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb"
 
 
 def _code_cells() -> list[str]:

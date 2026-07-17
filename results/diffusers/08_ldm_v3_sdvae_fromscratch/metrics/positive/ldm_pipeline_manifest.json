@@ -4,7 +4,7 @@
     "filter": {
       "stage": "filter",
       "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
-      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fromscratch_v3/positive",
+      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/08_ldm_v3_sdvae_fromscratch/positive",
       "n_raw": 4083,
       "n_selected": 1361,
       "target_label": 1,
@@ -16,7 +16,7 @@
       "unet_version": "v3",
       "parameterization": "v",
       "vae_source": "sd_vae_original",
-      "uses_vae_ft_from_03c": false
+      "uses_vae_ft_from_03": false
     },
     "validate": {
       "stage": "validate",
@@ -28,13 +28,13 @@
       "unet_version": "v3",
       "parameterization": "v",
       "vae_source": "sd_vae_original",
-      "uses_vae_ft_from_03c": false,
+      "uses_vae_ft_from_03": false,
       "canonical_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/raw_vs_filtered_validation.csv",
       "canonical_json": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/raw_vs_filtered_validation.json"
     },
     "test": {
       "stage": "test",
-      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fromscratch_v3/positive",
+      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/08_ldm_v3_sdvae_fromscratch/positive",
       "target_label": 1,
       "csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/positive/final_filtered_vs_test.csv",
       "json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/positive/final_filtered_vs_test.json",
@@ -43,7 +43,7 @@
       "unet_version": "v3",
       "parameterization": "v",
       "vae_source": "sd_vae_original",
-      "uses_vae_ft_from_03c": false
+      "uses_vae_ft_from_03": false
     }
   }
 }

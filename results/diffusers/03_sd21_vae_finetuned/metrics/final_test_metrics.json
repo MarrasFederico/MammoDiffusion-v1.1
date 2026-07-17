@@ -12,8 +12,8 @@
       "negative"
     ],
     "filtered_dirs": {
-      "positive": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_vaeft/positive",
-      "negative": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_vaeft/negative"
+      "positive": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/positive",
+      "negative": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/negative"
     }
   },
   "input_signature": {
@@ -13639,7 +13639,7 @@
       "mtime_ns": 1783073699207657924
     }
   },
-  "experiment": "20260706_sd21_vaeft_extra1361",
+  "experiment": "diffusers/03_sd21_vae_finetuned",
   "best_checkpoint": "checkpoint-4000",
   "inference_steps": 100,
   "stage": "filtered",
@@ -13673,7 +13673,7 @@
       "real_label": 1,
       "n_real_reference": 73,
       "real_reference_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_vaeft/positive"
+      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/positive"
     },
     "negative": {
       "FID": 108.8956,
@@ -13691,7 +13691,7 @@
       "real_label": 0,
       "n_real_reference": 73,
       "real_reference_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_vaeft/negative"
+      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/negative"
     }
   },
   "timestamp": "2026-07-08T01:03:37"

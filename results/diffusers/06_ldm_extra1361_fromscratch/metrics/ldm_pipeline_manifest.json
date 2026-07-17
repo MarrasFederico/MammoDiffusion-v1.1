@@ -3,20 +3,20 @@
   "stages": {
     "generate": {
       "stage": "generate",
-      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260619_ldm_keras_v2_alex_long_training_extra1361/synthetic_raw",
+      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
       "n_raw": 4083,
       "target_label": 1,
       "sample_steps": 100,
       "guidance_scale": 1.5,
-      "model_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260619_ldm_keras_v2_alex_long_training_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
-      "state_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260619_ldm_keras_v2_alex_long_training_extra1361/logs/generation_raw_state.json",
+      "model_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "state_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/logs/generation_raw_state.json",
       "sampler_randomness": "stateless_seed_per_image_v1",
       "canonical_run": true
     },
     "filter": {
       "stage": "filter",
-      "raw_dir": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/synthetic_raw",
-      "filtered_dir": "/workspace/MammoDiffusion/data/synthetic/fromscratch/positive",
+      "raw_dir": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
+      "filtered_dir": "/workspace/MammoDiffusion/data/synthetic/06_ldm_extra1361_fromscratch/positive",
       "n_raw": 4083,
       "n_selected": 1361,
       "target_label": 1,
@@ -27,8 +27,8 @@
     },
     "validate": {
       "stage": "validate",
-      "csv": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/evaluation/raw_vs_filtered_validation.csv",
-      "json": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/evaluation/raw_vs_filtered_validation.json",
+      "csv": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/raw_vs_filtered_validation.csv",
+      "json": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/raw_vs_filtered_validation.json",
       "canonical_run": true,
       "canonical_csv": "/workspace/MammoDiffusion/results/04b_ldm_keras_v2_extra1361/metrics/raw_vs_filtered_validation.csv",
       "canonical_json": "/workspace/MammoDiffusion/results/04b_ldm_keras_v2_extra1361/metrics/raw_vs_filtered_validation.json"

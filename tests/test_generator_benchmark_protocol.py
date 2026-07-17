@@ -64,7 +64,7 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         value = self.protocol["reference_sets"]["train_memorization"]
         self.assertEqual(value, "generator_specific_declared_complete_training_corpus")
         self.assertNotIn("positive_only", value)
-        notebook = (ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb").read_text()
+        notebook = (ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb").read_text()
         self.assertIn("generator-specific complete declared training corpus", notebook)
 
     def test_repeated_metrics_use_shared_stability_plan_and_full_estimate(self):

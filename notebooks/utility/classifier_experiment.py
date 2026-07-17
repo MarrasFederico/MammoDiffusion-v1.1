@@ -29,9 +29,20 @@ STANDARD_RESULTS_ROOT = "results/publication_v2/classifiers"
 FORBIDDEN_DATA_TOKENS = ("test.csv", "final_evaluation", "locked_test", "historical_test")
 FORBIDDEN_PATH_COMPONENTS = ("test", "historical_internal_test")
 
+ARCHITECTURE_DISPLAY_NAMES = {
+    "maxvit512": "MaxViT-512",
+    "mammofm": "Mammo-FM",
+}
+CONDITION_DISPLAY_NAMES = {
+    "real_only": "Real only",
+    "real_augmented": "Real + traditional augmentation",
+    "real_plus_best_finetuned_positive": "Real + selected fine-tuned synthetic positives",
+    "real_plus_best_fromscratch_positive": "Real + selected from-scratch synthetic positives",
+}
+
 
 def experiment_configuration(root: Path, architecture: str, condition: str, seed: int, *,
-                             gpu: int | str = 0) -> dict[str, Any]:
+                             gpu: int | str | None = "auto") -> dict[str, Any]:
     if architecture not in ARCHITECTURES or condition not in CONDITIONS or int(seed) not in SEEDS:
         raise ValueError("configuration is outside the 2 x 4 x 3 protocol")
     resolved = resolve_job(Path(root), architecture, condition, int(seed))
@@ -94,8 +105,31 @@ def _initialized_frameworks() -> list[str]:
     return initialized
 
 
-def _resolve_gpu_selector(selector: int | str, inventory: list[dict[str, Any]]) -> dict[str, Any]:
-    """Resolve a physical index or a GPU-... UUID to exactly one inventory row, or fail."""
+def _gpu_memory_total_mib(row: Mapping[str, Any]) -> float:
+    try:
+        return float(str(row.get("memory_total", "")).strip())
+    except (TypeError, ValueError):
+        return -1.0
+
+
+def _automatic_gpu(inventory: list[dict[str, Any]]) -> dict[str, Any]:
+    """Select the largest-memory GPU, breaking ties by the lowest physical index."""
+    with_memory = [row for row in inventory if _gpu_memory_total_mib(row) >= 0]
+    if not with_memory:
+        raise RuntimeError(
+            "nvidia-smi did not report memory.total for any GPU; automatic selection is unavailable"
+        )
+    return max(
+        with_memory,
+        key=lambda row: (_gpu_memory_total_mib(row), -int(row["index"])),
+    )
+
+
+def _resolve_gpu_selector(selector: int | str | None,
+                          inventory: list[dict[str, Any]]) -> dict[str, Any]:
+    """Resolve auto, a physical index or a GPU-... UUID to one inventory row, or fail."""
+    if selector is None or (isinstance(selector, str) and selector.strip().lower() == "auto"):
+        return _automatic_gpu(inventory)
     if isinstance(selector, str) and selector.startswith(GPU_UUID_PREFIX):
         matches = [row for row in inventory if _normalize_uuid(row["uuid"]) == _normalize_uuid(selector)]
         if len(matches) != 1:
@@ -105,7 +139,9 @@ def _resolve_gpu_selector(selector: int | str, inventory: list[dict[str, Any]]) 
     try:
         index = int(selector)
     except (TypeError, ValueError):
-        raise RuntimeError(f"unsupported GPU selector {selector!r}: pass a physical index or a 'GPU-...' UUID")
+        raise RuntimeError(
+            f"unsupported GPU selector {selector!r}: use 'auto', a physical index or a 'GPU-...' UUID"
+        )
     matches = [row for row in inventory if int(row["index"]) == index]
     if len(matches) != 1:
         raise RuntimeError(f"physical GPU index {index} is not uniquely resolvable in the nvidia-smi "
@@ -113,12 +149,14 @@ def _resolve_gpu_selector(selector: int | str, inventory: list[dict[str, Any]]) 
     return matches[0]
 
 
-def configure_visible_gpu(selector: int | str, *, inventory=None, observe=None) -> dict[str, Any]:
+def configure_visible_gpu(selector: int | str | None = "auto", *, inventory=None,
+                          observe=None) -> dict[str, Any]:
     """Mask exactly one physical GPU by UUID before any framework initialization, then verify identity.
 
-    ``selector`` is a physical nvidia-smi index (int or numeric str) or a ``GPU-...`` UUID. A physical
-    index is resolved to its UUID via a single nvidia-smi query *before* PyTorch/TensorFlow are
-    imported, and only the UUID is ever written to ``CUDA_VISIBLE_DEVICES`` — never the numeric index.
+    ``selector='auto'`` chooses the GPU with the most total VRAM (lowest physical index on ties).
+    An explicit selector can be a physical nvidia-smi index or a ``GPU-...`` UUID. Selection is
+    resolved to a UUID via a single nvidia-smi query *before* PyTorch/TensorFlow are imported, and
+    only the runtime UUID is ever written to ``CUDA_VISIBLE_DEVICES`` — never the numeric index.
     A selector that cannot be resolved to exactly one device, a UUID absent from the inventory, an
     observed identity that differs from the request, or an already-initialized framework with a
     different mask are all hard failures; there is no silent CUDA-index fallback and no warning-only
@@ -127,7 +165,9 @@ def configure_visible_gpu(selector: int | str, *, inventory=None, observe=None) 
     initialized = _initialized_frameworks()
     entries = list(inventory() if inventory is not None else _nvidia_smi_inventory())
     if not entries:
-        raise RuntimeError("nvidia-smi inventory is unavailable; refusing to select a GPU by CUDA index")
+        raise RuntimeError(
+            "nvidia-smi inventory is unavailable; cannot select and verify a physical GPU"
+        )
     resolved = _resolve_gpu_selector(selector, entries)
     resolved_uuid = resolved["uuid"]
 
@@ -150,7 +190,12 @@ def configure_visible_gpu(selector: int | str, *, inventory=None, observe=None) 
     if _normalize_uuid(observed_uuid) != _normalize_uuid(resolved_uuid):
         raise RuntimeError(f"requested GPU UUID {resolved_uuid}, but CUDA local 0 reports UUID "
                            f"{observed_uuid}. Restart the kernel.")
-    return {"requested_selector": selector, "resolved_physical_index": int(resolved["index"]),
+    automatic = selector is None or (isinstance(selector, str) and selector.strip().lower() == "auto")
+    return {"requested_selector": "auto" if automatic else selector,
+            "selection_policy": ("maximum_total_memory_then_lowest_physical_index"
+                                 if automatic else "explicit_selector"),
+            "automatic_selection": automatic,
+            "resolved_physical_index": int(resolved["index"]),
             "resolved_uuid": resolved_uuid, "observed_name": observed.get("name", "unknown"),
             "observed_total_memory": observed.get("memory_bytes", observed.get("memory_total")),
             "local_index": 0, "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES"),
@@ -194,20 +239,6 @@ def audit_dataset(train_rows: Sequence[Mapping[str, Any]], validation_rows: Sequ
         "source_distribution": dict(sorted(sources.items())), "class_balance": dict(sorted(labels.items())),
         "validation_images": len(validation_rows), "validation_patients": len(validation_patients),
     }
-
-
-def _training_budget(configuration: Mapping[str, Any]) -> dict[str, Any]:
-    policy = configuration["policy"]
-    max_updates = int(policy["max_optimizer_updates"])
-    return {"max_optimizer_updates": max_updates,
-            "checkpoint_metric": policy["checkpoint_criterion"],
-            "scheduler_monitor": policy["scheduler_params"]["monitor"],
-            "early_stopping_monitor": policy["early_stopping"]["monitor"],
-            "effective_batch_size": int(policy["effective_batch_size"]),
-            "validation_interval": int(policy["validation_interval_updates"]),
-            "lr_schedule": policy.get("scheduler"),
-            "early_stopping_policy": dict(policy["early_stopping"]),
-            "validation_manifest": "data/processed/metadata/val.csv"}
 
 
 def _row_path(row: Mapping[str, Any]) -> str:
@@ -263,52 +294,6 @@ def load_adapter(configuration: Mapping[str, Any]):
     return get_adapter(configuration["architecture"], configuration["policy"], Path(configuration.get("root", ".")))
 
 
-def train(root: Path, configuration: Mapping[str, Any], dataset: Mapping[str, Any]) -> dict[str, Any]:
-    """Train only when this function is explicitly called from notebook section 10."""
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
-    resume_configuration = {**configuration, "dataset_signature": dataset["provenance"]["signature"]}
-    resume = _resume_status(root, resume_configuration)
-    output.mkdir(parents=True, exist_ok=True)
-    active_audit = dataset["audit"]["full"]
-    gpu_uuid = configuration.get("gpu_uuid")
-    checkpoint = (output / "checkpoint_best").with_suffix(".pt")
-    adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root))
-    result = adapter.train(dataset["train_rows"], dataset["validation_rows"], checkpoint,
-                           seed=configuration["seed"], run_dir=output, architecture=configuration["architecture"],
-                           experiment_id=configuration["experiment_id"], dataset_variant_id=configuration["condition"],
-                           training_policy=configuration["training_policy_name"],
-                           config_signature=configuration["policy_signature"],
-                           dataset_signature=dataset["provenance"]["signature"],
-                           gpu_uuid=gpu_uuid)
-    configuration_payload = {key: configuration[key] for key in ("architecture", "condition", "seed", "gpu")}
-    configuration_payload["policy_signature"] = configuration["policy_signature"]
-    configuration_payload["training_budget"] = _training_budget(configuration)
-    for key in ("checkpoint_gpu_uuid", "runtime_gpu_uuid", "gpu_changed"):
-        if key in result:
-            configuration_payload[key] = result[key]
-    atomic_json(output / "configuration.json", configuration_payload)
-    dataset_summary = {**active_audit, "validation_manifest": "data/processed/metadata/val.csv",
-                       "validation_signature": dataset["provenance"].get("validation_signature")}
-    atomic_json(output / "dataset_summary.json", dataset_summary)
-    _write_csv(output / "training_history.csv", _history_rows(result.get("history", {})))
-    accounting = result.get("source_accounting")
-    if not accounting or accounting.get("accounting_mode") != "actual":
-        raise RuntimeError("training did not return actual source accounting")
-    missing = [field for field in (*SOURCE_ACCOUNTING_FIELDS, "schema_version", "total_samples_seen")
-               if field not in accounting]
-    if missing:
-        raise RuntimeError(f"actual source accounting is incomplete: {missing}")
-    atomic_json(output / "source_accounting.json", accounting)
-    return {**result, "checkpoint": str(checkpoint), "output_dir": str(output),
-            "source_accounting": accounting, "resume_status": resume}
-
-
-def _history_rows(history: Mapping[str, Sequence[Any]]) -> list[dict[str, Any]]:
-    length = max((len(values) for values in history.values() if isinstance(values, Sequence)), default=0)
-    return [{"epoch": index + 1, **{name: values[index] if index < len(values) else None
-             for name, values in history.items() if isinstance(values, Sequence)}} for index in range(length)]
-
-
 def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True); fields = sorted({key for row in rows for key in row}) or ["epoch"]
     temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
@@ -334,29 +319,6 @@ def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mappin
     return {"rows": rows, "metrics": report, "prediction_path": str(output / "validation_predictions.csv")}
 
 
-def _resume_status(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
-    candidates = sorted(output.glob("checkpoint_*.pkl")) + sorted(output.glob("checkpoint_best.*"))
-    payload, source = None, "no resume checkpoint"
-    if candidates:
-        try:
-            from . import classifier_checkpoint_io as checkpoint_io
-        except ImportError:
-            import classifier_checkpoint_io as checkpoint_io
-        expected = {"architecture": configuration["architecture"], "experiment_id": configuration["experiment_id"],
-                    "dataset_variant_id": configuration["condition"], "training_policy": configuration["training_policy_name"],
-                    "config_signature": str(configuration["policy_signature"]),
-                    "dataset_signature": str(configuration["dataset_signature"]), "seed": int(configuration["seed"])}
-        payload, source = checkpoint_io.load_resume_checkpoint(output, expected)
-        if payload is None and source != "no resume checkpoint":
-            raise RuntimeError(f"No compatible resume checkpoint for architecture/condition/seed: {source}")
-    return {"automatic": True, "available": bool(candidates), "compatible": payload is not None,
-            "resumed_from": source if payload is not None else None,
-            "resume_epoch": payload.get("epoch") if payload else None,
-            "resume_step": payload.get("global_step") if payload else None,
-            "candidates": [str(path) for path in candidates]}
-
-
 def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:
     output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
     history = []
@@ -379,6 +341,20 @@ def load_prediction_rows(path: Path) -> list[dict[str, Any]]:
     if not Path(path).is_file(): return []
     with Path(path).open(newline="", encoding="utf-8") as stream: rows = list(csv.DictReader(stream))
     return [{**row, "label": int(row["label"]), "probability": float(row["probability"])} for row in rows]
+
+
+def title_classifier_figure(figure, architecture: str, condition: str, seed: int,
+                            analysis: str):
+    """Add an unambiguous experiment title to a classifier diagnostic figure."""
+    architecture_label = ARCHITECTURE_DISPLAY_NAMES.get(str(architecture), str(architecture))
+    condition_label = CONDITION_DISPLAY_NAMES.get(str(condition), str(condition))
+    figure.suptitle(
+        f"{architecture_label} | {condition_label} | Seed {int(seed)}\n{analysis}",
+        fontsize=13,
+        fontweight="bold",
+    )
+    figure.tight_layout(rect=(0, 0, 1, 0.91))
+    return figure
 
 
 def plot_training_history(history: Sequence[Mapping[str, Any]]):
@@ -451,9 +427,10 @@ def build_error_case_table(rows: Sequence[Mapping[str, Any]], threshold: float =
     return pd.DataFrame(selected, columns=["patient_id", "image_id", "label", "probability", "error_type", "source/path"])
 
 
-__all__ = ["assert_no_forbidden_data_paths", "audit_dataset", "build_error_case_table", "configure_environment",
+__all__ = ["ARCHITECTURE_DISPLAY_NAMES", "CONDITION_DISPLAY_NAMES",
+           "assert_no_forbidden_data_paths", "audit_dataset", "build_error_case_table", "configure_environment",
            "configure_visible_gpu", "construct_dataset", "experiment_configuration",
            "experiment_dir", "load_adapter", "load_existing_outputs", "load_prediction_rows",
            "plot_calibration", "plot_source_accounting", "plot_training_history",
            "plot_validation_curves", "run_validation", "STANDARD_RESULTS_ROOT",
-           "source_accounting", "train"]
+           "source_accounting", "title_classifier_figure"]

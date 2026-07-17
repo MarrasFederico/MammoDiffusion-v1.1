@@ -1,6 +1,0 @@
-ablation,generator_a,generator_b,negative_delta_FID_b_minus_a,negative_delta_IS_mean_b_minus_a,negative_delta_precision_b_minus_a,negative_delta_recall_b_minus_a,positive_delta_FID_b_minus_a,positive_delta_IS_mean_b_minus_a,positive_delta_precision_b_minus_a,positive_delta_recall_b_minus_a
-sampling_steps_50_vs_100,01_sd21_baseline_50steps,02_sd21_filtered_100steps,,,,,,,,
-vae_base_vs_finetuned,02_sd21_filtered_100steps,03_sd21_vae_finetuned,-5.2637,-0.24189999999999978,0.050000000000000044,-0.13699999999999998,-13.765500000000003,-0.3267000000000002,0.06540000000000001,-0.19180000000000003
-full_finetune_vs_lora,03_sd21_vae_finetuned,04_sd21_lora,42.062899999999985,-0.3378000000000003,-0.29910000000000003,-0.0548,45.82270000000001,-0.2931999999999999,-0.3144,-0.0822
-extra1361_effect,05_ldm_basic_fromscratch,06_ldm_extra1361_fromscratch,,,,,-12.34020000000001,-0.18409999999999993,0.024999999999999994,0.0
-ldm_v2_vs_v3,07_ldm_sdvae_extra1361,08_ldm_v3_sdvae_fromscratch,,,,,-13.600300000000004,-0.6438000000000001,0.3181,-0.0822

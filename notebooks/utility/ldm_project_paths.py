@@ -7,6 +7,7 @@ from pathlib import Path
 PROJECT_NAME = "MammoDiffusion"
 DEFAULT_EXPERIMENT_NAME = "diffusers/05_ldm_basic_fromscratch"
 RESULTS_STAGE_NAME = "diffusers/05_ldm_basic_fromscratch"
+KERAS_V2_RESULTS_STAGE_NAME = "diffusers/04_ldm_keras_v2"
 
 
 @dataclass(frozen=True)
@@ -114,16 +115,17 @@ def get_experiment_paths(
         if experiment_dir is not None
         else root / "experiments" / DEFAULT_EXPERIMENT_NAME
     )
-    # Ogni esperimento from-scratch scrive le sue immagini filtrate finali in una
-    # sottocartella dedicata di data/synthetic/, altrimenti run diverse (v1/v2/v3)
-    # si sovrascriverebbero a vicenda scrivendo tutte in "fromscratch".
+    # Ogni esperimento scrive le immagini filtrate finali in una sottocartella
+    # esplicitamente legata al suo ID, evitando collisioni e nomi non interpretabili.
     FILTERED_DIR_NAME_BY_EXPERIMENT = {
-        "20260703_ldm_sdvae_extra1361": "fromscratch_new",       # 04b2
-        "20260707_ldm_v3_sdvae_extra1361": "fromscratch_v3",     # 04b3
-        "07_ldm_sdvae_extra1361": "fromscratch_new",
-        "08_ldm_v3_sdvae_fromscratch": "fromscratch_v3",
+        "05_ldm_basic_fromscratch": "05_ldm_basic_fromscratch",
+        "06_ldm_extra1361_fromscratch": "06_ldm_extra1361_fromscratch",
+        "20260703_ldm_sdvae_extra1361": "07_ldm_sdvae_extra1361",
+        "20260707_ldm_v3_sdvae_extra1361": "08_ldm_v3_sdvae_fromscratch",
+        "07_ldm_sdvae_extra1361": "07_ldm_sdvae_extra1361",
+        "08_ldm_v3_sdvae_fromscratch": "08_ldm_v3_sdvae_fromscratch",
     }
-    filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(exp.name, "fromscratch")
+    filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(exp.name, exp.name)
 
     paths = ExperimentPaths(
         project_root=root,

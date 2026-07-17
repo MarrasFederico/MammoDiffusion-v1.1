@@ -1,5 +1,0 @@
-source_label,split,roc_auc,accuracy,precision_malato,recall_malato,f1_malato,threshold_youden_from_val,checkpoint
-From-Scratch SD-VAE,test,0.5938,0.6233,0.2051,0.4384,0.2795,0.4215,/home/fede/Documenti/MammoDiffusion/experiments/exp_maxvit512_real_aug_synth_fromscratch_sdvae_partial/real_aug_synth_fromscratch_sdvae_maxvit512_partial_final_best.pt
-Fine-Tuned SD2.1,test,0.6173,0.5845,0.2176,0.5753,0.3158,0.4025,/home/fede/Documenti/MammoDiffusion/experiments/exp_maxvit512_real_aug_synth_finetuned_sd21_partial/real_aug_synth_finetuned_sd21_maxvit512_partial_final_best.pt
-From-Scratch SD-VAE,validation,0.6117,0.6522,0.2452,0.5205,0.3333,0.4215,/home/fede/Documenti/MammoDiffusion/experiments/exp_maxvit512_real_aug_synth_fromscratch_sdvae_partial/real_aug_synth_fromscratch_sdvae_maxvit512_partial_final_best.pt
-Fine-Tuned SD2.1,validation,0.6236,0.6224,0.2473,0.6164,0.3529,0.4025,/home/fede/Documenti/MammoDiffusion/experiments/exp_maxvit512_real_aug_synth_finetuned_sd21_partial/real_aug_synth_finetuned_sd21_maxvit512_partial_final_best.pt

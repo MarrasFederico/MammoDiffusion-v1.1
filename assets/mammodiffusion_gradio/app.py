@@ -25,28 +25,70 @@ APP_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = APP_DIR.parents[1]
 NOTEBOOKS_DIR = PROJECT_ROOT / "notebooks"
 UTILITY_DIR = NOTEBOOKS_DIR / "utility"
+CONFIGS_DIR = PROJECT_ROOT / "configs"
+RESULTS_DIR = PROJECT_ROOT / "results"
 
-SD_EXPERIMENT_DIR = PROJECT_ROOT / "experiments" / "diffusers" / "02_sd21_filtered_100steps"
+
+def load_json_record(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Configurazione richiesta non trovata: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON non valido (atteso oggetto): {path}")
+    return payload
+
+
+SELECTED_GENERATORS = load_json_record(CONFIGS_DIR / "selected_generators.json")
+GENERATOR_REGISTRY_PAYLOAD = load_json_record(CONFIGS_DIR / "generator_registry.json")
+GENERATOR_REGISTRY = {
+    str(entry["id"]): entry
+    for entry in GENERATOR_REGISTRY_PAYLOAD.get("generators", [])
+    if isinstance(entry, dict) and "id" in entry
+}
+
+SD_GENERATOR_ID = str(SELECTED_GENERATORS["finetuned"])
+LDM_GENERATOR_ID = str(SELECTED_GENERATORS["from_scratch"])
+try:
+    SD_GENERATOR = GENERATOR_REGISTRY[SD_GENERATOR_ID]
+    LDM_GENERATOR = GENERATOR_REGISTRY[LDM_GENERATOR_ID]
+except KeyError as exc:
+    raise KeyError(
+        f"Generatore selezionato assente da configs/generator_registry.json: {exc.args[0]}"
+    ) from exc
+
 SD_BASE_MODEL_DIR = NOTEBOOKS_DIR / "pretrained_model" / "stable-diffusion-2-1-base"
-SD_CHECKPOINT_DIR = SD_EXPERIMENT_DIR / "model" / "checkpoint-3000"
+SD_CHECKPOINT_WEIGHTS_PATH = PROJECT_ROOT / str(SD_GENERATOR["checkpoint"])
+SD_CHECKPOINT_DIR = SD_CHECKPOINT_WEIGHTS_PATH.parents[1]
+SD_EXPERIMENT_DIR = SD_CHECKPOINT_DIR.parents[1]
+SD_BEST_CHECKPOINT_ID = SD_CHECKPOINT_DIR.name
 
-LDM_EXPERIMENT_DIR = PROJECT_ROOT / "experiments" / "diffusers" / "06_ldm_extra1361_fromscratch"
-LDM_MODEL_PATH = LDM_EXPERIMENT_DIR / "checkpoints_ldm" / "ldm_step070000.keras"
-LDM_VAE_DECODER_PATH = LDM_EXPERIMENT_DIR / "models" / "vae_decoder_best.keras"
+LDM_MODEL_PATH = PROJECT_ROOT / str(LDM_GENERATOR["checkpoint"])
+LDM_EXPERIMENT_DIR = LDM_MODEL_PATH.parents[1]
 LDM_LATENT_STATS_PATH = LDM_EXPERIMENT_DIR / "latents" / "latent_stats.npz"
-LDM_DEFAULT_CUDA_ROOT = Path("/home/fede/miniforge3/envs/tf-gpu")
+LDM_BEST_SELECTION_PATH = (
+    RESULTS_DIR / "diffusers" / LDM_GENERATOR_ID / "metrics" / "best_checkpoint.json"
+)
+LDM_BEST_SELECTION = load_json_record(LDM_BEST_SELECTION_PATH)
+LDM_BEST_CHECKPOINT_ID = str(LDM_BEST_SELECTION["best_checkpoint_id"])
+LDM_SELECTED_STEP_MODEL_PATH = (
+    LDM_EXPERIMENT_DIR
+    / "checkpoints_ldm"
+    / f"ldm_{LDM_BEST_CHECKPOINT_ID.replace('_', '')}.keras"
+)
+LDM_DEFAULT_CUDA_ROOT = Path(sys.prefix)
 
 OUTPUT_DIR = APP_DIR / "outputs"
 
-SD_DEFAULT_STEPS = 50
+SD_DEFAULT_STEPS = int(SD_GENERATOR["sampling_steps"])
 SD_DEFAULT_GUIDANCE = 7.5
-LDM_DEFAULT_STEPS = 100
+LDM_DEFAULT_STEPS = int(LDM_GENERATOR["sampling_steps"])
 LDM_DEFAULT_GUIDANCE = 1.5
 RESOLUTION = 512
 MAX_IMAGES = 12
 
-SD_MODEL_CHOICE = "Fine-tuned SD 2.1 (notebook 02 - checkpoint-3000)"
-LDM_MODEL_CHOICE = "LDM from scratch custom-VAE (notebook 06 - step 70000)"
+SD_MODEL_CHOICE = f"Fine-tuned · {SD_GENERATOR_ID} · {SD_BEST_CHECKPOINT_ID}"
+LDM_MODEL_CHOICE = f"From scratch · {LDM_GENERATOR_ID} · {LDM_BEST_CHECKPOINT_ID}"
 DEFAULT_MODEL_CHOICE = SD_MODEL_CHOICE
 
 PROMPTS = {
@@ -71,22 +113,22 @@ LDM_CLASS_IDS = {
 }
 
 LDM_CLASS_PREVIEWS = {
-    "Positiva": "LDM custom-VAE del notebook 06, condizionato sulla classe positiva.",
-    "Negativa": "LDM custom-VAE del notebook 06, condizionato sulla classe negativa.",
+    "Positiva": "LDM SD-VAE G07, best checkpoint, condizionato sulla classe positiva.",
+    "Negativa": "LDM SD-VAE G07, best checkpoint, condizionato sulla classe negativa.",
 }
 
 MODEL_DEFAULTS = {
     SD_MODEL_CHOICE: {
-        "slug": "sd21_02_checkpoint-3000",
-        "status_name": "Stable Diffusion 2.1 fine-tuned (notebook 02)",
-        "checkpoint": "checkpoint-3000",
+        "slug": f"{SD_GENERATOR_ID}_{SD_BEST_CHECKPOINT_ID}",
+        "status_name": f"Stable Diffusion 2.1 fine-tuned ({SD_GENERATOR_ID})",
+        "checkpoint": SD_BEST_CHECKPOINT_ID,
         "default_steps": SD_DEFAULT_STEPS,
         "default_guidance": SD_DEFAULT_GUIDANCE,
     },
     LDM_MODEL_CHOICE: {
-        "slug": "ldm_06_step070000",
-        "status_name": "LDM from scratch custom-VAE (notebook 06)",
-        "checkpoint": "ldm_step070000.keras",
+        "slug": f"{LDM_GENERATOR_ID}_{LDM_BEST_CHECKPOINT_ID}",
+        "status_name": f"LDM from scratch SD-VAE ({LDM_GENERATOR_ID})",
+        "checkpoint": f"{LDM_MODEL_PATH.name} ({LDM_BEST_CHECKPOINT_ID})",
         "default_steps": LDM_DEFAULT_STEPS,
         "default_guidance": LDM_DEFAULT_GUIDANCE,
     },
@@ -97,9 +139,12 @@ MODEL_DEFAULTS = {
 class LdmRuntime:
     tf: Any
     np: Any
-    make_compiled_sampler: Any
+    make_compiled_latent_sampler: Any
+    decode_sd_latents_to_grayscale: Any
     ldm_model: Any
-    vae_decoder: Any
+    sd_vae: Any
+    sd_device: str
+    sd_dtype: Any
     schedule: Any
     latent_mean: Any
     latent_std: Any
@@ -213,12 +258,14 @@ def validate_sd_model_paths() -> None:
     required = [
         SD_BASE_MODEL_DIR / "model_index.json",
         SD_CHECKPOINT_DIR / "unet" / "config.json",
+        SD_CHECKPOINT_WEIGHTS_PATH,
     ]
     missing = [path for path in required if not path.exists()]
     if missing:
         details = "\n".join(f"- {path}" for path in missing)
         raise FileNotFoundError(
-            "Modello fine-tuned del notebook 02 non trovato. File richiesti mancanti:\n"
+            f"Generatore fine-tuned selezionato {SD_GENERATOR_ID} non trovato. "
+            "File richiesti mancanti:\n"
             + details
         )
 
@@ -226,13 +273,15 @@ def validate_sd_model_paths() -> None:
 def validate_ldm_model_paths() -> None:
     required = [
         LDM_MODEL_PATH,
-        LDM_VAE_DECODER_PATH,
+        LDM_SELECTED_STEP_MODEL_PATH,
         LDM_LATENT_STATS_PATH,
+        LDM_BEST_SELECTION_PATH,
+        SD_BASE_MODEL_DIR / "vae" / "config.json",
     ]
     missing = [path for path in required if not path.exists()]
     invalid_keras = [
         path
-        for path in [LDM_MODEL_PATH, LDM_VAE_DECODER_PATH]
+        for path in [LDM_MODEL_PATH, LDM_SELECTED_STEP_MODEL_PATH]
         if path.exists() and not is_valid_keras_file(path)
     ]
     if missing or invalid_keras:
@@ -244,7 +293,9 @@ def validate_ldm_model_paths() -> None:
             lines.append("File Keras non validi:")
             lines.extend(f"- {path}" for path in invalid_keras)
         raise FileNotFoundError(
-            "Modello LDM del notebook 06 step 70000 non trovato o non valido.\n" + "\n".join(lines)
+            f"Generatore from-scratch selezionato {LDM_GENERATOR_ID} "
+            f"({LDM_BEST_CHECKPOINT_ID}) non trovato o non valido.\n"
+            + "\n".join(lines)
         )
 
 
@@ -304,6 +355,13 @@ def release_ldm_runtime() -> None:
     gc.collect()
     try:
         tf.keras.backend.clear_session()
+    except Exception:
+        pass
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     except Exception:
         pass
 
@@ -375,11 +433,11 @@ def import_ldm_utils(seed: int):
         configure_tensorflow,
         load_latent_stats,
         load_ldm_model,
-        load_vae_decoder,
-        make_compiled_sampler,
+        make_compiled_latent_sampler,
     )
+    from sd_vae_utils import decode_sd_latents_to_grayscale, load_sd_vae
 
-    configure_tensorflow(seed=seed)
+    configure_tensorflow(seed=seed, allow_gpu_memory_growth=True)
     tf.random.set_seed(seed)
     np.random.seed(seed)
     return (
@@ -388,13 +446,14 @@ def import_ldm_utils(seed: int):
         build_schedule,
         load_latent_stats,
         load_ldm_model,
-        load_vae_decoder,
-        make_compiled_sampler,
+        make_compiled_latent_sampler,
+        decode_sd_latents_to_grayscale,
+        load_sd_vae,
     )
 
 
 def get_ldm_runtime(sample_steps: int, guidance_scale: float, seed: int) -> LdmRuntime:
-    """Load the notebook 06 LDM and rebuild the sampler only when settings change."""
+    """Load selected G07 best model and rebuild its latent sampler when settings change."""
     global LDM_RUNTIME
 
     with MODEL_LOCK:
@@ -408,16 +467,22 @@ def get_ldm_runtime(sample_steps: int, guidance_scale: float, seed: int) -> LdmR
                 build_schedule,
                 load_latent_stats,
                 load_ldm_model,
-                load_vae_decoder,
-                make_compiled_sampler,
+                make_compiled_latent_sampler,
+                decode_sd_latents_to_grayscale,
+                load_sd_vae,
             ) = import_ldm_utils(seed=seed)
+
+            sd_vae, sd_device, sd_dtype, _ = load_sd_vae(SD_BASE_MODEL_DIR)
 
             LDM_RUNTIME = LdmRuntime(
                 tf=tf,
                 np=np,
-                make_compiled_sampler=make_compiled_sampler,
+                make_compiled_latent_sampler=make_compiled_latent_sampler,
+                decode_sd_latents_to_grayscale=decode_sd_latents_to_grayscale,
                 ldm_model=load_ldm_model(LDM_MODEL_PATH),
-                vae_decoder=load_vae_decoder(LDM_VAE_DECODER_PATH),
+                sd_vae=sd_vae,
+                sd_device=sd_device,
+                sd_dtype=sd_dtype,
                 schedule=build_schedule(),
                 latent_mean=None,
                 latent_std=None,
@@ -431,15 +496,14 @@ def get_ldm_runtime(sample_steps: int, guidance_scale: float, seed: int) -> LdmR
             or LDM_RUNTIME.sampler_steps != int(sample_steps)
             or LDM_RUNTIME.sampler_guidance != float(guidance_scale)
         ):
-            LDM_RUNTIME.sampler = LDM_RUNTIME.make_compiled_sampler(
+            LDM_RUNTIME.sampler = LDM_RUNTIME.make_compiled_latent_sampler(
                 ldm_model=LDM_RUNTIME.ldm_model,
-                vae_decoder=LDM_RUNTIME.vae_decoder,
                 schedule=LDM_RUNTIME.schedule,
                 latent_mean=LDM_RUNTIME.latent_mean,
                 latent_std=LDM_RUNTIME.latent_std,
                 num_steps=int(sample_steps),
                 guidance_scale=float(guidance_scale),
-                decode_on_cpu=False,
+                parameterization="eps",
             )
             LDM_RUNTIME.sampler_steps = int(sample_steps)
             LDM_RUNTIME.sampler_guidance = float(guidance_scale)
@@ -556,11 +620,19 @@ def generate_ldm_image(
     class_id = runtime.tf.constant(LDM_CLASS_IDS[label], dtype=runtime.tf.int32)
 
     with MODEL_LOCK:
-        image_tensor = runtime.sampler(class_id, sample_seed)
-        image_np = image_tensor[0].numpy()
+        latent_tensor = runtime.sampler(class_id, sample_seed)
+        latent_np = latent_tensor.numpy()
+        image_np = runtime.decode_sd_latents_to_grayscale(
+            latent_np,
+            runtime.sd_vae,
+            runtime.sd_device,
+            runtime.sd_dtype,
+            batch_size=1,
+        )[0]
 
     image = ldm_image_to_pil(runtime, image_np)
-    del image_tensor
+    del latent_tensor
+    del latent_np
     del image_np
     gc.collect()
     return image
@@ -772,10 +844,10 @@ def clear_gallery():
 def build_demo() -> gr.Blocks:
     with gr.Blocks(title="MammoDiffusion Studio") as demo:
         gr.HTML(
-            """
+            f"""
             <div id="md-header">
                 <h1>MammoDiffusion Studio</h1>
-                <p>Generazione condizionata con il diffusore SD 02 e il diffusore from scratch 06</p>
+                <p>Best generator correnti: {SD_GENERATOR_ID} fine-tuned e {LDM_GENERATOR_ID} from-scratch</p>
             </div>
             """
         )

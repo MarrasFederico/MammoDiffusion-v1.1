@@ -1,0 +1,19 @@
+{
+  "architecture": "maxvit512",
+  "condition": "real_plus_best_finetuned_positive",
+  "seed": 17,
+  "gpu": "auto",
+  "policy_signature": "afe746ee054f473ba9bf5bdbbd69761b7b853df5e04d7c687f45a907c4749b9a",
+  "training_budget": {
+    "max_optimizer_updates": 6400,
+    "checkpoint_metric": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",
+    "scheduler_monitor": "val_pr_auc",
+    "early_stopping_monitor": "val_pr_auc",
+    "effective_batch_size": 16,
+    "validation_interval": 250,
+    "validation_manifest": "data/processed/metadata/val.csv"
+  },
+  "checkpoint_gpu_uuid": null,
+  "runtime_gpu_uuid": "GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d",
+  "gpu_changed": false
+}

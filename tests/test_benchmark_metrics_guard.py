@@ -1,4 +1,4 @@
-"""Regression test for the distribution-metrics guard in notebook 05, cell "8. Distribution metrics".
+"""Regression test for the distribution-metrics guard in benchmark notebook 01.
 
 Excluded generators (for example the G06 generation-pool ablation, a provenance mismatch) are
 absent from ``technical_rows``.  The distribution-metrics loop must skip them without raising a
@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 import generator_benchmark as gb  # noqa: E402
 
-NOTEBOOK = ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb"
+NOTEBOOK = ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb"
 
 
 def _distribution_metrics_cell_source() -> str:

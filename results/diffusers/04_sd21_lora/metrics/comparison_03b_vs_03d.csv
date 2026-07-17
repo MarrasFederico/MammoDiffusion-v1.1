@@ -1,5 +1,0 @@
-pipeline,class,FID,IS_mean,precision,recall,density,coverage
-03b_full_finetune,positive,113.0254,2.4159,0.612,0.274,0.3456,0.9726
-03b_full_finetune,negative,114.1593,2.3891,0.4717,0.2055,0.2178,0.8767
-03d_lora,positive,145.0826,1.796,0.363,0.0,0.1709,0.3973
-03d_lora,negative,150.9585,1.8094,0.2226,0.0137,0.0814,0.3425

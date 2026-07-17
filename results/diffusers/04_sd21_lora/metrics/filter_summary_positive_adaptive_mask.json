@@ -8,7 +8,7 @@
   "class": "positive",
   "label": 1,
   "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/04_sd21_lora/generated_images/final/positive",
-  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_lora/positive",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/04_sd21_lora/positive",
   "n_raw": 2722,
   "n_accepted": 2090,
   "n_rejected": 632,

@@ -14,8 +14,8 @@
   "manifest_sha256": {
     "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
     "raw_samples": "e553822ad338c4366dfc3633309faad47960be5542ff2586aded62706122fae0",
-    "filtered_samples": "9d927fec45e6a3f66468200aa2d541a49afee1adc729667aecdb7582525b8f4f",
-    "filter_mapping": "d0e02298aa50674449d7b8a2749e571f0c76ac772a637932ac52d3f8b99c0e72"
+    "filtered_samples": "dc6f1d4ad4c618cd77e3c8644b88eee8dbb936b6314b6cebc19956d28c982911",
+    "filter_mapping": "42cd5f8ed18fa7f64a2ceab227b1da339c5c81f97dd75b101ef99d8f8f2a3185"
   },
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "generation_configuration": {
@@ -48,7 +48,7 @@
   "source_evidence": [
     "experiments/diffusers/04_sd21_lora/generated_images/final/positive/.generation_manifest.json",
     "results/diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json",
-    "experiments/diffusers/04_sd21_lora/legacy_runtime_manifest.json"
+    "experiments/diffusers/04_sd21_lora/runtime_manifest.json"
   ],
   "parent_generator_id": null,
   "model_components": [

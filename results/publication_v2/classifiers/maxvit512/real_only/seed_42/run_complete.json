@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "architecture": "maxvit512",
+  "experiment_id": "maxvit512__real_only__seed42",
+  "dataset_variant_id": "real_only",
+  "training_policy": "maxvit512_fixed_protocol",
+  "config_signature": "afe746ee054f473ba9bf5bdbbd69761b7b853df5e04d7c687f45a907c4749b9a",
+  "dataset_signature": "660fea01feca9562a4b1a295af9832667769dd6eb548b4a52665218f3dbed68f",
+  "seed": 42,
+  "completion_reason": "early_stopping",
+  "optimizer_updates_limit": 6400,
+  "optimizer_updates_completed": 3500,
+  "next_epoch": 15,
+  "best_epoch": 4,
+  "early_stopping_counter": 10,
+  "checkpoint_gpu_uuid": "GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d",
+  "runtime_gpu_uuid": "GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d",
+  "gpu_changed": false,
+  "final_checkpoint": "checkpoint_best.pt",
+  "artifacts": [
+    "checkpoint_best.pt",
+    "configuration.json",
+    "dataset_summary.json",
+    "model_summary.json",
+    "source_accounting.json",
+    "training_history.csv"
+  ]
+}

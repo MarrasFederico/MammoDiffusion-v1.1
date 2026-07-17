@@ -3,10 +3,10 @@
   "n_gen_per_class": 100,
   "sample_steps": 100,
   "guidance_scale": 1.5,
-  "results_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/sweep_results.csv",
+  "results_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/sweep_results.csv",
   "canonical_results_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/metrics/sweep_results.csv",
   "best_metric": "fid_1",
-  "checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/checkpoint_metrics.json",
+  "checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/checkpoint_metrics.json",
   "canonical_checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/metrics/checkpoint_metrics.json",
   "plots": {
     "best_checkpoint_summary.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/plots/best_checkpoint_summary.png",
@@ -21,6 +21,6 @@
   "selection_reason": "Best generation quality for the positive mammography class",
   "best_checkpoint_id": "step_70000",
   "best_step": 70000,
-  "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_step070000.keras",
-  "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_unet_best_eval.keras"
+  "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_step070000.keras",
+  "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras"
 }

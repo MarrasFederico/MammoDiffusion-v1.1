@@ -385,7 +385,7 @@ def optimal_threshold_youden(y_true: np.ndarray, y_prob: np.ndarray) -> float:
 
 def bootstrap_balanced(y_true: np.ndarray, y_prob: np.ndarray, threshold: float,
                         n_rounds: int = 1000, seed: int = 42) -> dict:
-    """Bootstrap bilanciato (ricampiona positivi/negativi in egual misura) come nei notebook 10/11."""
+    """Bootstrap bilanciato: ricampiona positivi e negativi in egual misura."""
     from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
     rng = np.random.default_rng(seed)

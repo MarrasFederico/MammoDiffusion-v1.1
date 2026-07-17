@@ -22,17 +22,17 @@ class PublicationRepositoryTests(unittest.TestCase):
 
     def test_main_publication_files_exist(self):
         required = (
-            "notebooks/04_classifiers/07_MaxViT512.ipynb",
-            "notebooks/04_classifiers/08_MammoFM.ipynb",
-            "notebooks/04_classifiers/09_Validation_Comparison.ipynb",
-            "notebooks/04_classifiers/10_Final_Evaluation_and_Report.ipynb",
+            "notebooks/04_classifiers/01_MaxViT512.ipynb",
+            "notebooks/04_classifiers/02_MammoFM.ipynb",
+            "notebooks/04_classifiers/03_Validation_Comparison.ipynb",
+            "notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb",
             "notebooks/utility/classifier_experiment.py",
             "notebooks/utility/classifier_architecture_adapters.py",
         )
         self.assertTrue(all((ROOT / path).is_file() for path in required))
 
     def test_final_evaluation_guard_exists(self):
-        final = (ROOT / "notebooks/04_classifiers/10_Final_Evaluation_and_Report.ipynb").read_text()
+        final = (ROOT / "notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb").read_text()
         self.assertIn("RUN_FINAL_EVALUATION = False", final)
         self.assertIn("PLANNED_COMPARISONS", final)
 
@@ -55,5 +55,23 @@ class PublicationRepositoryTests(unittest.TestCase):
         forbidden = (".pt", ".pth", ".ckpt", ".keras", ".h5", ".safetensors", ".zip", ".tar.gz", ".tgz", ".pyc", ".pyo")
         self.assertEqual([path for path in tracked if path.endswith(forbidden)], [])
         self.assertFalse(any("__pycache__" in path for path in tracked))
+
+    def test_keras_v2_results_default_is_namespaced_with_diffusers(self):
+        utility_dir = ROOT / "notebooks/utility"
+        paths_source = (utility_dir / "ldm_project_paths.py").read_text()
+        self.assertIn(
+            'KERAS_V2_RESULTS_STAGE_NAME = "diffusers/04_ldm_keras_v2"',
+            paths_source,
+        )
+        for filename in (
+            "train_vae_v2.py",
+            "train_ldm_v2.py",
+            "evaluate_ldm_v2.py",
+            "generate_ldm_v2.py",
+            "evaluate_filtered_ldm_v2.py",
+        ):
+            source = (utility_dir / filename).read_text()
+            self.assertIn("KERAS_V2_RESULTS_STAGE_NAME", source, filename)
+            self.assertNotIn('default="04_ldm_keras_v2"', source, filename)
 
 if __name__ == "__main__": unittest.main()

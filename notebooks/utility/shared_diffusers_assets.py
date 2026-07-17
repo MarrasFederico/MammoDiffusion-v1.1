@@ -6,6 +6,7 @@ import hashlib
 import importlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -66,7 +67,7 @@ def _cached_project_root() -> Path:
 
 
 def _default_shared_diffusers_repo_dir() -> Path:
-    return _cached_project_root() / "experiments" / "diffusers" / "03_sd21_vae_finetuned" / "diffusers_repo"
+    return _cached_project_root() / "notebooks" / "utility" / "diffusers_repo"
 
 
 def _default_shared_sd21_base_dir() -> Path:
@@ -193,8 +194,7 @@ def shared_diffusers_train_script(lora: bool = False, repo: str | Path | None = 
 
 
 def resolve_shared_sd21_base(path: str | Path | None = None) -> Path:
-    # Keep the canonical project-facing path in manifests even when it is a
-    # compatibility symlink to the single physical copy.
+    # Keep the canonical project-facing path in manifests.
     if path is not None:
         return Path(path).expanduser().absolute()
     env_value = os.environ.get("MAMMODIFFUSION_SD21_BASE")
@@ -230,12 +230,63 @@ def shared_sd21_signature(path: str | Path | None = None) -> dict:
     return {"algorithm": "sha256", "sha256": digest.hexdigest(), "file_count": count, "size_bytes": size}
 
 
-def find_legacy_diffusers_copies(root: str | Path | None = None) -> list[Path]:
+def prepare_shared_sd21_vae_variant(
+    vae_dir: str | Path,
+    output_dir: str | Path | None = None,
+) -> Path:
+    """Build a lightweight, relocatable SD2.1 view with a custom standalone VAE.
+
+    The shared base and the fine-tuned VAE remain the only physical model copies.
+    The generated directory contains relative symlinks and is therefore a disposable
+    runtime cache, not an experiment artifact that must be uploaded.
+    """
+    base = verify_shared_sd21_base()
+    vae = Path(vae_dir).expanduser().resolve()
+    if not (vae / "config.json").is_file() or not any(vae.glob("diffusion_pytorch_model*.safetensors")):
+        raise FileNotFoundError(f"Incomplete standalone Diffusers VAE: {vae}")
+
+    variant = (
+        Path(output_dir).expanduser()
+        if output_dir is not None
+        else _cached_project_root() / ".cache" / "mammodiffusion" / "sd21_vae_finetuned"
+    ).absolute()
+    marker = variant / ".asset_sources.json"
+    expected = {"schema_version": 1, "base": str(base.resolve()), "vae": str(vae)}
+
+    with _atomic_lock(variant.parent / ".sd21_vae_variant.lock"):
+        if marker.is_file():
+            try:
+                if json.loads(marker.read_text()) == expected and verify_shared_sd21_base(variant):
+                    return variant
+            except (OSError, ValueError, json.JSONDecodeError, FileNotFoundError):
+                pass
+        if variant.exists() or variant.is_symlink():
+            if variant.is_symlink() or variant.is_file():
+                variant.unlink()
+            else:
+                shutil.rmtree(variant)
+        variant.mkdir(parents=True)
+        for source in sorted(base.iterdir(), key=lambda item: item.name):
+            if source.name in {".cache", "vae"}:
+                continue
+            target = variant / source.name
+            relative_source = os.path.relpath(source, start=variant)
+            target.symlink_to(relative_source, target_is_directory=source.is_dir())
+        (variant / "vae").symlink_to(
+            os.path.relpath(vae, start=variant),
+            target_is_directory=True,
+        )
+        marker.write_text(json.dumps(expected, indent=2) + "\n", encoding="utf-8")
+        verify_shared_sd21_base(variant)
+    return variant
+
+
+def find_duplicate_diffusers_copies(root: str | Path | None = None) -> list[Path]:
     root, shared = Path(root) if root else _cached_project_root(), resolve_shared_diffusers_repo()
     return [path for path in sorted(root.rglob("diffusers_repo")) if path.is_dir() and path.resolve() != shared]
 
 
-def find_legacy_sd21_base_copies(root: str | Path | None = None) -> list[Path]:
+def find_duplicate_sd21_base_copies(root: str | Path | None = None) -> list[Path]:
     root, shared = Path(root) if root else _cached_project_root(), resolve_shared_sd21_base()
     shared_target = shared.resolve()
     return [path for path in sorted(root.rglob("stable-diffusion-2-1-base"))

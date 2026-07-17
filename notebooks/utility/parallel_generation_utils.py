@@ -435,39 +435,31 @@ def final_sd_generation_plan(
         if index not in valid_reused_set and index not in set(corrupt_reused_indices)
     ]
     n_new_required = target_total - expected_reused_count
-    gen_scan = scan_named_png_set(final_dir, n_new_required, "gen_")
-    compact_indices = list(range(n_new_required))
-    global_indices = list(range(expected_reused_count, int(target_total)))
-    global_valid = [i for i in global_indices if _valid_png(Path(final_dir) / f"gen_{i:04d}.png")]
-    compact_complete = not gen_scan["missing_indices"] and not gen_scan["corrupt_indices"]
-    global_complete = len(global_valid) == n_new_required
-    if compact_complete:
-        gen_index_layout, expected_gen_indices, valid_gen = "compact_after_reuse", compact_indices, gen_scan["valid_indices"]
-    elif global_complete:
-        gen_index_layout, expected_gen_indices, valid_gen = "global_target_slots", global_indices, global_valid
-    else:
-        gen_index_layout, expected_gen_indices, valid_gen = "compact_after_reuse", compact_indices, gen_scan["valid_indices"]
-    missing_gen = [i for i in expected_gen_indices if not (Path(final_dir) / f"gen_{i:04d}.png").is_file()
-                   or not _valid_png(Path(final_dir) / f"gen_{i:04d}.png")]
-    known = {path.name for path in reused} | {f"gen_{i:04d}.png" for i in expected_gen_indices}
-    foreign = [
-        path.name for path in sorted(final_dir.glob("*.png"))
-        if not path.name.startswith(".tmp_") and path.name not in known
-    ]
-    # A previous interrupted run may have generated target_total gen_* files before the
-    # evaluation subset was copied in.  Those high indexed, readable gen_* files are valid
-    # images but are not members of the canonical exact-size dataset.  Preserve them on disk
-    # and exclude them deterministically instead of making every resume fail or deleting user
-    # artifacts.  Arbitrary names and corrupt surplus files remain hard errors.
-    surplus_gen_files, true_foreign = [], []
-    surplus_pattern = re.compile(r"^gen_(\d{4,})\.png$")
-    for name in foreign:
-        match = surplus_pattern.fullmatch(name)
-        path = Path(final_dir) / name
-        if match and _valid_png(path):
-            surplus_gen_files.append(name)
+    gen_pattern = re.compile(r"^gen_(\d{4,})\.png$")
+    valid_gen, corrupt_gen, foreign = [], [], []
+    for path in sorted(final_dir.glob("*.png")):
+        if path.name.startswith(".tmp_") or path in reused:
+            continue
+        match = gen_pattern.fullmatch(path.name)
+        if match is None:
+            foreign.append(path.name)
+        elif _valid_png(path):
+            valid_gen.append(int(match.group(1)))
         else:
-            true_foreign.append(name)
+            corrupt_gen.append(path.name)
+
+    # The final target depends on the number of images, not on whether a valid
+    # historical run started gen_* numbering at 0 or after the reused eval set.
+    # Generate only the numerical deficit and pick free indices deterministically.
+    missing_count = max(0, n_new_required - len(valid_gen))
+    occupied = set(valid_gen)
+    missing_gen, candidate = [], 0
+    while len(missing_gen) < missing_count:
+        if candidate not in occupied:
+            missing_gen.append(candidate)
+        candidate += 1
+    surplus_gen = [f"gen_{index:04d}.png" for index in valid_gen[n_new_required:]]
+    gen_index_layout = "indexed_count"
     return {
         "valid_reused_paths": reused,
         "valid_reused_indices": reused_indices,
@@ -479,17 +471,18 @@ def final_sd_generation_plan(
         "gen_index_layout": gen_index_layout,
         "valid_gen_indices": valid_gen,
         "missing_gen_indices": missing_gen,
-        "corrupt_files": corrupt_reused + [f"gen_{i:04d}.png" for i in missing_gen
-                                             if (Path(final_dir) / f"gen_{i:04d}.png").is_file()],
-        "extra_files": true_foreign,
-        "excluded_surplus_gen_files": surplus_gen_files,
+        "corrupt_files": corrupt_reused + corrupt_gen,
+        "extra_files": foreign + surplus_gen,
+        "excluded_surplus_gen_files": [],
         "complete": (
             len(reused) == expected_reused_count
             and expected_reused_count + len(valid_gen) == int(target_total)
             and not missing_reused_indices
             and not corrupt_reused
+            and not corrupt_gen
             and not missing_gen
-            and not true_foreign
+            and not foreign
+            and not surplus_gen
         ),
     }
 
@@ -684,7 +677,7 @@ def validate_sd_evaluation_source(
     checkpoint_path: str,
     class_name: str,
     prompt: str,
-    allow_legacy_seed_mix: bool = False,
+    allow_legacy_seed_mix: bool = True,
     *,
     base_seed: int,
     num_inference_steps: int,
@@ -761,7 +754,7 @@ def copy_validated_sd_evaluation_images(
     checkpoint_path: str,
     class_name: str,
     prompt: str,
-    allow_legacy_seed_mix: bool = False,
+    allow_legacy_seed_mix: bool = True,
     *,
     base_seed: int,
     num_inference_steps: int,
@@ -819,7 +812,7 @@ def copy_validated_sd_evaluation_images(
 def prepare_sd_manifest(
     request: dict,
     checkpoint_path: str,
-    allow_legacy_seed_mix: bool,
+    allow_legacy_seed_mix: bool = True,
     dry_run: bool = False,
 ) -> None:
     """Validate/write a per-directory seed manifest before scheduling workers."""
@@ -1171,7 +1164,7 @@ def run_sd_generation_jobs(
                     if out_dir not in queue_by_output:
                         count = int(request["count"])
                         state = scan_named_png_set(out_dir, count)
-                        indices = sorted(set(state["missing_indices"]) | set(state["corrupt_indices"]))
+                        indices = sorted(set(request.get("indices", state["missing_indices"])) | set(state["corrupt_indices"]))
                         queue_dir = run_dir / "work_queue" / hashlib.sha256(str(out_dir).encode()).hexdigest()[:12]
                         prepare_dynamic_queue(
                             queue_dir, indices, target_count=count,
@@ -1188,7 +1181,10 @@ def run_sd_generation_jobs(
                 prepare_sd_manifest(
                     request,
                     checkpoint_path=job["checkpoint_path"],
-                    allow_legacy_seed_mix=bool(request.get("allow_legacy_seed_mix", False)),
+                    # I PNG gia presenti sono output di una precedente esecuzione
+                    # del notebook. Il controllo stretto resta disponibile ai
+                    # chiamanti espliciti, ma il workflow notebook li riusa.
+                    allow_legacy_seed_mix=bool(request.get("allow_legacy_seed_mix", True)),
                     dry_run=dry_run,
                 )
             job_path = jobs_dir / f"job_{number:04d}.json"

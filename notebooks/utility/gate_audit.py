@@ -494,7 +494,7 @@ def efficiency_from_manifest_strict(root: Path, entry: Mapping[str, Any]) -> dic
 
 
 # ---------------------------------------------------------------------------
-# Amendment-aware selection (Option B) for notebook 06
+# Amendment-aware selection (Option B) for 02_Generator_Selection.ipynb
 # ---------------------------------------------------------------------------
 
 def load_active_amendment(root: Path) -> dict[str, Any] | None:

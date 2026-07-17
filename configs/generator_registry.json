@@ -16,9 +16,9 @@
         "negative",
         "positive"
       ],
-      "status": "completed_legacy_normalized_verified",
-      "checkpoint": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
-      "lineage_manifest": "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json",
+      "status": "completed_verified",
+      "checkpoint": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+      "lineage_manifest": "experiments/diffusers/01_sd21_baseline_50steps/runtime_manifest.json",
       "raw_generation_manifest": "results/publication_v2/generator_provenance/runtime/01_sd21_baseline_50steps/raw_samples.csv",
       "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "provenance_manifest": "results/publication_v2/generator_provenance/01_sd21_baseline_50steps/provenance.json",
@@ -67,7 +67,7 @@
       "efficiency_manifest": "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
       "samples": {
         "raw_positive": "experiments/diffusers/02_sd21_filtered_100steps/generated_images/final/positive",
-        "filtered_positive": "data/synthetic/fine_tuned/positive"
+        "filtered_positive": "data/synthetic/02_sd21_filtered_100steps/positive"
       },
       "benchmark": {
         "enabled": true
@@ -105,7 +105,7 @@
       "efficiency_manifest": "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
       "samples": {
         "raw_positive": "experiments/diffusers/03_sd21_vae_finetuned/generated_images/final/positive",
-        "filtered_positive": "data/synthetic/fine_tuned_vaeft/positive"
+        "filtered_positive": "data/synthetic/03_sd21_vae_finetuned/positive"
       },
       "benchmark": {
         "enabled": true
@@ -140,7 +140,7 @@
       "efficiency_manifest": "results/diffusers/04_sd21_lora/metrics/generation_info.json",
       "samples": {
         "raw_positive": "experiments/diffusers/04_sd21_lora/generated_images/final/positive",
-        "filtered_positive": "data/synthetic/fine_tuned_lora/positive"
+        "filtered_positive": "data/synthetic/04_sd21_lora/positive"
       },
       "benchmark": {
         "enabled": true,
@@ -188,8 +188,8 @@
         ]
       },
       "parent_generator_id": null,
-      "model_identity_sha256": "4a504654cbf17771f25729f342ebb0ed7eec9b2ec47e4cbfabd3b11a5b8d7ef2",
-      "generation_identity_sha256": "618c26122b480a33da843a2abbf08586e0f5c9a3cca9439edbfc68d857454dd9",
+      "model_identity_sha256": "d66b741bcaafa4ab4038c292dfd3780b8e746e8910adb26b64e7bc737f2ff893",
+      "generation_identity_sha256": "e3da5b15fe262c90fcb95a3b97d1d0f9bc1470bd15855be00f1f9e0285554f9c",
       "duplicate_model_group": [
         "05_ldm_basic_fromscratch",
         "06_ldm_extra1361_fromscratch"
@@ -210,8 +210,8 @@
         "positive"
       ],
       "status": "completed",
-      "checkpoint": "experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
-      "lineage_manifest": "experiments/diffusers/06_ldm_extra1361_fromscratch/legacy_runtime_manifest.json",
+      "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "lineage_manifest": "experiments/diffusers/06_ldm_extra1361_fromscratch/runtime_manifest.json",
       "raw_generation_manifest": "results/publication_v2/generator_provenance/runtime/06_ldm_extra1361_fromscratch/raw_samples.csv",
       "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "provenance_manifest": "results/publication_v2/generator_provenance/06_ldm_extra1361_fromscratch/provenance.json",
@@ -230,8 +230,8 @@
         ]
       },
       "parent_generator_id": "05_ldm_basic_fromscratch",
-      "model_identity_sha256": "4a504654cbf17771f25729f342ebb0ed7eec9b2ec47e4cbfabd3b11a5b8d7ef2",
-      "generation_identity_sha256": "9ada6b30ee23d28aab96caea254530339199aba75adbba528e57f329d611bb26",
+      "model_identity_sha256": "d66b741bcaafa4ab4038c292dfd3780b8e746e8910adb26b64e7bc737f2ff893",
+      "generation_identity_sha256": "957d6896270fee57d30fb5133bfc7d5b2cb8ccb5a64f2d2548773b22bda18f87",
       "duplicate_model_group": [
         "05_ldm_basic_fromscratch",
         "06_ldm_extra1361_fromscratch"
@@ -253,7 +253,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
-      "lineage_manifest": "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json",
+      "lineage_manifest": "experiments/diffusers/07_ldm_sdvae_extra1361/runtime_manifest.json",
       "raw_generation_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/raw_samples.csv",
       "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "provenance_manifest": "results/publication_v2/generator_provenance/07_ldm_sdvae_extra1361/provenance.json",
@@ -261,14 +261,14 @@
       "filter_manifest": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filter_mapping.csv",
       "samples": {
         "raw_positive": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
-        "filtered_positive": "data/synthetic/fromscratch_new/positive"
+        "filtered_positive": "data/synthetic/07_ldm_sdvae_extra1361/positive"
       },
       "benchmark": {
         "enabled": true
       },
       "parent_generator_id": null,
-      "model_identity_sha256": "6a1fd367b1bac08dde79e06a4eb1a492298f2e924a42afd3d99e713735aac617",
-      "generation_identity_sha256": "e2fcbc2272920863c1c3b7bdfa3044df5922c26c19f941226fb8edf7b15bbef8",
+      "model_identity_sha256": "79c6b7d776a186a236d521526aec71643c4c019ba21daa6c336696d9d2d6886d",
+      "generation_identity_sha256": "ca98e1612ae0279dd691d29b228c40abba85ce3d65a2ff7890940025d32c15c5",
       "duplicate_model_group": [],
       "distinct_generator_for_ranking": true
     },
@@ -287,7 +287,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
-      "lineage_manifest": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json",
+      "lineage_manifest": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/runtime_manifest.json",
       "raw_generation_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/raw_samples.csv",
       "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "provenance_manifest": "results/publication_v2/generator_provenance/08_ldm_v3_sdvae_fromscratch/provenance.json",
@@ -295,7 +295,7 @@
       "filter_manifest": "results/publication_v2/generator_provenance/runtime/08_ldm_v3_sdvae_fromscratch/filter_mapping.csv",
       "samples": {
         "raw_positive": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
-        "filtered_positive": "data/synthetic/fromscratch_v3/positive"
+        "filtered_positive": "data/synthetic/08_ldm_v3_sdvae_fromscratch/positive"
       },
       "benchmark": {
         "enabled": true

@@ -10,9 +10,9 @@
     "selection_reason": "Best generation quality for the positive mammography class",
     "best_checkpoint_id": "step_70000",
     "best_step": 70000,
-    "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_step070000.keras",
-    "best_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_unet_best_eval.keras",
-    "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_step070000.keras",
+    "best_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
     "fid_0": 238.1484,
     "fid_1": 205.8314,
     "fid_mean": 221.9899,
@@ -37,21 +37,21 @@
     "selection_reason": "Best generation quality for the positive mammography class"
   },
   "artifacts": {
-    "best_checkpoint_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/best_checkpoint.json",
-    "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_checkpoint_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/best_checkpoint.json",
+    "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
     "canonical_best_checkpoint_json": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/metrics/best_checkpoint.json",
     "canonical_checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/metrics/checkpoint_metrics.json",
     "canonical_sweep_results_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/metrics/sweep_results.csv",
     "canonical_sweep_summary_json": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/metrics/sweep_summary.json",
-    "checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/checkpoint_metrics.json",
+    "checkpoint_metrics_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/checkpoint_metrics.json",
     "evaluation_ecotracker_jsonl": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/ecotracker/ldm_evaluation_ecotracker.jsonl",
-    "evaluation_plot_best_checkpoint_summary.png": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/plots/best_checkpoint_summary.png",
-    "evaluation_plot_checkpoint_fid_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/plots/checkpoint_fid_comparison.png",
-    "evaluation_plot_checkpoint_is_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/plots/checkpoint_is_comparison.png",
+    "evaluation_plot_best_checkpoint_summary.png": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/plots/best_checkpoint_summary.png",
+    "evaluation_plot_checkpoint_fid_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/plots/checkpoint_fid_comparison.png",
+    "evaluation_plot_checkpoint_is_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/plots/checkpoint_is_comparison.png",
     "plot_best_checkpoint_summary.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/plots/best_checkpoint_summary.png",
     "plot_checkpoint_fid_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/plots/checkpoint_fid_comparison.png",
     "plot_checkpoint_is_comparison.png": "/mnt/MammoDiffusion/MammoDiffusion/results/04_ldm_keras_v2/plots/checkpoint_is_comparison.png",
-    "sweep_results_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/sweep_results.csv",
-    "sweep_summary_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260617_ldm_keras_v2_alex_long_training/evaluation/sweep_summary.json"
+    "sweep_results_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/sweep_results.csv",
+    "sweep_summary_json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/05_ldm_basic_fromscratch/evaluation/sweep_summary.json"
   }
 }

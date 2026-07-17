@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import shared_diffusers_assets as assets
-from migrate_shared_diffusers_assets import audit
+from audit_shared_diffusers_assets import audit
 
 
 class SharedDiffusersAssetsTests(unittest.TestCase):
@@ -74,7 +74,11 @@ class SharedDiffusersAssetsTests(unittest.TestCase):
             text = path.read_text(); self.assertIn("SHARED_DIFFUSERS_REPO_DIR", text); self.assertIn("SHARED_SD21_BASE_DIR", text)
             self.assertNotIn('EXPERIMENT_DIR / \\"diffusers_repo\\"', text)
 
-    def test_migration_audit_is_read_only(self):
+    def test_default_diffusers_checkout_is_shared_under_notebooks(self):
+        expected = ROOT / "notebooks" / "utility" / "diffusers_repo"
+        self.assertEqual(assets.resolve_shared_diffusers_repo(), expected.resolve())
+
+    def test_duplicate_audit_is_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); marker = root / "marker"; marker.write_text("keep")
             audit(root); self.assertEqual(marker.read_text(), "keep")

@@ -14,8 +14,8 @@
   "manifest_sha256": {
     "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
     "raw_samples": "27b60704411e8f1e802612140904564e04c28363d1a86647d4013482cd0ec2ac",
-    "filtered_samples": "b2d984e440eacbedbd0f2c3c7c52433315d1c666c04e8187afd3ddef2a75d900",
-    "filter_mapping": "3e65ad98fd7166fb50c74d783c0301662e62a8f378141b6806ba93668da1ad55"
+    "filtered_samples": "38b7cfa6efe88428cbc7014b32ecb4d8a952af1de72be5fe486789c488883658",
+    "filter_mapping": "7e6d800d6cf825bf07573261654faef2e4ce071d10e04f2ddf4efe26d56f5b50"
   },
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "generation_configuration": {
@@ -50,7 +50,7 @@
     "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/training_manifest.json",
     "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_manifest.json",
     "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw/.generation_manifest.json",
-    "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json"
+    "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/runtime_manifest.json"
   ],
   "parent_generator_id": null,
   "model_components": [
@@ -99,14 +99,14 @@
     {
       "role": "vae",
       "identifier": "stabilityai/stable-diffusion-2-1-base:vae-used-by-ldm",
-      "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
       "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
       "source_type": "pretrained"
     },
     {
       "role": "vae_config",
       "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
-      "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+      "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
       "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
       "source_type": "pretrained"
     }

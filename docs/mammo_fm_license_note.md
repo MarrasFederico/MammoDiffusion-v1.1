@@ -11,7 +11,7 @@ For this academic study, the operational rules are:
 - derivatives remain private, academic-only, and subject to the same license;
 - obtain prior written permission from the licensor for any exception.
 
-The public repository may contain loading/training code, configurations, hashes, aggregate non-sensitive outputs, and instructions for authorized users. It must not contain Mammo-FM checkpoints. Set `MAMMOFM_LOCAL_CHECKPOINT_PATH` to an authorized local file; do not add that file to Git.
+The public repository may contain loading/training code, configurations, hashes, aggregate non-sensitive outputs, and instructions for authorized users. It must not contain Mammo-FM checkpoints. The classifier resolves the authorized official file from the standard local Hugging Face cache in offline mode; do not add that file to Git.
 
 Required acknowledgment:
 

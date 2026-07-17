@@ -1,8 +1,0 @@
-FID,IS_mean,coverage,density,family,generator_id,precision,recall,status
-,,,,sd21,01_sd21_baseline_50steps,,,incomplete_metrics
-113.59235000000001,2.4025,0.92465,0.2817,sd21,02_sd21_filtered_100steps,0.5418499999999999,0.23975000000000002,ok
-104.07775000000001,2.1182,0.8767,0.33744999999999997,sd21_full_finetune,03_sd21_vae_finetuned,0.59955,0.07535,ok
-148.02055000000001,1.8027,0.3699,0.12614999999999998,sd21_lora,04_sd21_lora,0.2928,0.00685,ok
-,,,,ldm_keras,06_ldm_extra1361_fromscratch,,,incomplete_metrics
-,,,,ldm_keras_sdvae,07_ldm_sdvae_extra1361,,,incomplete_metrics
-101.77404999999999,1.8355000000000001,0.52325,0.41485,ldm_keras_sdvae_v3,08_ldm_v3_sdvae_fromscratch,0.6025,0.019200000000000002,ok

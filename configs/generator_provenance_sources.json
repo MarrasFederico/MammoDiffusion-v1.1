@@ -31,9 +31,9 @@
       "generator_id": "01_sd21_baseline_50steps",
       "scientific_family": "finetuned",
       "candidate_role": "sampling_ablation",
-      "checkpoint": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+      "checkpoint": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
       "model_checkpoint_identifier": "sd21-full-unet-checkpoint-3000-sampling-50",
-      "training_notebook_config_identifier": "notebooks/2_diffusers/01_SD21_Baseline_50steps.ipynb:max_train_steps=8000,seed=42",
+      "training_notebook_config_identifier": "notebooks/2_diffusers/02_SD21_Filtered_100steps.ipynb:max_train_steps=8000,seed=42",
       "raw_directory": "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive",
       "filtered_directory": "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive",
       "filtering_applied": false,
@@ -53,7 +53,7 @@
       },
       "source_evidence": [
         "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive/.generation_manifest.json",
-        "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json"
+        "experiments/diffusers/01_sd21_baseline_50steps/runtime_manifest.json"
       ],
       "known_limitations": [
         "Sampling ablation only; excluded from official family ranking and downstream selection."
@@ -112,14 +112,14 @@
         {
           "role": "unet",
           "identifier": "mammodiffusion-sd21-full-unet-checkpoint-3000",
-          "path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+          "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
           "sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb",
           "source_type": "local"
         },
         {
           "role": "unet_config",
           "identifier": "mammodiffusion-sd21-full-unet-config",
-          "path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/config.json",
+          "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/config.json",
           "sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f",
           "source_type": "local"
         },
@@ -156,7 +156,7 @@
       "model_checkpoint_identifier": "sd21-full-unet-checkpoint-3000",
       "training_notebook_config_identifier": "notebooks/2_diffusers/02_SD21_Filtered_100steps.ipynb:max_train_steps=8000,seed=42",
       "raw_directory": "experiments/diffusers/02_sd21_filtered_100steps/generated_images/final/positive",
-      "filtered_directory": "data/synthetic/fine_tuned/positive",
+      "filtered_directory": "data/synthetic/02_sd21_filtered_100steps/positive",
       "filter_report": "results/diffusers/02_sd21_filtered_100steps/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
       "generation_configuration": {
@@ -176,7 +176,7 @@
       "source_evidence": [
         "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
         "results/diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json",
-        "experiments/diffusers/02_sd21_filtered_100steps/legacy_runtime_manifest.json"
+        "experiments/diffusers/02_sd21_filtered_100steps/runtime_manifest.json"
       ],
       "known_limitations": [
         "Generation contains legacy members without a recoverable per-image seed."
@@ -279,7 +279,7 @@
       "model_checkpoint_identifier": "sd21-finetuned-vae-full-unet-checkpoint-4000",
       "training_notebook_config_identifier": "notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb:max_train_steps=12000,seed=42",
       "raw_directory": "experiments/diffusers/03_sd21_vae_finetuned/generated_images/final/positive",
-      "filtered_directory": "data/synthetic/fine_tuned_vaeft/positive",
+      "filtered_directory": "data/synthetic/03_sd21_vae_finetuned/positive",
       "filter_report": "results/diffusers/03_sd21_vae_finetuned/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
       "generation_configuration": {
@@ -300,7 +300,7 @@
       "source_evidence": [
         "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
         "results/diffusers/03_sd21_vae_finetuned/metrics/filter_summary_positive_adaptive_mask.json",
-        "experiments/diffusers/03_sd21_vae_finetuned/legacy_runtime_manifest.json"
+        "experiments/diffusers/03_sd21_vae_finetuned/runtime_manifest.json"
       ],
       "known_limitations": [
         "Generation contains legacy members without a recoverable per-image seed."
@@ -373,14 +373,14 @@
         {
           "role": "vae",
           "identifier": "mammodiffusion-sd21-finetuned-vae-used-for-generation",
-          "path": "experiments/diffusers/03_sd21_vae_finetuned/pretrained_model_vaeft/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "path": "experiments/diffusers/03_sd21_vae_finetuned/vae_finetuning/vae_finetuned/diffusion_pytorch_model.safetensors",
           "sha256": "9586a65f6d79698e37bc7989a425b28f4d51595b4523e07fd4a203c4f941c6df",
           "source_type": "local"
         },
         {
           "role": "vae_config",
           "identifier": "mammodiffusion-sd21-finetuned-vae-config",
-          "path": "experiments/diffusers/03_sd21_vae_finetuned/pretrained_model_vaeft/stable-diffusion-2-1-base/vae/config.json",
+          "path": "experiments/diffusers/03_sd21_vae_finetuned/vae_finetuning/vae_finetuned/config.json",
           "sha256": "e3a1f2b173b09a43406388a967cc529cbb4e5cfa503d194fc165cae0345663fb",
           "source_type": "local"
         }
@@ -403,7 +403,7 @@
       "model_checkpoint_identifier": "sd21-lora-rank16-checkpoint-4500",
       "training_notebook_config_identifier": "notebooks/2_diffusers/04_SD21_LoRA.ipynb:max_train_steps=8000,rank=16,seed=42",
       "raw_directory": "experiments/diffusers/04_sd21_lora/generated_images/final/positive",
-      "filtered_directory": "data/synthetic/fine_tuned_lora/positive",
+      "filtered_directory": "data/synthetic/04_sd21_lora/positive",
       "filter_report": "results/diffusers/04_sd21_lora/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
       "generation_configuration": {
@@ -425,7 +425,7 @@
       "source_evidence": [
         "experiments/diffusers/04_sd21_lora/generated_images/final/positive/.generation_manifest.json",
         "results/diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json",
-        "experiments/diffusers/04_sd21_lora/legacy_runtime_manifest.json"
+        "experiments/diffusers/04_sd21_lora/runtime_manifest.json"
       ],
       "known_limitations": [
         "The mixed legacy generation pool does not expose a seed for every image."
@@ -568,7 +568,7 @@
         "experiments/diffusers/05_ldm_basic_fromscratch/training_manifest.json",
         "experiments/diffusers/05_ldm_basic_fromscratch/evaluation/ldm_pipeline_manifest.json",
         "experiments/diffusers/05_ldm_basic_fromscratch/logs/generation_raw_state.json",
-        "experiments/diffusers/05_ldm_basic_fromscratch/legacy_runtime_manifest.json"
+        "experiments/diffusers/05_ldm_basic_fromscratch/runtime_manifest.json"
       ],
       "known_limitations": [
         "Descriptive baseline only; no 05-to-06 lineage is asserted and downstream selection remains disabled."
@@ -584,49 +584,49 @@
         },
         {
           "role": "latent_stats",
-          "identifier": "mammodiffusion-legacy-custom-vae-latent-stats",
+          "identifier": "mammodiffusion-custom-vae-latent-stats",
           "path": "experiments/diffusers/05_ldm_basic_fromscratch/latents/latent_stats.npz",
           "sha256": "3e4902a9d252318a873ded16059c5d0412b14ee322e7a54efe7be4be0d09702f",
           "source_type": "local"
         },
         {
           "role": "latents_manifest",
-          "identifier": "mammodiffusion-legacy-custom-vae-latents-canonical-manifest",
-          "path": "configs/ldm_legacy_custom_vae_latents_manifest.json",
+          "identifier": "mammodiffusion-custom-vae-latents-canonical-manifest",
+          "path": "configs/ldm_custom_vae_latents_manifest.json",
           "sha256": "fa535a563a03a356308b4cec2e3e616c1698eae031f2275ddc558887c306aa50",
           "source_type": "shared"
         },
         {
           "role": "latents_train",
-          "identifier": "mammodiffusion-legacy-custom-vae-training-latents",
+          "identifier": "mammodiffusion-custom-vae-training-latents",
           "path": "experiments/diffusers/05_ldm_basic_fromscratch/latents/latents_train.npz",
           "sha256": "456989ad9257d249bce7449a716fc1c7b3c184e726847ca0c80a31e554c463e3",
           "source_type": "local"
         },
         {
           "role": "latents_validation",
-          "identifier": "mammodiffusion-legacy-custom-vae-validation-latents",
+          "identifier": "mammodiffusion-custom-vae-validation-latents",
           "path": "experiments/diffusers/05_ldm_basic_fromscratch/latents/latents_val.npz",
           "sha256": "dbad79c40c559bf8d59b2e6bf29eb33ed2df4ef500b4210477d391e995975510",
           "source_type": "local"
         },
         {
           "role": "ldm_unet",
-          "identifier": "mammodiffusion-legacy-v2-custom-vae-selected-ldm-unet-step-70000",
+          "identifier": "mammodiffusion-v2-custom-vae-selected-ldm-unet-step-70000",
           "path": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
           "sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703",
           "source_type": "local"
         },
         {
           "role": "vae_decoder",
-          "identifier": "mammodiffusion-legacy-custom-vae-decoder-best",
+          "identifier": "mammodiffusion-custom-vae-decoder-best",
           "path": "experiments/diffusers/05_ldm_basic_fromscratch/models/vae_decoder_best.keras",
           "sha256": "d4ce2cb3d701f4b282ec29bb0d86d4255cfdd67e36fc4324b2b7533e01c8fbf8",
           "source_type": "local"
         },
         {
           "role": "vae_encoder",
-          "identifier": "mammodiffusion-legacy-custom-vae-encoder-best",
+          "identifier": "mammodiffusion-custom-vae-encoder-best",
           "path": "experiments/diffusers/05_ldm_basic_fromscratch/models/vae_encoder_best.keras",
           "sha256": "b129f501ea55ed43b89afcf15375eecfabd0756461d517085d7a0d4ab71f4541",
           "source_type": "local"
@@ -650,9 +650,9 @@
       "generator_id": "06_ldm_extra1361_fromscratch",
       "scientific_family": "from_scratch",
       "candidate_role": "generation_pool_ablation",
-      "checkpoint": "experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "model_checkpoint_identifier": "ldm-v2-custom-vae-best-eval-step-70000",
-      "training_notebook_config_identifier": "notebooks/2_diffusers/06_LDM_Extra1361_FromScratch.ipynb:unet_v2,eps,80000_steps",
+      "training_notebook_config_identifier": "notebooks/2_diffusers/05_LDM_Basic_FromScratch.ipynb:unet_v2,eps,80000_steps",
       "raw_directory": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
       "filtered_directory": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered",
       "filter_report": "results/diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_report.csv",
@@ -679,7 +679,7 @@
         "experiments/diffusers/06_ldm_extra1361_fromscratch/training_manifest.json",
         "experiments/diffusers/06_ldm_extra1361_fromscratch/evaluation/ldm_pipeline_manifest.json",
         "experiments/diffusers/06_ldm_extra1361_fromscratch/logs/generation_raw_state.json",
-        "experiments/diffusers/06_ldm_extra1361_fromscratch/legacy_runtime_manifest.json"
+        "experiments/diffusers/06_ldm_extra1361_fromscratch/runtime_manifest.json"
       ],
       "known_limitations": [],
       "parent_generator_id": "05_ldm_basic_fromscratch",
@@ -693,49 +693,49 @@
         },
         {
           "role": "latent_stats",
-          "identifier": "mammodiffusion-legacy-custom-vae-latent-stats",
+          "identifier": "mammodiffusion-custom-vae-latent-stats",
           "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/latents/latent_stats.npz",
           "sha256": "3e4902a9d252318a873ded16059c5d0412b14ee322e7a54efe7be4be0d09702f",
           "source_type": "local"
         },
         {
           "role": "latents_manifest",
-          "identifier": "mammodiffusion-legacy-custom-vae-latents-canonical-manifest",
-          "path": "configs/ldm_legacy_custom_vae_latents_manifest.json",
+          "identifier": "mammodiffusion-custom-vae-latents-canonical-manifest",
+          "path": "configs/ldm_custom_vae_latents_manifest.json",
           "sha256": "fa535a563a03a356308b4cec2e3e616c1698eae031f2275ddc558887c306aa50",
           "source_type": "shared"
         },
         {
           "role": "latents_train",
-          "identifier": "mammodiffusion-legacy-custom-vae-training-latents",
+          "identifier": "mammodiffusion-custom-vae-training-latents",
           "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/latents/latents_train.npz",
           "sha256": "456989ad9257d249bce7449a716fc1c7b3c184e726847ca0c80a31e554c463e3",
           "source_type": "local"
         },
         {
           "role": "latents_validation",
-          "identifier": "mammodiffusion-legacy-custom-vae-validation-latents",
+          "identifier": "mammodiffusion-custom-vae-validation-latents",
           "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/latents/latents_val.npz",
           "sha256": "dbad79c40c559bf8d59b2e6bf29eb33ed2df4ef500b4210477d391e995975510",
           "source_type": "local"
         },
         {
           "role": "ldm_unet",
-          "identifier": "mammodiffusion-legacy-v2-custom-vae-selected-ldm-unet-step-70000",
-          "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+          "identifier": "mammodiffusion-v2-custom-vae-selected-ldm-unet-step-70000",
+          "path": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
           "sha256": "283d411525c389f04984e643c0f57ac9318c9f7bc73f9c26f535d8ef2d913703",
           "source_type": "local"
         },
         {
           "role": "vae_decoder",
-          "identifier": "mammodiffusion-legacy-custom-vae-decoder-best",
+          "identifier": "mammodiffusion-custom-vae-decoder-best",
           "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/models/vae_decoder_best.keras",
           "sha256": "d4ce2cb3d701f4b282ec29bb0d86d4255cfdd67e36fc4324b2b7533e01c8fbf8",
           "source_type": "local"
         },
         {
           "role": "vae_encoder",
-          "identifier": "mammodiffusion-legacy-custom-vae-encoder-best",
+          "identifier": "mammodiffusion-custom-vae-encoder-best",
           "path": "experiments/diffusers/06_ldm_extra1361_fromscratch/models/vae_encoder_best.keras",
           "sha256": "b129f501ea55ed43b89afcf15375eecfabd0756461d517085d7a0d4ab71f4541",
           "source_type": "local"
@@ -763,7 +763,7 @@
       "model_checkpoint_identifier": "ldm-v2-sdvae-best-eval",
       "training_notebook_config_identifier": "notebooks/2_diffusers/07_LDM_SDVAE_Extra1361.ipynb:unet_v2,eps,150000_steps",
       "raw_directory": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
-      "filtered_directory": "data/synthetic/fromscratch_new/positive",
+      "filtered_directory": "data/synthetic/07_ldm_sdvae_extra1361/positive",
       "filter_report": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
       "generation_configuration": {
@@ -788,7 +788,7 @@
         "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_manifest.json",
         "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw/.generation_manifest.json",
         "experiments/diffusers/07_ldm_sdvae_extra1361/evaluation/ldm_pipeline_manifest.json",
-        "experiments/diffusers/07_ldm_sdvae_extra1361/legacy_runtime_manifest.json"
+        "experiments/diffusers/07_ldm_sdvae_extra1361/runtime_manifest.json"
       ],
       "known_limitations": [],
       "parent_generator_id": null,
@@ -811,7 +811,7 @@
           "role": "latents_manifest",
           "identifier": "mammodiffusion-07_ldm_sdvae_extra1361-executed-latents-manifest",
           "path": "experiments/diffusers/07_ldm_sdvae_extra1361/latents/latents_manifest.json",
-          "sha256": "0820f523647d566352c3214d3abfda121aa3925b1b67aed95bab07f5b6950abd",
+          "sha256": "c1f9c0db61d8bc5f341da934a62a755493a11bcd10bfd7d34e0a6ea8a5740cba",
           "source_type": "local"
         },
         {
@@ -838,14 +838,14 @@
         {
           "role": "vae",
           "identifier": "stabilityai/stable-diffusion-2-1-base:vae-used-by-ldm",
-          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
           "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
           "source_type": "pretrained"
         },
         {
           "role": "vae_config",
           "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
-          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
           "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
           "source_type": "pretrained"
         }
@@ -872,7 +872,7 @@
       "model_checkpoint_identifier": "ldm-v3-sdvae-v-prediction-min-snr-best-eval",
       "training_notebook_config_identifier": "notebooks/2_diffusers/08_LDM_v3_SDVAE_FromScratch.ipynb:unet_v3,v_prediction,min_snr,150000_steps",
       "raw_directory": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
-      "filtered_directory": "data/synthetic/fromscratch_v3/positive",
+      "filtered_directory": "data/synthetic/08_ldm_v3_sdvae_fromscratch/positive",
       "filter_report": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
       "sampling_steps": 100,
       "generation_configuration": {
@@ -898,7 +898,7 @@
         "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/training_manifest.json",
         "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/latents/latents_manifest.json",
         "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw/.generation_manifest.json",
-        "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/legacy_runtime_manifest.json"
+        "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/runtime_manifest.json"
       ],
       "known_limitations": [],
       "parent_generator_id": null,
@@ -948,14 +948,14 @@
         {
           "role": "vae",
           "identifier": "stabilityai/stable-diffusion-2-1-base:vae-used-by-ldm",
-          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
           "sha256": "3e4c08995484ee61270175e9e7a072b66a6e4eeb5f0c266667fe1f45b90daf9a",
           "source_type": "pretrained"
         },
         {
           "role": "vae_config",
           "identifier": "stabilityai/stable-diffusion-2-1-base:vae-config",
-          "path": "experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
+          "path": "notebooks/pretrained_model/stable-diffusion-2-1-base/vae/config.json",
           "sha256": "424117cb534ce03497c41305ed868980123917b2b6abba4bbaa615e968772903",
           "source_type": "pretrained"
         }

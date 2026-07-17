@@ -1,0 +1,17 @@
+{
+  "lora_checkpoint_size_mb": 6.367851257324219,
+  "lora_trainable_params": 3319808,
+  "full_finetune_checkpoint_size_mb": 3303.26700592041,
+  "lora_training_cost": {
+    "elapsed_seconds": 18269.909549587006,
+    "energy_kwh": 0.22410507255854514,
+    "co2_kg": 0.07401853809420508,
+    "n_runs": 16
+  },
+  "full_finetune_training_cost": {
+    "elapsed_seconds": 7805.376392770994,
+    "energy_kwh": 0.41892813321397465,
+    "co2_kg": 0.13789175291749128,
+    "n_runs": 5
+  }
+}

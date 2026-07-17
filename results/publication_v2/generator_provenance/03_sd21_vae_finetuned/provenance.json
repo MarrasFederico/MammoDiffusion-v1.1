@@ -14,8 +14,8 @@
   "manifest_sha256": {
     "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
     "raw_samples": "823f6fc13120d55010fe8c12364d5eb8508255554e275d3974d30f84aeb61239",
-    "filtered_samples": "87740975e00752461ce04c537e24cf2cbdb13d2a1bb856ec98c06b540939056d",
-    "filter_mapping": "38834089916158c7b90f5b1c30177c6b950167715a0dd04c933128aefb89e278"
+    "filtered_samples": "f66edbab17edc8c94a3d63af5cf6d097868764a801cb3e4f412d5596182104b9",
+    "filter_mapping": "c601623e36c7a93b9aa24c4b1d8147fbf6207e7647952b4f7c0effb1e31147f1"
   },
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "generation_configuration": {
@@ -47,7 +47,7 @@
   "source_evidence": [
     "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
     "results/diffusers/03_sd21_vae_finetuned/metrics/filter_summary_positive_adaptive_mask.json",
-    "experiments/diffusers/03_sd21_vae_finetuned/legacy_runtime_manifest.json"
+    "experiments/diffusers/03_sd21_vae_finetuned/runtime_manifest.json"
   ],
   "parent_generator_id": null,
   "model_components": [
@@ -117,14 +117,14 @@
     {
       "role": "vae",
       "identifier": "mammodiffusion-sd21-finetuned-vae-used-for-generation",
-      "path": "experiments/diffusers/03_sd21_vae_finetuned/pretrained_model_vaeft/stable-diffusion-2-1-base/vae/diffusion_pytorch_model.safetensors",
+      "path": "experiments/diffusers/03_sd21_vae_finetuned/vae_finetuning/vae_finetuned/diffusion_pytorch_model.safetensors",
       "sha256": "9586a65f6d79698e37bc7989a425b28f4d51595b4523e07fd4a203c4f941c6df",
       "source_type": "local"
     },
     {
       "role": "vae_config",
       "identifier": "mammodiffusion-sd21-finetuned-vae-config",
-      "path": "experiments/diffusers/03_sd21_vae_finetuned/pretrained_model_vaeft/stable-diffusion-2-1-base/vae/config.json",
+      "path": "experiments/diffusers/03_sd21_vae_finetuned/vae_finetuning/vae_finetuned/config.json",
       "sha256": "e3a1f2b173b09a43406388a967cc529cbb4e5cfa503d194fc165cae0345663fb",
       "source_type": "local"
     }

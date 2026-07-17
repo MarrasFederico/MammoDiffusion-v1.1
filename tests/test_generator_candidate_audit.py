@@ -89,9 +89,9 @@ class GeneratorCandidateAuditTests(unittest.TestCase):
         self.assertIn("synth_04082.png->synth_filtered_0032.png", g06["block_reasons"])
 
     def test_notebook_has_separate_metadata_only_audit_refresh(self):
-        notebook = nbformat.read(ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb", 4)
+        notebook = nbformat.read(ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb", 4)
         source = "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "code")
-        self.assertIn("REFRESH_CANDIDATE_AUDIT = False", source)
+        self.assertIn("REFRESH_CANDIDATE_AUDIT = True", source)
         self.assertIn("candidate_audit_document_rows(candidate_audits)", source)
         self.assertIn("if REFRESH_CANDIDATE_AUDIT:", source)
         self.assertNotIn("'family': row['scientific_family']", source)

@@ -95,7 +95,10 @@ def load_selected_generators(root: Path, *, required: bool = True) -> dict[str, 
     """
     path = Path(root) / "configs/selected_generators.json"
     if not path.is_file():
-        if required: raise FileNotFoundError("run notebook 06 and save configs/selected_generators.json")
+        if required: raise FileNotFoundError(
+            "run 3_generator_benchmark/02_Generator_Selection.ipynb and save "
+            "configs/selected_generators.json"
+        )
         return None
     payload = json.loads(path.read_text())
     schema_version = int(payload.get("schema_version", 1))

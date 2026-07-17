@@ -8,6 +8,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from ldm_project_paths import KERAS_V2_RESULTS_STAGE_NAME
+
 
 def parse_args() -> argparse.Namespace:
     """Definisce gli argomenti CLI dello script: percorsi dell'esperimento, cartella delle sintetiche filtrate e parametri delle metriche generative."""
@@ -32,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--knn-k", type=int, default=3)
     parser.add_argument(
         "--results-stage-name",
-        default="04_ldm_keras_v2",
+        default=KERAS_V2_RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare le metriche finali.",
     )
     parser.add_argument(

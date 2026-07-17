@@ -81,12 +81,12 @@ def verify_images(spec: dict, root: Path) -> tuple[bool, str]:
 
 
 def load_runtime_manifest(experiment_dir: str | Path) -> dict:
-    path = Path(experiment_dir) / "legacy_runtime_manifest.json"
+    path = Path(experiment_dir) / "runtime_manifest.json"
     if not path.is_file(): return {"valid": False, "reason": f"missing manifest: {path}", "phases": {}}
     try: payload = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError) as exc: return {"valid": False, "reason": f"invalid manifest: {exc}", "phases": {}}
-    if payload.get("schema_version") != 1 or payload.get("provenance") != "legacy_normalized_verified":
-        return {"valid": False, "reason": "manifest schema/provenance is not promotable", "phases": {}}
+    if payload.get("schema_version") != 1 or payload.get("provenance") != "runtime_assets_verified":
+        return {"valid": False, "reason": "manifest schema/provenance is not valid", "phases": {}}
     root, results = Path(experiment_dir), {}
     for phase, spec in payload.get("phases", {}).items():
         checks = []

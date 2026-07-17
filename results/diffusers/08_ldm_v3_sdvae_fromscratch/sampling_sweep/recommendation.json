@@ -16,5 +16,5 @@
     100
   ],
   "recommended_gen_sample_steps": 100,
-  "sweep_summary_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/evaluation/sampling_sweep/sampling_sweep_summary.csv"
+  "sweep_summary_csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/evaluation/sampling_sweep/sampling_sweep_summary.csv"
 }

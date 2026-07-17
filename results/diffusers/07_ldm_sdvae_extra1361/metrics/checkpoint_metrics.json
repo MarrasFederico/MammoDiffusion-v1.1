@@ -14,7 +14,7 @@
     "inception_weights": "imagenet",
     "seed": 42,
     "vae_backend": "sd",
-    "sd_vae_model": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base",
+    "sd_vae_model": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base",
     "sd_vae_batch_size": 1,
     "best_selection_metric": "fid_1",
     "best_selection_tie_breaker": "is_mean_1",
@@ -25,181 +25,181 @@
       "checkpoint_id": "step_5000",
       "kind": "step",
       "step": 5000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step005000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step005000.keras"
     },
     {
       "checkpoint_id": "step_10000",
       "kind": "step",
       "step": 10000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step010000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step010000.keras"
     },
     {
       "checkpoint_id": "step_15000",
       "kind": "step",
       "step": 15000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step015000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step015000.keras"
     },
     {
       "checkpoint_id": "step_20000",
       "kind": "step",
       "step": 20000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step020000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step020000.keras"
     },
     {
       "checkpoint_id": "step_25000",
       "kind": "step",
       "step": 25000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step025000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step025000.keras"
     },
     {
       "checkpoint_id": "step_30000",
       "kind": "step",
       "step": 30000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step030000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step030000.keras"
     },
     {
       "checkpoint_id": "step_35000",
       "kind": "step",
       "step": 35000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step035000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step035000.keras"
     },
     {
       "checkpoint_id": "step_40000",
       "kind": "step",
       "step": 40000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step040000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step040000.keras"
     },
     {
       "checkpoint_id": "step_45000",
       "kind": "step",
       "step": 45000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step045000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step045000.keras"
     },
     {
       "checkpoint_id": "step_50000",
       "kind": "step",
       "step": 50000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step050000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step050000.keras"
     },
     {
       "checkpoint_id": "step_55000",
       "kind": "step",
       "step": 55000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step055000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step055000.keras"
     },
     {
       "checkpoint_id": "step_60000",
       "kind": "step",
       "step": 60000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step060000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step060000.keras"
     },
     {
       "checkpoint_id": "step_65000",
       "kind": "step",
       "step": 65000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step065000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step065000.keras"
     },
     {
       "checkpoint_id": "step_70000",
       "kind": "step",
       "step": 70000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step070000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step070000.keras"
     },
     {
       "checkpoint_id": "step_75000",
       "kind": "step",
       "step": 75000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras"
     },
     {
       "checkpoint_id": "step_80000",
       "kind": "step",
       "step": 80000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step080000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step080000.keras"
     },
     {
       "checkpoint_id": "step_85000",
       "kind": "step",
       "step": 85000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step085000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step085000.keras"
     },
     {
       "checkpoint_id": "step_90000",
       "kind": "step",
       "step": 90000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step090000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step090000.keras"
     },
     {
       "checkpoint_id": "step_95000",
       "kind": "step",
       "step": 95000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step095000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step095000.keras"
     },
     {
       "checkpoint_id": "step_100000",
       "kind": "step",
       "step": 100000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step100000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step100000.keras"
     },
     {
       "checkpoint_id": "step_105000",
       "kind": "step",
       "step": 105000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step105000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step105000.keras"
     },
     {
       "checkpoint_id": "step_110000",
       "kind": "step",
       "step": 110000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step110000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step110000.keras"
     },
     {
       "checkpoint_id": "step_115000",
       "kind": "step",
       "step": 115000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step115000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step115000.keras"
     },
     {
       "checkpoint_id": "step_120000",
       "kind": "step",
       "step": 120000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step120000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step120000.keras"
     },
     {
       "checkpoint_id": "step_125000",
       "kind": "step",
       "step": 125000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step125000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step125000.keras"
     },
     {
       "checkpoint_id": "step_130000",
       "kind": "step",
       "step": 130000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras"
     },
     {
       "checkpoint_id": "step_135000",
       "kind": "step",
       "step": 135000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step135000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step135000.keras"
     },
     {
       "checkpoint_id": "step_140000",
       "kind": "step",
       "step": 140000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step140000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step140000.keras"
     },
     {
       "checkpoint_id": "step_145000",
       "kind": "step",
       "step": 145000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step145000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step145000.keras"
     },
     {
       "checkpoint_id": "step_150000",
       "kind": "step",
       "step": 150000,
-      "path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step150000.keras"
+      "path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step150000.keras"
     }
   ],
   "selection_policy": {
@@ -214,7 +214,7 @@
     {
       "checkpoint_id": "step_5000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step005000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step005000.keras",
       "checkpoint_order": 0,
       "step": 5000,
       "existing_before_0": 100,
@@ -251,7 +251,7 @@
     {
       "checkpoint_id": "step_10000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step010000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step010000.keras",
       "checkpoint_order": 1,
       "step": 10000,
       "existing_before_0": 100,
@@ -288,7 +288,7 @@
     {
       "checkpoint_id": "step_15000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step015000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step015000.keras",
       "checkpoint_order": 2,
       "step": 15000,
       "existing_before_0": 100,
@@ -325,7 +325,7 @@
     {
       "checkpoint_id": "step_20000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step020000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step020000.keras",
       "checkpoint_order": 3,
       "step": 20000,
       "existing_before_0": 100,
@@ -362,7 +362,7 @@
     {
       "checkpoint_id": "step_25000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step025000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step025000.keras",
       "checkpoint_order": 4,
       "step": 25000,
       "existing_before_0": 100,
@@ -399,7 +399,7 @@
     {
       "checkpoint_id": "step_30000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step030000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step030000.keras",
       "checkpoint_order": 5,
       "step": 30000,
       "existing_before_0": 100,
@@ -436,7 +436,7 @@
     {
       "checkpoint_id": "step_35000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step035000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step035000.keras",
       "checkpoint_order": 6,
       "step": 35000,
       "existing_before_0": 100,
@@ -473,7 +473,7 @@
     {
       "checkpoint_id": "step_40000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step040000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step040000.keras",
       "checkpoint_order": 7,
       "step": 40000,
       "existing_before_0": 100,
@@ -510,7 +510,7 @@
     {
       "checkpoint_id": "step_45000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step045000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step045000.keras",
       "checkpoint_order": 8,
       "step": 45000,
       "existing_before_0": 100,
@@ -547,7 +547,7 @@
     {
       "checkpoint_id": "step_50000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step050000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step050000.keras",
       "checkpoint_order": 9,
       "step": 50000,
       "existing_before_0": 100,
@@ -584,7 +584,7 @@
     {
       "checkpoint_id": "step_55000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step055000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step055000.keras",
       "checkpoint_order": 10,
       "step": 55000,
       "existing_before_0": 100,
@@ -621,7 +621,7 @@
     {
       "checkpoint_id": "step_60000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step060000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step060000.keras",
       "checkpoint_order": 11,
       "step": 60000,
       "existing_before_0": 100,
@@ -658,7 +658,7 @@
     {
       "checkpoint_id": "step_65000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step065000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step065000.keras",
       "checkpoint_order": 12,
       "step": 65000,
       "existing_before_0": 100,
@@ -695,7 +695,7 @@
     {
       "checkpoint_id": "step_70000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step070000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step070000.keras",
       "checkpoint_order": 13,
       "step": 70000,
       "existing_before_0": 100,
@@ -732,7 +732,7 @@
     {
       "checkpoint_id": "step_75000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras",
       "checkpoint_order": 14,
       "step": 75000,
       "existing_before_0": 100,
@@ -769,7 +769,7 @@
     {
       "checkpoint_id": "step_80000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step080000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step080000.keras",
       "checkpoint_order": 15,
       "step": 80000,
       "existing_before_0": 100,
@@ -806,7 +806,7 @@
     {
       "checkpoint_id": "step_85000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step085000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step085000.keras",
       "checkpoint_order": 16,
       "step": 85000,
       "existing_before_0": 100,
@@ -843,7 +843,7 @@
     {
       "checkpoint_id": "step_90000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step090000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step090000.keras",
       "checkpoint_order": 17,
       "step": 90000,
       "existing_before_0": 100,
@@ -880,7 +880,7 @@
     {
       "checkpoint_id": "step_95000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step095000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step095000.keras",
       "checkpoint_order": 18,
       "step": 95000,
       "existing_before_0": 100,
@@ -917,7 +917,7 @@
     {
       "checkpoint_id": "step_100000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step100000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step100000.keras",
       "checkpoint_order": 19,
       "step": 100000,
       "existing_before_0": 100,
@@ -954,7 +954,7 @@
     {
       "checkpoint_id": "step_105000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step105000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step105000.keras",
       "checkpoint_order": 20,
       "step": 105000,
       "existing_before_0": 100,
@@ -991,7 +991,7 @@
     {
       "checkpoint_id": "step_110000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step110000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step110000.keras",
       "checkpoint_order": 21,
       "step": 110000,
       "existing_before_0": 100,
@@ -1028,7 +1028,7 @@
     {
       "checkpoint_id": "step_115000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step115000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step115000.keras",
       "checkpoint_order": 22,
       "step": 115000,
       "existing_before_0": 100,
@@ -1065,7 +1065,7 @@
     {
       "checkpoint_id": "step_120000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step120000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step120000.keras",
       "checkpoint_order": 23,
       "step": 120000,
       "existing_before_0": 100,
@@ -1102,7 +1102,7 @@
     {
       "checkpoint_id": "step_125000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step125000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step125000.keras",
       "checkpoint_order": 24,
       "step": 125000,
       "existing_before_0": 100,
@@ -1139,7 +1139,7 @@
     {
       "checkpoint_id": "step_130000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras",
       "checkpoint_order": 25,
       "step": 130000,
       "existing_before_0": 100,
@@ -1176,7 +1176,7 @@
     {
       "checkpoint_id": "step_135000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step135000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step135000.keras",
       "checkpoint_order": 26,
       "step": 135000,
       "existing_before_0": 100,
@@ -1213,7 +1213,7 @@
     {
       "checkpoint_id": "step_140000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step140000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step140000.keras",
       "checkpoint_order": 27,
       "step": 140000,
       "existing_before_0": 100,
@@ -1250,7 +1250,7 @@
     {
       "checkpoint_id": "step_145000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step145000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step145000.keras",
       "checkpoint_order": 28,
       "step": 145000,
       "existing_before_0": 100,
@@ -1287,7 +1287,7 @@
     {
       "checkpoint_id": "step_150000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step150000.keras",
+      "checkpoint_path": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step150000.keras",
       "checkpoint_order": 29,
       "step": 150000,
       "existing_before_0": 100,
@@ -1331,9 +1331,9 @@
     "selection_reason": "Best generation quality for the positive mammography class",
     "best_checkpoint_id": "step_130000",
     "best_step": 130000,
-    "best_checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras",
-    "best_model": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
-    "best_eval_model": "/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_checkpoint": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras",
+    "best_model": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_eval_model": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
     "fid_0": 143.8131,
     "fid_1": 148.4339,
     "fid_mean": 146.1235,

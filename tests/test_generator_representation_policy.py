@@ -157,7 +157,7 @@ class RepresentationAwareTechnicalPolicyTests(unittest.TestCase):
         self.assertEqual(protocol["selection"]["official_representation"], "filtered")
 
     def test_notebook_reports_both_validity_categories_and_ranks_filtered_only(self):
-        text = (ROOT / "notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb").read_text()
+        text = (ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb").read_text()
         for token in ("raw_feature_extractable_rate", "raw_quality_validity_rate",
                       "filtered_feature_extractable_rate", "filtered_quality_validity_rate",
                       "representation_preflight_rows", "require_official_family_coverage",

@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 
+from ldm_project_paths import KERAS_V2_RESULTS_STAGE_NAME
+
 
 IMG_SIZE = 512
 CHANNELS = 1
@@ -49,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--also-reset-downstream", action="store_true")
     parser.add_argument(
         "--results-stage-name",
-        default="04_ldm_keras_v2",
+        default=KERAS_V2_RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare il log sostenibilita' VAE.",
     )
     return parser.parse_args()
@@ -66,7 +68,10 @@ def configure_environment(args: argparse.Namespace) -> None:
         os.environ["XLA_FLAGS"] = f"--xla_gpu_cuda_data_dir={args.cuda_root}"
 
 
-def sustainability_log_path(project_root: Path, stage_name: str = "04_ldm_keras_v2") -> Path:
+def sustainability_log_path(
+    project_root: Path,
+    stage_name: str = KERAS_V2_RESULTS_STAGE_NAME,
+) -> Path:
     """Restituisce il path del log jsonl dei consumi energetici, creando le cartelle se mancanti."""
     path = (
         project_root
@@ -309,7 +314,7 @@ def build_vae_decoder() -> tf.keras.Model:
 def reset_downstream_artifacts(paths) -> None:
     """Elimina latents, checkpoint e log della LDM e della generazione, perche' diventano incoerenti quando il VAE viene riallenato da zero."""
     # synthetic_filtered_dir non viene azzerata: e' la cartella condivisa
-    # data/synthetic/fromscratch/positive usata anche dal classificatore (notebook 06),
+    # data/synthetic/06_ldm_extra1361_fromscratch/positive usata anche dai classificatori sintetici,
     # non un artefatto locale all'esperimento.
     for directory in [
         paths.latents_dir,

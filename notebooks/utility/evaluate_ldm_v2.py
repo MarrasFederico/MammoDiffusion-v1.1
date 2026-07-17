@@ -10,10 +10,12 @@ import shutil
 import subprocess
 import sys
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 
 from ldm_project_paths import (
     DEFAULT_EXPERIMENT_NAME,
+    KERAS_V2_RESULTS_STAGE_NAME,
     PROJECT_NAME,
     ExperimentPaths,
     get_experiment_paths,
@@ -36,7 +38,7 @@ BEST_SELECTION_TIE_BREAKER = f"is_mean_{POSITIVE_CLASS}"
 SELECTION_DIRECTION = "minimize"
 TIE_BREAKER_DIRECTION = "maximize"
 SELECTION_REASON = "Best generation quality for the positive mammography class"
-RESULTS_STAGE_NAME = "04_ldm_keras_v2"
+RESULTS_STAGE_NAME = KERAS_V2_RESULTS_STAGE_NAME
 BEST_ROW_METRIC_COLUMNS = [
     "fid_0",
     "fid_1",
@@ -62,6 +64,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--project-root", type=Path, default=None)
     parser.add_argument("--experiment-dir", type=Path, default=None)
+    parser.add_argument(
+        "--checkpoints-dir",
+        type=Path,
+        default=None,
+        help="Directory checkpoint condivisa; output di evaluation e immagini restano nell'esperimento.",
+    )
     parser.add_argument("--gpu-visible-devices", default=None)
     parser.add_argument(
         "--generation-gpus",
@@ -135,9 +143,9 @@ def parse_args() -> argparse.Namespace:
         help="Informativo: sorgente del VAE usato per i latenti, salvato nei JSON di output.",
     )
     parser.add_argument(
-        "--uses-vae-ft-from-03c",
+        "--uses-vae-ft-from-03",
         action="store_true",
-        help="Informativo: marca nei JSON di output che il VAE e' quello fine-tuned di 03c.",
+        help="Informativo: marca nei JSON di output che il VAE e' quello fine-tuned di 03.",
     )
     parser.add_argument(
         "--notebook-name",
@@ -767,8 +775,8 @@ def child_generate_command(
     command.extend(["--parameterization", args.parameterization])
     command.extend(["--unet-version", args.unet_version])
     command.extend(["--vae-source", args.vae_source])
-    if args.uses_vae_ft_from_03c:
-        command.append("--uses-vae-ft-from-03c")
+    if args.uses_vae_ft_from_03:
+        command.append("--uses-vae-ft-from-03")
     if args.notebook_name is not None:
         command.extend(["--notebook-name", str(args.notebook_name)])
     return command
@@ -1059,7 +1067,7 @@ def build_selection(best_row, best_eval_model_path: Path, args: argparse.Namespa
         "unet_version": args.unet_version,
         "parameterization": args.parameterization,
         "vae_source": args.vae_source,
-        "uses_vae_ft_from_03c": args.uses_vae_ft_from_03c,
+        "uses_vae_ft_from_03": args.uses_vae_ft_from_03,
     }
     for column in BEST_ROW_METRIC_COLUMNS:
         if column in best_row:
@@ -1306,7 +1314,7 @@ def persist_sweep_artifacts(
         "unet_version": args.unet_version,
         "parameterization": args.parameterization,
         "vae_source": args.vae_source,
-        "uses_vae_ft_from_03c": args.uses_vae_ft_from_03c,
+        "uses_vae_ft_from_03": args.uses_vae_ft_from_03,
     }
     with open(summary_path, "w", encoding="utf-8") as file:
         json.dump(summary, file, indent=2, ensure_ascii=False)
@@ -1515,6 +1523,14 @@ def main() -> None:
         args.mini_batch = 1
 
     paths = get_experiment_paths(args.project_root, args.experiment_dir, create=not args.dry_run)
+    if args.checkpoints_dir is not None:
+        checkpoint_source = args.checkpoints_dir.expanduser()
+        if not checkpoint_source.is_absolute():
+            checkpoint_source = paths.project_root / checkpoint_source
+        checkpoint_source = checkpoint_source.resolve()
+        if not checkpoint_source.is_dir():
+            raise FileNotFoundError(f"Directory checkpoint condivisa non trovata: {checkpoint_source}")
+        paths = replace(paths, checkpoints_dir=checkpoint_source)
     checkpoint_candidates = collect_checkpoint_candidates(paths, args)
     print(f"Checkpoint candidati: {len(checkpoint_candidates)}")
     for candidate in checkpoint_candidates:

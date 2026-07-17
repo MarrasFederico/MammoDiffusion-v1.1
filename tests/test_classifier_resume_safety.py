@@ -8,6 +8,8 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
@@ -18,6 +20,204 @@ import classifier_experiment as experiment  # noqa: E402
 
 
 class ClassifierResumeBoundaryTests(unittest.TestCase):
+    def test_classifier_notebooks_require_no_terminal_environment_variables(self):
+        for name in ("01_MaxViT512.ipynb", "02_MammoFM.ipynb"):
+            text = (ROOT / "notebooks/04_classifiers" / name).read_text()
+            self.assertNotIn("MAMMODIFFUSION_GPU", text)
+            self.assertNotIn("MAMMOFM_LOCAL_CHECKPOINT_PATH", text)
+            self.assertNotIn("GPU_SELECTOR", text)
+            self.assertNotIn("GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d", text)
+
+    def test_classifier_training_is_explicit_and_compilable_in_notebooks(self):
+        builders = {
+            "01_MaxViT512.ipynb": "build_maxvit_model(",
+            "02_MammoFM.ipynb": "build_mammofm_model(",
+        }
+        required = (
+            "TRAINING_VERBOSE = True",
+            "PROGRESS_EVERY_UPDATES = 25",
+            "VALIDATION_PROGRESS_EVERY_BATCHES = 10",
+            "torch.optim.AdamW(",
+            "BinaryFocalLoss()",
+            "for epoch in range(",
+            "for batch_index, batch in enumerate(train_loader):",
+            "loss.backward()",
+            "optimizer.step()",
+            "with torch.no_grad():",
+            "scheduler.step(",
+            "save_training_checkpoint(",
+            "checkpoint_best.pt",
+            "readable_duration(",
+            "ETA=",
+            "report_validation",
+        )
+        for name, builder in builders.items():
+            notebook = json.loads(
+                (ROOT / "notebooks/04_classifiers" / name).read_text()
+            )
+            code = "\n".join(
+                "".join(cell.get("source", []))
+                for cell in notebook["cells"]
+                if cell.get("cell_type") == "code"
+            )
+            self.assertIn(builder, code)
+            for token in required:
+                self.assertIn(token, code)
+            self.assertNotIn("training_result = train(", code)
+            self.assertNotIn("fit_mammofm(", code)
+            for index, cell in enumerate(notebook["cells"]):
+                if cell.get("cell_type") == "code":
+                    compile(
+                        "".join(cell.get("source", [])),
+                        f"{name}:cell:{index}",
+                        "exec",
+                    )
+
+    def test_classifier_notebooks_cycle_all_conditions_and_seeds(self):
+        for name in ("01_MaxViT512.ipynb", "02_MammoFM.ipynb"):
+            notebook = json.loads(
+                (ROOT / "notebooks/04_classifiers" / name).read_text()
+            )
+            code = "\n".join(
+                "".join(cell.get("source", []))
+                for cell in notebook["cells"]
+                if cell.get("cell_type") == "code"
+            )
+            self.assertIn("CONDITIONS = (", code)
+            for condition in (
+                "real_only",
+                "real_augmented",
+                "real_plus_best_finetuned_positive",
+                "real_plus_best_fromscratch_positive",
+            ):
+                self.assertIn(f"'{condition}'", code)
+            self.assertIn("SEEDS = (17, 42, 73)", code)
+            self.assertIn(
+                "def train_one_job(condition, seed, configuration, dataset):", code
+            )
+            self.assertIn("for condition in CONDITIONS:", code)
+            self.assertIn("for seed in SEEDS:", code)
+            self.assertIn("configurations[condition][seed]", code)
+            self.assertIn("datasets[condition][seed]", code)
+            self.assertIn("validation_results[condition][seed]", code)
+            self.assertIn("checkpoint_io.load_resume_checkpoint(", code)
+            self.assertNotIn("SEED = 17", code)
+            self.assertNotIn("CONDITION = 'real_only'", code)
+
+    def test_terminal_resume_is_finalized_without_another_epoch(self):
+        limits = {
+            "max_optimizer_updates": 6400,
+            "max_epochs": 26,
+            "early_stopping_patience": 10,
+        }
+        terminal = {
+            "epoch": 24,
+            "global_step": 5750,
+            "early_stopping_counter": 10,
+        }
+        interrupted = {**terminal, "early_stopping_counter": 9}
+
+        self.assertEqual(
+            checkpoint_io.terminal_reason(terminal, limits), "early_stopping"
+        )
+        self.assertIsNone(checkpoint_io.terminal_reason(interrupted, limits))
+
+        for name in ("01_MaxViT512.ipynb", "02_MammoFM.ipynb"):
+            notebook = json.loads(
+                (ROOT / "notebooks/04_classifiers" / name).read_text()
+            )
+            code = "\n".join(
+                "".join(cell.get("source", []))
+                for cell in notebook["cells"]
+                if cell.get("cell_type") == "code"
+            )
+            terminal_check = code.index(
+                "completion_reason = checkpoint_io.terminal_reason("
+            )
+            training_loop = code.index("for epoch in range(start_epoch, epochs + 1):")
+            self.assertLess(terminal_check, training_loop)
+            self.assertIn("checkpoint_io.inspect_completed_run(", code)
+            self.assertIn("SKIP completed run", code)
+            self.assertIn("checkpoint_io.completion_path(", code)
+            self.assertIn("torch.default_generator.manual_seed(seed)", code)
+            self.assertIn("torch.cuda.manual_seed(seed)", code)
+            self.assertNotIn("torch.manual_seed(seed)", code)
+            self.assertNotIn("torch.cuda.manual_seed_all(seed)", code)
+
+    def test_finalized_pre_marker_run_is_recognized(self):
+        expected = {
+            "architecture": "maxvit512",
+            "experiment_id": "maxvit512__real_only__seed17",
+            "dataset_variant_id": "real_only",
+            "training_policy": "maxvit512_fixed_protocol",
+            "config_signature": "policy-signature",
+            "dataset_signature": "dataset-signature",
+            "seed": 17,
+        }
+        limits = {
+            "max_optimizer_updates": 6400,
+            "max_epochs": 26,
+            "early_stopping_patience": 10,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary)
+            for name in checkpoint_io.FINAL_ARTIFACTS:
+                (run / name).write_text("placeholder", encoding="utf-8")
+            (run / "configuration.json").write_text(
+                json.dumps(
+                    {
+                        "architecture": "maxvit512",
+                        "condition": "real_only",
+                        "seed": 17,
+                        "policy_signature": "policy-signature",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            checkpoint_io.save_resume_checkpoint(
+                run,
+                {
+                    **expected,
+                    "epoch": 24,
+                    "global_step": 5750,
+                    "early_stopping_counter": 10,
+                    "best_epoch": 13,
+                    "gpu_uuid": "GPU-test",
+                },
+            )
+
+            completion, source = checkpoint_io.inspect_completed_run(
+                run, expected, limits
+            )
+
+            self.assertEqual(source, "recovered_from_checkpoint_latest")
+            self.assertEqual(completion["status"], "complete")
+            self.assertEqual(completion["completion_reason"], "early_stopping")
+            self.assertEqual(completion["optimizer_updates_completed"], 5750)
+
+    def test_no_hidden_high_level_training_entry_point_remains(self):
+        self.assertFalse(hasattr(experiment, "train"))
+        adapter = adapters.ArchitectureAdapter("maxvit512", {}, ROOT)
+        self.assertFalse(hasattr(adapter, "train"))
+
+    def test_mammofm_adapter_uses_official_local_cache_without_environment(self):
+        build_model = mock.Mock(return_value=("model",))
+        fake_utils = SimpleNamespace(
+            DEFAULT_HF_REPO="batmanLab/Mammo-FM",
+            DEFAULT_CHECKPOINT_NAME="Mammo-FM_BatmanlabTrained_CLIP.tar",
+            build_mammofm_model=build_model,
+        )
+        with mock.patch.dict(sys.modules, {"mammofm_utils": fake_utils}):
+            model = adapters.ArchitectureAdapter("mammofm", {}, ROOT).build_model()
+
+        self.assertEqual(model, "model")
+        build_model.assert_called_once_with(
+            hf_repo="batmanLab/Mammo-FM",
+            checkpoint_name="Mammo-FM_BatmanlabTrained_CLIP.tar",
+            use_local_checkpoint=False,
+            local_files_only=True,
+        )
+
     def test_periodic_checkpoint_resume_does_not_repeat_recorded_block(self):
         """A resumable checkpoint represents a completed validation block."""
         block_rows = [
@@ -98,7 +298,7 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
                     self.assertIn("config_signature", reason)
 
     def test_validation_cells_reload_checkpoint_after_kernel_restart(self):
-        for name in ("07_MaxViT512.ipynb", "08_MammoFM.ipynb"):
+        for name in ("01_MaxViT512.ipynb", "02_MammoFM.ipynb"):
             notebook = json.loads((ROOT / "notebooks/04_classifiers" / name).read_text())
             validation_cells = [
                 "".join(cell.get("source", []))
@@ -107,9 +307,16 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
             ]
             self.assertEqual(len(validation_cells), 1)
             source = validation_cells[0]
-            self.assertIn("existing_outputs = load_existing_outputs(ROOT, configuration)", source)
-            self.assertIn('checkpoint = existing_outputs["checkpoint"]', source)
-            self.assertIn('raise RuntimeError("No trained checkpoint is available.")', source)
+            self.assertIn(
+                "seed: load_existing_outputs(ROOT, configurations[condition][seed])",
+                source,
+            )
+            self.assertIn(
+                "seed: existing_outputs_by_job[condition][seed]['checkpoint']",
+                source,
+            )
+            self.assertIn("missing_checkpoint_jobs", source)
+            self.assertIn("No trained checkpoint is available for jobs", source)
             self.assertNotIn("training_result", source)
 
 

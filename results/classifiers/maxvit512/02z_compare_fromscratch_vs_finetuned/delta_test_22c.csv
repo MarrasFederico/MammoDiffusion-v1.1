@@ -1,6 +1,0 @@
-metric,fromscratch_sdvae,finetuned_sd21,delta_finetuned_minus_fromscratch,winner
-roc_auc,0.5938,0.6173,0.023499999999999965,Fine-Tuned SD2.1
-accuracy,0.6233,0.5845,-0.038799999999999946,From-Scratch SD-VAE
-precision_malato,0.2051,0.2176,0.012499999999999983,Fine-Tuned SD2.1
-recall_malato,0.4384,0.5753,0.13690000000000002,Fine-Tuned SD2.1
-f1_malato,0.2795,0.3158,0.0363,Fine-Tuned SD2.1

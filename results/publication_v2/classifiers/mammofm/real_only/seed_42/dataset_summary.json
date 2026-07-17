@@ -1,0 +1,21 @@
+{
+  "number_of_real_negatives": 1701,
+  "number_of_real_positives": 340,
+  "number_of_traditional_augmentations": 0,
+  "number_of_finetuned_synthetic_positives": 0,
+  "number_of_fromscratch_synthetic_positives": 0,
+  "number_of_patients": 2041,
+  "number_of_images": 2041,
+  "train_validation_patient_overlap": [],
+  "source_distribution": {
+    "real": 2041
+  },
+  "class_balance": {
+    "0": 1701,
+    "1": 340
+  },
+  "validation_images": 437,
+  "validation_patients": 437,
+  "validation_manifest": "data/processed/metadata/val.csv",
+  "validation_signature": "fc2ccef39c2781ee9c3d74803a3175f7df1cffe8e4622f34c8d8f6c9906096dd"
+}

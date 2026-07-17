@@ -4,9 +4,9 @@
   "scientific_family": "finetuned",
   "candidate_role": "sampling_ablation",
   "model_checkpoint_identifier": "sd21-full-unet-checkpoint-3000-sampling-50",
-  "checkpoint_path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+  "checkpoint_path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
   "checkpoint_sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb",
-  "training_notebook_config_identifier": "notebooks/2_diffusers/01_SD21_Baseline_50steps.ipynb:max_train_steps=8000,seed=42",
+  "training_notebook_config_identifier": "notebooks/2_diffusers/02_SD21_Filtered_100steps.ipynb:max_train_steps=8000,seed=42",
   "training_corpus_manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
   "raw_sample_manifest": "results/publication_v2/generator_provenance/runtime/01_sd21_baseline_50steps/raw_samples.csv",
   "filtered_sample_manifest": "results/publication_v2/generator_provenance/runtime/01_sd21_baseline_50steps/filtered_samples.csv",
@@ -44,7 +44,7 @@
   ],
   "source_evidence": [
     "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive/.generation_manifest.json",
-    "experiments/diffusers/01_sd21_baseline_50steps/legacy_runtime_manifest.json"
+    "experiments/diffusers/01_sd21_baseline_50steps/runtime_manifest.json"
   ],
   "parent_generator_id": "02_sd21_filtered_100steps",
   "model_components": [
@@ -100,14 +100,14 @@
     {
       "role": "unet",
       "identifier": "mammodiffusion-sd21-full-unet-checkpoint-3000",
-      "path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+      "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
       "sha256": "2b96e15d51f6970fe012c06d1769d4f575624ecf43044006adae1a70ce74b3cb",
       "source_type": "local"
     },
     {
       "role": "unet_config",
       "identifier": "mammodiffusion-sd21-full-unet-config",
-      "path": "experiments/diffusers/01_sd21_baseline_50steps/model/checkpoint-3000/unet/config.json",
+      "path": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/config.json",
       "sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f",
       "source_type": "local"
     },

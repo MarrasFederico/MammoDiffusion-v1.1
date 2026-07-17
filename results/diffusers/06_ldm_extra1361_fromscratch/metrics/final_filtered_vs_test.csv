@@ -1,2 +1,2 @@
 metric_backend,reference_split,target_label,n_real_test,n_synthetic_filtered,synthetic_dir,inception_batch,is_splits,knn_k,FID,IS_mean,IS_std,precision,recall,density,coverage
-generative_evaluator.py,test,1,73,1361,/workspace/MammoDiffusion/data/synthetic/fromscratch/positive,8,10,3,154.5427,2.2722,0.0963,0.1139,0.0137,0.0534,0.4932
+generative_evaluator.py,test,1,73,1361,/workspace/MammoDiffusion/data/synthetic/06_ldm_extra1361_fromscratch/positive,8,10,3,154.5427,2.2722,0.0963,0.1139,0.0137,0.0534,0.4932

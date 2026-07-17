@@ -17,7 +17,7 @@
     "unet_version": "v3",
     "parameterization": "v",
     "vae_source": "sd_vae_original",
-    "uses_vae_ft_from_03c": false,
+    "uses_vae_ft_from_03": false,
     "fid_0": 110.5736,
     "fid_1": 114.4976,
     "fid_mean": 112.5356,

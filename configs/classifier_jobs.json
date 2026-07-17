@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "pipeline_namespace": "mammodiffusion.classifier_validation.v2",
-  "note": "Exactly 24 notebook-run job definitions. Synthetic conditions require the simple configs/selected_generators.json created in notebook 06.",
+  "note": "Exactly 24 notebook-run job definitions. Synthetic conditions require configs/selected_generators.json created by 3_generator_benchmark/02_Generator_Selection.ipynb.",
   "architectures": [
     "maxvit512",
     "mammofm"

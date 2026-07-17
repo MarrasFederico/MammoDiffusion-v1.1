@@ -22,6 +22,17 @@ except ImportError:
 PUBLICATION_RESULTS = Path("results/publication_v2/classifiers")
 ENSEMBLE_RESULTS = Path("results/publication_v2/classifier_ensembles")
 
+ARCHITECTURE_DISPLAY_NAMES = {
+    "maxvit512": "MaxViT-512",
+    "mammofm": "Mammo-FM",
+}
+CONDITION_DISPLAY_NAMES = {
+    "real_only": "Real only",
+    "real_augmented": "Real + traditional augmentation",
+    "real_plus_best_finetuned_positive": "Real + selected fine-tuned synthetic positives",
+    "real_plus_best_fromscratch_positive": "Real + selected from-scratch synthetic positives",
+}
+
 
 def result_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
     return Path(root) / PUBLICATION_RESULTS / architecture / condition / f"seed_{int(seed)}"
@@ -194,12 +205,18 @@ def plot_ensemble_overview(ensembles: Sequence[Mapping[str, Any]]):
     table = ensemble_metric_table(ensembles)
     if len(table) != 8: raise ValueError("exactly eight logical ensembles are required")
     figure, axes = plt.subplots(1, 2, figsize=(14, 5))
-    labels = [f"{row.architecture}\n{row.condition}" for row in table.itertuples()]
+    labels = [f"{ARCHITECTURE_DISPLAY_NAMES.get(row.architecture, row.architecture)}\n"
+              f"{CONDITION_DISPLAY_NAMES.get(row.condition, row.condition)}"
+              for row in table.itertuples()]
     lower = table["pr_auc"] - table["pr_auc_ci_low"]; upper = table["pr_auc_ci_high"] - table["pr_auc"]
     axes[0].errorbar(range(8), table["pr_auc"], yerr=[lower, upper], fmt="o"); axes[0].set_xticks(range(8), labels, rotation=90); axes[0].set_title("Validation PR-AUC with intervals")
     heat = table.pivot(index="architecture", columns="condition", values="pr_auc")
-    image = axes[1].imshow(heat.values, aspect="auto", cmap="viridis"); axes[1].set_xticks(range(len(heat.columns)), heat.columns, rotation=90); axes[1].set_yticks(range(len(heat.index)), heat.index); axes[1].set_title("Architecture × condition PR-AUC"); figure.colorbar(image, ax=axes[1])
-    figure.tight_layout(); return figure
+    heat_conditions = [CONDITION_DISPLAY_NAMES.get(value, value) for value in heat.columns]
+    heat_architectures = [ARCHITECTURE_DISPLAY_NAMES.get(value, value) for value in heat.index]
+    image = axes[1].imshow(heat.values, aspect="auto", cmap="viridis"); axes[1].set_xticks(range(len(heat.columns)), heat_conditions, rotation=90); axes[1].set_yticks(range(len(heat.index)), heat_architectures); axes[1].set_title("Architecture × condition PR-AUC"); figure.colorbar(image, ax=axes[1])
+    figure.suptitle("Classifier validation ensembles | Patient-level mean of seeds 17, 42 and 73",
+                    fontsize=14, fontweight="bold")
+    figure.tight_layout(rect=(0, 0, 1, 0.93)); return figure
 
 
 def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]]):
@@ -210,7 +227,8 @@ def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]]):
         values = _read_patient_rows(path); labels = np.asarray([item["label"] for item in values]); probabilities = np.asarray([item["probability"] for item in values])
         order = np.argsort(-probabilities); ordered = labels[order]; tp, fp = np.cumsum(ordered == 1), np.cumsum(ordered == 0)
         recall = tp / max(1, int((labels == 1).sum())); precision = tp / np.maximum(tp + fp, 1); fpr = fp / max(1, int((labels == 0).sum()))
-        arch_index = 0 if row["architecture"] == ARCHITECTURES[0] else 1; label = row["condition"]
+        arch_index = 0 if row["architecture"] == ARCHITECTURES[0] else 1
+        label = CONDITION_DISPLAY_NAMES.get(row["condition"], row["condition"])
         axes[arch_index, 0].plot(recall, precision, label=label); axes[arch_index, 1].plot(fpr, recall, label=label)
         edges = np.linspace(0, 1, 6); observed, predicted = [], []
         for low, high in zip(edges[:-1], edges[1:]):
@@ -218,10 +236,13 @@ def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]]):
             if mask.any(): predicted.append(float(probabilities[mask].mean())); observed.append(float(labels[mask].mean()))
         axes[arch_index, 2].plot(predicted, observed, marker="o", label=label)
     for index, architecture in enumerate(ARCHITECTURES):
-        axes[index, 0].set_title(f"{architecture} validation PR curves"); axes[index, 1].set_title(f"{architecture} validation ROC curves"); axes[index, 2].set_title(f"{architecture} validation calibration")
+        architecture_label = ARCHITECTURE_DISPLAY_NAMES.get(architecture, architecture)
+        axes[index, 0].set_title(f"{architecture_label} validation PR curves"); axes[index, 1].set_title(f"{architecture_label} validation ROC curves"); axes[index, 2].set_title(f"{architecture_label} validation calibration")
         axes[index, 2].plot([0, 1], [0, 1], "--", color="black")
         for axis in axes[index]: axis.legend(fontsize=7)
-    figure.tight_layout(); return figure
+    figure.suptitle("Validation ensemble curves | Patient-level mean of seeds 17, 42 and 73",
+                    fontsize=14, fontweight="bold")
+    figure.tight_layout(rect=(0, 0, 1, 0.95)); return figure
 
 
 def _read_patient_rows(path: Path) -> list[dict[str, Any]]:

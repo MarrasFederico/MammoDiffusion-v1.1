@@ -4,7 +4,7 @@
 Adatta l'`AutoencoderKL` di SD2.1 al dominio mammografico grayscale-as-RGB,
 tipicamente scongelando solo il decoder (impostazione di default per non spostare
 la distribuzione dei latenti attesa dalla U-Net). Il modulo e' pensato per essere
-lanciato in subprocess dal notebook `03c_Finetuning_StableDiffusion2.1_VAE_Adapted.ipynb`.
+lanciato in subprocess dal notebook `03_SD21_VAE_FineTuned.ipynb`.
 
 Output principali salvati in ``--output-dir``:
 
@@ -199,7 +199,7 @@ def maybe_load_lpips(device, allow_fallback: bool = False):
         model.eval()
         for param in model.parameters():
             param.requires_grad_(False)
-        print("[03c-VAE] LPIPS caricato correttamente (net=alex, fp32).", flush=True)
+        print("[03-VAE] LPIPS caricato correttamente (net=alex, fp32).", flush=True)
         return model
     except Exception as exc:  # noqa: BLE001
         message = (
@@ -348,8 +348,8 @@ def main():
     finetuned_vae_dir = output_dir / "vae_finetuned"
     reconstruction_plot = output_dir / "vae_reconstruction_before_after.png"
 
-    print("[03c-VAE] output dir:", output_dir)
-    print("[03c-VAE] pretrained SD2.1:", args.pretrained_model_dir)
+    print("[03-VAE] output dir:", output_dir)
+    print("[03-VAE] pretrained SD2.1:", args.pretrained_model_dir)
 
     train_paths = gather_train_paths(
         args.train_metadata_csv,
@@ -358,7 +358,7 @@ def main():
         max_images=args.max_train_images,
     )
     val_paths = gather_val_paths(args.val_metadata_csv, args.data_processed_dir, args.project_root)
-    print(f"[03c-VAE] train images: {len(train_paths)} | val images: {len(val_paths)}")
+    print(f"[03-VAE] train images: {len(train_paths)} | val images: {len(val_paths)}")
 
     import torch
     from diffusers import AutoencoderKL
@@ -378,24 +378,24 @@ def main():
     if hasattr(vae, "enable_gradient_checkpointing"):
         try:
             vae.enable_gradient_checkpointing()
-            print("[03c-VAE] gradient checkpointing VAE abilitato.", flush=True)
+            print("[03-VAE] gradient checkpointing VAE abilitato.", flush=True)
         except Exception as exc:
-            print(f"[03c-VAE][WARN] gradient checkpointing VAE non abilitato: {repr(exc)}", flush=True)
+            print(f"[03-VAE][WARN] gradient checkpointing VAE non abilitato: {repr(exc)}", flush=True)
     if hasattr(vae, "enable_slicing"):
         try:
             vae.enable_slicing()
-            print("[03c-VAE] VAE slicing abilitato.", flush=True)
+            print("[03-VAE] VAE slicing abilitato.", flush=True)
         except Exception as exc:
-            print(f"[03c-VAE][WARN] VAE slicing non abilitato: {repr(exc)}", flush=True)
+            print(f"[03-VAE][WARN] VAE slicing non abilitato: {repr(exc)}", flush=True)
 
     vae.train()
 
     if args.decoder_only:
         trainable_params = freeze_encoder(vae)
-        print(f"[03c-VAE] decoder-only mode: parametri trainable = {trainable_params:,}")
+        print(f"[03-VAE] decoder-only mode: parametri trainable = {trainable_params:,}")
     else:
         trainable_params = sum(param.numel() for param in vae.parameters() if param.requires_grad)
-        print(f"[03c-VAE] full-VAE mode: parametri trainable = {trainable_params:,}")
+        print(f"[03-VAE] full-VAE mode: parametri trainable = {trainable_params:,}")
 
     train_loader = build_dataloader(
         train_paths, args.resolution, args.batch_size, args.num_workers,
@@ -490,7 +490,7 @@ def main():
             if batch_index % 20 == 0:
                 elapsed = time.time() - start_time
                 print(
-                    f"[03c-VAE] epoch {epoch:03d} batch {batch_index:04d}/{len(train_loader):04d} "
+                    f"[03-VAE] epoch {epoch:03d} batch {batch_index:04d}/{len(train_loader):04d} "
                     f"loss={loss.item():.4f} | step={global_step} | elapsed={elapsed:.0f}s",
                     flush=True,
                 )
@@ -517,7 +517,7 @@ def main():
         )
         wall_time = time.time() - start_time
         print(
-            f"[03c-VAE] EPOCH {epoch:03d} | train_loss={train_loss:.4f} "
+            f"[03-VAE] EPOCH {epoch:03d} | train_loss={train_loss:.4f} "
             f"| val_loss={val_loss:.4f} val_psnr={val_psnr:.2f}dB | elapsed={wall_time:.0f}s",
             flush=True,
         )
@@ -560,11 +560,11 @@ def main():
                     "pretrained_model_dir": str(args.pretrained_model_dir),
                     "output_dir": str(output_dir),
                 }, handle, indent=2, ensure_ascii=False)
-            print(f"[03c-VAE]   nuovo best -> salvato in {finetuned_vae_dir}", flush=True)
+            print(f"[03-VAE]   nuovo best -> salvato in {finetuned_vae_dir}", flush=True)
         else:
             epochs_without_improvement += 1
             print(
-                f"[03c-VAE]   nessun miglioramento rilevante "
+                f"[03-VAE]   nessun miglioramento rilevante "
                 f"(delta minimo={args.early_stopping_min_delta:g}); "
                 f"patience {epochs_without_improvement}/{args.early_stopping_patience}",
                 flush=True,
@@ -572,7 +572,7 @@ def main():
             if args.checkpoint_every_epochs > 0 and epoch % args.checkpoint_every_epochs == 0:
                 intermediate_dir = output_dir / "checkpoints" / f"epoch_{epoch:03d}"
                 save_vae_diffusers(vae, intermediate_dir)
-                print(f"[03c-VAE]   checkpoint intermedio -> {intermediate_dir}", flush=True)
+                print(f"[03-VAE]   checkpoint intermedio -> {intermediate_dir}", flush=True)
 
         if (
             args.early_stopping_patience > 0
@@ -581,7 +581,7 @@ def main():
         ):
             stopped_early = True
             print(
-                f"[03c-VAE] Early stopping: val_loss non migliora da "
+                f"[03-VAE] Early stopping: val_loss non migliora da "
                 f"{epochs_without_improvement} epoche. "
                 f"Best epoch={best_epoch}, best_val_loss={best_val:.6f}, "
                 f"best_val_psnr={best_val_psnr:.2f}dB.",
@@ -612,7 +612,7 @@ def main():
     save_reconstruction_grid(final_vae, val_paths, args.resolution, device, torch.float32,
                              reconstruction_plot)
 
-    print(f"[03c-VAE] VAE fine-tuned salvato in {finetuned_vae_dir}")
+    print(f"[03-VAE] VAE fine-tuned salvato in {finetuned_vae_dir}")
     # Aggiorna il JSON finale con l'informazione di early stopping, se presente.
     if best_metrics_path.is_file():
         try:
@@ -625,9 +625,9 @@ def main():
         except Exception as exc:  # noqa: BLE001
             print(f"[WARN] impossibile aggiornare {best_metrics_path}: {exc}", flush=True)
 
-    print(f"[03c-VAE] Best epoch: {best_epoch} | best val loss: {best_val:.4f} | val PSNR: {best_val_psnr:.2f}dB")
-    print(f"[03c-VAE] History log: {log_csv}")
-    print(f"[03c-VAE] Reconstruction grid finale: {reconstruction_plot}")
+    print(f"[03-VAE] Best epoch: {best_epoch} | best val loss: {best_val:.4f} | val PSNR: {best_val_psnr:.2f}dB")
+    print(f"[03-VAE] History log: {log_csv}")
+    print(f"[03-VAE] Reconstruction grid finale: {reconstruction_plot}")
 
 
 if __name__ == "__main__":

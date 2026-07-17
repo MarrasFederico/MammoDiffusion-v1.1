@@ -28,7 +28,7 @@ canonical never exceeds actual via test coverage, and the difference is reported
 
 ## Publication workflow
 
-`notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb` includes the descriptive
+`notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb` includes the descriptive
 generator efficiency table. The final report may also use the registry (never raw EcoTracker
 logs directly) for absolute energy/CO2 per phase, PR-AUC-vs-kWh trade-offs, and actual-vs-
 canonical breakdowns. Efficiency is never a primary generator-selection metric.

@@ -18,7 +18,7 @@
     "n_synth_neg": 1361,
     "train_csv": "../data/processed/metadata/train.csv",
     "val_csv": "../data/processed/metadata/val.csv",
-    "synth_dir": "../data/synthetic/fine_tuned"
+    "synth_dir": "../data/synthetic/02_sd21_filtered_100steps"
   },
   "phase1_head_training": {
     "optimizer": "Adam",

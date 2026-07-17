@@ -1,6 +1,0 @@
-pipeline,class,source_path,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated,n_real_reference
-FineTuned_SD2.1,positive,/home/fede/Documenti/MammoDiffusion/results/03b_finetuning_filtered/metrics/final_test_metrics.json,113.0254,2.4159,0.1138,0.612,0.274,0.3456,0.9726,1361,73
-FineTuned_SD2.1,negative,/home/fede/Documenti/MammoDiffusion/results/03b_finetuning_filtered/metrics/final_test_metrics.json,114.1593,2.3891,0.1175,0.4717,0.2055,0.2178,0.8767,1361,73
-FromScratch_CustomVAE,positive,/home/fede/Documenti/MammoDiffusion/results/04b_ldm_keras_v2_extra1361/metrics/final_filtered_vs_test.json,154.5427,2.2722,0.0963,0.1139,0.0137,0.0534,0.4932,1361,73
-FromScratch_SD_VAE,positive,/home/fede/Documenti/MammoDiffusion/results/04b2_ldm_sdvae_extra1361/metrics/final_filtered_vs_test.json,127.1515,2.3761,0.0957,0.2697,0.1096,0.1398,0.6164,1361,73
-FromScratch_SD_VAE,negative,/home/fede/Documenti/MammoDiffusion/experiments/20260703_ldm_sdvae_extra1361/evaluation_negative/final_filtered_vs_test.json,93.9168,2.6066,0.1147,0.3159,0.1123,0.1558,0.2548,1361,365

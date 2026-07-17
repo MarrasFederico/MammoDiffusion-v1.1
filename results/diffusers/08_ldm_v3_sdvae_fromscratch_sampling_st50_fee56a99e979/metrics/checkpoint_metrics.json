@@ -14,7 +14,7 @@
     "inception_weights": "imagenet",
     "seed": 42,
     "vae_backend": "sd",
-    "sd_vae_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/pretrained_model/stable-diffusion-2-1-base",
+    "sd_vae_model": "/mnt/MammoDiffusion/MammoDiffusion/notebooks/pretrained_model/stable-diffusion-2-1-base",
     "sd_vae_batch_size": 1,
     "best_selection_metric": "fid_1",
     "best_selection_tie_breaker": "is_mean_1",
@@ -27,7 +27,7 @@
       "checkpoint_id": "step_75000",
       "kind": "step",
       "step": 75000,
-      "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras"
+      "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_step075000.keras"
     }
   ],
   "selection_policy": {
@@ -42,7 +42,7 @@
     {
       "checkpoint_id": "step_75000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras",
+      "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_step075000.keras",
       "checkpoint_order": 14,
       "step": 75000,
       "existing_before_0": 50,
@@ -86,14 +86,14 @@
     "selection_reason": "Best generation quality for the positive mammography class",
     "best_checkpoint_id": "step_75000",
     "best_step": 75000,
-    "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_step075000.keras",
-    "best_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
-    "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260707_ldm_v3_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_checkpoint": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_step075000.keras",
+    "best_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_eval_model": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
     "notebook": "04b3_LDM_v3_SDVAE_from_scratch.ipynb",
     "unet_version": "v3",
     "parameterization": "v",
-    "vae_source": "sd_vae_finetuned_03c",
-    "uses_vae_ft_from_03c": true,
+    "vae_source": "sd_vae_finetuned_03",
+    "uses_vae_ft_from_03": true,
     "fid_0": 127.9229,
     "fid_1": 133.1711,
     "fid_mean": 130.547,

@@ -8,7 +8,7 @@
   "class": "negative",
   "label": 0,
   "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/04_sd21_lora/generated_images/final/negative",
-  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fine_tuned_lora/negative",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/04_sd21_lora/negative",
   "n_raw": 2722,
   "n_accepted": 1911,
   "n_rejected": 811,

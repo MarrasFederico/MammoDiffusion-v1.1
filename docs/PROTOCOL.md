@@ -20,8 +20,52 @@ Generator choice is validation-only; downstream test performance cannot change t
 
 ## 2. Generator benchmark
 
-Open and run `notebooks/3_generator_benchmark/05_Unified_Generator_Benchmark.ipynb`; it is the
+Open and run `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`; it is the
 canonical interface and no CLI wrapper is required.
+
+### 2.1 Notebook 01 execution modes
+
+Notebook 01 has two intentionally different modes, controlled by the three explicit Boolean flags in
+its first code cell. The repository is currently prepared for the final real rerun:
+`RUN_REAL_BENCHMARK = True`, `REFRESH_CANDIDATE_AUDIT = True` and
+`BUILD_CANONICAL_PROVENANCE = False`. Run All therefore refreshes the candidate audit, opens the
+declared validation and synthetic images, loads or content-validates the feature cache, recomputes the
+metrics and overwrites the canonical output tables. The provenance rebuild remains disabled because
+the signed runtime identities have already been rebuilt and verified.
+
+For an audit-only inspection, temporarily set `RUN_REAL_BENCHMARK = False` and
+`REFRESH_CANDIDATE_AUDIT = False`: the notebook then loads protocol, registry, roles and provenance,
+but does not open validation images, load feature encoders, recompute embeddings or overwrite metric
+tables. A clean audit-only execution does **not** mean that the numerical benchmark was recomputed.
+
+Real mode additionally requires a local torchvision `Inception_V3_Weights.IMAGENET1K_V1` checkpoint,
+a complete local `microsoft/rad-dino` snapshot and CUDA. The checked-in execution cell currently names
+the verified local files and the physical RTX 5060 Ti UUID before any framework import. Downloads are
+forbidden inside the notebook. Encoder files, preprocessing and identities are hashed, and each
+extractor must return identical finite features on two preflight passes before the benchmark starts.
+Set `BUILD_CANONICAL_PROVENANCE = True` only when a declared checkpoint, latent manifest, generation
+manifest, sample pool or filter mapping has changed; rebuilding changes signed identities and requires
+a fresh selection save.
+
+### 2.2 Notebook 01 cell flow
+
+| Section | What it does | Main input/output |
+|---|---|---|
+| Protocol configuration | Freezes pool size, sampling, feature spaces, metric definitions, gates and ranking hierarchy. | `configs/generator_benchmark_protocol.json` |
+| Candidate discovery | Resolves generator family and role, hashes provenance and model/generation identity, checks manifests and forbidden paths. | registry + provenance manifests → candidate audit |
+| Candidate eligibility | Separates primary candidates from sampling ablations, descriptive baselines and generation-pool ablations. | candidate audit + role policy |
+| RAW/FILTERED counts | Verifies each declared pool and keeps the two representations separate. | signed per-image manifests |
+| Real reference set | Loads all positive validation records only; test and historical-test paths are forbidden. | `data/processed/metadata/val.csv` |
+| Technical validity | Measures readability, expected shape, finite range, near-black/constant images, uniqueness and exact duplication. | `technical_validity.csv` |
+| Feature extraction | Extracts or content-validates cached InceptionV3 and RAD-DINO embeddings. | `embedding_cache/` |
+| Distribution metrics | Computes full-pool KID/FID, balanced PRDC and repeated-subsampling stability. | repetitions + summary CSVs |
+| Diversity/duplication | Computes MS-SSIM diversity, synthetic nearest neighbours and exact/confirmed duplicate evidence. | diversity and duplication CSVs |
+| Train memorization | Compares every synthetic image with the complete training corpus declared by that generator. This is the only similarity analysis allowed to gate memorization. | `train_memorization.csv` |
+| Validation similarity | Finds the nearest real validation positive for descriptive inspection; it is never called memorization. | `validation_similarity.csv` |
+| Summary/ranking | Joins integrity, metrics, safety and valid efficiency evidence, then ranks FILTERED primary candidates within each family. | generator summary/ranking + figures |
+| Diagnostic panels | Renders deterministic closest, median and farthest train/validation/synthetic neighbours. | `diagnostic_panels/` |
+
+### 2.3 Metric design and interpretation
 
 - `synthetic_pool_target = 1361` is the minimum valid synthetic pool per eligible candidate; each
   candidate provides a uniform 1,361 positive images.
@@ -42,6 +86,13 @@ Outputs are separated into `full_pool_distribution_estimates`, `balanced_prdc_po
 embeddings are cached once per generator × representation × extractor, keyed on ordered image IDs,
 path/size/SHA-256 fingerprints, full encoder identity, preprocessing, feature dimension, code version,
 metadata-CSV hash and source-manifest hash. Missing local weights defer execution; no download occurs.
+
+Metric directions are explicit: KID and FID are lower-is-better; precision measures how much
+synthetic content lies in real neighbourhoods; recall and coverage measure how much of the real
+validation distribution is represented; density measures synthetic concentration in real
+neighbourhoods. RAD-DINO KID is primary. FID is secondary because the validation-positive reference
+pool is small. `ms_ssim_diversity = 1 - mean_ms_ssim`, so larger values indicate less pairwise visual
+similarity under that diagnostic.
 
 **Representation-aware technical validity.** Feature extractability (readable, expected shape,
 non-empty finite numeric array) and image quality (additionally not near-black or constant-range) are
@@ -65,8 +116,9 @@ descriptive `raddino_fid` → `inception_kid` → `raddino_kid_std` → `generat
 different generation identity) and is not automatically eligible; the canonical 100-step variant may
 be. G05 is a `descriptive_baseline`. G06 has the same U-Net/VAE/latents/architecture as G05 and is a
 non-eligible `generation_pool_ablation` (its only difference is the larger RAW/filtering pool); its
-invalid per-image mapping is documented, not a blocked primary candidate. Notebook 06 performs a
-transparent manual selection and saves only `configs/selected_generators.json`.
+invalid per-image mapping is documented, not a blocked primary candidate. The generator-benchmark
+selection notebook (`02_Generator_Selection.ipynb`) performs a transparent manual selection and saves
+only `configs/selected_generators.json`.
 
 Canonical publication-v2 identity is `(sample_id, project-relative path, SHA-256)` — basenames are
 never sufficient. Per-image provenance CSVs are local, git-ignored, regenerable runtime artifacts under
@@ -74,6 +126,17 @@ never sufficient. Per-image provenance CSVs are local, git-ignored, regenerable 
 `runtime/shared/`); the repository publishes only the schema, compact v2 index, project-relative
 records, G06 refusal diagnostic and documentary candidate audit. Runtime efficiency fields are
 imported only when explicitly recorded with verified duration semantics; otherwise `unavailable`.
+
+### 2.4 Notebook 01 outputs
+
+The canonical root is `results/publication_v2/generator_benchmark/`. `candidate_audit.csv` records
+roles and provenance blockers; `technical_validity.csv` records RAW/FILTERED integrity;
+`distribution_metrics_repetitions.csv` and `distribution_metrics_summary.csv` contain the shared
+resampling results; `diversity_metrics.csv`, `synthetic_duplication.csv`, `train_memorization.csv` and
+`validation_similarity.csv` keep the four distinct similarity questions separate. The publication
+summary is `generator_summary_corrected.csv`, which preserves invalid legacy timing evidence as
+`unavailable_invalid_duration_semantics`. Gate calibration, amendment evidence and corrected rankings
+are under `gate_audit/`.
 
 ## 3. Post-benchmark gate calibration audit
 
@@ -129,6 +192,13 @@ were selected under the approved amendment, not the original preregistered thres
 
 ## 5. Selection
 
+`notebooks/3_generator_benchmark/02_Generator_Selection.ipynb` is deliberately lightweight. It loads
+no encoder and reads no image pixels. It prefers `generator_summary_corrected.csv`, displays the
+original zero-eligible outcome beside the approved Option B outcome, shows the unchanged KID-primary
+family rankings and paired KID differences, and checks that the two explicit manual constants equal
+the amended top-ranked candidates. With `SAVE_SELECTION=True`, it refuses an inconsistent choice and
+writes the downstream contract.
+
 - **Fine-tuned:** G02 — `02_sd21_filtered_100steps`.
 - **From-scratch:** G07 — `07_ldm_sdvae_extra1361`.
 
@@ -136,6 +206,7 @@ were selected under the approved amendment, not the original preregistered thres
 active amendment, the committed selection evidence, and each generator's model/generation identity and
 FILTERED manifest (path, SHA-256, 1361 records) so silent edits are detected. Classifier synthetic
 conditions consume exactly those signed 1,361 FILTERED records (no directory scan or resampling).
+The file also records that the amendment is post-benchmark and that the test split was not accessed.
 
 ## 6. Classifier design (2 × 4 × 3)
 
@@ -179,21 +250,68 @@ selection may occur after final evaluation begins.
 
 No script launches or replaces a scientific notebook.
 
-1. Run generator notebooks only when candidate outputs are missing.
-2. Execute `05_Unified_Generator_Benchmark.ipynb`; review RAW/FILTERED tables, repeated-subsampling
-   intervals, duplication, train memorization, validation similarity and efficiency.
-3. In `06_Generator_Selection.ipynb`, review the original and amended outcomes and save the selection.
-4. In `07_MaxViT512.ipynb`, set `CONDITION`, `SEED`, `GPU`, `RESUME`, run all cells; repeat
-   its 12 combinations. `GPU` accepts a physical nvidia-smi index or a `GPU-…` UUID (resolved to a
-   UUID before any framework import; verified by physical identity).
-5. Repeat with `08_MammoFM.ipynb`.
-6. Execute `09_Validation_Comparison.ipynb` after all 24 prediction files exist.
-7. Freeze selections, thresholds and comparisons on validation; identify an honest final-evaluation
-   dataset and execute `10_Final_Evaluation_and_Report.ipynb` only when ready.
+### 8.1 Final benchmark reproduction
 
-The 24 manual combinations are the two architectures × the four conditions × seeds 17/42/73; synthetic
-conditions require `configs/selected_generators.json`. Do not tune one condition differently and do not
-consult a final-evaluation split while choosing models or thresholds.
+This refers specifically to
+`notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`, not to the Diffusers or
+classifier notebook that also has the local number `01`. Its first code cell is already configured for
+the final run with the verified local InceptionV3 checkpoint, complete RAD-DINO snapshot and physical
+RTX 5060 Ti UUID. No shell exports are required on this workstation.
+
+Restart the Jupyter kernel, then Run All from the first cell. The restart matters because
+`CUDA_VISIBLE_DEVICES` is assigned before importing PyTorch. A content-validated embedding
+cache hit is a valid real execution: the notebook still opens the declared real/synthetic inputs,
+validates identities and records the cache decision. Do not delete a valid cache merely to force model
+loading. Keep `BUILD_CANONICAL_PROVENANCE = False` for this rerun; set it to `True` only when the
+candidate audit reports a changed runtime component. Rebuilding provenance changes signed identities
+and must be followed by a fresh selection save.
+
+After Notebook 01 completes without deferred cells or errors, refresh the derived post-benchmark
+artifacts in this order:
+
+```bash
+python notebooks/utility/run_gate_audit.py
+python notebooks/utility/run_gate_amendment.py
+python notebooks/utility/correct_efficiency_summary.py
+```
+
+Then Run All
+`notebooks/3_generator_benchmark/02_Generator_Selection.ipynb` with `SAVE_SELECTION=True`, and require
+the final hand-off audit to pass:
+
+```bash
+python notebooks/utility/classifier_preflight.py
+```
+
+If the real rerun changes a frozen benchmark/evidence hash, selection must stop for explicit review;
+the mismatch must not be bypassed or silently replaced.
+
+1. Run generator notebooks only when candidate outputs are missing.
+2. Execute `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`; review RAW/FILTERED tables, repeated-subsampling
+   intervals, duplication, train memorization, validation similarity and efficiency.
+3. In `notebooks/3_generator_benchmark/02_Generator_Selection.ipynb`, review the original and amended outcomes and save the selection.
+4. Run all cells in `notebooks/04_classifiers/01_MaxViT512.ipynb` once. The notebook executes all
+   four conditions and seeds 17, 42 and 73 sequentially, with an independent model, optimizer,
+   output directory and resumable checkpoint for each of its 12 jobs. Before importing a GPU
+   framework, the shared utility
+   discovers the physical NVIDIA inventory and deterministically selects the device with the most
+   total VRAM (the RTX 5060 Ti on the reference workstation), then masks and verifies its runtime
+   UUID. No device index, UUID or shell environment variable is required. Model construction,
+   DataLoaders, optimizer, focal loss, AMP, gradient accumulation, training/validation loops,
+   scheduler, early stopping and checkpoint selection are explicit notebook cells; Python modules
+   are imported there only for reusable architecture, data, metric and atomic-I/O primitives.
+5. Run `notebooks/04_classifiers/02_MammoFM.ipynb` once. It executes its 12 jobs with the same
+   condition/seed isolation and uses the same portable automatic GPU
+   selection and resolves the official Mammo-FM checkpoint strictly from the local Hugging Face
+   cache; no shell environment variable or runtime download is required.
+6. Execute `notebooks/04_classifiers/03_Validation_Comparison.ipynb` after all 24 prediction files exist.
+7. Freeze selections, thresholds and comparisons on validation; identify an honest final-evaluation
+   dataset and execute `notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb` only when ready.
+
+The 24 logical experiments are the two architectures × the four conditions × seeds 17/42/73. There
+are two manual classifier executions because each architecture notebook cycles over all 12 of its
+condition/seed jobs; synthetic conditions require `configs/selected_generators.json`. Do not tune
+one condition differently and do not consult a final-evaluation split while choosing models or thresholds.
 
 ## 9. Historical V1 classifiers
 

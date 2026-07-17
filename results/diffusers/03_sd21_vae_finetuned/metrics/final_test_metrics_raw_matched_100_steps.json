@@ -16,12 +16,12 @@
       "negative"
     ],
     "raw_matched_dirs": {
-      "positive": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/positive",
-      "negative": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/negative"
+      "positive": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive",
+      "negative": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/negative"
     },
     "raw_matched_manifests": {
-      "positive": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/positive_manifest.json",
-      "negative": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/negative_manifest.json"
+      "positive": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive_manifest.json",
+      "negative": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/negative_manifest.json"
     }
   },
   "input_signature": {
@@ -13643,14 +13643,14 @@
     },
     "raw_matched_manifests": {
       "positive": {
-        "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/positive_manifest.json",
-        "size": 28170,
-        "mtime_ns": 1783464516758856817
+        "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive_manifest.json",
+        "size": 28176,
+        "mtime_ns": 1784219394784058848
       },
       "negative": {
-        "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/negative_manifest.json",
-        "size": 28110,
-        "mtime_ns": 1783464518054920552
+        "path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/negative_manifest.json",
+        "size": 28116,
+        "mtime_ns": 1784219396626647388
       }
     },
     "test_csv": {
@@ -13659,9 +13659,9 @@
       "mtime_ns": 1783073699207657924
     }
   },
-  "experiment": "20260706_sd21_vaeft_extra1361",
+  "experiment": "diffusers/03_sd21_vae_finetuned",
   "best_checkpoint": "checkpoint-4000",
-  "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/model/checkpoint-4000",
+  "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-4000",
   "inference_steps": 100,
   "stage": "raw_matched",
   "n_generated": 1361,
@@ -13674,8 +13674,8 @@
     "negative"
   ],
   "avg_FID": 115.9317,
-  "avg_IS_mean": 2.3048,
-  "avg_IS_std": 0.098,
+  "avg_IS_mean": 2.3079,
+  "avg_IS_std": 0.0842,
   "avg_precision": 0.4244,
   "avg_recall": 0.1164,
   "avg_density": 0.216,
@@ -13683,8 +13683,8 @@
   "per_class": {
     "positive": {
       "FID": 105.5228,
-      "IS_mean": 2.209,
-      "IS_std": 0.0955,
+      "IS_mean": 2.2084,
+      "IS_std": 0.0823,
       "precision": 0.5129,
       "recall": 0.0959,
       "density": 0.2905,
@@ -13697,17 +13697,17 @@
       "target_n": 1361,
       "class_name": "positive",
       "label": 1,
-      "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/model/checkpoint-4000",
+      "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-4000",
       "checkpoint_id": "checkpoint-4000",
-      "manifest": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/positive_manifest.json",
+      "manifest": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive_manifest.json",
       "manifest_payload": {
         "schema_version": 1,
-        "timestamp": "2026-07-08T00:48:36",
-        "experiment_name": "20260706_sd21_vaeft_extra1361",
+        "timestamp": "2026-07-16T18:29:54",
+        "experiment_name": "diffusers/03_sd21_vae_finetuned",
         "class_name": "positive",
         "label": 1,
-        "source_raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/final/positive",
-        "output_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/positive",
+        "source_raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/final/positive",
+        "output_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive",
         "n_raw_available": 2722,
         "n_selected": 1361,
         "random_seed": 43,
@@ -15080,12 +15080,12 @@
       "real_label": 1,
       "n_real_reference": 73,
       "real_reference_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/positive"
+      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/positive"
     },
     "negative": {
       "FID": 126.3405,
-      "IS_mean": 2.4006,
-      "IS_std": 0.1005,
+      "IS_mean": 2.4075,
+      "IS_std": 0.0861,
       "precision": 0.3358,
       "recall": 0.137,
       "density": 0.1415,
@@ -15098,17 +15098,17 @@
       "target_n": 1361,
       "class_name": "negative",
       "label": 0,
-      "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/model/checkpoint-4000",
+      "checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-4000",
       "checkpoint_id": "checkpoint-4000",
-      "manifest": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/negative_manifest.json",
+      "manifest": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/negative_manifest.json",
       "manifest_payload": {
         "schema_version": 1,
-        "timestamp": "2026-07-08T00:48:38",
-        "experiment_name": "20260706_sd21_vaeft_extra1361",
+        "timestamp": "2026-07-16T18:29:56",
+        "experiment_name": "diffusers/03_sd21_vae_finetuned",
         "class_name": "negative",
         "label": 0,
-        "source_raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/final/negative",
-        "output_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/negative",
+        "source_raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/final/negative",
+        "output_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/negative",
         "n_raw_available": 2722,
         "n_selected": 1361,
         "random_seed": 42,
@@ -16481,8 +16481,8 @@
       "real_label": 0,
       "n_real_reference": 73,
       "real_reference_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/20260706_sd21_vaeft_extra1361/generated_images/raw_matched_1361/negative"
+      "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/03_sd21_vae_finetuned/generated_images/raw_matched_1361/negative"
     }
   },
-  "timestamp": "2026-07-08T01:02:53"
+  "timestamp": "2026-07-16T18:34:14"
 }

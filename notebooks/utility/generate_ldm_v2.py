@@ -17,6 +17,7 @@ from pathlib import Path
 
 
 from ldm_project_paths import (
+    KERAS_V2_RESULTS_STAGE_NAME,
     class_name_for_label,
     get_class_evaluation_dir,
     get_class_image_dirs,
@@ -124,9 +125,9 @@ def parse_args() -> argparse.Namespace:
         help="Informativo: sorgente del VAE usato per i latenti, salvato nei manifest di output.",
     )
     parser.add_argument(
-        "--uses-vae-ft-from-03c",
+        "--uses-vae-ft-from-03",
         action="store_true",
-        help="Informativo: marca nei manifest che il VAE e' quello fine-tuned di 03c.",
+        help="Informativo: marca nei manifest che il VAE e' quello fine-tuned di 03.",
     )
     parser.add_argument(
         "--notebook-name",
@@ -141,7 +142,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--filtered-dir", type=Path, default=None)
     parser.add_argument(
         "--results-stage-name",
-        default="04_ldm_keras_v2",
+        default=KERAS_V2_RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare metriche, plot e log EcoTracker.",
     )
     parser.add_argument("--inception-batch", type=int, default=8)
@@ -462,7 +463,7 @@ def manifest_lineage_fields(args: argparse.Namespace) -> dict:
         "unet_version": args.unet_version,
         "parameterization": args.parameterization,
         "vae_source": args.vae_source,
-        "uses_vae_ft_from_03c": args.uses_vae_ft_from_03c,
+        "uses_vae_ft_from_03": args.uses_vae_ft_from_03,
     }
 
 
@@ -1165,11 +1166,17 @@ def run_validate(args: argparse.Namespace, paths) -> None:
     class_metrics_dir = get_class_metrics_dir(results_paths, args.target_label)
     canonical_csv_path = class_metrics_dir / "raw_vs_filtered_validation.csv"
     canonical_json_path = class_metrics_dir / "raw_vs_filtered_validation.json"
+    if canonical_run:
+        # CSV writes do not create parent directories (unlike write_json/copy_if_exists).
+        # A fresh validation run must therefore prepare the class-scoped metrics dir.
+        class_metrics_dir.mkdir(parents=True, exist_ok=True)
 
     if not args.force_recompute and use_metrics_cache(json_path, csv_path, config, input_signature):
         if canonical_run:
             copy_if_exists(csv_path, canonical_csv_path)
             copy_if_exists(json_path, canonical_json_path)
+            mirror_positive_legacy_outputs(class_metrics_dir, results_paths.metrics_dir, args.target_label)
+            mirror_positive_legacy_outputs(output_dir, paths.evaluation_dir, args.target_label)
         return
 
     rows = []
@@ -1351,8 +1358,8 @@ def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
     command.extend(["--parameterization", args.parameterization])
     command.extend(["--unet-version", args.unet_version])
     command.extend(["--vae-source", args.vae_source])
-    if args.uses_vae_ft_from_03c:
-        command.append("--uses-vae-ft-from-03c")
+    if args.uses_vae_ft_from_03:
+        command.append("--uses-vae-ft-from-03")
     if args.notebook_name is not None:
         command.extend(["--notebook-name", str(args.notebook_name)])
     return command

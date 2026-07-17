@@ -2,7 +2,7 @@
   "schema_version": 1,
   "input_signature": {
     "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw_negative",
-    "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fromscratch_v3/negative",
+    "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/08_ldm_v3_sdvae_fromscratch/negative",
     "n_raw": 4083,
     "n_selected": 1361,
     "target_label": 0,
@@ -28967,7 +28967,7 @@
     "largest_component_frac": 0.00263542837800268
   },
   "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw_negative",
-  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/fromscratch_v3/negative",
+  "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/08_ldm_v3_sdvae_fromscratch/negative",
   "report_path": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/negative/synthetic_filter_report.csv",
   "plots": {
     "sample_plot": "/mnt/MammoDiffusion/MammoDiffusion/results/diffusers/08_ldm_v3_sdvae_fromscratch/plots/negative/synthetic_filter_sample.png",

@@ -14,8 +14,8 @@
   "manifest_sha256": {
     "training_corpus": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
     "raw_samples": "b3162d2e4e041529e2a60d4b8a5b647ca256fc493eeb2338e98a62ae26d9cb67",
-    "filtered_samples": "77a6a7b483fbac50d8199eda0c2d483fab76d0b889823406d7d660391448420c",
-    "filter_mapping": "002ee462a7bdea14810b328a94071a8ad22df993773befc906c202e937f50253"
+    "filtered_samples": "3f6632a791b66ddd7df489a925940fd21ca69847a2875b2a2245867ef5e616cd",
+    "filter_mapping": "f91fcd6f9f86e262287e2bed05af8081de588ef3f84f79afe4d68259104c972f"
   },
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "generation_configuration": {
@@ -46,7 +46,7 @@
   "source_evidence": [
     "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
     "results/diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json",
-    "experiments/diffusers/02_sd21_filtered_100steps/legacy_runtime_manifest.json"
+    "experiments/diffusers/02_sd21_filtered_100steps/runtime_manifest.json"
   ],
   "parent_generator_id": null,
   "model_components": [

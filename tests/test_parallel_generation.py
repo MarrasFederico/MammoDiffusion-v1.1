@@ -10,6 +10,7 @@ import ast
 import argparse
 import importlib
 import importlib.util
+import inspect
 import json
 import threading
 import time
@@ -76,7 +77,11 @@ def png(path: Path) -> None:
 
 
 class ParallelGenerationTests(unittest.TestCase):
-    def test_final_plan_accepts_global_slot_layout_and_preserves_surplus(self):
+    def test_prepare_sd_manifest_legacy_argument_is_optional(self):
+        parameter = inspect.signature(prepare_sd_manifest).parameters["allow_legacy_seed_mix"]
+        self.assertIs(parameter.default, True)
+
+    def test_final_plan_counts_valid_indexed_images_independent_of_start_index(self):
         with tempfile.TemporaryDirectory() as t:
             directory = Path(t)
             for index in range(2):
@@ -86,8 +91,21 @@ class ParallelGenerationTests(unittest.TestCase):
                 png(directory / f"gen_{index:04d}.png")
             plan = final_sd_generation_plan(directory, target_total=5, reused_prefix="eval_neg")
             self.assertTrue(plan["complete"])
-            self.assertEqual(plan["gen_index_layout"], "global_target_slots")
-            self.assertEqual(plan["excluded_surplus_gen_files"], [])
+            self.assertEqual(plan["gen_index_layout"], "indexed_count")
+            self.assertEqual(plan["missing_gen_indices"], [])
+            self.assertEqual(plan["extra_files"], [])
+
+    def test_sd_notebooks_generate_target_minus_copied_evaluation_images(self):
+        for name in (
+            "01_SD21_Baseline_50steps.ipynb",
+            "02_SD21_Filtered_100steps.ipynb",
+            "03_SD21_VAE_FineTuned.ipynb",
+            "04_SD21_LoRA.ipynb",
+        ):
+            source = (ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8")
+            self.assertIn('n_reused = len(reuse_provenance[\\"files\\"])', source)
+            self.assertIn("n_new = int(target_total) - int(n_reused)", source)
+            self.assertIn('\\"count\\": n_new', source)
     def test_dynamic_reservation_defaults_and_last_chunk(self):
         self.assertEqual(DEFAULT_GENERATION_SCHEDULER, "dynamic_reservations")
         self.assertEqual(DEFAULT_GENERATION_RESERVATION_SIZE, 4)
@@ -808,7 +826,7 @@ class ParallelGenerationTests(unittest.TestCase):
                 **self._sweep_args(force_recompute=True).__dict__, cuda_root=root,
                 min_step=1, classes="0,1", vram_log_every=10,
                 results_stage_name="test", generation_gpus="auto",
-                uses_vae_ft_from_03c=False, notebook_name=None,
+                uses_vae_ft_from_03=False, notebook_name=None,
             )
             paths = SimpleNamespace(project_root=root, experiment_dir=root / "experiment")
             command = evaluate_ldm_v2.child_generate_command(args, paths, "step_1", "0")
@@ -1072,7 +1090,7 @@ class ParallelGenerationTests(unittest.TestCase):
         self.assertIn("return", typing.get_type_hints(sd_vae_utils.image_batch_to_sd_tensor))
 
     def test_classifier_comparison_notebook_compiles_and_does_not_open_test(self) -> None:
-        notebook = json.loads((ROOT / "notebooks" / "04_classifiers" / "09_Validation_Comparison.ipynb").read_text(encoding="utf-8"))
+        notebook = json.loads((ROOT / "notebooks" / "04_classifiers" / "03_Validation_Comparison.ipynb").read_text(encoding="utf-8"))
         cells = ["".join(cell.get("source", [])) for cell in notebook["cells"] if cell.get("cell_type") == "code"]
         joined = "\n".join(cells)
         self.assertIn("from notebooks.utility.classifier_analysis import", joined)
@@ -1331,56 +1349,22 @@ class ParallelGenerationTests(unittest.TestCase):
                 run_sd_generation_jobs([job], "0", 1, root / "logs", root, dry_run=True)
             self.assertFalse((out_dir / ".parallel_generation.lock").exists())
 
-    # -- Notebook 07/08 multi-GPU smoke cell (item 1 + item 7 checklist) ------------
-
-    @staticmethod
-    def _smoke_cell_source(notebook_name: str) -> str:
-        notebook = json.loads((ROOT / "notebooks" / "2_diffusers" / notebook_name).read_text(encoding="utf-8"))
-        return next(
-            "".join(cell["source"])
-            for cell in notebook["cells"]
-            if cell.get("cell_type") == "code" and "RUN_MULTI_GPU_SMOKE = False" in "".join(cell.get("source", []))
-        )
-
-    def test_smoke_cell_disabled_by_default_and_compiles(self) -> None:
+    def test_notebooks_do_not_embed_smoke_tests(self) -> None:
         for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
-            cell = self._smoke_cell_source(name)
-            self.assertIn("RUN_MULTI_GPU_SMOKE = False", cell)
-            compile(cell, name, "exec")
+            source = (ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8")
+            self.assertNotIn("RUN_MULTI_GPU_SMOKE", source)
+            self.assertNotIn("Smoke test multi-GPU", source)
 
-    def test_smoke_command_uses_two_workers_on_explicit_gpu_list(self) -> None:
-        for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
-            cell = self._smoke_cell_source(name)
-            self.assertIn('SMOKE_GENERATION_GPU_DEVICES = "0,1"', cell)
-            self.assertIn("SMOKE_MAX_WORKERS = 2", cell)
-            self.assertIn('"--generation-gpus", SMOKE_GENERATION_GPU_DEVICES', cell)
-            self.assertIn('"--max-generation-workers", str(SMOKE_MAX_WORKERS)', cell)
-            self.assertIn('"--mode", "generate"', cell)
-
-    def test_smoke_command_uses_isolated_directories(self) -> None:
-        for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
-            cell = self._smoke_cell_source(name)
-            self.assertIn('EXPERIMENT_DIR / "smoke_multi_gpu_dynamic" / f"run_{time.time_ns()}"', cell)
-            self.assertIn('SMOKE_GENERATION_SCHEDULER = "dynamic_reservations"', cell)
-            self.assertIn("SMOKE_RESERVATION_SIZE = 4", cell)
-            self.assertIn('"--raw-dir", str(SMOKE_RAW_DIR)', cell)
-            self.assertIn('"--filtered-dir", str(SMOKE_FILTERED_DIR)', cell)
-            # Must not reference the canonical/negative dataset directories of the real run.
-            for canonical_ref in ("NEG_RAW_DIR", "NEG_FILTERED_DIR", "GEN_N_RAW", "GEN_MODEL_PATH"):
-                self.assertNotIn(canonical_ref, cell)
-
-    def test_smoke_fails_explicitly_when_fewer_than_two_gpus_resolved(self) -> None:
-        for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
-            cell = self._smoke_cell_source(name)
-            guard_index = cell.index("len(smoke_devices) < 2")
-            raise_index = cell.index("raise RuntimeError", guard_index)
-            self.assertLess(guard_index, raise_index)
-            self.assertLess(raise_index, cell.index("SMOKE MULTI-GPU SUPERATO"))
-
-    def test_smoke_prints_success_marker_verbatim(self) -> None:
-        for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
-            cell = self._smoke_cell_source(name)
-            self.assertIn('print("SMOKE MULTI-GPU SUPERATO")', cell)
+    def test_sd_notebooks_trust_existing_generated_images_without_legacy_flag(self) -> None:
+        for name in (
+            "01_SD21_Baseline_50steps.ipynb",
+            "02_SD21_Filtered_100steps.ipynb",
+            "03_SD21_VAE_FineTuned.ipynb",
+            "04_SD21_LoRA.ipynb",
+        ):
+            source = (ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8")
+            self.assertNotIn("ALLOW_LEGACY_SEED_MIX", source)
+            self.assertNotIn('"allow_legacy_seed_mix"', source)
 
     def test_notebooks_document_cuda_visible_devices_inheritance_before_generation(self) -> None:
         for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):

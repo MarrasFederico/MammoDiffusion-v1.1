@@ -22,79 +22,79 @@
       "checkpoint_id": "best_train",
       "kind": "best_train_loss",
       "step": null,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_unet_best.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best.keras"
     },
     {
       "checkpoint_id": "step_7000",
       "kind": "step",
       "step": 7000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step007000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step007000.keras"
     },
     {
       "checkpoint_id": "step_14000",
       "kind": "step",
       "step": 14000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step014000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step014000.keras"
     },
     {
       "checkpoint_id": "step_21000",
       "kind": "step",
       "step": 21000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step021000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step021000.keras"
     },
     {
       "checkpoint_id": "step_28000",
       "kind": "step",
       "step": 28000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step028000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step028000.keras"
     },
     {
       "checkpoint_id": "step_35000",
       "kind": "step",
       "step": 35000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step035000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step035000.keras"
     },
     {
       "checkpoint_id": "step_42000",
       "kind": "step",
       "step": 42000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step042000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step042000.keras"
     },
     {
       "checkpoint_id": "step_49000",
       "kind": "step",
       "step": 49000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step049000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step049000.keras"
     },
     {
       "checkpoint_id": "step_56000",
       "kind": "step",
       "step": 56000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step056000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step056000.keras"
     },
     {
       "checkpoint_id": "step_63000",
       "kind": "step",
       "step": 63000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step063000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step063000.keras"
     },
     {
       "checkpoint_id": "step_70000",
       "kind": "step",
       "step": 70000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step070000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step070000.keras"
     },
     {
       "checkpoint_id": "step_77000",
       "kind": "step",
       "step": 77000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step077000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step077000.keras"
     },
     {
       "checkpoint_id": "step_80000",
       "kind": "step",
       "step": 80000,
-      "path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step080000.keras"
+      "path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step080000.keras"
     }
   ],
   "selection_policy": {
@@ -109,7 +109,7 @@
     {
       "checkpoint_id": "best_train",
       "checkpoint_kind": "best_train_loss",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_unet_best.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best.keras",
       "checkpoint_order": 0,
       "step": null,
       "existing_before_0": 100,
@@ -146,7 +146,7 @@
     {
       "checkpoint_id": "step_7000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step007000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step007000.keras",
       "checkpoint_order": 1,
       "step": 7000.0,
       "existing_before_0": 100,
@@ -183,7 +183,7 @@
     {
       "checkpoint_id": "step_14000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step014000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step014000.keras",
       "checkpoint_order": 2,
       "step": 14000.0,
       "existing_before_0": 100,
@@ -220,7 +220,7 @@
     {
       "checkpoint_id": "step_21000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step021000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step021000.keras",
       "checkpoint_order": 3,
       "step": 21000.0,
       "existing_before_0": 100,
@@ -257,7 +257,7 @@
     {
       "checkpoint_id": "step_28000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step028000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step028000.keras",
       "checkpoint_order": 4,
       "step": 28000.0,
       "existing_before_0": 100,
@@ -294,7 +294,7 @@
     {
       "checkpoint_id": "step_35000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step035000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step035000.keras",
       "checkpoint_order": 5,
       "step": 35000.0,
       "existing_before_0": 100,
@@ -331,7 +331,7 @@
     {
       "checkpoint_id": "step_42000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step042000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step042000.keras",
       "checkpoint_order": 6,
       "step": 42000.0,
       "existing_before_0": 100,
@@ -368,7 +368,7 @@
     {
       "checkpoint_id": "step_49000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step049000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step049000.keras",
       "checkpoint_order": 7,
       "step": 49000.0,
       "existing_before_0": 100,
@@ -405,7 +405,7 @@
     {
       "checkpoint_id": "step_56000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step056000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step056000.keras",
       "checkpoint_order": 8,
       "step": 56000.0,
       "existing_before_0": 100,
@@ -442,7 +442,7 @@
     {
       "checkpoint_id": "step_63000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step063000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step063000.keras",
       "checkpoint_order": 9,
       "step": 63000.0,
       "existing_before_0": 100,
@@ -479,7 +479,7 @@
     {
       "checkpoint_id": "step_70000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step070000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step070000.keras",
       "checkpoint_order": 10,
       "step": 70000.0,
       "existing_before_0": 100,
@@ -516,7 +516,7 @@
     {
       "checkpoint_id": "step_77000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step077000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step077000.keras",
       "checkpoint_order": 11,
       "step": 77000.0,
       "existing_before_0": 100,
@@ -553,7 +553,7 @@
     {
       "checkpoint_id": "step_80000",
       "checkpoint_kind": "step",
-      "checkpoint_path": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step080000.keras",
+      "checkpoint_path": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step080000.keras",
       "checkpoint_order": 12,
       "step": 80000.0,
       "existing_before_0": 100,
@@ -597,9 +597,9 @@
     "selection_reason": "Best generation quality for the positive mammography class",
     "best_checkpoint_id": "step_70000",
     "best_step": 70000,
-    "best_checkpoint": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_step070000.keras",
-    "best_model": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
-    "best_eval_model": "/workspace/MammoDiffusion/experiments/20260619_ldm_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_checkpoint": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_step070000.keras",
+    "best_model": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+    "best_eval_model": "/workspace/MammoDiffusion/experiments/diffusers/06_ldm_extra1361_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
     "fid_0": 238.1645,
     "fid_1": 205.8238,
     "fid_mean": 221.99415,

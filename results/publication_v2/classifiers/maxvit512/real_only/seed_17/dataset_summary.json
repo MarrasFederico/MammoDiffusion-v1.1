@@ -17,5 +17,5 @@
   "validation_images": 437,
   "validation_patients": 437,
   "validation_manifest": "data/processed/metadata/val.csv",
-  "validation_signature": "fc2ccef39c2781ee9c3d74803a3175f7df1cffe8e4622f34c8d8f6c9906096dd"
+  "validation_signature": "9ef7ba6bfb2160d9fd328e85fa2a043305b0957794aeadf03d7426995b812836"
 }

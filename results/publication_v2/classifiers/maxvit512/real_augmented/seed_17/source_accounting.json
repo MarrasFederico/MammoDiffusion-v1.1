@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "accounting_mode": "actual",
-  "real_negative_seen": 35569,
-  "real_positive_seen": 7140,
-  "traditional_augmented_seen": 21243,
+  "real_negative_seen": 55577,
+  "real_positive_seen": 11135,
+  "traditional_augmented_seen": 33213,
   "finetuned_synthetic_seen": 0,
   "fromscratch_synthetic_seen": 0,
-  "total_samples_seen": 63952
+  "total_samples_seen": 99925
 }

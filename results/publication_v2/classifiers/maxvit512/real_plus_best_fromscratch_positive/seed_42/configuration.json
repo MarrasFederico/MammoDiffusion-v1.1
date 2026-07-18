@@ -2,11 +2,11 @@
   "architecture": "maxvit512",
   "condition": "real_plus_best_fromscratch_positive",
   "seed": 42,
-  "gpu": "auto",
+  "gpu": "1",
   "experiment_id": "maxvit512__real_plus_best_fromscratch_positive__seed42",
   "training_policy": "maxvit512_fixed_protocol",
   "policy_signature": "afe746ee054f473ba9bf5bdbbd69761b7b853df5e04d7c687f45a907c4749b9a",
-  "dataset_signature": "91e06b9c37f7918359ecfbbdace89a9d727df87b6385732cadf14206d4d322bf",
+  "dataset_signature": "838469a58730d397a01069222b8490218a41630977583429b4d4f9cdf75db61f",
   "completion_reason": "early_stopping",
   "training_budget": {
     "max_optimizer_updates": 6400,
@@ -17,7 +17,7 @@
     "validation_interval": 250,
     "validation_manifest": "data/processed/metadata/val.csv"
   },
-  "checkpoint_gpu_uuid": "GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d",
+  "checkpoint_gpu_uuid": null,
   "runtime_gpu_uuid": "GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d",
   "gpu_changed": false
 }

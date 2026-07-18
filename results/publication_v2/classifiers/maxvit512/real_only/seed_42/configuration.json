@@ -2,8 +2,12 @@
   "architecture": "maxvit512",
   "condition": "real_only",
   "seed": 42,
-  "gpu": "auto",
+  "gpu": "1",
+  "experiment_id": "maxvit512__real_only__seed42",
+  "training_policy": "maxvit512_fixed_protocol",
   "policy_signature": "afe746ee054f473ba9bf5bdbbd69761b7b853df5e04d7c687f45a907c4749b9a",
+  "dataset_signature": "4074b298a320628c53ca97083373185887a01b66b3b09e12a75157fc97645929",
+  "completion_reason": "max_optimizer_updates",
   "training_budget": {
     "max_optimizer_updates": 6400,
     "checkpoint_metric": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",

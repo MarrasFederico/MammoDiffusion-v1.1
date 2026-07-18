@@ -12,6 +12,8 @@
   training/validation loop remains visible in notebook cells.
 - `04_classifiers/03_Validation_Comparison.ipynb`: eight seed ensembles and validation comparisons.
 - `04_classifiers/04_Final_Evaluation_and_Report.ipynb`: optional final evaluation and factual report.
+- `5_sustainability/01_Sustainability_Comparison.ipynb`: energy/CO2/time comparison of the generator
+  experiments from the canonical sustainability registry.
 - `utility/`: reusable architecture, dataset, metric and atomic-I/O primitives imported by notebooks.
 
 No Python file launches notebooks, and no scientific notebook invokes a subprocess wrapper.

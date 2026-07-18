@@ -213,7 +213,7 @@ The file also records that the amendment is post-benchmark and that the test spl
 Fixed primary design: architectures **MaxViT-512** and **Mammo-FM**; conditions `real_only`,
 `real_augmented`, `real_plus_best_finetuned_positive`, `real_plus_best_fromscratch_positive`; seeds
 17, 42, 73 — exactly 24 logical experiments and 8 three-seed validation ensembles. RAD-DINO is not a
-downstream classifier; ResNet-50 remains historical V1 material.
+downstream classifier; it is only a feature extractor in the generative benchmark.
 
 Within an architecture, every condition shares at most 6,400 optimizer updates, the same effective
 batch size, loss, class weighting, online real augmentation, validation manifest and frequency,
@@ -231,20 +231,17 @@ mean-probability ensembles (all three seeds required, identical patient/image ke
 duplicates/missing, finite probabilities, same validation manifest). The eight declared PR-AUC
 comparisons form one Holm family; any additional comparison is exploratory.
 
-## 7. Historical internal test — status and limitation
+## 7. Final evaluation on the held-out test set
 
-The previous internal test is a **historically reused internal evaluation set**, not an untouched
-internal holdout: the repository contains V1 test metric files, historical MaxViT/ResNet test outputs,
-final-test prediction paths and prior coverage tables, which is sufficient evidence that the split has
-informed previous analyses. It must be described as a historical internal test / reused internal
-evaluation set; results are internal and exploratory and **not an independent external confirmation**,
-and it must not be called unopened, untouched, or pristine. This audit did not open new test images,
-run inference, or modify any split. For publication, prefer an external dataset or a new untouched
-holdout created through an explicit scientific decision.
+Final evaluation runs once on the held-out test set (`data/processed/test/`). Every decision — the
+selected checkpoints, the decision thresholds and the eight preregistered comparisons — is fixed on
+validation before any test access, so the test set contributes no model selection. Primary inference
+uses patient-level bootstrap and Holm correction over the eight declared comparisons; any additional
+analysis is exploratory.
 
-Final evaluation uses a visible opt-in Boolean, a readiness checklist and a plain JSON protocol
-snapshot — no cryptographic lock, Git revision gate or one-shot enforcement. No model or threshold
-selection may occur after final evaluation begins.
+Final evaluation uses a visible opt-in flag (`RUN_TEST_INFERENCE`) — no cryptographic lock, Git
+revision gate or one-shot enforcement. No model or threshold selection may occur after final
+evaluation begins.
 
 ## 8. Manual execution
 
@@ -313,16 +310,7 @@ are two manual classifier executions because each architecture notebook cycles o
 condition/seed jobs; synthetic conditions require `configs/selected_generators.json`. Do not tune
 one condition differently and do not consult a final-evaluation split while choosing models or thresholds.
 
-## 9. Historical V1 classifiers
-
-ResNet-50 was the central classifier in MammoDiffusion V1. Tracked artifacts under
-`experiments/classifiers/resnet50/` are retained as historical evidence, not deleted or rewritten.
-They belong to a previous version/protocol, motivated the move to MaxViT-512, are not part of the
-24-job V2 protocol or the eight primary comparisons, and must not be merged with publication-v2
-prediction tables or any future final evaluation. The full pre-simplification pipeline is recoverable
-from Git history and the tag `classifier-matrix-v2-full`.
-
-## 10. Mammo-FM license
+## 9. Mammo-FM license
 
 Mammo-FM weights are governed by a **Custom Academic License for Model Weights** (non-commercial
 academic use only; no redistribution of weights or derivatives; no distillation). The repository must

@@ -29,9 +29,10 @@ canonical never exceeds actual via test coverage, and the difference is reported
 ## Publication workflow
 
 `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb` includes the descriptive
-generator efficiency table. The final report may also use the registry (never raw EcoTracker
-logs directly) for absolute energy/CO2 per phase, PR-AUC-vs-kWh trade-offs, and actual-vs-
-canonical breakdowns. Efficiency is never a primary generator-selection metric.
+generator efficiency table. `notebooks/5_sustainability/01_Sustainability_Comparison.ipynb` reads the
+canonical registry (never raw EcoTracker logs directly) and plots absolute energy/CO2 per generator
+experiment, the per-phase decomposition, generation energy per 1000 images, and the actual-vs-
+canonical breakdown. Efficiency is never a primary generator-selection metric.
 
 Existing `notebooks/utility/eco_tracker.py` provides CodeCarbon measurement and RAM-peak
 sampling. Runtime events may be recorded by later real executions; this refactoring produced no
@@ -39,10 +40,10 @@ training or scientific sustainability result.
 
 CodeCarbon figures are estimates, not wall-socket measurements — repeated here because the
 original notebook's summary made the same disclaimer and it remains true.
-# Import legacy canonico
+## Legacy canonical import
 
-`python scripts/import_legacy_sustainability_logs.py` normalizza in modo idempotente i JSON/JSONL
-EcoTracker già presenti in `experiments/` e `results/`, deduplica per firma del contenuto e scrive
-`results/sustainability/canonical_events.jsonl`. Il dataset corrente contiene 193 eventi importati.
-Il report publication-oriented può usare questa registry e deve riportare separatamente actual
-e canonical energy.
+`python scripts/import_legacy_sustainability_logs.py` idempotently normalizes the EcoTracker
+JSON/JSONL logs already present under `experiments/` and `results/`, deduplicates them by content
+signature and writes `results/sustainability/canonical_events.jsonl`. The current dataset contains
+193 imported events. The publication-oriented report may use this registry and must report actual
+and canonical energy separately.

@@ -46,7 +46,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from ldm_project_paths import KERAS_V2_RESULTS_STAGE_NAME, find_project_root
+from ldm_project_paths import RESULTS_STAGE_NAME, find_project_root
 
 import numpy as np
 import pandas as pd
@@ -195,7 +195,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--results-stage-name",
-        default=KERAS_V2_RESULTS_STAGE_NAME,
+        default=RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare il log EcoTracker LDM.",
     )
     return parser.parse_args()

@@ -56,13 +56,11 @@ class PublicationRepositoryTests(unittest.TestCase):
         self.assertEqual([path for path in tracked if path.endswith(forbidden)], [])
         self.assertFalse(any("__pycache__" in path for path in tracked))
 
-    def test_keras_v2_results_default_is_namespaced_with_diffusers(self):
+    def test_ldm_results_default_is_namespaced_with_diffusers(self):
         utility_dir = ROOT / "notebooks/utility"
         paths_source = (utility_dir / "ldm_project_paths.py").read_text()
-        self.assertIn(
-            'KERAS_V2_RESULTS_STAGE_NAME = "diffusers/04_ldm_keras_v2"',
-            paths_source,
-        )
+        self.assertIn('RESULTS_STAGE_NAME = "diffusers/', paths_source)
+        self.assertNotIn("keras_v2", paths_source)
         for filename in (
             "train_vae.py",
             "train_ldm.py",
@@ -71,7 +69,7 @@ class PublicationRepositoryTests(unittest.TestCase):
             "evaluate_filtered_ldm.py",
         ):
             source = (utility_dir / filename).read_text()
-            self.assertIn("KERAS_V2_RESULTS_STAGE_NAME", source, filename)
-            self.assertNotIn('default="04_ldm_keras_v2"', source, filename)
+            self.assertIn("RESULTS_STAGE_NAME", source, filename)
+            self.assertNotIn("keras_v2", source, filename)
 
 if __name__ == "__main__": unittest.main()

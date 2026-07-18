@@ -10,7 +10,7 @@ import sys
 import time
 from pathlib import Path
 
-from ldm_project_paths import KERAS_V2_RESULTS_STAGE_NAME
+from ldm_project_paths import RESULTS_STAGE_NAME
 
 
 IMG_SIZE = 512
@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--also-reset-downstream", action="store_true")
     parser.add_argument(
         "--results-stage-name",
-        default=KERAS_V2_RESULTS_STAGE_NAME,
+        default=RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare il log sostenibilita' VAE.",
     )
     return parser.parse_args()
@@ -70,7 +70,7 @@ def configure_environment(args: argparse.Namespace) -> None:
 
 def sustainability_log_path(
     project_root: Path,
-    stage_name: str = KERAS_V2_RESULTS_STAGE_NAME,
+    stage_name: str = RESULTS_STAGE_NAME,
 ) -> Path:
     """Restituisce il path del log jsonl dei consumi energetici, creando le cartelle se mancanti."""
     path = (

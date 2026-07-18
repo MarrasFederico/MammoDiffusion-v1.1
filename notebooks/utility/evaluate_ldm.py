@@ -15,7 +15,7 @@ from pathlib import Path
 
 from ldm_project_paths import (
     DEFAULT_EXPERIMENT_NAME,
-    KERAS_V2_RESULTS_STAGE_NAME,
+    RESULTS_STAGE_NAME,
     PROJECT_NAME,
     ExperimentPaths,
     get_experiment_paths,
@@ -38,7 +38,6 @@ BEST_SELECTION_TIE_BREAKER = f"is_mean_{POSITIVE_CLASS}"
 SELECTION_DIRECTION = "minimize"
 TIE_BREAKER_DIRECTION = "maximize"
 SELECTION_REASON = "Best generation quality for the positive mammography class"
-RESULTS_STAGE_NAME = KERAS_V2_RESULTS_STAGE_NAME
 BEST_ROW_METRIC_COLUMNS = [
     "fid_0",
     "fid_1",

@@ -17,7 +17,7 @@ from pathlib import Path
 
 
 from ldm_project_paths import (
-    KERAS_V2_RESULTS_STAGE_NAME,
+    RESULTS_STAGE_NAME,
     class_name_for_label,
     get_class_evaluation_dir,
     get_class_image_dirs,
@@ -142,7 +142,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--filtered-dir", type=Path, default=None)
     parser.add_argument(
         "--results-stage-name",
-        default=KERAS_V2_RESULTS_STAGE_NAME,
+        default=RESULTS_STAGE_NAME,
         help="Sottocartella di results dove salvare metriche, plot e log EcoTracker.",
     )
     parser.add_argument("--inception-batch", type=int, default=8)

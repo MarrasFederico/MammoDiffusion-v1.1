@@ -7,7 +7,6 @@ from pathlib import Path
 PROJECT_NAME = "MammoDiffusion"
 DEFAULT_EXPERIMENT_NAME = "diffusers/05_ldm_basic_fromscratch"
 RESULTS_STAGE_NAME = "diffusers/05_ldm_basic_fromscratch"
-KERAS_V2_RESULTS_STAGE_NAME = "diffusers/04_ldm_keras_v2"
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,7 @@
 #classi e procedure per misurare sostenibilità di qualsiasi blocco di codice (training, inferenza, generazione)
+# NOTA: energy_kwh/co2_kg di CodeCarbon sono inaffidabili sulla RTX 5060 Ti (nessun modello di potenza
+# per quella GPU) e NON vengono usati: l'analisi usa solo elapsed_seconds, con energia = ore x 0.170 kW.
+# Vedi docs/SUSTAINABILITY_ANALYSIS.md.
 from __future__ import annotations
 import contextlib, os, threading, time
 from dataclasses import dataclass

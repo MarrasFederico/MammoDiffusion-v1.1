@@ -39,9 +39,12 @@ a controlled 100-image, 100-step measurement (its historical log conflated gener
 `05_ldm_basic` is an abandoned dead end and is omitted. Efficiency is never a primary
 generator-selection metric.
 
-`notebooks/utility/eco_tracker.py` provides the CodeCarbon measurement and RAM-peak sampling that
-produced the raw logs. Its `energy_kwh` is unreliable on the RTX 5060 Ti, so the comparison uses the
-time-based estimate above rather than the recorded value; the recorded wall-clock time is trusted.
+**CodeCarbon is kept only as a source of wall-clock time.** `notebooks/utility/eco_tracker.py` wraps
+CodeCarbon's `EmissionsTracker` and RAM-peak sampling to produce the raw logs, but its `energy_kwh`
+and `co2_kg` are unreliable on the RTX 5060 Ti (CodeCarbon has no power model for that GPU) and are
+**discarded**. Only the recorded `elapsed_seconds` is trusted; energy is always recomputed as
+`hours × 0.170 kW`. The `energy_kwh`/`co2_kg` fields still exist in the event schema for
+backward compatibility with the historical logs, but no analysis reads them.
 ## Legacy canonical import
 
 `python scripts/import_legacy_sustainability_logs.py` idempotently normalizes the EcoTracker

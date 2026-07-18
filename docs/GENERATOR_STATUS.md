@@ -27,5 +27,5 @@ point; `02_Generator_Selection.ipynb` records the family-level selection. Positi
 two-class rankings remain separate, while sampling variants and RAW/FILTERED results remain
 explicit ablations. The registry never claims a missing file or metric.
 
-The reproducible benchmark artifacts live under `results/publication_v2/generator_benchmark/`;
-the per-generator lineage records live under `results/publication_v2/generator_provenance/`.
+The reproducible benchmark artifacts live under `results/generator_benchmark/`;
+the per-generator lineage records live under `results/generator_provenance/`.

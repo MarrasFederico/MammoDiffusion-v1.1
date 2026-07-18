@@ -54,7 +54,7 @@ def build_tree(tmp: Path, *, count: int = 6, extra_directory_file: bool = False,
     if missing_file:
         (root / rows[0]["relative_path"]).unlink()
 
-    manifest_rel = "results/publication_v2/generator_provenance/runtime/G/filtered_samples.csv"
+    manifest_rel = "results/generator_provenance/runtime/G/filtered_samples.csv"
     manifest_path = root / manifest_rel
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     with manifest_path.open("w", newline="") as stream:
@@ -176,7 +176,7 @@ class SignedManifestConsumptionTests(unittest.TestCase):
         # Same manifest path, different bytes -> manifest SHA-256 no longer matches the selection record.
         with tempfile.TemporaryDirectory() as tmp:
             root, variant = build_tree(Path(tmp), count=6)
-            manifest = root / "results/publication_v2/generator_provenance/runtime/G/filtered_samples.csv"
+            manifest = root / "results/generator_provenance/runtime/G/filtered_samples.csv"
             with manifest.open("a") as stream:
                 stream.write("g::filtered::x,data/synthetic/g/positive/x.png,1,ff,999,g::raw::x\n")
             payload = json.loads((root / "configs/selected_generators.json").read_text())

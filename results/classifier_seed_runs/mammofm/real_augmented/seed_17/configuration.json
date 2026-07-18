@@ -1,0 +1,23 @@
+{
+  "architecture": "mammofm",
+  "condition": "real_augmented",
+  "seed": 17,
+  "gpu": "GPU-9a95e5e1-599d-6315-52fb-b6a602960eb8",
+  "experiment_id": "mammofm__real_augmented__seed17",
+  "training_policy": "mammofm_fixed_protocol",
+  "policy_signature": "44cb945b6f6cec3d393fb3f695a18e47398f11eb258cb4600d4d1f179cc5e2ae",
+  "dataset_signature": "5ad51cf5aedadb422cd2298b7ae728442662529c229870a03f893b167e9b1f76",
+  "completion_reason": "early_stopping",
+  "training_budget": {
+    "max_optimizer_updates": 6400,
+    "checkpoint_metric": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",
+    "scheduler_monitor": "val_pr_auc",
+    "early_stopping_monitor": "val_pr_auc",
+    "effective_batch_size": 16,
+    "validation_interval": 250,
+    "validation_manifest": "data/processed/metadata/val.csv"
+  },
+  "checkpoint_gpu_uuid": null,
+  "runtime_gpu_uuid": "GPU-9a95e5e1-599d-6315-52fb-b6a602960eb8",
+  "gpu_changed": false
+}

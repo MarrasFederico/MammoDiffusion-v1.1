@@ -41,7 +41,7 @@ def _build_report_fixture(tmp: Path) -> Path:
                           "primary_metric": "raddino_kid", "primary_metric_value": 0.199},
             "from_scratch": {"generator_id": "07_ldm_sdvae_extra1361", "descriptive_family_rank": 1,
                              "primary_metric": "raddino_kid", "primary_metric_value": 0.087}}}))
-    summary = tmp / "results/publication_v2/generator_benchmark/generator_summary_corrected.csv"
+    summary = tmp / "results/generator_benchmark/generator_summary_corrected.csv"
     summary.parent.mkdir(parents=True)
     summary.write_text("generator_id,condition,generation_seconds_per_image,peak_vram_mb,energy_kwh,"
                        "checkpoint_size_bytes,efficiency_source,efficiency_status\n"

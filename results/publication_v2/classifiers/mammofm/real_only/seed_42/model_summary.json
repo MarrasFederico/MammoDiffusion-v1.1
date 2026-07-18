@@ -1,9 +1,0 @@
-{
-  "architecture": "mammofm",
-  "parameters": 28344882,
-  "trainable_parameters": 9007361,
-  "input_size": [
-    512,
-    512
-  ]
-}

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 import classifier_protocol as dp  # noqa: E402
 
-BENCHMARK = "results/publication_v2/generator_benchmark"
+BENCHMARK = "results/generator_benchmark"
 
 
 def _sha(path: Path) -> str:
@@ -44,7 +44,7 @@ def build_valid_tree(tmp: Path, *, finetuned_count: int = 1361, fromscratch_coun
     provenance_hashes = {}
     for family, (gid, fam) in generators.items():
         count = finetuned_count if family == "finetuned" else fromscratch_count
-        manifest_rel = f"results/publication_v2/generator_provenance/runtime/{gid}/filtered_samples.csv"
+        manifest_rel = f"results/generator_provenance/runtime/{gid}/filtered_samples.csv"
         manifest_path = _write_manifest_csv(tmp / manifest_rel, count)
         manifest_sha = _sha(manifest_path)
         model_sha = hashlib.sha256(f"model-{gid}".encode()).hexdigest()
@@ -150,7 +150,7 @@ class SilentModificationTests(unittest.TestCase):
     def test_manifest_same_path_different_content_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = build_valid_tree(Path(tmp))
-            manifest = root / "results/publication_v2/generator_provenance/runtime/GF/filtered_samples.csv"
+            manifest = root / "results/generator_provenance/runtime/GF/filtered_samples.csv"
             # Same path, different CSV content -> file hash no longer matches provenance/selection record.
             with manifest.open("a") as stream:
                 stream.write("s99999,data/synthetic/g/positive/pos_99999.png\n")

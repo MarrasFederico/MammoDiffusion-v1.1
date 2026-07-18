@@ -33,8 +33,8 @@ PROVENANCE_REQUIRED_FIELDS = {
     "filtered_sample_manifest", "filter_mapping_manifest", "manifest_sha256", "training_dataset_identifier",
     "generation_configuration", "filter_configuration", "lineage_status",
 }
-BENCHMARK_ROOT = Path("results/publication_v2/generator_benchmark")
-PROVENANCE_ROOT = Path("results/publication_v2/generator_provenance")
+BENCHMARK_ROOT = Path("results/generator_benchmark")
+PROVENANCE_ROOT = Path("results/generator_provenance")
 RUNTIME_PROVENANCE_ROOT = PROVENANCE_ROOT / "runtime"
 SHARED_TRAINING_CORPUS = RUNTIME_PROVENANCE_ROOT / "shared/rsna_train_real_plus_positive_augmentation.csv"
 CANONICAL_OUTPUTS = (

@@ -5,14 +5,14 @@
   "primary_metric": "raddino_kid",
   "benchmark_HEAD": "cd05886c0e7044325063d9e2db4bf2de6d285dc4",
   "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
-  "benchmark_summary_path": "results/publication_v2/generator_benchmark/generator_summary_corrected.csv",
-  "benchmark_summary_sha256": "a64e98b4ad3b0a9aedfc1ec8bc3ff53e6ada6a6b410f6c23373adac1f2179200",
-  "amended_gate_results_path": "results/publication_v2/generator_benchmark/gate_audit/amended_gate_results.csv",
+  "benchmark_summary_path": "results/generator_benchmark/generator_summary_corrected.csv",
+  "benchmark_summary_sha256": "1f931bf1f92d0768001ab050dc3ddb0a00d4d271dd0c8afa055de97ea68d4548",
+  "amended_gate_results_path": "results/generator_benchmark/gate_audit/amended_gate_results.csv",
   "amended_gate_results_sha256": "244bcb75774164a168b2ac512faa2c4e367e9f6d37bb35bc2757c528f4955f5e",
   "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
-  "active_amendment_sha256": "d7179084f10a8aa9e7c5160215a11eccbb991a7b9b0b7994366c564586de215a",
+  "active_amendment_sha256": "d5ffd71058ad2ed88867556414278d04ca7b62efb85440b9e7791c4f5620c67d",
   "selection_evidence_path": "configs/generator_selection_evidence_v1.json",
-  "selection_evidence_sha256": "8ada7a4b5c1cec6b8759ae09489ba8536f7df0f41e18185387ca0009e679fbf2",
+  "selection_evidence_sha256": "bc8003def54845ae8621437b55c72dbde9636e3c83cdd94b109f1aac8266b2c5",
   "original_protocol_result": {
     "official_candidates_measured": 5,
     "eligible_under_original_gates": 0,
@@ -33,7 +33,7 @@
       "primary_metric_value": 0.1990891096955254,
       "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
       "generation_identity_sha256": "327ad1f379c161d6d67d42621628896ba67c812186a0066d23884674d66ea20b",
-      "filtered_manifest_path": "results/publication_v2/generator_provenance/runtime/02_sd21_filtered_100steps/filtered_samples.csv",
+      "filtered_manifest_path": "results/generator_provenance/runtime/02_sd21_filtered_100steps/filtered_samples.csv",
       "filtered_manifest_sha256": "3f6632a791b66ddd7df489a925940fd21ca69847a2875b2a2245867ef5e616cd",
       "filtered_image_count": 1361
     },
@@ -45,7 +45,7 @@
       "primary_metric_value": 0.08722443411855751,
       "model_identity_sha256": "79c6b7d776a186a236d521526aec71643c4c019ba21daa6c336696d9d2d6886d",
       "generation_identity_sha256": "ca98e1612ae0279dd691d29b228c40abba85ce3d65a2ff7890940025d32c15c5",
-      "filtered_manifest_path": "results/publication_v2/generator_provenance/runtime/07_ldm_sdvae_extra1361/filtered_samples.csv",
+      "filtered_manifest_path": "results/generator_provenance/runtime/07_ldm_sdvae_extra1361/filtered_samples.csv",
       "filtered_manifest_sha256": "1e1052419f1078346ec11407932c5e3418263bc1a6b939a6595778dad789c4c5",
       "filtered_image_count": 1361
     }

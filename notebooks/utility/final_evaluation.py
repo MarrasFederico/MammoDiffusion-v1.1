@@ -57,7 +57,7 @@ def save_protocol_snapshot(root: Path, *, selected_generators: Mapping[str, Any]
                "validation_selected_thresholds": dict(validation_thresholds),
                "planned_statistical_comparisons": list(planned_comparisons),
                "final_evaluation_dataset_identifier": final_evaluation_dataset_identifier, "notes": notes}
-    return atomic_json(Path(root) / "results/publication_v2/final_evaluation_protocol.json", payload)
+    return atomic_json(Path(root) / "results/final_evaluation_protocol.json", payload)
 
 
 def run_final_evaluation(root: Path, *, run_final_evaluation: bool, checklist: Mapping[str, bool],
@@ -67,7 +67,7 @@ def run_final_evaluation(root: Path, *, run_final_evaluation: bool, checklist: M
     require_final_evaluation_opt_in(run_final_evaluation, checklist)
     if adapter is None:
         raise RuntimeError("No final evaluation dataset adapter is configured. Configure the held-out test-set adapter before running the final evaluation.")
-    snapshot_path = Path(root) / "results/publication_v2/final_evaluation_protocol.json"
+    snapshot_path = Path(root) / "results/final_evaluation_protocol.json"
     if not snapshot_path.is_file(): raise FileNotFoundError("save the final-evaluation protocol snapshot first")
     manifest = adapter.load_manifest(Path(root)); dataset = adapter.build_dataset(Path(root), manifest)
     if evaluator is None: raise RuntimeError("No final evaluation function is configured for the selected dataset adapter")
@@ -186,7 +186,7 @@ def format_generator_selection(selections: Mapping[str, Any] | None) -> str:
 
 
 def collect_figure_references(root: Path) -> str:
-    result_root = Path(root) / "results/publication_v2"
+    result_root = Path(root) / "results"
     figures = sorted(path.relative_to(Path(root)).as_posix() for path in result_root.rglob("*")
                      if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".svg", ".pdf"}) if result_root.exists() else []
     return "\n".join(f"- `{path}`" for path in figures) if figures else "Not yet evaluated"
@@ -203,7 +203,7 @@ def _optional_json(path: Path) -> dict[str, Any] | None:
 
 def generate_publication_report(root: Path) -> Path:
     """Generate twelve readable publication sections without invented numeric placeholders."""
-    root = Path(root); publication = root / "results/publication_v2"
+    root = Path(root); publication = root / "results"
     # Prefer the efficiency-corrected canonical summary; never the microsecond-per-image snapshot.
     corrected = publication / "generator_benchmark/generator_summary_corrected.csv"
     generator_rows = _read_csv(corrected if corrected.is_file()

@@ -55,7 +55,7 @@ class SyntheticManifestAuditTests(unittest.TestCase):
     def _root(self, tmp: Path, paths: list[str], *, duplicate_id: bool = False,
               create_files: bool = True) -> Path:
         root = Path(tmp)
-        manifest_rel = "results/publication_v2/generator_provenance/runtime/G/filtered_samples.csv"
+        manifest_rel = "results/generator_provenance/runtime/G/filtered_samples.csv"
         _write_manifest(root / manifest_rel, paths, duplicate_id=duplicate_id)
         (root / "configs/prov").mkdir(parents=True, exist_ok=True)
         (root / "configs/prov/G.json").write_text(json.dumps({"filtered_sample_manifest": manifest_rel}))

@@ -122,14 +122,14 @@ only `configs/selected_generators.json`.
 
 Canonical publication-v2 identity is `(sample_id, project-relative path, SHA-256)` — basenames are
 never sufficient. Per-image provenance CSVs are local, git-ignored, regenerable runtime artifacts under
-`results/publication_v2/generator_provenance/runtime/` (the shared 3,061-row train corpus once under
+`results/generator_provenance/runtime/` (the shared 3,061-row train corpus once under
 `runtime/shared/`); the repository publishes only the schema, compact v2 index, project-relative
 records, G06 refusal diagnostic and documentary candidate audit. Runtime efficiency fields are
 imported only when explicitly recorded with verified duration semantics; otherwise `unavailable`.
 
 ### 2.4 Notebook 01 outputs
 
-The canonical root is `results/publication_v2/generator_benchmark/`. `candidate_audit.csv` records
+The canonical root is `results/generator_benchmark/`. `candidate_audit.csv` records
 roles and provenance blockers; `technical_validity.csv` records RAW/FILTERED integrity;
 `distribution_metrics_repetitions.csv` and `distribution_metrics_summary.csv` contain the shared
 resampling results; `diversity_metrics.csv`, `synthetic_duplication.csv`, `train_memorization.csv` and
@@ -142,7 +142,7 @@ are under `gate_audit/`.
 
 A methodological audit (`notebooks/utility/gate_audit.py`, `run_gate_audit.py`,
 `run_gate_amendment.py`; runtime artifacts git-ignored under
-`results/publication_v2/generator_benchmark/gate_audit/`) ran **after** the benchmark. It never loads
+`results/generator_benchmark/gate_audit/`) ran **after** the benchmark. It never loads
 an encoder, re-extracts embeddings, re-runs KID/FID/PRDC, selects a generator, trains a classifier, or
 reads the test split; it only measures, freezes and proposes.
 
@@ -221,7 +221,7 @@ scheduler, early stopping and checkpoint criterion. The primary checkpoint metri
 PR-AUC; an equal PR-AUC uses lower validation loss, then the earlier epoch; ROC-AUC never selects the
 checkpoint. No hidden oversampling; samples seen per source, optimizer updates and effective epochs
 are reported. Each run writes under
-`results/publication_v2/classifiers/<architecture>/<condition>/seed_<seed>/` (`configuration.json`,
+`results/classifier_seed_runs/<architecture>/<condition>/seed_<seed>/` (`configuration.json`,
 `dataset_summary.json`, checkpoint/resume, `training_history.csv`, `validation_predictions.csv`,
 `validation_metrics.json`, `interpretability/` when produced).
 

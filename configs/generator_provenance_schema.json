@@ -4,7 +4,7 @@
   "migration_policy": "Version 1 records require an explicit migration and are never interpreted as version 2.",
   "publication_policy": {
     "per_image_manifests": "local_runtime_artifacts_not_committed",
-    "runtime_root": "results/publication_v2/generator_provenance/runtime",
+    "runtime_root": "results/generator_provenance/runtime",
     "reason": "Per-image rows contain dataset identifiers and paths; distribution permission is not assumed."
   },
   "provenance_json": {

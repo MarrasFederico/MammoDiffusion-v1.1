@@ -58,6 +58,6 @@
     "primary_comparisons_per_architecture": [["real_only", "real_augmented"], ["real_only", "real_plus_best_finetuned_positive"], ["real_only", "real_plus_best_fromscratch_positive"], ["real_plus_best_finetuned_positive", "real_plus_best_fromscratch_positive"]],
     "multiple_testing": "Holm correction over one family of eight preregistered comparisons"
   },
-  "results_root": "results/publication_v2/classifiers",
+  "results_root": "results/classifier_seed_runs",
   "final_evaluation": {"guard": "RUN_FINAL_EVALUATION", "default": false, "protocol_snapshot": "results/final_evaluation_protocol.json"}
 }

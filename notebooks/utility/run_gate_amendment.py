@@ -5,7 +5,7 @@ perceptual-hash / SSIM diagnostics. It never loads a feature encoder, re-extract
 regenerates images, selects a generator by itself, or reads the test split.
 
 Outputs (runtime artifacts, git-ignored) under
-``results/publication_v2/generator_benchmark/gate_audit/``:
+``results/generator_benchmark/gate_audit/``:
 
 * ``original_outcome_identity.json``  — run_id, HEAD and SHA-256 of the frozen originals;
 * ``phash_size_matched_repetitions.csv`` / ``phash_size_matched_summary.csv``;

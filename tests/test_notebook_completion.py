@@ -209,7 +209,7 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
             self.assertEqual(configuration["gpu"], selector)
             self.assertEqual(
                 Path(configuration["results_dir"]),
-                ROOT / "results/publication_v2/classifiers/maxvit512/real_only/seed_17")
+                ROOT / "results/classifier_seed_runs/maxvit512/real_only/seed_17")
 
     def test_nonexistent_uuid_fails(self):
         with self.assertRaisesRegex(RuntimeError, "not present as exactly one device"):

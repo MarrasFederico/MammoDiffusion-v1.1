@@ -43,7 +43,7 @@ class EnsembleAndFinalEvaluationTests(unittest.TestCase):
             discovered = discover_experiments(root)
             self.assertEqual(len(discovered), 24)
             self.assertFalse(any(row["complete"] for row in discovered))
-            self.assertTrue(all("publication_v2" in row["directory"] for row in discovered))
+            self.assertTrue(all("classifier_seed_runs" in row["directory"] for row in discovered))
 
     def test_false_guard_prevents_final_evaluation(self):
         with self.assertRaisesRegex(PermissionError, "RUN_FINAL_EVALUATION"):

@@ -37,12 +37,12 @@ Il codice attivo scrive o consuma quattro radici canoniche:
 
 - `results/preprocessing/`: riepiloghi di preprocessing e augmentation;
 - `results/diffusers/`: metriche, grafici, sostenibilità e output degli sweep generativi;
-- `results/publication_v2/`: benchmark/provenienza dei generatori, training dei classificatori e output di pubblicazione;
+- `results/`: benchmark/provenienza dei generatori, training dei classificatori e output di pubblicazione;
 - `results/sustainability/`: analisi trasversali dei consumi.
 
 Gli stage specifici dello sweep dell'esperimento 08 sono mantenuti perché prodotti dal phase planner e necessari alla provenienza delle singole run. Il default delle utility Keras-v2 è `results/diffusers/04_ldm_keras_v2`, mai la radice di `results/`.
 
-I checkpoint dei classificatori in `results/publication_v2/classifiers/` sono stato di resume e valutazione: `checkpoint_latest`, `checkpoint_previous` e tutte le rappresentazioni del best checkpoint non devono essere potati. Il precedente test interno risulta storicamente riutilizzato e non costituisce una conferma indipendente incontaminata; vedere [stato del dataset finale](docs/PROTOCOL.md#7-historical-internal-test--status-and-limitation).
+I checkpoint dei classificatori in `results/classifier_seed_runs/` sono stato di resume e valutazione: `checkpoint_latest`, `checkpoint_previous` e tutte le rappresentazioni del best checkpoint non devono essere potati. Il precedente test interno risulta storicamente riutilizzato e non costituisce una conferma indipendente incontaminata; vedere [stato del dataset finale](docs/PROTOCOL.md#7-historical-internal-test--status-and-limitation).
 
 La pipeline scripted precedente è archiviata nel tag `publication-pipeline-scripted-v1`; la matrice da 300 job nel tag `classifier-matrix-v2-full`.
 

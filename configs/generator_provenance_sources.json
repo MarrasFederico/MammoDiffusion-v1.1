@@ -3,7 +3,7 @@
   "training_corpus_evidence": "data/real_augmented/metadata.csv",
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "shared_training_corpus": {
-    "manifest": "results/publication_v2/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
+    "manifest": "results/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
     "manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
     "source_metadata_sha256": "25131fd5f6decd1494a0ce20d80c3ee2ddf973ed9f5e8201a43a2d4195d0fb72",
     "record_count": 3061,

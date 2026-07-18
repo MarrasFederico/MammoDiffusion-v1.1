@@ -62,8 +62,8 @@ class CanonicalProvenanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); sources, checkpoint, raw, filtered, _ = self._fixture(root)
             payload = gb.build_canonical_generator_provenance(root, sources)
-            output = root / "results/publication_v2/generator_provenance/fixture_generator"
-            runtime = root / "results/publication_v2/generator_provenance/runtime/fixture_generator"
+            output = root / "results/generator_provenance/fixture_generator"
+            runtime = root / "results/generator_provenance/runtime/fixture_generator"
             self.assertEqual(payload["checkpoint_sha256"], gb.file_sha256(checkpoint))
             self.assertTrue((output / "provenance.json").is_file())
             self.assertTrue((root / gb.SHARED_TRAINING_CORPUS).is_file())
@@ -159,7 +159,7 @@ class CanonicalProvenanceTests(unittest.TestCase):
 
 class GeneratorIdentityTests(unittest.TestCase):
     def _record(self, generator_id="02_sd21_filtered_100steps"):
-        return json.loads((ROOT / "results/publication_v2/generator_provenance" / generator_id / "provenance.json").read_text())
+        return json.loads((ROOT / "results/generator_provenance" / generator_id / "provenance.json").read_text())
 
     def test_schema_and_record_versions_are_explicit(self):
         schema = json.loads((ROOT / "configs/generator_provenance_schema.json").read_text())

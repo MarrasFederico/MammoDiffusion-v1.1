@@ -23,7 +23,7 @@ class GeneratorCandidateAuditTests(unittest.TestCase):
     def setUpClass(cls):
         cls.registry = json.loads((ROOT / "configs/generator_registry.json").read_text(encoding="utf-8"))
         cls.index = json.loads((ROOT / "configs/generator_provenance_index.json").read_text(encoding="utf-8"))
-        with (ROOT / "results/generator_benchmark/candidate_audit.csv").open(
+        with (ROOT / "results/2_diffusers/benchmark/candidate_audit.csv").open(
                 newline="", encoding="utf-8") as stream:
             reader = csv.DictReader(stream)
             cls.audit_fields = set(reader.fieldnames or [])

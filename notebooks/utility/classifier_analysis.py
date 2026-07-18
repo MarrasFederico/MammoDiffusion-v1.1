@@ -19,9 +19,9 @@ except ImportError:
     from classifier_statistics import holm_correction, paired_stratified_bootstrap
     from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
 
-PUBLICATION_RESULTS = Path("results/classifier_seed_runs")
-ENSEMBLE_RESULTS = Path("results/classifier_validation_ensembles")
-TEST_ENSEMBLE_RESULTS = Path("results/final_evaluation/test_ensembles")
+PUBLICATION_RESULTS = Path("results/3_classifiers/seed_runs")
+ENSEMBLE_RESULTS = Path("results/3_classifiers/validation_ensembles")
+TEST_ENSEMBLE_RESULTS = Path("results/4_final_evaluation/test_ensembles")
 
 
 def _ensemble_root(split: str) -> Path:
@@ -185,8 +185,8 @@ def compare_validation(root: Path, ensembles: Sequence[Mapping[str, Any]] | None
                                 "condition_a": left, "condition_b": right, "metric": "pr_auc", **comparison})
     payload = {"split": split, "primary_metric": "pr_auc", "patient_level": True,
                "ensembles": list(by_key.values()), "comparisons": comparisons, "holm_correction": holm_correction(p_values)}
-    output_path = (Path(root) / "results/classifier_seed_runs/validation_comparison.json" if split == "validation"
-                   else Path(root) / "results/final_evaluation/results.json")
+    output_path = (Path(root) / "results/3_classifiers/seed_runs/validation_comparison.json" if split == "validation"
+                   else Path(root) / "results/4_final_evaluation/results.json")
     atomic_json(output_path, payload)
     return payload
 

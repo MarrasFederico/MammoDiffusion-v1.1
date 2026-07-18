@@ -44,7 +44,7 @@ def discover(root: Path) -> list[Path]:
         if not base.exists(): continue
         for path in base.rglob("*.json*"):
             name = str(path).lower()
-            if "results/sustainability/" in name:
+            if "results/5_sustainability/" in name:
                 continue  # never recursively import this script's own canonical outputs
             if any(token in name for token in ("sustain", "ecotracker", "emission", "codecarbon")):
                 paths.append(path)
@@ -90,7 +90,7 @@ def normalize(root: Path) -> list[dict]:
 
 def main() -> None:
     events = normalize(ROOT)
-    out = ROOT / "results/sustainability/canonical_events.jsonl"
+    out = ROOT / "results/5_sustainability/canonical_events.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n" for event in events))
     registry.write_summary_by_run(ROOT, events)

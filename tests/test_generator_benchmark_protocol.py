@@ -233,7 +233,7 @@ class CanonicalEfficiencyTests(unittest.TestCase):
 
 class CorrectedArtifactEfficiencyTests(unittest.TestCase):
     def test_no_corrected_file_marks_invalid_durations_available(self):
-        benchmark = ROOT / "results/generator_benchmark"
+        benchmark = ROOT / "results/2_diffusers/benchmark"
         corrected = [benchmark / "generator_summary_corrected.csv",
                      benchmark / "generator_ranking_corrected.csv"]
         present = [path for path in corrected if path.is_file()]

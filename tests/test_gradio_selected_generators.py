@@ -27,7 +27,7 @@ class GradioSelectedGeneratorsTests(unittest.TestCase):
         best = json.loads(
             (
                 ROOT
-                / "results/diffusers/07_ldm_sdvae_extra1361/metrics/best_checkpoint.json"
+                / "results/2_diffusers/07_ldm_sdvae_extra1361/metrics/best_checkpoint.json"
             ).read_text()
         )
         self.assertEqual(best["best_checkpoint_id"], "step_130000")

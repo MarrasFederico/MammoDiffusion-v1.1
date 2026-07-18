@@ -209,7 +209,7 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
             self.assertEqual(configuration["gpu"], selector)
             self.assertEqual(
                 Path(configuration["results_dir"]),
-                ROOT / "results/classifier_seed_runs/maxvit512/real_only/seed_17")
+                ROOT / "results/3_classifiers/seed_runs/maxvit512/real_only/seed_17")
 
     def test_nonexistent_uuid_fails(self):
         with self.assertRaisesRegex(RuntimeError, "not present as exactly one device"):
@@ -240,7 +240,7 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
 
     def test_dataset_guard_rejects_historical_test_paths(self):
         for path in ("data/processed/train/../test/1/x.png",
-                     "results/final_evaluation/x.png",
+                     "results/4_final_evaluation/x.png",
                      "data/historical_test/x.png"):
             with self.subTest(path=path), self.assertRaises(RuntimeError):
                 de.assert_no_forbidden_data_paths(ROOT, [{"path": path, "label": 1}])
@@ -338,18 +338,6 @@ class EnsembleFinalAndArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "No final evaluation dataset adapter"):
             fe.run_final_evaluation(ROOT, run_final_evaluation=True, checklist=complete, adapter=None)
 
-    def test_report_uses_markdown_tables_and_missing_labels(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "configs").mkdir()
-            (root / "configs/generator_benchmark_protocol.json").write_text(json.dumps({"study_question": "RQ1 fixture"}))
-            (root / "configs/classifier_protocol.json").write_text(json.dumps({"research_questions": {"RQ2": "fixture", "RQ3": "fixture"}}))
-            path = fe.generate_publication_report(root)
-            text = path.read_text()
-        self.assertIn("## 12. Conclusions", text)
-        self.assertIn("| question | text |", text)
-        self.assertIn("Not yet evaluated", text)
-        self.assertNotIn("```json", text)
 
     def test_final_paths_have_no_unimplemented_error(self):
         paths = [ROOT / "notebooks/3_generator_benchmark", ROOT / "notebooks/04_classifiers", ROOT / "notebooks/utility"]

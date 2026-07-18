@@ -3,7 +3,7 @@
   "training_corpus_evidence": "data/real_augmented/metadata.csv",
   "training_dataset_identifier": "rsna_mlo_train_2041_plus_positive_augmentation_1020_sha256_25131fd5",
   "shared_training_corpus": {
-    "manifest": "results/generator_provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
+    "manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
     "manifest_sha256": "64f13c76b5f5bbb2d2685dec9060ab13043056db11e08ddf8cb8801dcc5ca7da",
     "source_metadata_sha256": "25131fd5f6decd1494a0ce20d80c3ee2ddf973ed9f5e8201a43a2d4195d0fb72",
     "record_count": 3061,
@@ -157,7 +157,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/02_SD21_Filtered_100steps.ipynb:max_train_steps=8000,seed=42",
       "raw_directory": "experiments/diffusers/02_sd21_filtered_100steps/generated_images/final/positive",
       "filtered_directory": "data/synthetic/02_sd21_filtered_100steps/positive",
-      "filter_report": "results/diffusers/02_sd21_filtered_100steps/metrics/filter_report_positive_adaptive_mask.csv",
+      "filter_report": "results/2_diffusers/02_sd21_filtered_100steps/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 2722,
@@ -174,8 +174,8 @@
         "target": 1361
       },
       "source_evidence": [
-        "results/diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
-        "results/diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json",
+        "results/2_diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
+        "results/2_diffusers/02_sd21_filtered_100steps/metrics/filter_summary_positive_adaptive_mask.json",
         "experiments/diffusers/02_sd21_filtered_100steps/runtime_manifest.json"
       ],
       "known_limitations": [
@@ -280,7 +280,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb:max_train_steps=12000,seed=42",
       "raw_directory": "experiments/diffusers/03_sd21_vae_finetuned/generated_images/final/positive",
       "filtered_directory": "data/synthetic/03_sd21_vae_finetuned/positive",
-      "filter_report": "results/diffusers/03_sd21_vae_finetuned/metrics/filter_report_positive_adaptive_mask.csv",
+      "filter_report": "results/2_diffusers/03_sd21_vae_finetuned/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 2722,
@@ -298,8 +298,8 @@
         "target": 1361
       },
       "source_evidence": [
-        "results/diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
-        "results/diffusers/03_sd21_vae_finetuned/metrics/filter_summary_positive_adaptive_mask.json",
+        "results/2_diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
+        "results/2_diffusers/03_sd21_vae_finetuned/metrics/filter_summary_positive_adaptive_mask.json",
         "experiments/diffusers/03_sd21_vae_finetuned/runtime_manifest.json"
       ],
       "known_limitations": [
@@ -404,7 +404,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/04_SD21_LoRA.ipynb:max_train_steps=8000,rank=16,seed=42",
       "raw_directory": "experiments/diffusers/04_sd21_lora/generated_images/final/positive",
       "filtered_directory": "data/synthetic/04_sd21_lora/positive",
-      "filter_report": "results/diffusers/04_sd21_lora/metrics/filter_report_positive_adaptive_mask.csv",
+      "filter_report": "results/2_diffusers/04_sd21_lora/metrics/filter_report_positive_adaptive_mask.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 2722,
@@ -424,7 +424,7 @@
       },
       "source_evidence": [
         "experiments/diffusers/04_sd21_lora/generated_images/final/positive/.generation_manifest.json",
-        "results/diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json",
+        "results/2_diffusers/04_sd21_lora/metrics/filter_summary_positive_adaptive_mask.json",
         "experiments/diffusers/04_sd21_lora/runtime_manifest.json"
       ],
       "known_limitations": [
@@ -544,7 +544,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/05_LDM_Basic_FromScratch.ipynb:unet_v2,eps,80000_steps",
       "raw_directory": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_raw",
       "filtered_directory": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_filtered",
-      "filter_report": "results/diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_report.csv",
+      "filter_report": "results/2_diffusers/05_ldm_basic_fromscratch/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 2722,
@@ -655,7 +655,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/05_LDM_Basic_FromScratch.ipynb:unet_v2,eps,80000_steps",
       "raw_directory": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
       "filtered_directory": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered",
-      "filter_report": "results/diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_report.csv",
+      "filter_report": "results/2_diffusers/06_ldm_extra1361_fromscratch/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 4083,
@@ -764,7 +764,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/07_LDM_SDVAE_Extra1361.ipynb:unet_v2,eps,150000_steps",
       "raw_directory": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
       "filtered_directory": "data/synthetic/07_ldm_sdvae_extra1361/positive",
-      "filter_report": "results/diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
+      "filter_report": "results/2_diffusers/07_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 4083,
@@ -873,7 +873,7 @@
       "training_notebook_config_identifier": "notebooks/2_diffusers/08_LDM_v3_SDVAE_FromScratch.ipynb:unet_v3,v_prediction,min_snr,150000_steps",
       "raw_directory": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
       "filtered_directory": "data/synthetic/08_ldm_v3_sdvae_fromscratch/positive",
-      "filter_report": "results/diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
+      "filter_report": "results/2_diffusers/08_ldm_v3_sdvae_fromscratch/metrics/positive/synthetic_filter_report.csv",
       "sampling_steps": 100,
       "generation_configuration": {
         "pool_size": 4083,

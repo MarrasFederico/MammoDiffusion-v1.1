@@ -36,7 +36,7 @@ presenti localmente:
 - `experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras`;
 - `experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_step130000.keras`;
 - `experiments/diffusers/07_ldm_sdvae_extra1361/latents/latent_stats.npz`;
-- `results/diffusers/07_ldm_sdvae_extra1361/metrics/best_checkpoint.json`.
+- `results/2_diffusers/07_ldm_sdvae_extra1361/metrics/best_checkpoint.json`.
 
 ## Avvio
 

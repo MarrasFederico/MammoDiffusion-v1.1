@@ -10,7 +10,7 @@ from.
 ## Schema
 
 `notebooks/utility/sustainability_registry.py` defines the canonical event
-(`results/sustainability/events.jsonl`, one JSON object per line): `run_id, experiment_id,
+(`results/5_sustainability/events.jsonl`, one JSON object per line): `run_id, experiment_id,
 dataset_variant_id, architecture, seed, phase, status, parent_run_id, canonical, reused_artifact,
 start_time, end_time, elapsed_seconds, energy_kwh, co2_kg, peak_ram_mb, peak_vram_mb, gpu_uuid,
 gpu_name, num_images, optimizer_updates, epochs, source_log, signature, value_precision`. `phase`
@@ -44,6 +44,6 @@ original notebook's summary made the same disclaimer and it remains true.
 
 `python scripts/import_legacy_sustainability_logs.py` idempotently normalizes the EcoTracker
 JSON/JSONL logs already present under `experiments/` and `results/`, deduplicates them by content
-signature and writes `results/sustainability/canonical_events.jsonl`. The current dataset contains
+signature and writes `results/5_sustainability/canonical_events.jsonl`. The current dataset contains
 193 imported events. The publication-oriented report may use this registry and must report actual
 and canonical energy separately.

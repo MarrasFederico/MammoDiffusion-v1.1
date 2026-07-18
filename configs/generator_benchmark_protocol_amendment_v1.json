@@ -5,7 +5,7 @@
  "approval_date": "2026-07-15",
  "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
  "benchmark_HEAD": "cd05886c0e7044325063d9e2db4bf2de6d285dc4",
- "original_protocol_path": "results/generator_benchmark/gate_audit/original_protocol.json",
+ "original_protocol_path": "results/2_diffusers/benchmark/gate_audit/original_protocol.json",
  "original_protocol_SHA256": "c5f189d8f6e31d7ac8a02a682e4150e33529f7280b66c90d2ba5867970af3084",
  "original_outcome": {
   "official_candidates_measured": 5,

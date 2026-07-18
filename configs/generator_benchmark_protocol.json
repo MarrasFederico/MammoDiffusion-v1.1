@@ -71,7 +71,7 @@
     "report": ["mean", "median", "standard_deviation", "percentile_2_5", "percentile_97_5", "valid_repetitions"]
   },
   "embedding_cache": {
-    "root": "results/generator_benchmark/embedding_cache",
+    "root": "results/2_diffusers/benchmark/embedding_cache",
     "key_fields": ["generator_id", "representation", "extractor"],
     "metadata_fields": ["schema_version", "image_ids", "image_paths", "image_fingerprints", "extractor", "extractor_model_id", "extractor_weights_identifier", "extractor_identity", "extractor_identity_sha256", "preprocessing_signature", "feature_dimension", "code_version", "source_manifest_path", "source_manifest_sha256", "metadata_csv_sha256"]
   },
@@ -117,18 +117,18 @@
     "manual_selection_required": true
   },
   "outputs": {
-    "root": "results/generator_benchmark",
-    "candidate_audit": "results/generator_benchmark/candidate_audit.csv",
-    "technical_validity": "results/generator_benchmark/technical_validity.csv",
-    "metrics": "results/generator_benchmark/generator_summary.csv",
-    "ranking": "results/generator_benchmark/generator_ranking.csv",
-    "resampling": "results/generator_benchmark/distribution_metrics_repetitions.csv",
-    "resampling_plan": "results/generator_benchmark/resampling_plan.json",
-    "paired_differences": "results/generator_benchmark/paired_generator_differences.csv",
-    "distribution_summary": "results/generator_benchmark/distribution_metrics_summary.csv",
-    "diversity": "results/generator_benchmark/diversity_metrics.csv",
-    "train_memorization": "results/generator_benchmark/train_memorization.csv",
-    "validation_similarity": "results/generator_benchmark/validation_similarity.csv",
-    "synthetic_duplication": "results/generator_benchmark/synthetic_duplication.csv"
+    "root": "results/2_diffusers/benchmark",
+    "candidate_audit": "results/2_diffusers/benchmark/candidate_audit.csv",
+    "technical_validity": "results/2_diffusers/benchmark/technical_validity.csv",
+    "metrics": "results/2_diffusers/benchmark/generator_summary.csv",
+    "ranking": "results/2_diffusers/benchmark/generator_ranking.csv",
+    "resampling": "results/2_diffusers/benchmark/distribution_metrics_repetitions.csv",
+    "resampling_plan": "results/2_diffusers/benchmark/resampling_plan.json",
+    "paired_differences": "results/2_diffusers/benchmark/paired_generator_differences.csv",
+    "distribution_summary": "results/2_diffusers/benchmark/distribution_metrics_summary.csv",
+    "diversity": "results/2_diffusers/benchmark/diversity_metrics.csv",
+    "train_memorization": "results/2_diffusers/benchmark/train_memorization.csv",
+    "validation_similarity": "results/2_diffusers/benchmark/validation_similarity.csv",
+    "synthetic_duplication": "results/2_diffusers/benchmark/synthetic_duplication.csv"
   }
 }

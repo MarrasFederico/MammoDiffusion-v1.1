@@ -29,7 +29,7 @@ artifacts. There is no mandatory automatic pipeline.
 7. Run `notebooks/04_classifiers/03_Validation_Comparison.ipynb` and freeze the checkpoints
    and thresholds on validation.
 8. Run `notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb` to score the frozen
-   decisions once on the held-out test set and generate the publication report.
+   decisions once on the held-out test set.
 
 The protocol keeps exactly **2 architectures × 4 conditions × 3 seeds = 24 experiments**.
 The architectures are MaxViT-512 and Mammo-FM; RAD-DINO is only a medical feature extractor
@@ -60,10 +60,9 @@ The active code writes or consumes these canonical roots under `results/`:
 - `classifier_seed_runs/` — per-seed classifier training and validation outputs;
 - `classifier_validation_ensembles/` — the eight three-seed validation ensembles;
 - `final_evaluation/` — the test-set ensembles (`test_ensembles/`) and `results.json`;
-- `sustainability/` — cross-cutting energy analysis;
-- `publication_report.md` — the generated report.
+- `sustainability/` — cross-cutting energy analysis.
 
-Classifier checkpoints under `results/classifier_seed_runs/` are resume and evaluation state:
+Classifier checkpoints under `results/3_classifiers/seed_runs/` are resume and evaluation state:
 `checkpoint_latest`, `checkpoint_previous` and every representation of the best checkpoint must
 not be pruned.
 
@@ -103,7 +102,9 @@ its own it is not enough to resume execution on another machine.
   and manual execution.
 - [Generator status](docs/GENERATOR_STATUS.md)
 - [Shared SD2.1/Diffusers assets](docs/SHARED_ASSETS.md)
-- [Sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md)
+- [Sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md) — the energy registry, the legacy-log
+  import script and the comparison notebook.
+- [Test suite](docs/TESTS.md) — what each regression test protects and how to run them.
 - [Mammo-FM academic license](docs/mammo_fm_license_note.md)
 
 Datasets, synthetic images, embeddings and weights stay local and must not be committed.

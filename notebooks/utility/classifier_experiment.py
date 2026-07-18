@@ -24,7 +24,7 @@ except ImportError:
     from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, resolve_job
 
 
-STANDARD_RESULTS_ROOT = "results/classifier_seed_runs"
+STANDARD_RESULTS_ROOT = "results/3_classifiers/seed_runs"
 # Any data path that resolves to one of these tokens is rejected before training or validation.
 FORBIDDEN_DATA_TOKENS = ("test.csv", "final_evaluation", "locked_test", "historical_test")
 FORBIDDEN_PATH_COMPONENTS = ("test", "historical_internal_test")

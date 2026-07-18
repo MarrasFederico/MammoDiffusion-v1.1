@@ -195,7 +195,7 @@ class StatisticsMemorizationAccountingTests(unittest.TestCase):
     def test_publication_adapter_does_not_write_legacy_namespace(self):
         adapter = (ROOT / "notebooks/utility/classifier_architecture_adapters.py").read_text()
         classifier = (ROOT / "notebooks/utility/classifier_experiment.py").read_text()
-        self.assertIn("results/classifier_seed_runs", classifier)
+        self.assertIn("results/3_classifiers/seed_runs", classifier)
 
 
 if __name__ == "__main__":

@@ -147,7 +147,7 @@ def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
 def write_summary_by_run(root: Path, events: list[dict]) -> Path:
     canonical = deduplicate_canonical_events(events)
     fieldnames = ["run_id", "experiment_id", "phase", "architecture", "energy_kwh", "co2_kg", "elapsed_seconds", "value_precision"]
-    out = root / "results/sustainability/summary_by_run.csv"
+    out = root / "results/5_sustainability/summary_by_run.csv"
     _write_csv(out, canonical, fieldnames)
     return out
 
@@ -163,7 +163,7 @@ def write_summary_by_experiment(root: Path, events: list[dict]) -> Path:
         bucket["elapsed_seconds"] += event.get("elapsed_seconds") or 0.0
         bucket["n_runs"] += 1
     rows = [{"experiment_id": k, **v} for k, v in by_experiment.items()]
-    out = root / "results/sustainability/summary_by_experiment.csv"
+    out = root / "results/5_sustainability/summary_by_experiment.csv"
     _write_csv(out, rows, ["experiment_id", "energy_kwh", "co2_kg", "elapsed_seconds", "n_runs"])
     return out
 

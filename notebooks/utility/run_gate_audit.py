@@ -5,7 +5,7 @@ perceptual-hash / SSIM diagnostics.  It never loads a feature encoder, never re-
 never selects a generator, and never reads the test split.
 
 Outputs (runtime artifacts, not committed) go under
-``results/generator_benchmark/gate_audit/``.
+``results/2_diffusers/benchmark/gate_audit/``.
 
 Run from the repository root::
 

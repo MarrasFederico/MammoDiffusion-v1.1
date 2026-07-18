@@ -30,16 +30,18 @@ canonical never exceeds actual via test coverage, and the difference is reported
 
 `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb` includes the descriptive
 generator efficiency table. `notebooks/5_sustainability/01_Sustainability_Comparison.ipynb` reads the
-canonical registry (never raw EcoTracker logs directly) and plots absolute energy/CO2 per generator
-experiment, the per-phase decomposition, generation energy per 1000 images, and the actual-vs-
-canonical breakdown. Efficiency is never a primary generator-selection metric.
+canonical registry (never raw EcoTracker logs directly) and compares the generators by **time-based
+energy**: because CodeCarbon does not model the RTX 5060 Ti correctly, energy is estimated as
+`wall-clock hours × 0.170 kW` (the measured mean draw of that GPU under load), and only real runs
+longer than 60 s are kept — which discards CodeCarbon's empty restart appends. It plots per-generator
+energy, the per-phase decomposition and the generation cost. The `02_sd21_filtered` generation cost is
+a controlled 100-image, 100-step measurement (its historical log conflated generation into filtering);
+`05_ldm_basic` is an abandoned dead end and is omitted. Efficiency is never a primary
+generator-selection metric.
 
-Existing `notebooks/utility/eco_tracker.py` provides CodeCarbon measurement and RAM-peak
-sampling. Runtime events may be recorded by later real executions; this refactoring produced no
-training or scientific sustainability result.
-
-CodeCarbon figures are estimates, not wall-socket measurements — repeated here because the
-original notebook's summary made the same disclaimer and it remains true.
+`notebooks/utility/eco_tracker.py` provides the CodeCarbon measurement and RAM-peak sampling that
+produced the raw logs. Its `energy_kwh` is unreliable on the RTX 5060 Ti, so the comparison uses the
+time-based estimate above rather than the recorded value; the recorded wall-clock time is trusted.
 ## Legacy canonical import
 
 `python scripts/import_legacy_sustainability_logs.py` idempotently normalizes the EcoTracker

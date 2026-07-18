@@ -1,0 +1,15 @@
+{
+ "generator": "02_sd21_filtered_100steps",
+ "n_images": 100,
+ "steps": 100,
+ "elapsed_seconds": 730.2,
+ "seconds_per_image": 7.302,
+ "mean_power_w": 169.9,
+ "n_power_samples": 1263,
+ "energy_kwh_this_run": 0.03446,
+ "extrapolated_pool_1361": {
+  "generation_seconds": 9938.5,
+  "generation_hours": 2.761,
+  "energy_kwh_at_160W": 0.4417
+ }
+}

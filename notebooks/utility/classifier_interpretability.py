@@ -49,6 +49,27 @@ def mammofm_attribution(model, image_batch):
     return torch_spatial_attribution(model, image_batch, target)
 
 
+def integrated_gradients(model, image_batch, *, steps: int = 32, baseline=None):
+    """Integrated Gradients per-pixel attribution for the positive-class output.
+
+    Complements the coarse Grad-CAM spatial map (``torch_spatial_attribution``) with a fine
+    per-pixel attribution: the input gradient is integrated along a straight path from a black
+    baseline to the image (Sundararajan, Taly & Yan, 2017). Same scalar target as Grad-CAM, so the
+    two views are directly comparable on the preregistered TP/TN/FP/FN cases.
+    """
+    import torch
+    image = image_batch
+    baseline = torch.zeros_like(image) if baseline is None else baseline
+    gradient_sum = torch.zeros_like(image)
+    for step in range(1, int(steps) + 1):
+        point = (baseline + (step / float(steps)) * (image - baseline)).detach().requires_grad_(True)
+        model.zero_grad(set_to_none=True)
+        model(point).reshape(-1)[0].backward()
+        gradient_sum = gradient_sum + point.grad.detach()
+    attribution = ((image - baseline) * gradient_sum / float(steps))[0].sum(dim=0)
+    return normalize_heatmap(attribution.detach().cpu().numpy())
+
+
 def preregistered_cases(rows: Sequence[Mapping], threshold: float, limit_per_category: int = 1) -> list[dict]:
     """Deterministically select TP/TN/FP/FN by confidence, never by visual appearance."""
     categories = {name: [] for name in ("TP", "TN", "FP", "FN")}
@@ -79,11 +100,13 @@ def largest_ft_fs_disagreements(finetuned_rows: Sequence[Mapping], fromscratch_r
     return sorted(rows, key=lambda row: (-row["absolute_disagreement"], row["patient_id"], row["image_id"]))[:limit]
 
 
-def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path):
-    """Overlay each preregistered case's saved heatmap on its source image.
+def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path, *,
+                                suffix: str = "", method: str = "Grad-CAM"):
+    """Overlay each preregistered case's saved attribution map on its source image.
 
-    Top row: original mammogram with the Grad-CAM heatmap over it. Bottom row: the
-    isolated heatmap. Reads the ``{category}_{index}.npy`` files written next to the run.
+    Top row: original mammogram with the attribution over it. Bottom row: the isolated map.
+    Reads the ``{category}_{index}{suffix}.npy`` files written next to the run — ``suffix=""`` for
+    the Grad-CAM map and ``suffix="_ig"`` for the Integrated Gradients map.
     """
     import numpy as np
     import matplotlib.pyplot as plt
@@ -94,7 +117,7 @@ def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path)
     columns = max(len(cases), 1)
     figure, axes = plt.subplots(2, columns, figsize=(4 * columns, 8), squeeze=False)
     for index, case in enumerate(cases):
-        heatmap = normalize_heatmap(np.load(directory / f"{case['category']}_{index}.npy"))
+        heatmap = normalize_heatmap(np.load(directory / f"{case['category']}_{index}{suffix}.npy"))
         image = Image.open(case["processed_path"]).convert("L")
         base = np.asarray(image, dtype="float32") / 255.0
         upscaled = np.asarray(
@@ -111,7 +134,7 @@ def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path)
         overlay.axis("off")
         isolated = axes[1][index]
         isolated.imshow(heatmap, cmap="jet")
-        isolated.set_title("Grad-CAM", fontsize=11)
+        isolated.set_title(method, fontsize=11)
         isolated.axis("off")
     return figure
 
@@ -127,6 +150,6 @@ def write_manifest(path: Path, *, architecture: str, method: str, samples: Seque
     return path
 
 
-__all__ = ["ensemble_heatmaps", "largest_ft_fs_disagreements", "mammofm_attribution",
-           "normalize_heatmap", "preregistered_cases", "render_attribution_overlays",
-           "torch_spatial_attribution", "write_manifest"]
+__all__ = ["ensemble_heatmaps", "integrated_gradients", "largest_ft_fs_disagreements",
+           "mammofm_attribution", "normalize_heatmap", "preregistered_cases",
+           "render_attribution_overlays", "torch_spatial_attribution", "write_manifest"]

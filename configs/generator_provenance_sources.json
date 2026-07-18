@@ -22,7 +22,7 @@
     ],
     "evidence": [
       "notebooks/2_diffusers training metadata/staging configuration",
-      "notebooks/utility/train_ldm_v2.py:AUGMENTED_METADATA_PATH,augmented_df,build_latents_signature",
+      "notebooks/utility/train_ldm.py:AUGMENTED_METADATA_PATH,augmented_df,build_latents_signature",
       "experiments/diffusers training and latent manifests when available"
     ]
   },

@@ -11,7 +11,7 @@
 # ║   Avvio dal notebook (processo figlio indipendente):                        ║
 # ║     import subprocess, sys                                                   ║
 # ║     proc = subprocess.Popen(                                                 ║
-# ║         [sys.executable, "notebooks/train_ldm_v2.py"],                      ║
+# ║         [sys.executable, "notebooks/train_ldm.py"],                      ║
 # ║         start_new_session=True,   # <-- figlio indipendente, sopravvive     ║
 # ║         stdout=open("experiments/.../logs/ldm_train.log","a"),              ║
 # ║         stderr=subprocess.STDOUT,                                            ║
@@ -429,7 +429,7 @@ else:
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ECOTRACKER — usa il modulo condiviso eco_tracker.py (stessa logica di
-# evaluate_ldm_v2.py e generate_ldm_v2.py). Fallback minimale solo se
+# evaluate_ldm.py e generate_ldm.py). Fallback minimale solo se
 # psutil/codecarbon non sono disponibili/installabili, per non bloccare il training.
 # ══════════════════════════════════════════════════════════════════════════════
 try:
@@ -686,7 +686,7 @@ else:
 # ── ARCHITETTURA VAE (per encoding) ──────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def build_vae_encoder():
-    """Ricostruisce l'architettura dell'encoder VAE (stessa di train_vae_v2.py) usata solo per definire la struttura prima di caricare i pesi già addestrati."""
+    """Ricostruisce l'architettura dell'encoder VAE (stessa di train_vae.py) usata solo per definire la struttura prima di caricare i pesi già addestrati."""
     x = inp = layers.Input(shape=(IMG_SIZE, IMG_SIZE, CHANNELS), name="enc_input")
     x = layers.Conv2D(64, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -714,7 +714,7 @@ def build_vae_encoder():
 
 
 def build_vae_decoder():
-    """Ricostruisce l'architettura del decoder VAE (stessa di train_vae_v2.py), usata in questo script solo per riportare i latenti generati nello spazio immagine durante eventuali controlli visivi."""
+    """Ricostruisce l'architettura del decoder VAE (stessa di train_vae.py), usata in questo script solo per riportare i latenti generati nello spazio immagine durante eventuali controlli visivi."""
     x = inp = layers.Input(shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS), name="dec_input")
     x = layers.Conv2D(128, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -809,7 +809,7 @@ if ARGS.skip_latent_encoding:
     ]
     if missing_latent_files:
         raise FileNotFoundError(
-            "Latenti precomputati mancanti. Esegui prima prepare_sdvae_latents_v2.py: "
+            "Latenti precomputati mancanti. Esegui prima prepare_sdvae_latents.py: "
             + ", ".join(str(path) for path in missing_latent_files)
         )
     print("Carico latenti precomputati senza VAE Keras.")
@@ -1434,7 +1434,7 @@ with measure_sustainability(label="ldm_training", sample_interval=0.5) as eco_ld
 
         # best_ldm_loss resta solo una statistica informativa (loss minima vista su un
         # singolo batch, rumorosa): la selezione del checkpoint migliore si fa dopo, sul
-        # validation set, con lo sweep FID/PRDC di evaluate_ldm_v2.py — non qui salvando
+        # validation set, con lo sweep FID/PRDC di evaluate_ldm.py — non qui salvando
         # un modello ogni volta che un batch fortunato abbassa la loss.
         best_ldm_loss = min(best_ldm_loss, loss_val)
 

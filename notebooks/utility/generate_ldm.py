@@ -1240,10 +1240,10 @@ def run_validate(args: argparse.Namespace, paths) -> None:
 
 
 def evaluate_filtered_command(args: argparse.Namespace, paths, filtered_dir: Path) -> list[str]:
-    """Costruisce la riga di comando per lanciare in sottoprocesso evaluate_filtered_ldm_v2.py (confronto FILTERED vs test set), propagando gli argomenti coerenti con questa run."""
+    """Costruisce la riga di comando per lanciare in sottoprocesso evaluate_filtered_ldm.py (confronto FILTERED vs test set), propagando gli argomenti coerenti con questa run."""
     command = [
         sys.executable,
-        str(Path(__file__).resolve().parent / "evaluate_filtered_ldm_v2.py"),
+        str(Path(__file__).resolve().parent / "evaluate_filtered_ldm.py"),
         "--project-root", str(paths.project_root),
         "--experiment-dir", str(paths.experiment_dir),
         "--cuda-root", str(args.cuda_root),

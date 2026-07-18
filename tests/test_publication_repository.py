@@ -64,11 +64,11 @@ class PublicationRepositoryTests(unittest.TestCase):
             paths_source,
         )
         for filename in (
-            "train_vae_v2.py",
-            "train_ldm_v2.py",
-            "evaluate_ldm_v2.py",
-            "generate_ldm_v2.py",
-            "evaluate_filtered_ldm_v2.py",
+            "train_vae.py",
+            "train_ldm.py",
+            "evaluate_ldm.py",
+            "generate_ldm.py",
+            "evaluate_filtered_ldm.py",
         ):
             source = (utility_dir / filename).read_text()
             self.assertIn("KERAS_V2_RESULTS_STAGE_NAME", source, filename)

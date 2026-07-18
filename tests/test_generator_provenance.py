@@ -107,8 +107,8 @@ class CanonicalProvenanceTests(unittest.TestCase):
         sources = json.loads((ROOT / "configs/generator_provenance_sources.json").read_text())
         shared = sources["shared_training_corpus"]
         self.assertEqual(set(shared["dependent_generators"]), {row["generator_id"] for row in sources["generators"]})
-        self.assertIn("AUGMENTED_METADATA_PATH", (ROOT / "notebooks/utility/train_ldm_v2.py").read_text())
-        self.assertIn("augmented_df", (ROOT / "notebooks/utility/train_ldm_v2.py").read_text())
+        self.assertIn("AUGMENTED_METADATA_PATH", (ROOT / "notebooks/utility/train_ldm.py").read_text())
+        self.assertIn("augmented_df", (ROOT / "notebooks/utility/train_ldm.py").read_text())
         metadata = ROOT / sources["training_corpus_evidence"]
         if not metadata.is_file():
             self.skipTest("runtime assets unavailable: shared training metadata is not included in source archives")

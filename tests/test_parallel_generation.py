@@ -66,9 +66,9 @@ from parallel_generation_utils import (  # noqa: E402
 import sd_generation_worker  # noqa: E402
 import sd_vae_utils  # noqa: E402
 from run_adaptive_filter import candidate_png_paths  # noqa: E402
-import generate_ldm_v2  # noqa: E402
-import evaluate_ldm_v2  # noqa: E402
-import evaluate_filtered_ldm_v2  # noqa: E402
+import generate_ldm  # noqa: E402
+import evaluate_ldm  # noqa: E402
+import evaluate_filtered_ldm  # noqa: E402
 
 
 def png(path: Path) -> None:
@@ -323,15 +323,15 @@ class ParallelGenerationTests(unittest.TestCase):
             project_root=ROOT, experiment_dir=ROOT / "experiments" / "test",
             synthetic_raw_dir=ROOT / "raw", synthetic_filtered_dir=ROOT / "filtered",
         )
-        with patch.object(sys, "argv", ["generate_ldm_v2.py", "--mode", "all"]):
-            parent = generate_ldm_v2.parse_args()
-        test_child = generate_ldm_v2.child_command(parent, paths, "test")
+        with patch.object(sys, "argv", ["generate_ldm.py", "--mode", "all"]):
+            parent = generate_ldm.parse_args()
+        test_child = generate_ldm.child_command(parent, paths, "test")
         with patch.object(sys, "argv", [test_child[1], *test_child[2:]]):
-            child_args = generate_ldm_v2.parse_args()
+            child_args = generate_ldm.parse_args()
         filtered = paths.synthetic_filtered_dir
-        metrics_command = generate_ldm_v2.evaluate_filtered_command(child_args, paths, filtered)
+        metrics_command = generate_ldm.evaluate_filtered_command(child_args, paths, filtered)
         with patch.object(sys, "argv", [metrics_command[1], *metrics_command[2:]]):
-            parsed = evaluate_filtered_ldm_v2.parse_args()
+            parsed = evaluate_filtered_ldm.parse_args()
         self.assertEqual(parsed.target_label, parent.target_label)
         self.assertNotIn("--generation-gpus", metrics_command)
         self.assertNotIn("--max-generation-workers", metrics_command)
@@ -339,15 +339,15 @@ class ParallelGenerationTests(unittest.TestCase):
     def test_generate_child_and_worker_preserve_gpu_configuration(self) -> None:
         paths = SimpleNamespace(project_root=ROOT, experiment_dir=ROOT / "experiment")
         for devices, maximum in (("1", 1), ("0,1", 1), ("off", None), ("auto", None)):
-            with patch.object(sys, "argv", ["generate_ldm_v2.py"]):
-                args = generate_ldm_v2.parse_args()
+            with patch.object(sys, "argv", ["generate_ldm.py"]):
+                args = generate_ldm.parse_args()
             args.generation_gpus = devices
             args.max_generation_workers = maximum
-            child = generate_ldm_v2.child_command(args, paths, "generate")
+            child = generate_ldm.child_command(args, paths, "generate")
             self.assertEqual(child[child.index("--generation-gpus") + 1], devices)
             if maximum is not None:
                 self.assertEqual(child[child.index("--max-generation-workers") + 1], str(maximum))
-            worker = generate_ldm_v2.generation_child_command(args, paths, Path("indices.json"), "7")
+            worker = generate_ldm.generation_child_command(args, paths, Path("indices.json"), "7")
             self.assertEqual(worker[worker.index("--generation-gpus") + 1], "off")
             self.assertEqual(worker[worker.index("--gpu-visible-devices") + 1], "7")
             if maximum is not None:
@@ -515,14 +515,14 @@ class ParallelGenerationTests(unittest.TestCase):
             def capture(**kwargs):
                 labels.extend((job["label"], gpu) for job, gpu in zip(kwargs["jobs"], kwargs["devices"]))
             for target_label in (0, 1):
-                with patch.object(sys, "argv", ["generate_ldm_v2.py"]):
-                    args = generate_ldm_v2.parse_args()
+                with patch.object(sys, "argv", ["generate_ldm.py"]):
+                    args = generate_ldm.parse_args()
                 args.target_label = target_label
                 args.generation_gpus = "0"
                 args.max_generation_workers = 1
                 args.dry_run = True
-                with patch.object(generate_ldm_v2, "run_dynamic_gpu_jobs", side_effect=capture):
-                    generate_ldm_v2.orchestrate_parallel_raw_generation(args, paths, root / "raw", [0])
+                with patch.object(generate_ldm, "run_dynamic_gpu_jobs", side_effect=capture):
+                    generate_ldm.orchestrate_parallel_raw_generation(args, paths, root / "raw", [0])
             self.assertNotEqual(labels[0][0], labels[1][0])
             for label, gpu in labels:
                 self.assertIn("experiment_x", label)
@@ -598,7 +598,7 @@ class ParallelGenerationTests(unittest.TestCase):
                 self.assertEqual(negative, expected)
 
     def test_parallel_parent_manifest_preserves_serial_fields(self) -> None:
-        source = (ROOT / "notebooks" / "utility" / "generate_ldm_v2.py").read_text(encoding="utf-8")
+        source = (ROOT / "notebooks" / "utility" / "generate_ldm.py").read_text(encoding="utf-8")
         for field in (
             '"sample_steps"', '"guidance_scale"', '"vae_backend"', '"sd_vae_model"',
             '"model_path"', '"state_json"', '"canonical_run"', '"generation_worker_count"',
@@ -700,12 +700,12 @@ class ParallelGenerationTests(unittest.TestCase):
             checkpoint.write_bytes(b"weights")
             raw = root / "raw"
             paths = SimpleNamespace(experiment_dir=root, project_root=root, models_dir=root / "models")
-            with patch.object(generate_ldm_v2, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm_v2, "ldm_vae_signature", return_value={"vae": 1}):
-                generate_ldm_v2.prepare_raw_generation_manifest(self._raw_args(), paths, raw, parent=True)
+            with patch.object(generate_ldm, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm, "ldm_vae_signature", return_value={"vae": 1}):
+                generate_ldm.prepare_raw_generation_manifest(self._raw_args(), paths, raw, parent=True)
                 png(raw / "synth_00000.png")
                 png(raw / "synth_00001.png")
                 with self.assertRaisesRegex(RuntimeError, "Incompatible RAW"):
-                    generate_ldm_v2.prepare_raw_generation_manifest(self._raw_args(guidance_scale=2.0), paths, raw, parent=True)
+                    generate_ldm.prepare_raw_generation_manifest(self._raw_args(guidance_scale=2.0), paths, raw, parent=True)
 
     def test_raw_ldm_pngs_without_manifest_refuse_resume(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -715,9 +715,9 @@ class ParallelGenerationTests(unittest.TestCase):
             raw = root / "raw"
             png(raw / "synth_00000.png")
             paths = SimpleNamespace(experiment_dir=root, project_root=root, models_dir=root / "models")
-            with patch.object(generate_ldm_v2, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm_v2, "ldm_vae_signature", return_value={"vae": 1}):
+            with patch.object(generate_ldm, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm, "ldm_vae_signature", return_value={"vae": 1}):
                 with self.assertRaisesRegex(RuntimeError, "without .generation_manifest"):
-                    generate_ldm_v2.prepare_raw_generation_manifest(self._raw_args(), paths, raw, parent=True)
+                    generate_ldm.prepare_raw_generation_manifest(self._raw_args(), paths, raw, parent=True)
 
     def test_raw_ldm_partial_directory_rejects_seed_or_model_change_and_allows_hole(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -726,17 +726,17 @@ class ParallelGenerationTests(unittest.TestCase):
             checkpoint.write_bytes(b"first")
             raw = root / "raw"
             paths = SimpleNamespace(experiment_dir=root, project_root=root, models_dir=root / "models")
-            with patch.object(generate_ldm_v2, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm_v2, "ldm_vae_signature", return_value={"vae": 1}):
+            with patch.object(generate_ldm, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm, "ldm_vae_signature", return_value={"vae": 1}):
                 args = self._raw_args()
-                generate_ldm_v2.prepare_raw_generation_manifest(args, paths, raw, parent=True)
+                generate_ldm.prepare_raw_generation_manifest(args, paths, raw, parent=True)
                 png(raw / "synth_00000.png")
                 # Same contract permits filling only the missing index.
-                generate_ldm_v2.prepare_raw_generation_manifest(args, paths, raw, parent=True)
+                generate_ldm.prepare_raw_generation_manifest(args, paths, raw, parent=True)
                 with self.assertRaisesRegex(RuntimeError, "Incompatible RAW"):
-                    generate_ldm_v2.prepare_raw_generation_manifest(self._raw_args(seed=43), paths, raw, parent=True)
+                    generate_ldm.prepare_raw_generation_manifest(self._raw_args(seed=43), paths, raw, parent=True)
                 checkpoint.write_bytes(b"second")
                 with self.assertRaisesRegex(RuntimeError, "Incompatible RAW"):
-                    generate_ldm_v2.prepare_raw_generation_manifest(args, paths, raw, parent=True)
+                    generate_ldm.prepare_raw_generation_manifest(args, paths, raw, parent=True)
 
     def test_sweep_checkpoint_change_invalidates_generation_and_metrics_cache(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -746,20 +746,20 @@ class ParallelGenerationTests(unittest.TestCase):
             paths = SimpleNamespace(project_root=root, evaluation_dir=root / "evaluation", models_dir=root / "models")
             args = self._sweep_args()
             candidate = {"checkpoint_id": "step_1", "kind": "step", "step": 1, "path": checkpoint}
-            with patch.object(evaluate_ldm_v2, "sweep_vae_signature", return_value={"vae": 1}):
+            with patch.object(evaluate_ldm, "sweep_vae_signature", return_value={"vae": 1}):
                 for cls in (0, 1):
-                    evaluate_ldm_v2.prepare_sweep_generation_manifest(args, paths, candidate, cls)
-                    png(evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", cls) / "0000.png")
-                    png(evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", cls) / "0001.png")
+                    evaluate_ldm.prepare_sweep_generation_manifest(args, paths, candidate, cls)
+                    png(evaluate_ldm.fake_output_dir(paths, args, "step_1", cls) / "0000.png")
+                    png(evaluate_ldm.fake_output_dir(paths, args, "step_1", cls) / "0001.png")
                 payload = {
                     "schema_version": 2,
-                    "candidate_signature": evaluate_ldm_v2.build_candidate_signature([candidate]),
-                    "generation_image_signature": evaluate_ldm_v2.sweep_generated_image_signature(args, paths, [candidate]),
+                    "candidate_signature": evaluate_ldm.build_candidate_signature([candidate]),
+                    "generation_image_signature": evaluate_ldm.sweep_generated_image_signature(args, paths, [candidate]),
                 }
                 checkpoint.write_bytes(b"second")
                 with self.assertRaisesRegex(RuntimeError, "Incompatible sweep"):
-                    evaluate_ldm_v2.prepare_sweep_generation_manifest(args, paths, candidate, 0)
-                self.assertFalse(evaluate_ldm_v2.ldm_metrics_cache_compatible(payload, args, paths, [candidate]))
+                    evaluate_ldm.prepare_sweep_generation_manifest(args, paths, candidate, 0)
+                self.assertFalse(evaluate_ldm.ldm_metrics_cache_compatible(payload, args, paths, [candidate]))
 
     def test_ldm_metrics_cache_is_invalidated_when_sweep_png_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -769,13 +769,13 @@ class ParallelGenerationTests(unittest.TestCase):
             paths = SimpleNamespace(project_root=root, evaluation_dir=root / "evaluation", models_dir=root / "models")
             args = self._sweep_args()
             candidate = {"checkpoint_id": "step_1", "kind": "step", "step": 1, "path": checkpoint}
-            with patch.object(evaluate_ldm_v2, "sweep_vae_signature", return_value={"vae": 1}):
+            with patch.object(evaluate_ldm, "sweep_vae_signature", return_value={"vae": 1}):
                 for cls in (0, 1):
-                    evaluate_ldm_v2.prepare_sweep_generation_manifest(args, paths, candidate, cls)
-                    png(evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", cls) / "0000.png")
-                payload = {"schema_version": 2, "candidate_signature": evaluate_ldm_v2.build_candidate_signature([candidate]), "generation_image_signature": evaluate_ldm_v2.sweep_generated_image_signature(args, paths, [candidate])}
-                Image.new("L", (3, 3), color=2).save(evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", 0) / "0000.png")
-                self.assertFalse(evaluate_ldm_v2.ldm_metrics_cache_compatible(payload, args, paths, [candidate]))
+                    evaluate_ldm.prepare_sweep_generation_manifest(args, paths, candidate, cls)
+                    png(evaluate_ldm.fake_output_dir(paths, args, "step_1", cls) / "0000.png")
+                payload = {"schema_version": 2, "candidate_signature": evaluate_ldm.build_candidate_signature([candidate]), "generation_image_signature": evaluate_ldm.sweep_generated_image_signature(args, paths, [candidate])}
+                Image.new("L", (3, 3), color=2).save(evaluate_ldm.fake_output_dir(paths, args, "step_1", 0) / "0000.png")
+                self.assertFalse(evaluate_ldm.ldm_metrics_cache_compatible(payload, args, paths, [candidate]))
 
     def test_sd_cache_invalidates_validation_reference_count(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -829,9 +829,9 @@ class ParallelGenerationTests(unittest.TestCase):
                 uses_vae_ft_from_03=False, notebook_name=None,
             )
             paths = SimpleNamespace(project_root=root, experiment_dir=root / "experiment")
-            command = evaluate_ldm_v2.child_generate_command(args, paths, "step_1", "0")
+            command = evaluate_ldm.child_generate_command(args, paths, "step_1", "0")
             with patch.object(sys, "argv", [command[1], *command[2:]]):
-                parsed = evaluate_ldm_v2.parse_args()
+                parsed = evaluate_ldm.parse_args()
             self.assertTrue(parsed.force_recompute)
             self.assertTrue(parsed.generation_worker)
 
@@ -842,24 +842,24 @@ class ParallelGenerationTests(unittest.TestCase):
             paths = SimpleNamespace(project_root=root, experiment_dir=root, evaluation_dir=root / "evaluation", models_dir=root / "models", latents_dir=root / "latents")
             args = self._sweep_args()
             candidate = {"checkpoint_id": "step_1", "kind": "step", "step": 1, "path": checkpoint}
-            with patch.object(evaluate_ldm_v2, "sweep_vae_signature", return_value={"vae": 1}):
-                evaluate_ldm_v2.prepare_sweep_generation_manifest(args, paths, candidate, 0)
-                out = evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", 0)
+            with patch.object(evaluate_ldm, "sweep_vae_signature", return_value={"vae": 1}):
+                evaluate_ldm.prepare_sweep_generation_manifest(args, paths, candidate, 0)
+                out = evaluate_ldm.fake_output_dir(paths, args, "step_1", 0)
                 png(out / "0000.png"); png(out / "0001.png")
                 forced = self._sweep_args(force_recompute=True, generation_worker=True)
-                evaluate_ldm_v2.prepare_sweep_generation_manifest(forced, paths, candidate, 0)
-                self.assertEqual(evaluate_ldm_v2.missing_fake_image_indices(paths, forced, "step_1", 0), [0, 1])
+                evaluate_ldm.prepare_sweep_generation_manifest(forced, paths, candidate, 0)
+                self.assertEqual(evaluate_ldm.missing_fake_image_indices(paths, forced, "step_1", 0), [0, 1])
 
     def test_sweep_force_worker_replaces_incompatible_directory(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); checkpoint = root / "ldm.keras"; checkpoint.write_bytes(b"weights")
             paths = SimpleNamespace(project_root=root, experiment_dir=root, evaluation_dir=root / "evaluation", models_dir=root / "models", latents_dir=root / "latents")
             candidate = {"checkpoint_id": "step_1", "kind": "step", "step": 1, "path": checkpoint}
-            with patch.object(evaluate_ldm_v2, "sweep_vae_signature", return_value={"vae": 1}):
-                evaluate_ldm_v2.prepare_sweep_generation_manifest(self._sweep_args(), paths, candidate, 0)
-                out = evaluate_ldm_v2.fake_output_dir(paths, self._sweep_args(), "step_1", 0); png(out / "0000.png")
+            with patch.object(evaluate_ldm, "sweep_vae_signature", return_value={"vae": 1}):
+                evaluate_ldm.prepare_sweep_generation_manifest(self._sweep_args(), paths, candidate, 0)
+                out = evaluate_ldm.fake_output_dir(paths, self._sweep_args(), "step_1", 0); png(out / "0000.png")
                 forced = self._sweep_args(decode_on_cpu=True, force_recompute=True, generation_worker=True)
-                expected = evaluate_ldm_v2.prepare_sweep_generation_manifest(forced, paths, candidate, 0)
+                expected = evaluate_ldm.prepare_sweep_generation_manifest(forced, paths, candidate, 0)
                 self.assertFalse((out / "0000.png").exists())
                 self.assertEqual(json.loads((out / ".generation_manifest.json").read_text()), expected)
 
@@ -868,21 +868,21 @@ class ParallelGenerationTests(unittest.TestCase):
             root = Path(tmp); checkpoint = root / "ldm.keras"; checkpoint.write_bytes(b"weights")
             paths = SimpleNamespace(project_root=root, experiment_dir=root, evaluation_dir=root / "evaluation", models_dir=root / "models", latents_dir=root / "latents")
             args = self._sweep_args(); candidate = {"checkpoint_id": "step_1", "kind": "step", "step": 1, "path": checkpoint}
-            with patch.object(evaluate_ldm_v2, "sweep_vae_signature", return_value={"vae": 1}):
-                evaluate_ldm_v2.prepare_sweep_generation_manifest(args, paths, candidate, 0)
-                image = evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", 0) / "0000.png"; png(image)
-                evaluate_ldm_v2.prepare_sweep_generation_manifest(self._sweep_args(force_recompute=True), paths, candidate, 0)
+            with patch.object(evaluate_ldm, "sweep_vae_signature", return_value={"vae": 1}):
+                evaluate_ldm.prepare_sweep_generation_manifest(args, paths, candidate, 0)
+                image = evaluate_ldm.fake_output_dir(paths, args, "step_1", 0) / "0000.png"; png(image)
+                evaluate_ldm.prepare_sweep_generation_manifest(self._sweep_args(force_recompute=True), paths, candidate, 0)
                 self.assertTrue(image.exists())
 
     def test_mode_all_force_requests_full_raw_regeneration_once(self) -> None:
         args = SimpleNamespace(force_recompute=True, results_stage_name="test")
-        with patch.object(generate_ldm_v2, "run_generate") as generate, patch.object(
-            generate_ldm_v2, "resolve_image_dirs", return_value=(Path("raw"), Path("filtered"))
+        with patch.object(generate_ldm, "run_generate") as generate, patch.object(
+            generate_ldm, "resolve_image_dirs", return_value=(Path("raw"), Path("filtered"))
         ), patch.dict(sys.modules, {"adaptive_mammography_filter": SimpleNamespace(filter_generated_directory=lambda **kwargs: {"cached": False})}):
             paths = SimpleNamespace(project_root=ROOT, results_stage_name="x")
-            with patch.object(generate_ldm_v2, "get_results_paths", side_effect=RuntimeError("after generation")):
+            with patch.object(generate_ldm, "get_results_paths", side_effect=RuntimeError("after generation")):
                 with self.assertRaises(RuntimeError):
-                    generate_ldm_v2.run_filter(args, paths)
+                    generate_ldm.run_filter(args, paths)
             generate.assert_called_once()
             self.assertFalse(generate.call_args.args[0].force_recompute)
 
@@ -891,11 +891,11 @@ class ParallelGenerationTests(unittest.TestCase):
             root = Path(tmp); (root / "latents").mkdir(); stats = root / "latents" / "latent_stats.npz"; stats.write_bytes(b"one")
             checkpoint = root / "ldm.keras"; checkpoint.write_bytes(b"weights")
             paths = SimpleNamespace(project_root=root, experiment_dir=root, models_dir=root / "models", latents_dir=root / "latents")
-            with patch.object(generate_ldm_v2, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm_v2, "ldm_vae_signature", return_value={"vae": 1}):
-                first = generate_ldm_v2.raw_generation_manifest_payload(self._raw_args(), paths, root / "raw")
+            with patch.object(generate_ldm, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm, "ldm_vae_signature", return_value={"vae": 1}):
+                first = generate_ldm.raw_generation_manifest_payload(self._raw_args(), paths, root / "raw")
                 stats.write_bytes(b"two")
-                second = generate_ldm_v2.raw_generation_manifest_payload(self._raw_args(), paths, root / "raw")
-                third = generate_ldm_v2.raw_generation_manifest_payload(self._raw_args(decode_on_cpu=True), paths, root / "raw")
+                second = generate_ldm.raw_generation_manifest_payload(self._raw_args(), paths, root / "raw")
+                third = generate_ldm.raw_generation_manifest_payload(self._raw_args(decode_on_cpu=True), paths, root / "raw")
             self.assertNotEqual(first["latent_stats_signature"], second["latent_stats_signature"])
             self.assertNotEqual(second, third)
 
@@ -917,27 +917,27 @@ class ParallelGenerationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             args, paths, pandas_stub = self._metrics_signature_fixture(Path(tmp))
             with patch.dict(sys.modules, {"pandas": pandas_stub}):
-                first = evaluate_ldm_v2.sweep_metrics_input_signature(args, paths)
+                first = evaluate_ldm.sweep_metrics_input_signature(args, paths)
                 (paths.models_dir / "vae_decoder_best.keras").write_bytes(b"vae-two")
-                second = evaluate_ldm_v2.sweep_metrics_input_signature(args, paths)
+                second = evaluate_ldm.sweep_metrics_input_signature(args, paths)
             self.assertNotEqual(first, second)
 
     def test_ldm_metrics_cache_signature_changes_with_validation_csv(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             args, paths, pandas_stub = self._metrics_signature_fixture(Path(tmp))
             with patch.dict(sys.modules, {"pandas": pandas_stub}):
-                first = evaluate_ldm_v2.sweep_metrics_input_signature(args, paths)
+                first = evaluate_ldm.sweep_metrics_input_signature(args, paths)
                 (paths.metadata_dir / "val.csv").write_text("processed_path,split,label\nreal.png,val,1\n#changed\n", encoding="utf-8")
-                second = evaluate_ldm_v2.sweep_metrics_input_signature(args, paths)
+                second = evaluate_ldm.sweep_metrics_input_signature(args, paths)
             self.assertNotEqual(first, second)
 
     def test_ldm_metrics_cache_signature_changes_with_validation_image(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             args, paths, pandas_stub = self._metrics_signature_fixture(Path(tmp))
             with patch.dict(sys.modules, {"pandas": pandas_stub}):
-                first = evaluate_ldm_v2.sweep_metrics_input_signature(args, paths)
+                first = evaluate_ldm.sweep_metrics_input_signature(args, paths)
                 Image.new("L", (3, 3), color=2).save(paths.data_processed_dir / "val" / "1" / "real.png")
-                second = evaluate_ldm_v2.sweep_metrics_input_signature(args, paths)
+                second = evaluate_ldm.sweep_metrics_input_signature(args, paths)
             self.assertNotEqual(first, second)
 
     def test_filter_excludes_foreign_raw_and_raw_change_invalidates_cache(self) -> None:
@@ -1036,8 +1036,8 @@ class ParallelGenerationTests(unittest.TestCase):
             before = {path.name: path.read_bytes() for path in raw.iterdir()}
             checkpoint = root / "model.keras"; checkpoint.write_bytes(b"model")
             paths = SimpleNamespace(project_root=root, experiment_dir=root, models_dir=root / "models", latents_dir=root / "latents")
-            with patch.object(generate_ldm_v2, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm_v2, "ldm_vae_signature", return_value={"vae": 1}):
-                generate_ldm_v2.prepare_raw_generation_manifest(self._raw_args(force_recompute=True), paths, raw, parent=True, dry_run=True)
+            with patch.object(generate_ldm, "resolve_model_path", return_value=checkpoint), patch.object(generate_ldm, "ldm_vae_signature", return_value={"vae": 1}):
+                generate_ldm.prepare_raw_generation_manifest(self._raw_args(force_recompute=True), paths, raw, parent=True, dry_run=True)
             self.assertEqual(before, {path.name: path.read_bytes() for path in raw.iterdir()})
 
     def test_dry_run_sweep_manifest_does_not_create_or_clear_outputs(self) -> None:
@@ -1047,8 +1047,8 @@ class ParallelGenerationTests(unittest.TestCase):
             args = self._sweep_args(force_recompute=True, generation_worker=True)
             candidate = {"checkpoint_id": "step_1", "kind": "step", "step": 1, "path": checkpoint}
             before = {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
-            with patch.object(evaluate_ldm_v2, "sweep_vae_signature", return_value={"vae": 1}):
-                evaluate_ldm_v2.prepare_sweep_generation_manifest(args, paths, candidate, 0, dry_run=True)
+            with patch.object(evaluate_ldm, "sweep_vae_signature", return_value={"vae": 1}):
+                evaluate_ldm.prepare_sweep_generation_manifest(args, paths, candidate, 0, dry_run=True)
             self.assertEqual(before, {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()})
             self.assertFalse(paths.evaluation_dir.exists())
 
@@ -1065,20 +1065,20 @@ class ParallelGenerationTests(unittest.TestCase):
 
     def test_final_evaluator_command_passes_exact_selected_count(self) -> None:
         paths = SimpleNamespace(project_root=ROOT, experiment_dir=ROOT / "experiment", synthetic_raw_dir=ROOT / "raw", synthetic_filtered_dir=ROOT / "filtered")
-        with patch.object(sys, "argv", ["generate_ldm_v2.py", "--mode", "all", "--n-selected", "7"]):
-            args = generate_ldm_v2.parse_args()
-        command = generate_ldm_v2.evaluate_filtered_command(args, paths, paths.synthetic_filtered_dir)
+        with patch.object(sys, "argv", ["generate_ldm.py", "--mode", "all", "--n-selected", "7"]):
+            args = generate_ldm.parse_args()
+        command = generate_ldm.evaluate_filtered_command(args, paths, paths.synthetic_filtered_dir)
         self.assertEqual(command[command.index("--expected-synthetic-count") + 1], "7")
 
     def test_sweep_out_of_range_index_does_not_fill_hole(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); paths = SimpleNamespace(project_root=root, evaluation_dir=root / "evaluation")
-            args = self._sweep_args(); out = evaluate_ldm_v2.fake_output_dir(paths, args, "step_1", 0)
+            args = self._sweep_args(); out = evaluate_ldm.fake_output_dir(paths, args, "step_1", 0)
             png(out / "0000.png"); png(out / "9999.png")
-            self.assertEqual(evaluate_ldm_v2.missing_fake_image_indices(paths, args, "step_1", 0), [1])
+            self.assertEqual(evaluate_ldm.missing_fake_image_indices(paths, args, "step_1", 0), [1])
 
     def test_sd_vae_worker_enables_tensorflow_memory_growth_environment(self) -> None:
-        source = (ROOT / "notebooks" / "utility" / "generate_ldm_v2.py").read_text(encoding="utf-8")
+        source = (ROOT / "notebooks" / "utility" / "generate_ldm.py").read_text(encoding="utf-8")
         keras_source = (ROOT / "notebooks" / "utility" / "ldm_keras_utils.py").read_text(encoding="utf-8")
         self.assertIn('TF_FORCE_GPU_ALLOW_GROWTH", "true"', source)
         self.assertIn("set_memory_growth(gpu, True)", keras_source)
@@ -1123,19 +1123,19 @@ class ParallelGenerationTests(unittest.TestCase):
             payload = {
                 "schema_version": 2, "config": config, "candidate_signature": candidate_signature,
                 "selection": {
-                    **evaluate_ldm_v2.selection_policy(), "best_checkpoint": str(best),
+                    **evaluate_ldm.selection_policy(), "best_checkpoint": str(best),
                     "best_model": str(old), "best_checkpoint_id": "best",
                 },
             }
             (evaluation / "checkpoint_metrics.json").write_text(json.dumps(payload), encoding="utf-8")
-            with patch.object(evaluate_ldm_v2, "build_eval_config", return_value=config), patch.object(
-                evaluate_ldm_v2, "build_candidate_signature", return_value=candidate_signature
-            ), patch.object(evaluate_ldm_v2, "normalize_eval_config", return_value=config), patch.object(
-                evaluate_ldm_v2, "ldm_metrics_cache_compatible", return_value=True
+            with patch.object(evaluate_ldm, "build_eval_config", return_value=config), patch.object(
+                evaluate_ldm, "build_candidate_signature", return_value=candidate_signature
+            ), patch.object(evaluate_ldm, "normalize_eval_config", return_value=config), patch.object(
+                evaluate_ldm, "ldm_metrics_cache_compatible", return_value=True
             ), patch.object(
-                evaluate_ldm_v2, "refresh_artifacts_from_cache", return_value=True
+                evaluate_ldm, "refresh_artifacts_from_cache", return_value=True
             ):
-                self.assertTrue(evaluate_ldm_v2.use_cached_metrics_if_valid(args, paths, candidates))
+                self.assertTrue(evaluate_ldm.use_cached_metrics_if_valid(args, paths, candidates))
             canonical = checkpoints / "ldm_unet_best_eval.keras"
             self.assertEqual(canonical.read_bytes(), best.read_bytes())
             self.assertFalse(old.exists())
@@ -1287,14 +1287,14 @@ class ParallelGenerationTests(unittest.TestCase):
             path = Path(tmp) / "synth_00000.png"
             png(path)
             stat_before = path.stat()
-            before = generate_ldm_v2.file_signature([path])
+            before = generate_ldm.file_signature([path])
             data = bytearray(path.read_bytes())
             data[-1] ^= 0xFF
             path.write_bytes(bytes(data))
             os.utime(path, ns=(stat_before.st_atime_ns, stat_before.st_mtime_ns))
             self.assertEqual(path.stat().st_size, stat_before.st_size)
             self.assertEqual(path.stat().st_mtime_ns, stat_before.st_mtime_ns)
-            after = generate_ldm_v2.file_signature([path])
+            after = generate_ldm.file_signature([path])
             self.assertNotEqual(before, after)
 
     # -- Concurrent-orchestration lock (item 5) --------------------------------------

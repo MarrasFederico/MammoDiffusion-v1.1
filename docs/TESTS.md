@@ -27,7 +27,7 @@ they are kept green as a gate before every commit.
 | `test_generator_candidate_audit.py` | 3 | Candidate discovery, family/role resolution and eligibility. |
 | `test_gate_audit.py` | 16 | The post-benchmark gate calibration audit utilities. |
 | `test_gate_amendment.py` | 20 | The size-matched perceptual-hash audit, the Option B amendment and the selection it produces. |
-| `test_generator_provenance_v2.py` | 18 | Signed per-generator provenance manifests and model/generation identities. |
+| `test_generator_provenance.py` | 18 | Signed per-generator provenance manifests and model/generation identities. |
 | `test_signed_manifest_dataset.py` | 18 | Classifier synthetic sets come only from the signed FILTERED manifest, never a directory scan. |
 | `test_selection_content_validation.py` | 14 | Content-aware selection validation: silent post-selection edits are rejected by SHA-256. |
 | `test_scientific_integrity_patch.py` | 11 | Scientific-integrity invariants across the selection and reporting artifacts. |

@@ -1,6 +1,6 @@
 """LDM v3 U-Net builder (Keras/TF), design ispirato a Stable Diffusion.
 
-Rispetto alla versione v2 (`train_ldm_v2.build_ldm_unet`) introduce:
+Rispetto alla versione v2 (`train_ldm.build_ldm_unet`) introduce:
 
 * **Upsample(nearest 2x) + Conv2D 3x3** al posto di `Conv2DTranspose`, per eliminare
   i noti *checkerboard artifacts* di ConvTranspose (Odena et al. 2016). E' lo stesso
@@ -13,7 +13,7 @@ Rispetto alla versione v2 (`train_ldm_v2.build_ldm_unet`) introduce:
   di v2, cosi' l'intera pipeline di training/inference puo' riutilizzare la stessa
   loop senza altre modifiche.
 
-Il modulo puo' essere importato da `train_ldm_v2.py` quando l'utente passa
+Il modulo puo' essere importato da `train_ldm.py` quando l'utente passa
 `--unet-version v3`, oppure caricato da un notebook per una prova rapida dedicata.
 """
 from __future__ import annotations
@@ -223,7 +223,7 @@ def build_ldm_unet_v3(
     latent_channels: int
         Numero di canali dei latenti (es. 4 per il VAE di SD).
     model_channels: int
-        `MODEL_CHANNELS` come definito in train_ldm_v2 (viene raddoppiato per matchare v2).
+        `MODEL_CHANNELS` come definito in train_ldm (viene raddoppiato per matchare v2).
     embed_dim: int
         Dimensione embedding tempo/label (moltiplicata x4 dagli embedding layer, come v2).
     num_classes: int

@@ -13635,8 +13635,8 @@
     },
     "test_csv": {
       "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "size": 82073,
-      "mtime_ns": 1783073699207657924
+      "size": 82047,
+      "mtime_ns": 1784314193864536390
     }
   },
   "experiment": "diffusers/03_sd21_vae_finetuned",
@@ -13649,21 +13649,21 @@
     "positive",
     "negative"
   ],
-  "avg_FID": 104.0778,
-  "avg_IS_mean": 2.1182,
-  "avg_IS_std": 0.0467,
-  "avg_precision": 0.5996,
-  "avg_recall": 0.0754,
-  "avg_density": 0.3374,
+  "avg_FID": 104.1003,
+  "avg_IS_mean": 2.122,
+  "avg_IS_std": 0.0637,
+  "avg_precision": 0.6003,
+  "avg_recall": 0.0685,
+  "avg_density": 0.3377,
   "avg_coverage": 0.8767,
   "per_class": {
     "positive": {
-      "FID": 99.2599,
-      "IS_mean": 2.0892,
-      "IS_std": 0.0449,
-      "precision": 0.6774,
-      "recall": 0.0822,
-      "density": 0.4457,
+      "FID": 99.2377,
+      "IS_mean": 2.0923,
+      "IS_std": 0.0488,
+      "precision": 0.6811,
+      "recall": 0.0685,
+      "density": 0.4481,
       "coverage": 0.9315,
       "n_generated": 1361,
       "inference_steps": 100,
@@ -13676,12 +13676,12 @@
       "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/positive"
     },
     "negative": {
-      "FID": 108.8956,
-      "IS_mean": 2.1472,
-      "IS_std": 0.0486,
-      "precision": 0.5217,
+      "FID": 108.9628,
+      "IS_mean": 2.1516,
+      "IS_std": 0.0786,
+      "precision": 0.5195,
       "recall": 0.0685,
-      "density": 0.2292,
+      "density": 0.2273,
       "coverage": 0.8219,
       "n_generated": 1361,
       "inference_steps": 100,
@@ -13694,5 +13694,5 @@
       "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/negative"
     }
   },
-  "timestamp": "2026-07-08T01:03:37"
+  "timestamp": "2026-07-19T11:14:49"
 }

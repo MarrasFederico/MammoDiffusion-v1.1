@@ -1,4 +1,4 @@
 dataset,reference_split,target_label,n_real_reference,n_generated,FID,IS_mean,IS_std,precision,recall,density,coverage
-raw_complete,val,1,73,2722,211.664,3.053,0.1278,0.0422,0.0,0.0181,0.4384
-raw_balanced_seed42,val,1,73,1361,210.6315,3.0131,0.225,0.0448,0.0274,0.0201,0.3425
-filtered,val,1,73,1361,156.9053,2.2747,0.0662,0.0889,0.0137,0.0429,0.4932
+raw_complete,val,1,73,2722,211.9536,3.0548,0.1295,0.0426,0.0,0.0182,0.4384
+raw_balanced_seed42,val,1,73,1361,210.9113,3.0082,0.1768,0.0441,0.0274,0.0198,0.3425
+filtered,val,1,73,1361,170.5583,2.4498,0.0928,0.072,0.0,0.0311,0.4247

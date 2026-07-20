@@ -77,8 +77,8 @@
   },
   "validation_csv_signature": {
     "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/val.csv",
-    "size": 80467,
-    "sha256": "b5740632f380fab7918e15dd02be02054329455a49fcff790ba5f148f5f895e1"
+    "size": 80527,
+    "sha256": "fba550497004a80f87e5fc5e4fc02008e7f5dc6b702a20fc0ca3174c317d17ab"
   },
   "checkpoints": {
     "checkpoint-500": {
@@ -87,9 +87,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1780998745000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093722978430,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -1107,26 +1107,26 @@
         "step": 500,
         "ckpt_name": "checkpoint-500",
         "negative": {
-          "FID": 174.4631,
-          "IS_mean": 1.759,
-          "IS_std": 0.1394,
+          "FID": 174.4267,
+          "IS_mean": 1.7884,
+          "IS_std": 0.1851,
           "precision": 0.38,
           "recall": 0.2877,
           "density": 0.128,
           "coverage": 0.274
         },
         "positive": {
-          "FID": 163.5894,
-          "IS_mean": 1.8476,
-          "IS_std": 0.2429,
+          "FID": 163.9635,
+          "IS_mean": 1.8891,
+          "IS_std": 0.2042,
           "precision": 0.19,
           "recall": 0.2466,
           "density": 0.062,
           "coverage": 0.1918
         },
-        "avg_FID": 169.0263,
-        "avg_IS_mean": 1.8033,
-        "avg_IS_std": 0.1911,
+        "avg_FID": 169.1951,
+        "avg_IS_mean": 1.8388,
+        "avg_IS_std": 0.1946,
         "avg_precision": 0.285,
         "avg_recall": 0.2671,
         "avg_density": 0.095,
@@ -1139,9 +1139,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1780999588000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093708009111,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -2159,30 +2159,30 @@
         "step": 1000,
         "ckpt_name": "checkpoint-1000",
         "negative": {
-          "FID": 168.784,
-          "IS_mean": 1.9362,
-          "IS_std": 0.1233,
+          "FID": 168.7703,
+          "IS_mean": 1.9385,
+          "IS_std": 0.1787,
           "precision": 0.24,
           "recall": 0.4521,
-          "density": 0.094,
-          "coverage": 0.2055
+          "density": 0.096,
+          "coverage": 0.2192
         },
         "positive": {
-          "FID": 155.0226,
-          "IS_mean": 1.966,
-          "IS_std": 0.2446,
+          "FID": 155.358,
+          "IS_mean": 1.9564,
+          "IS_std": 0.208,
           "precision": 0.25,
           "recall": 0.274,
           "density": 0.146,
           "coverage": 0.4384
         },
-        "avg_FID": 161.9033,
-        "avg_IS_mean": 1.9511,
-        "avg_IS_std": 0.184,
+        "avg_FID": 162.0641,
+        "avg_IS_mean": 1.9474,
+        "avg_IS_std": 0.1933,
         "avg_precision": 0.245,
         "avg_recall": 0.363,
-        "avg_density": 0.12,
-        "avg_coverage": 0.322
+        "avg_density": 0.121,
+        "avg_coverage": 0.3288
       }
     },
     "checkpoint-1500": {
@@ -2191,9 +2191,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1781000430000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093723930306,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -3211,29 +3211,29 @@
         "step": 1500,
         "ckpt_name": "checkpoint-1500",
         "negative": {
-          "FID": 174.5638,
-          "IS_mean": 2.1226,
-          "IS_std": 0.2731,
+          "FID": 174.5554,
+          "IS_mean": 2.1183,
+          "IS_std": 0.2499,
           "precision": 0.19,
           "recall": 0.8219,
-          "density": 0.052,
+          "density": 0.054,
           "coverage": 0.2192
         },
         "positive": {
-          "FID": 157.2927,
-          "IS_mean": 1.9959,
-          "IS_std": 0.1383,
+          "FID": 157.5203,
+          "IS_mean": 2.0233,
+          "IS_std": 0.2043,
           "precision": 0.2,
           "recall": 0.5753,
-          "density": 0.074,
+          "density": 0.076,
           "coverage": 0.2603
         },
-        "avg_FID": 165.9282,
-        "avg_IS_mean": 2.0593,
-        "avg_IS_std": 0.2057,
+        "avg_FID": 166.0378,
+        "avg_IS_mean": 2.0708,
+        "avg_IS_std": 0.2271,
         "avg_precision": 0.195,
         "avg_recall": 0.6986,
-        "avg_density": 0.063,
+        "avg_density": 0.065,
         "avg_coverage": 0.2397
       }
     },
@@ -3243,9 +3243,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1781001270000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093722798549,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -4263,30 +4263,30 @@
         "step": 2000,
         "ckpt_name": "checkpoint-2000",
         "negative": {
-          "FID": 201.177,
-          "IS_mean": 2.0099,
-          "IS_std": 0.1793,
+          "FID": 201.1449,
+          "IS_mean": 2.0203,
+          "IS_std": 0.2619,
           "precision": 0.19,
           "recall": 0.3562,
           "density": 0.06,
           "coverage": 0.1233
         },
         "positive": {
-          "FID": 184.1408,
-          "IS_mean": 1.9117,
-          "IS_std": 0.141,
+          "FID": 184.472,
+          "IS_mean": 1.8899,
+          "IS_std": 0.1251,
           "precision": 0.16,
           "recall": 0.2329,
-          "density": 0.138,
-          "coverage": 0.3973
+          "density": 0.136,
+          "coverage": 0.3836
         },
-        "avg_FID": 192.6589,
-        "avg_IS_mean": 1.9608,
-        "avg_IS_std": 0.1601,
+        "avg_FID": 192.8084,
+        "avg_IS_mean": 1.9551,
+        "avg_IS_std": 0.1935,
         "avg_precision": 0.175,
         "avg_recall": 0.2945,
-        "avg_density": 0.099,
-        "avg_coverage": 0.2603
+        "avg_density": 0.098,
+        "avg_coverage": 0.2535
       }
     },
     "checkpoint-2500": {
@@ -4295,9 +4295,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1781002114000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093723768465,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -5315,28 +5315,28 @@
         "step": 2500,
         "ckpt_name": "checkpoint-2500",
         "negative": {
-          "FID": 146.9507,
-          "IS_mean": 2.0387,
-          "IS_std": 0.2684,
+          "FID": 146.9494,
+          "IS_mean": 2.0105,
+          "IS_std": 0.2154,
           "precision": 0.28,
-          "recall": 0.7123,
+          "recall": 0.6986,
           "density": 0.122,
           "coverage": 0.3425
         },
         "positive": {
-          "FID": 128.9658,
-          "IS_mean": 2.0051,
-          "IS_std": 0.2641,
+          "FID": 129.1969,
+          "IS_mean": 2.0509,
+          "IS_std": 0.235,
           "precision": 0.41,
           "recall": 0.5753,
           "density": 0.274,
           "coverage": 0.6575
         },
-        "avg_FID": 137.9583,
-        "avg_IS_mean": 2.0219,
-        "avg_IS_std": 0.2662,
+        "avg_FID": 138.0731,
+        "avg_IS_mean": 2.0307,
+        "avg_IS_std": 0.2252,
         "avg_precision": 0.345,
-        "avg_recall": 0.6438,
+        "avg_recall": 0.637,
         "avg_density": 0.198,
         "avg_coverage": 0.5
       }
@@ -5347,9 +5347,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1781002968000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093723139561,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -6367,29 +6367,29 @@
         "step": 3000,
         "ckpt_name": "checkpoint-3000",
         "negative": {
-          "FID": 137.2759,
-          "IS_mean": 2.0965,
-          "IS_std": 0.2187,
-          "precision": 0.3,
+          "FID": 137.234,
+          "IS_mean": 2.0986,
+          "IS_std": 0.1724,
+          "precision": 0.29,
           "recall": 0.5205,
-          "density": 0.154,
+          "density": 0.152,
           "coverage": 0.4658
         },
         "positive": {
-          "FID": 121.4196,
-          "IS_mean": 2.1133,
-          "IS_std": 0.1658,
+          "FID": 121.5962,
+          "IS_mean": 2.1034,
+          "IS_std": 0.1967,
           "precision": 0.43,
           "recall": 0.6438,
           "density": 0.302,
           "coverage": 0.5479
         },
-        "avg_FID": 129.3478,
-        "avg_IS_mean": 2.1049,
-        "avg_IS_std": 0.1923,
-        "avg_precision": 0.365,
+        "avg_FID": 129.4151,
+        "avg_IS_mean": 2.101,
+        "avg_IS_std": 0.1845,
+        "avg_precision": 0.36,
         "avg_recall": 0.5821,
-        "avg_density": 0.228,
+        "avg_density": 0.227,
         "avg_coverage": 0.5069
       }
     },
@@ -6399,9 +6399,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1957,
-            "mtime_ns": 1781003820000000000,
-            "edge_sha256": "ec682549434f9258510b6a2ccf32689fc0baf18387b50e236315b58ba89f745f"
+            "size": 1966,
+            "mtime_ns": 1784289093723294322,
+            "edge_sha256": "5f117b381b630ab3d7ee67d185f6f60a19d4ba856f16824594b4924898dbe813"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -7419,29 +7419,29 @@
         "step": 3500,
         "ckpt_name": "checkpoint-3500",
         "negative": {
-          "FID": 156.7807,
-          "IS_mean": 1.9793,
-          "IS_std": 0.1997,
-          "precision": 0.19,
-          "recall": 0.4795,
-          "density": 0.098,
+          "FID": 156.7631,
+          "IS_mean": 1.9978,
+          "IS_std": 0.2018,
+          "precision": 0.21,
+          "recall": 0.4932,
+          "density": 0.102,
           "coverage": 0.4521
         },
         "positive": {
-          "FID": 140.8561,
-          "IS_mean": 2.0705,
-          "IS_std": 0.2424,
+          "FID": 141.0646,
+          "IS_mean": 2.0511,
+          "IS_std": 0.2032,
           "precision": 0.42,
           "recall": 0.5205,
-          "density": 0.188,
+          "density": 0.186,
           "coverage": 0.411
         },
-        "avg_FID": 148.8184,
-        "avg_IS_mean": 2.0249,
-        "avg_IS_std": 0.221,
-        "avg_precision": 0.305,
-        "avg_recall": 0.5,
-        "avg_density": 0.143,
+        "avg_FID": 148.9139,
+        "avg_IS_mean": 2.0244,
+        "avg_IS_std": 0.2025,
+        "avg_precision": 0.315,
+        "avg_recall": 0.5069,
+        "avg_density": 0.144,
         "avg_coverage": 0.4315
       }
     },
@@ -7451,9 +7451,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1936,
-            "mtime_ns": 1781006216000000000,
-            "edge_sha256": "3bcb8e41f974daf1312ca5fd60c2d1045a62e52d3d7ea62cb118e33d4841ca32"
+            "size": 1945,
+            "mtime_ns": 1784289093709989289,
+            "edge_sha256": "cf8d288d9dcf92a8b1d3354edc9b2272421c77cd72c011048471f2545bcd19e0"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -8471,30 +8471,30 @@
         "step": 4000,
         "ckpt_name": "checkpoint-4000",
         "negative": {
-          "FID": 151.8967,
+          "FID": 151.8635,
           "IS_mean": 1.9515,
-          "IS_std": 0.1019,
+          "IS_std": 0.0862,
           "precision": 0.2,
           "recall": 0.4932,
-          "density": 0.098,
-          "coverage": 0.2877
+          "density": 0.096,
+          "coverage": 0.274
         },
         "positive": {
-          "FID": 132.934,
-          "IS_mean": 2.0756,
-          "IS_std": 0.2369,
+          "FID": 133.2033,
+          "IS_mean": 2.0457,
+          "IS_std": 0.1839,
           "precision": 0.56,
-          "recall": 0.589,
+          "recall": 0.5616,
           "density": 0.37,
           "coverage": 0.5616
         },
-        "avg_FID": 142.4153,
-        "avg_IS_mean": 2.0135,
-        "avg_IS_std": 0.1694,
+        "avg_FID": 142.5334,
+        "avg_IS_mean": 1.9986,
+        "avg_IS_std": 0.1351,
         "avg_precision": 0.38,
-        "avg_recall": 0.5411,
-        "avg_density": 0.234,
-        "avg_coverage": 0.4246
+        "avg_recall": 0.5274,
+        "avg_density": 0.233,
+        "avg_coverage": 0.4178
       }
     },
     "checkpoint-4500": {
@@ -8503,9 +8503,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1936,
-            "mtime_ns": 1781007055000000000,
-            "edge_sha256": "3bcb8e41f974daf1312ca5fd60c2d1045a62e52d3d7ea62cb118e33d4841ca32"
+            "size": 1945,
+            "mtime_ns": 1784289093723606534,
+            "edge_sha256": "cf8d288d9dcf92a8b1d3354edc9b2272421c77cd72c011048471f2545bcd19e0"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -9523,30 +9523,30 @@
         "step": 4500,
         "ckpt_name": "checkpoint-4500",
         "negative": {
-          "FID": 201.2113,
-          "IS_mean": 2.2527,
-          "IS_std": 0.3987,
+          "FID": 201.1889,
+          "IS_mean": 2.2013,
+          "IS_std": 0.2326,
           "precision": 0.06,
           "recall": 0.6301,
           "density": 0.034,
           "coverage": 0.1781
         },
         "positive": {
-          "FID": 149.9557,
-          "IS_mean": 2.0979,
-          "IS_std": 0.2126,
+          "FID": 150.2659,
+          "IS_mean": 2.1231,
+          "IS_std": 0.2364,
           "precision": 0.25,
-          "recall": 0.6986,
-          "density": 0.154,
-          "coverage": 0.4521
+          "recall": 0.7123,
+          "density": 0.152,
+          "coverage": 0.4247
         },
-        "avg_FID": 175.5835,
-        "avg_IS_mean": 2.1753,
-        "avg_IS_std": 0.3056,
+        "avg_FID": 175.7274,
+        "avg_IS_mean": 2.1622,
+        "avg_IS_std": 0.2345,
         "avg_precision": 0.155,
-        "avg_recall": 0.6643,
-        "avg_density": 0.094,
-        "avg_coverage": 0.3151
+        "avg_recall": 0.6712,
+        "avg_density": 0.093,
+        "avg_coverage": 0.3014
       }
     },
     "checkpoint-5000": {
@@ -9555,9 +9555,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1936,
-            "mtime_ns": 1781007895000000000,
-            "edge_sha256": "3bcb8e41f974daf1312ca5fd60c2d1045a62e52d3d7ea62cb118e33d4841ca32"
+            "size": 1945,
+            "mtime_ns": 1784289093722598687,
+            "edge_sha256": "cf8d288d9dcf92a8b1d3354edc9b2272421c77cd72c011048471f2545bcd19e0"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -10575,30 +10575,30 @@
         "step": 5000,
         "ckpt_name": "checkpoint-5000",
         "negative": {
-          "FID": 158.605,
-          "IS_mean": 2.4448,
-          "IS_std": 0.318,
+          "FID": 158.5881,
+          "IS_mean": 2.4011,
+          "IS_std": 0.3851,
           "precision": 0.2,
           "recall": 0.7808,
-          "density": 0.11,
-          "coverage": 0.2466
+          "density": 0.116,
+          "coverage": 0.2603
         },
         "positive": {
-          "FID": 133.2587,
-          "IS_mean": 2.0999,
-          "IS_std": 0.2849,
+          "FID": 133.498,
+          "IS_mean": 2.1113,
+          "IS_std": 0.2509,
           "precision": 0.59,
-          "recall": 0.6712,
-          "density": 0.44,
+          "recall": 0.6575,
+          "density": 0.432,
           "coverage": 0.3973
         },
-        "avg_FID": 145.9318,
-        "avg_IS_mean": 2.2723,
-        "avg_IS_std": 0.3014,
+        "avg_FID": 146.043,
+        "avg_IS_mean": 2.2562,
+        "avg_IS_std": 0.318,
         "avg_precision": 0.395,
-        "avg_recall": 0.726,
-        "avg_density": 0.275,
-        "avg_coverage": 0.322
+        "avg_recall": 0.7191,
+        "avg_density": 0.274,
+        "avg_coverage": 0.3288
       }
     },
     "checkpoint-5500": {
@@ -10607,9 +10607,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1936,
-            "mtime_ns": 1781008742000000000,
-            "edge_sha256": "3bcb8e41f974daf1312ca5fd60c2d1045a62e52d3d7ea62cb118e33d4841ca32"
+            "size": 1945,
+            "mtime_ns": 1784289093709801468,
+            "edge_sha256": "cf8d288d9dcf92a8b1d3354edc9b2272421c77cd72c011048471f2545bcd19e0"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -11627,29 +11627,29 @@
         "step": 5500,
         "ckpt_name": "checkpoint-5500",
         "negative": {
-          "FID": 182.7221,
-          "IS_mean": 2.2088,
-          "IS_std": 0.2723,
+          "FID": 182.709,
+          "IS_mean": 2.2141,
+          "IS_std": 0.2481,
           "precision": 0.05,
           "recall": 0.6986,
           "density": 0.018,
           "coverage": 0.0959
         },
         "positive": {
-          "FID": 145.2879,
-          "IS_mean": 2.2144,
-          "IS_std": 0.2477,
+          "FID": 145.5387,
+          "IS_mean": 2.2073,
+          "IS_std": 0.3357,
           "precision": 0.39,
           "recall": 0.6438,
-          "density": 0.188,
+          "density": 0.184,
           "coverage": 0.3562
         },
-        "avg_FID": 164.005,
-        "avg_IS_mean": 2.2116,
-        "avg_IS_std": 0.26,
+        "avg_FID": 164.1239,
+        "avg_IS_mean": 2.2107,
+        "avg_IS_std": 0.2919,
         "avg_precision": 0.22,
         "avg_recall": 0.6712,
-        "avg_density": 0.103,
+        "avg_density": 0.101,
         "avg_coverage": 0.2261
       }
     },
@@ -11659,9 +11659,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1936,
-            "mtime_ns": 1781009589000000000,
-            "edge_sha256": "3bcb8e41f974daf1312ca5fd60c2d1045a62e52d3d7ea62cb118e33d4841ca32"
+            "size": 1945,
+            "mtime_ns": 1784289093709460665,
+            "edge_sha256": "cf8d288d9dcf92a8b1d3354edc9b2272421c77cd72c011048471f2545bcd19e0"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -12679,26 +12679,26 @@
         "step": 6000,
         "ckpt_name": "checkpoint-6000",
         "negative": {
-          "FID": 222.0856,
-          "IS_mean": 2.3792,
-          "IS_std": 0.378,
+          "FID": 222.0649,
+          "IS_mean": 2.3897,
+          "IS_std": 0.3386,
           "precision": 0.01,
           "recall": 0.6575,
           "density": 0.006,
           "coverage": 0.0411
         },
         "positive": {
-          "FID": 155.0004,
-          "IS_mean": 2.188,
-          "IS_std": 0.2968,
+          "FID": 155.2729,
+          "IS_mean": 2.1176,
+          "IS_std": 0.1223,
           "precision": 0.32,
           "recall": 0.6986,
           "density": 0.132,
           "coverage": 0.3425
         },
-        "avg_FID": 188.543,
-        "avg_IS_mean": 2.2836,
-        "avg_IS_std": 0.3374,
+        "avg_FID": 188.6689,
+        "avg_IS_mean": 2.2536,
+        "avg_IS_std": 0.2305,
         "avg_precision": 0.165,
         "avg_recall": 0.6781,
         "avg_density": 0.069,
@@ -12711,9 +12711,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1933,
-            "mtime_ns": 1781027640000000000,
-            "edge_sha256": "a0d2c3640e8fa3fb171cc8fabfbbf87c1efd2e10fe0c6467e5a23db373eeb114"
+            "size": 1942,
+            "mtime_ns": 1784289093709117173,
+            "edge_sha256": "526dc17aafeca9b5eafac186440a3da32d2f9408baaf746ae45f1542abd3f0e7"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -13731,26 +13731,26 @@
         "step": 6500,
         "ckpt_name": "checkpoint-6500",
         "negative": {
-          "FID": 187.7954,
-          "IS_mean": 2.2191,
-          "IS_std": 0.2307,
+          "FID": 187.7996,
+          "IS_mean": 2.2253,
+          "IS_std": 0.1746,
           "precision": 0.09,
           "recall": 0.4932,
           "density": 0.032,
           "coverage": 0.1096
         },
         "positive": {
-          "FID": 140.7754,
-          "IS_mean": 2.0564,
-          "IS_std": 0.2498,
+          "FID": 140.8597,
+          "IS_mean": 2.023,
+          "IS_std": 0.2529,
           "precision": 0.62,
           "recall": 0.4795,
           "density": 0.37,
           "coverage": 0.3562
         },
-        "avg_FID": 164.2854,
-        "avg_IS_mean": 2.1378,
-        "avg_IS_std": 0.2402,
+        "avg_FID": 164.3297,
+        "avg_IS_mean": 2.1242,
+        "avg_IS_std": 0.2137,
         "avg_precision": 0.355,
         "avg_recall": 0.4864,
         "avg_density": 0.201,
@@ -13763,9 +13763,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1933,
-            "mtime_ns": 1781028509000000000,
-            "edge_sha256": "a0d2c3640e8fa3fb171cc8fabfbbf87c1efd2e10fe0c6467e5a23db373eeb114"
+            "size": 1942,
+            "mtime_ns": 1784289093709630506,
+            "edge_sha256": "526dc17aafeca9b5eafac186440a3da32d2f9408baaf746ae45f1542abd3f0e7"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -14783,29 +14783,29 @@
         "step": 7000,
         "ckpt_name": "checkpoint-7000",
         "negative": {
-          "FID": 201.6838,
-          "IS_mean": 2.1477,
-          "IS_std": 0.2346,
+          "FID": 201.6437,
+          "IS_mean": 2.1279,
+          "IS_std": 0.1263,
           "precision": 0.04,
           "recall": 0.5068,
           "density": 0.008,
           "coverage": 0.0411
         },
         "positive": {
-          "FID": 160.8814,
-          "IS_mean": 2.0624,
-          "IS_std": 0.1787,
-          "precision": 0.12,
+          "FID": 161.074,
+          "IS_mean": 2.0756,
+          "IS_std": 0.1874,
+          "precision": 0.13,
           "recall": 0.6575,
-          "density": 0.074,
+          "density": 0.076,
           "coverage": 0.3288
         },
-        "avg_FID": 181.2826,
-        "avg_IS_mean": 2.105,
-        "avg_IS_std": 0.2067,
-        "avg_precision": 0.08,
+        "avg_FID": 181.3589,
+        "avg_IS_mean": 2.1018,
+        "avg_IS_std": 0.1568,
+        "avg_precision": 0.085,
         "avg_recall": 0.5821,
-        "avg_density": 0.041,
+        "avg_density": 0.042,
         "avg_coverage": 0.185
       }
     },
@@ -14815,9 +14815,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1933,
-            "mtime_ns": 1781029351000000000,
-            "edge_sha256": "a0d2c3640e8fa3fb171cc8fabfbbf87c1efd2e10fe0c6467e5a23db373eeb114"
+            "size": 1942,
+            "mtime_ns": 1784289093723450823,
+            "edge_sha256": "526dc17aafeca9b5eafac186440a3da32d2f9408baaf746ae45f1542abd3f0e7"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -15835,29 +15835,29 @@
         "step": 7500,
         "ckpt_name": "checkpoint-7500",
         "negative": {
-          "FID": 212.2547,
-          "IS_mean": 2.2958,
-          "IS_std": 0.2277,
+          "FID": 212.2471,
+          "IS_mean": 2.3246,
+          "IS_std": 0.2843,
           "precision": 0.02,
           "recall": 0.6027,
           "density": 0.006,
           "coverage": 0.0411
         },
         "positive": {
-          "FID": 137.5557,
-          "IS_mean": 1.952,
-          "IS_std": 0.208,
-          "precision": 0.35,
-          "recall": 0.4658,
-          "density": 0.234,
+          "FID": 137.7858,
+          "IS_mean": 1.9572,
+          "IS_std": 0.2053,
+          "precision": 0.36,
+          "recall": 0.4521,
+          "density": 0.23,
           "coverage": 0.3973
         },
-        "avg_FID": 174.9052,
-        "avg_IS_mean": 2.1239,
-        "avg_IS_std": 0.2178,
-        "avg_precision": 0.185,
-        "avg_recall": 0.5343,
-        "avg_density": 0.12,
+        "avg_FID": 175.0164,
+        "avg_IS_mean": 2.1409,
+        "avg_IS_std": 0.2448,
+        "avg_precision": 0.19,
+        "avg_recall": 0.5274,
+        "avg_density": 0.118,
         "avg_coverage": 0.2192
       }
     },
@@ -15867,9 +15867,9 @@
         "files": [
           {
             "name": "unet/config.json",
-            "size": 1933,
-            "mtime_ns": 1781030196000000000,
-            "edge_sha256": "a0d2c3640e8fa3fb171cc8fabfbbf87c1efd2e10fe0c6467e5a23db373eeb114"
+            "size": 1942,
+            "mtime_ns": 1784289093709295734,
+            "edge_sha256": "526dc17aafeca9b5eafac186440a3da32d2f9408baaf746ae45f1542abd3f0e7"
           },
           {
             "name": "unet/diffusion_pytorch_model.safetensors",
@@ -16887,29 +16887,29 @@
         "step": 8000,
         "ckpt_name": "checkpoint-8000",
         "negative": {
-          "FID": 205.8953,
-          "IS_mean": 2.2395,
-          "IS_std": 0.3213,
+          "FID": 205.8695,
+          "IS_mean": 2.2647,
+          "IS_std": 0.2774,
           "precision": 0.06,
           "recall": 0.4384,
           "density": 0.018,
           "coverage": 0.0685
         },
         "positive": {
-          "FID": 129.5897,
-          "IS_mean": 2.1309,
-          "IS_std": 0.2036,
+          "FID": 129.8382,
+          "IS_mean": 2.1683,
+          "IS_std": 0.2359,
           "precision": 0.47,
           "recall": 0.5753,
-          "density": 0.33,
+          "density": 0.326,
           "coverage": 0.6027
         },
-        "avg_FID": 167.7425,
-        "avg_IS_mean": 2.1852,
-        "avg_IS_std": 0.2624,
+        "avg_FID": 167.8538,
+        "avg_IS_mean": 2.2165,
+        "avg_IS_std": 0.2566,
         "avg_precision": 0.265,
         "avg_recall": 0.5069,
-        "avg_density": 0.174,
+        "avg_density": 0.172,
         "avg_coverage": 0.3356
       }
     }

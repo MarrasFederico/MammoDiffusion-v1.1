@@ -1,0 +1,2 @@
+metric_backend,reference_split,target_label,n_real_test,n_synthetic_filtered,synthetic_dir,inception_batch,is_splits,knn_k,FID,IS_mean,IS_std,precision,recall,density,coverage
+generative_evaluator.py,test,0,365,1361,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/07_ldm_sdvae_extra1361/negative,8,10,3,93.9041,2.6177,0.152,0.3145,0.1096,0.1545,0.2438

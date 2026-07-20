@@ -1,11 +1,11 @@
-inference_steps,stage,class_name,n_generated,FID,IS mean,IS std,precision,recall,density,coverage,comparison_role,label,artifact
-50,raw,positive,1361,118.9782,2.7188,0.1479,,,,,inference_steps_baseline,1,baseline_final_test_metrics
-50,raw,negative,1361,123.9415,2.7942,0.1655,,,,,inference_steps_baseline,0,baseline_final_test_metrics
-100,raw_matched,positive,1361,119.8019,2.7357,0.0847,0.4093,0.3151,0.2254,0.9589,inference_steps_comparison,1,final_test_metrics_raw_matched_100_steps
-100,raw_matched,positive,1361,119.8019,2.7357,0.0847,0.4093,0.3151,0.2254,0.9589,filter_comparison,1,final_test_metrics_raw_matched_100_steps
-100,raw_matched,negative,1361,126.7982,2.6807,0.1174,0.338,0.3288,0.1464,0.863,inference_steps_comparison,0,final_test_metrics_raw_matched_100_steps
-100,raw_matched,negative,1361,126.7982,2.6807,0.1174,0.338,0.3288,0.1464,0.863,filter_comparison,0,final_test_metrics_raw_matched_100_steps
-100,filtered,positive,1361,113.0254,2.4143,0.0675,0.612,0.274,0.3456,0.9726,filter_comparison,1,final_test_metrics
-100,filtered,positive,1361,113.0254,2.4143,0.0675,0.612,0.274,0.3456,0.9726,pipeline_final,1,final_test_metrics
-100,filtered,negative,1361,114.1593,2.3812,0.1025,0.4717,0.2055,0.2178,0.8767,filter_comparison,0,final_test_metrics
-100,filtered,negative,1361,114.1593,2.3812,0.1025,0.4717,0.2055,0.2178,0.8767,pipeline_final,0,final_test_metrics
+inference_steps,stage,class_name,n_generated,FID,IS mean,IS std,precision,recall,density,coverage,comparison_role,label,artifact,checkpoint_identity_verified,g01_selected_checkpoint,g02_selected_checkpoint
+50,raw,positive,1361,118.9782,2.7188,0.1479,,,,,inference_steps_baseline,1,baseline_final_test_metrics,True,checkpoint-3000,checkpoint-3000
+50,raw,negative,1361,123.9415,2.7942,0.1655,,,,,inference_steps_baseline,0,baseline_final_test_metrics,True,checkpoint-3000,checkpoint-3000
+100,raw_matched,positive,1361,119.777,2.7272,0.0962,0.4107,0.3151,0.227,0.9589,inference_steps_comparison,1,final_test_metrics_raw_matched_100_steps,True,checkpoint-3000,checkpoint-3000
+100,raw_matched,positive,1361,119.777,2.7272,0.0962,0.4107,0.3151,0.227,0.9589,filter_comparison,1,final_test_metrics_raw_matched_100_steps,True,checkpoint-3000,checkpoint-3000
+100,raw_matched,negative,1361,126.9319,2.6779,0.1265,0.335,0.3151,0.1439,0.863,inference_steps_comparison,0,final_test_metrics_raw_matched_100_steps,True,checkpoint-3000,checkpoint-3000
+100,raw_matched,negative,1361,126.9319,2.6779,0.1265,0.335,0.3151,0.1439,0.863,filter_comparison,0,final_test_metrics_raw_matched_100_steps,True,checkpoint-3000,checkpoint-3000
+100,filtered,positive,1361,113.003,2.4152,0.1108,0.615,0.274,0.3483,0.9726,filter_comparison,1,final_test_metrics,True,checkpoint-3000,checkpoint-3000
+100,filtered,positive,1361,113.003,2.4152,0.1108,0.615,0.274,0.3483,0.9726,pipeline_final,1,final_test_metrics,True,checkpoint-3000,checkpoint-3000
+100,filtered,negative,1361,114.235,2.3851,0.129,0.4688,0.2055,0.2153,0.8767,filter_comparison,0,final_test_metrics,True,checkpoint-3000,checkpoint-3000
+100,filtered,negative,1361,114.235,2.3851,0.129,0.4688,0.2055,0.2153,0.8767,pipeline_final,0,final_test_metrics,True,checkpoint-3000,checkpoint-3000

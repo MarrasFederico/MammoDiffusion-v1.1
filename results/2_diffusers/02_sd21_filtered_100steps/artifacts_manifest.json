@@ -12,6 +12,14 @@
   "final_generated_dir": "experiments/diffusers/02_sd21_filtered_100steps/generated_images/final",
   "raw_matched_dir": "experiments/diffusers/02_sd21_filtered_100steps/generated_images/raw_matched_1361",
   "selected_checkpoint": "checkpoint-3000",
+  "sampling_comparison_checkpoint_identity": {
+    "verified": true,
+    "g01_selected_checkpoint": "checkpoint-3000",
+    "g02_selected_checkpoint": "checkpoint-3000",
+    "g01_checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000",
+    "g02_checkpoint_path": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000",
+    "verification_basis": "saved_generation_records_resolved_path_and_content_signature"
+  },
   "generation": {
     "inference_steps": 100,
     "raw_per_class": 2722,

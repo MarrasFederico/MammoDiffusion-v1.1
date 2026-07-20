@@ -1,10 +1,12 @@
 {
-  "timestamp": "2026-06-18T14:59:11",
+  "timestamp": "2026-07-19T13:30:12",
   "notebook": "01_Preprocessing_RSNA_512_gray_MLO",
-  "dataset_dir": "/home/fede/Documenti/MammoDiffusion/data/original/dataset",
-  "output_dir": "/home/fede/Documenti/MammoDiffusion/data/processed",
-  "plots_dir": "/home/fede/Documenti/MammoDiffusion/results/01_preprocessing/plots",
-  "ecotracker_json": "/home/fede/Documenti/MammoDiffusion/results/01_preprocessing/ecotracker/preprocessing_ecotracker.json",
+  "data_source_mode": "verified_processed_reuse",
+  "dataset_dir": null,
+  "processed_manifest": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/all_processed.csv",
+  "output_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/processed",
+  "plots_dir": "/mnt/MammoDiffusion/MammoDiffusion/results/1_preprocessing/01_rsna_512_gray_mlo/plots",
+  "ecotracker_json": "/mnt/MammoDiffusion/MammoDiffusion/results/1_preprocessing/01_rsna_512_gray_mlo/ecotracker/preprocessing_ecotracker.json",
   "img_size": 512,
   "view_filter": "MLO",
   "n_rows": 2916,
@@ -28,9 +30,10 @@
     }
   },
   "visual_normalization": {
+    "mode": "read_only_validation",
     "target_tissue_side": "left",
-    "flipped_count": 1462,
-    "kept_count": 1454,
+    "flipped_count": 1464,
+    "kept_count": 1452,
     "unknown_count": 0,
     "after_counts": {
       "left": 2916

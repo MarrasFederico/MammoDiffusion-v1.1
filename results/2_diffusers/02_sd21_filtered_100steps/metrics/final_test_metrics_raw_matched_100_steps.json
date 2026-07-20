@@ -13655,8 +13655,8 @@
     },
     "test_csv": {
       "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "size": 82073,
-      "mtime_ns": 1783073699207657924
+      "size": 82047,
+      "mtime_ns": 1784314193864536390
     }
   },
   "experiment": "diffusers/02_sd21_filtered_100steps",
@@ -13673,21 +13673,21 @@
     "positive",
     "negative"
   ],
-  "avg_FID": 123.3,
-  "avg_IS_mean": 2.7082,
-  "avg_IS_std": 0.1011,
-  "avg_precision": 0.3737,
-  "avg_recall": 0.3219,
-  "avg_density": 0.1859,
+  "avg_FID": 123.3544,
+  "avg_IS_mean": 2.7026,
+  "avg_IS_std": 0.1114,
+  "avg_precision": 0.3729,
+  "avg_recall": 0.3151,
+  "avg_density": 0.1855,
   "avg_coverage": 0.9109,
   "per_class": {
     "positive": {
-      "FID": 119.8019,
-      "IS_mean": 2.7357,
-      "IS_std": 0.0847,
-      "precision": 0.4093,
+      "FID": 119.777,
+      "IS_mean": 2.7272,
+      "IS_std": 0.0962,
+      "precision": 0.4107,
       "recall": 0.3151,
-      "density": 0.2254,
+      "density": 0.227,
       "coverage": 0.9589,
       "n_generated": 1361,
       "inference_steps": 100,
@@ -15083,12 +15083,12 @@
       "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/02_sd21_filtered_100steps/generated_images/raw_matched_1361/positive"
     },
     "negative": {
-      "FID": 126.7982,
-      "IS_mean": 2.6807,
-      "IS_std": 0.1174,
-      "precision": 0.338,
-      "recall": 0.3288,
-      "density": 0.1464,
+      "FID": 126.9319,
+      "IS_mean": 2.6779,
+      "IS_std": 0.1265,
+      "precision": 0.335,
+      "recall": 0.3151,
+      "density": 0.1439,
       "coverage": 0.863,
       "n_generated": 1361,
       "inference_steps": 100,
@@ -16484,5 +16484,5 @@
       "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/02_sd21_filtered_100steps/generated_images/raw_matched_1361/negative"
     }
   },
-  "timestamp": "2026-07-16T17:13:06"
+  "timestamp": "2026-07-19T10:58:55"
 }

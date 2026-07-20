@@ -1,4 +1,4 @@
 class,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated,inference_steps,stage,class_name,label,real_label,n_real_reference,real_reference_metadata,generated_dir
-positive,113.0254,2.4143,0.0675,0.612,0.274,0.3456,0.9726,1361,100,filtered,positive,1,1,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/02_sd21_filtered_100steps/positive
-negative,114.1593,2.3812,0.1025,0.4717,0.2055,0.2178,0.8767,1361,100,filtered,negative,0,0,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/02_sd21_filtered_100steps/negative
-average,113.5924,2.3978,0.085,0.5418,0.2398,0.2817,0.9246,2722,100,filtered,average,,,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,
+positive,113.003,2.4152,0.1108,0.615,0.274,0.3483,0.9726,1361,100,filtered,positive,1,1,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/02_sd21_filtered_100steps/positive
+negative,114.235,2.3851,0.129,0.4688,0.2055,0.2153,0.8767,1361,100,filtered,negative,0,0,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/02_sd21_filtered_100steps/negative
+average,113.619,2.4002,0.1199,0.5419,0.2398,0.2818,0.9246,2722,100,filtered,average,,,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,

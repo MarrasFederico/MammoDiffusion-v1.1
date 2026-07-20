@@ -34048,9 +34048,9 @@
     "validation_csv_signature": {
       "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/val.csv",
       "file": {
-        "size": 80467,
-        "mtime_ns": 1783073699207945485,
-        "edge_sha256": "b5740632f380fab7918e15dd02be02054329455a49fcff790ba5f148f5f895e1"
+        "size": 80527,
+        "mtime_ns": 1784314193862130817,
+        "edge_sha256": "fba550497004a80f87e5fc5e4fc02008e7f5dc6b702a20fc0ca3174c317d17ab"
       }
     },
     "validation_reference_image_signature": [
@@ -35193,9 +35193,9 @@
       {
         "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/val/0/39135_712595198_L_MLO.png",
         "file": {
-          "size": 72576,
-          "mtime_ns": 1783073699627021232,
-          "edge_sha256": "6619e018345b60e2e3670889281b306d77ec2147fea0725f218e352723359cd7"
+          "size": 73251,
+          "mtime_ns": 1784314193724972565,
+          "edge_sha256": "de79753629898c4d222fc482b9091e99a6b6bc30ff656e2c4bc7390c5b041385"
         }
       },
       {
@@ -36977,9 +36977,9 @@
       "target_label": 0,
       "n_real_reference": 364,
       "n_generated": 4083,
-      "FID": 82.3535,
-      "IS_mean": 2.3659,
-      "IS_std": 0.0508,
+      "FID": 82.2763,
+      "IS_mean": 2.3663,
+      "IS_std": 0.0501,
       "precision": 0.4149,
       "recall": 0.0302,
       "density": 0.2834,
@@ -36991,9 +36991,9 @@
       "target_label": 0,
       "n_real_reference": 364,
       "n_generated": 1361,
-      "FID": 84.1021,
-      "IS_mean": 2.326,
-      "IS_std": 0.0983,
+      "FID": 84.0162,
+      "IS_mean": 2.3253,
+      "IS_std": 0.0865,
       "precision": 0.3997,
       "recall": 0.0467,
       "density": 0.2613,
@@ -37005,9 +37005,9 @@
       "target_label": 0,
       "n_real_reference": 364,
       "n_generated": 1361,
-      "FID": 89.1755,
-      "IS_mean": 1.9418,
-      "IS_std": 0.0843,
+      "FID": 89.1099,
+      "IS_mean": 1.9366,
+      "IS_std": 0.0629,
       "precision": 0.4386,
       "recall": 0.0247,
       "density": 0.348,

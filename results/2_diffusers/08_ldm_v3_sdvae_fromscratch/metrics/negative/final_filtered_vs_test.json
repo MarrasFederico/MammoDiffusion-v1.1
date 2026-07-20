@@ -10905,9 +10905,9 @@
     "test_csv_signature": {
       "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
       "file": {
-        "size": 82073,
-        "mtime_ns": 1783073699207657924,
-        "edge_sha256": "27c94a76f0dcc92684c8c009e8ae3ef06c960620e720764cd2b664dad9eb4902"
+        "size": 82047,
+        "mtime_ns": 1784314193864536390,
+        "edge_sha256": "b97bf9c97016c0334a4ab63dbf2a495aa10ae08ab340a664be3d6d755a00b6c1"
       }
     },
     "test_reference_image_signature": [
@@ -11202,9 +11202,9 @@
       {
         "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/test/0/16364_2068865780_R_MLO.png",
         "file": {
-          "size": 71547,
-          "mtime_ns": 1783073699272319460,
-          "edge_sha256": "89c00a7cc6e51c3620459cec0886fc46d8c6e7856f29e4e2ded28fe8ebb8face"
+          "size": 72487,
+          "mtime_ns": 1784314193756746550,
+          "edge_sha256": "1b2a4f78ddcb85985368cb810de35182fef85b0f3dbeff7d76a50044ae07099c"
         }
       },
       {
@@ -11234,9 +11234,9 @@
       {
         "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/test/0/57364_1139492314_R_MLO.png",
         "file": {
-          "size": 67362,
-          "mtime_ns": 1783073699271733408,
-          "edge_sha256": "b4e130dd8358d33e6d7472b97b20251d7630806d0e86205cab152a3187c88f37"
+          "size": 67675,
+          "mtime_ns": 1784314193776068690,
+          "edge_sha256": "09ba7b65da167813367906bb487593b3d750c0539687f7388dcab6c35e9b1b8d"
         }
       },
       {
@@ -12298,9 +12298,9 @@
       {
         "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/test/0/29605_933587745_L_MLO.png",
         "file": {
-          "size": 67982,
-          "mtime_ns": 1783073699252301655,
-          "edge_sha256": "0d253837d2ef39bff85655fa4b9258971ec167d9afe004ec757498d779a2f14c"
+          "size": 69255,
+          "mtime_ns": 1784314193792353525,
+          "edge_sha256": "d9661862fb9db069c0a91ad6a306d7b08daafb4c7e45f6bc2ba8f51e72ea580a"
         }
       },
       {
@@ -13754,9 +13754,9 @@
       {
         "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/test/0/3267_1572006981_L_MLO.png",
         "file": {
-          "size": 64063,
-          "mtime_ns": 1783073699222540285,
-          "edge_sha256": "54b4509a75a072551682b3796719584a76393d673f1d04f85caf0bfc463e2b92"
+          "size": 64882,
+          "mtime_ns": 1784314193810158607,
+          "edge_sha256": "73746994fcdba2ead673d7ca829b8864f691035d37cb9d7800796ec17c7c6083"
         }
       },
       {
@@ -13802,9 +13802,9 @@
       {
         "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/test/0/44756_1438951400_L_MLO.png",
         "file": {
-          "size": 75693,
-          "mtime_ns": 1783073699221568282,
-          "edge_sha256": "cdde80db793f2d12f5d588415c939ea09fad464a128b205c8ae51e3bb4d59be5"
+          "size": 76019,
+          "mtime_ns": 1784314193836370603,
+          "edge_sha256": "bc239762ace558a06aea1b8b7b419a02bf665f696cdce074ae26ad12316c8d79"
         }
       },
       {
@@ -13843,12 +13843,12 @@
     "inception_batch": 8,
     "is_splits": 10,
     "knn_k": 3,
-    "FID": 89.9969,
-    "IS_mean": 1.9387,
-    "IS_std": 0.0325,
-    "precision": 0.6172,
+    "FID": 89.9129,
+    "IS_mean": 1.9386,
+    "IS_std": 0.0782,
+    "precision": 0.615,
     "recall": 0.011,
-    "density": 0.3977,
-    "coverage": 0.3205
+    "density": 0.3955,
+    "coverage": 0.3233
   }
 }

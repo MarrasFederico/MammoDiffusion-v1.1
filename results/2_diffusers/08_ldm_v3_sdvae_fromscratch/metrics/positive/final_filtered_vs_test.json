@@ -10905,9 +10905,9 @@
     "test_csv_signature": {
       "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
       "file": {
-        "size": 82073,
-        "mtime_ns": 1783073699207657924,
-        "edge_sha256": "27c94a76f0dcc92684c8c009e8ae3ef06c960620e720764cd2b664dad9eb4902"
+        "size": 82047,
+        "mtime_ns": 1784314193864536390,
+        "edge_sha256": "b97bf9c97016c0334a4ab63dbf2a495aa10ae08ab340a664be3d6d755a00b6c1"
       }
     },
     "test_reference_image_signature": [
@@ -11508,8 +11508,8 @@
     "is_splits": 10,
     "knn_k": 3,
     "FID": 113.5512,
-    "IS_mean": 1.7323,
-    "IS_std": 0.0484,
+    "IS_mean": 1.7324,
+    "IS_std": 0.0591,
     "precision": 0.5878,
     "recall": 0.0274,
     "density": 0.432,

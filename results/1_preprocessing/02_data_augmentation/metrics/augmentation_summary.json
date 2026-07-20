@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-06-18T15:00:36",
+  "timestamp": "2026-07-19T13:31:17",
   "notebook": "02_Data_Augmentation_Trad",
   "positive_augment_copies": 3,
   "reset_dataset": true,
-  "source_metadata": "/home/fede/Documenti/MammoDiffusion/data/processed/metadata/train.csv",
-  "output_metadata": "/home/fede/Documenti/MammoDiffusion/data/real_augmented/metadata.csv",
-  "output_dir": "/home/fede/Documenti/MammoDiffusion/data/real_augmented",
+  "source_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/train.csv",
+  "output_metadata": "/mnt/MammoDiffusion/MammoDiffusion/data/real_augmented/metadata.csv",
+  "output_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/real_augmented",
   "n_source_train_rows": 2041,
   "n_metadata_rows": 3061,
   "label_counts": {
@@ -16,6 +16,6 @@
     "real": 2041,
     "positive_augmentation": 1020
   },
-  "evaluation_json": "/home/fede/Documenti/MammoDiffusion/results/02_data_augmentation/metrics/augmentation_evaluation.json",
-  "ecotracker_json": "/home/fede/Documenti/MammoDiffusion/results/02_data_augmentation/ecotracker/augmentation_ecotracker.json"
+  "evaluation_json": "/mnt/MammoDiffusion/MammoDiffusion/results/1_preprocessing/02_data_augmentation/metrics/augmentation_evaluation.json",
+  "ecotracker_json": "/mnt/MammoDiffusion/MammoDiffusion/results/1_preprocessing/02_data_augmentation/ecotracker/augmentation_ecotracker.json"
 }

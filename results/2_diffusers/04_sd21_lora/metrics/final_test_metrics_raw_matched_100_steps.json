@@ -13655,8 +13655,8 @@
     },
     "test_csv": {
       "path": "/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv",
-      "size": 82073,
-      "mtime_ns": 1783073699207657924
+      "size": 82047,
+      "mtime_ns": 1784314193864536390
     }
   },
   "experiment": "diffusers/04_sd21_lora",
@@ -13673,19 +13673,19 @@
     "positive",
     "negative"
   ],
-  "avg_FID": 156.9158,
-  "avg_IS_mean": 2.1318,
-  "avg_IS_std": 0.0985,
-  "avg_precision": 0.1812,
+  "avg_FID": 156.8319,
+  "avg_IS_mean": 2.133,
+  "avg_IS_std": 0.0956,
+  "avg_precision": 0.1804,
   "avg_recall": 0.0069,
-  "avg_density": 0.0789,
+  "avg_density": 0.079,
   "avg_coverage": 0.3493,
   "per_class": {
     "positive": {
-      "FID": 152.0787,
-      "IS_mean": 2.0614,
-      "IS_std": 0.083,
-      "precision": 0.2469,
+      "FID": 152.0557,
+      "IS_mean": 2.0632,
+      "IS_std": 0.0919,
+      "precision": 0.2454,
       "recall": 0.0137,
       "density": 0.1123,
       "coverage": 0.3699,
@@ -15083,12 +15083,12 @@
       "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/04_sd21_lora/generated_images/raw_matched_1361/positive"
     },
     "negative": {
-      "FID": 161.7529,
-      "IS_mean": 2.2022,
-      "IS_std": 0.1139,
+      "FID": 161.6081,
+      "IS_mean": 2.2029,
+      "IS_std": 0.0994,
       "precision": 0.1154,
       "recall": 0.0,
-      "density": 0.0456,
+      "density": 0.0457,
       "coverage": 0.3288,
       "n_generated": 1361,
       "inference_steps": 100,
@@ -16484,5 +16484,5 @@
       "generated_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/04_sd21_lora/generated_images/raw_matched_1361/negative"
     }
   },
-  "timestamp": "2026-07-12T14:07:53"
+  "timestamp": "2026-07-19T11:21:47"
 }

@@ -15,3 +15,5 @@
 {"label": "ldm_validate_raw_filtered", "elapsed_seconds": 72.64621075499963, "peak_ram_mb": 2685.55078125, "energy_kwh": 0.0032699749461032887, "co2_kg": 0.0010814395742253875}
 {"label": "ldm_filter_raw", "elapsed_seconds": 171.67146612800207, "peak_ram_mb": 247.96875, "energy_kwh": 0.006142320579709793, "co2_kg": 0.0020313759774804635}
 {"label": "ldm_validate_raw_filtered", "elapsed_seconds": 1356.1466754190005, "peak_ram_mb": 2688.83984375, "energy_kwh": 0.07089990081795175, "co2_kg": 0.023447873398711367}
+{"label": "ldm_validate_raw_filtered", "elapsed_seconds": 64.77950308800064, "peak_ram_mb": 2605.67578125, "energy_kwh": 0.002919119258699783, "co2_kg": 0.0014807086483791716}
+{"label": "ldm_validate_raw_filtered", "elapsed_seconds": 68.46303421100038, "peak_ram_mb": 2641.22265625, "energy_kwh": 0.003066261771399884, "co2_kg": 0.0015553459522337342}

@@ -20,6 +20,8 @@ except ImportError:
     from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, logical_experiments, load_protocol
 
 PUBLICATION_RESULTS = Path("results/3_classifiers/seed_runs")
+# Model checkpoints live under experiments/classifiers/, not in the results tree.
+CLASSIFIER_EXPERIMENTS = Path("experiments/classifiers")
 ENSEMBLE_RESULTS = Path("results/3_classifiers/validation_ensembles")
 TEST_ENSEMBLE_RESULTS = Path("results/4_final_evaluation/test_ensembles")
 
@@ -43,14 +45,19 @@ def result_dir(root: Path, architecture: str, condition: str, seed: int) -> Path
     return Path(root) / PUBLICATION_RESULTS / architecture / condition / f"seed_{int(seed)}"
 
 
+def checkpoint_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
+    return Path(root) / CLASSIFIER_EXPERIMENTS / architecture / condition / f"seed_{int(seed)}"
+
+
 def discover_experiments(root: Path) -> list[dict[str, Any]]:
     """Inspect only the canonical classifier_seed_runs tree; legacy paths are never traversed."""
     output = []
     for job in logical_experiments():
         directory = result_dir(root, job["architecture"], job["condition"], job["seed"])
+        checkpoint_directory = checkpoint_dir(root, job["architecture"], job["condition"], job["seed"])
         configuration = directory / "configuration.json"; dataset = directory / "dataset_summary.json"
         predictions = directory / "validation_predictions.csv"; validation_metrics = directory / "validation_metrics.json"
-        checkpoint = any(path.suffix in {".pt", ".pth", ".keras", ".h5"} for path in directory.glob("checkpoint_best.*"))
+        checkpoint = any(path.suffix in {".pt", ".pth", ".keras", ".h5"} for path in checkpoint_directory.glob("checkpoint_best.*"))
         training_complete = configuration.is_file() and dataset.is_file() and checkpoint
         output.append({**job, "directory": str(directory), "training complete": training_complete,
                        "validation predictions present": predictions.is_file(),

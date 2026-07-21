@@ -25,6 +25,9 @@ except ImportError:
 
 
 STANDARD_RESULTS_ROOT = "results/3_classifiers/seed_runs"
+# Model checkpoints and other heavy intermediate outputs live under experiments/, following the
+# project layout (the results tree keeps only the small CSV/JSON tables and the plots).
+STANDARD_EXPERIMENTS_ROOT = "experiments/classifiers"
 # Any data path that resolves to one of these tokens is rejected before training or validation.
 FORBIDDEN_DATA_TOKENS = ("test.csv", "final_evaluation", "locked_test", "historical_test")
 FORBIDDEN_PATH_COMPONENTS = ("test", "historical_internal_test")
@@ -53,11 +56,18 @@ def experiment_configuration(root: Path, architecture: str, condition: str, seed
     configuration["policy_signature"] = hashlib.sha256(canonical_policy.encode("utf-8")).hexdigest()
     configuration["config_signature"] = configuration["policy_signature"]
     configuration["results_dir"] = str(experiment_dir(root, architecture, condition, seed))
+    configuration["checkpoint_dir"] = str(checkpoint_dir(root, architecture, condition, seed))
     return configuration
 
 
 def experiment_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
+    """Results directory (small CSV/JSON tables and plots) for one condition/seed run."""
     return Path(root) / STANDARD_RESULTS_ROOT / architecture / condition / f"seed_{int(seed)}"
+
+
+def checkpoint_dir(root: Path, architecture: str, condition: str, seed: int) -> Path:
+    """Model directory (checkpoints and heavy intermediate outputs) under experiments/classifiers/."""
+    return Path(root) / STANDARD_EXPERIMENTS_ROOT / architecture / condition / f"seed_{int(seed)}"
 
 
 GPU_UUID_PREFIX = "GPU-"
@@ -347,7 +357,8 @@ def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[
         predictions = [{**row, "label": int(row["label"]), "probability": float(row["probability"])} for row in predictions]
     validation_metrics = json.loads((output / "validation_metrics.json").read_text()) if (output / "validation_metrics.json").is_file() else None
     accounting = json.loads((output / "source_accounting.json").read_text()) if (output / "source_accounting.json").is_file() else None
-    checkpoints = sorted(path for path in output.glob("checkpoint_best.*") if path.suffix in {".pt", ".pth"})
+    checkpoint_output = checkpoint_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    checkpoints = sorted(path for path in checkpoint_output.glob("checkpoint_best.*") if path.suffix in {".pt", ".pth"})
     return {"history": history, "predictions": predictions, "validation_metrics": validation_metrics,
             "source_accounting": accounting, "checkpoint": str(checkpoints[0]) if checkpoints else None}
 
@@ -445,7 +456,7 @@ def build_error_case_table(rows: Sequence[Mapping[str, Any]], threshold: float =
 __all__ = ["ARCHITECTURE_DISPLAY_NAMES", "CONDITION_DISPLAY_NAMES",
            "assert_no_forbidden_data_paths", "audit_dataset", "build_error_case_table", "configure_environment",
            "configure_visible_gpu", "construct_dataset", "experiment_configuration",
-           "experiment_dir", "load_adapter", "load_existing_outputs", "load_prediction_rows",
+           "experiment_dir", "checkpoint_dir", "load_adapter", "load_existing_outputs", "load_prediction_rows",
            "plot_calibration", "plot_source_accounting", "plot_training_history",
            "plot_validation_curves", "run_validation", "STANDARD_RESULTS_ROOT",
            "source_accounting", "title_classifier_figure"]

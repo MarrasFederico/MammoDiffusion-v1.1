@@ -62,13 +62,16 @@ The active code writes or consumes these canonical roots under `results/`:
   experiment; the step-count sweep for experiment 08 lives under
   `08_ldm_v3_sdvae_fromscratch/sampling/`);
 - `generator_benchmark/` — generator benchmark metrics, rankings and diagnostics;
-- `classifier_seed_runs/` — per-seed classifier training and validation outputs;
+- `classifier_seed_runs/` — per-seed classifier tables and plots (CSV/JSON) only;
 - `classifier_validation_ensembles/` — the eight three-seed validation ensembles;
 - `final_evaluation/` — the test-set ensembles (`test_ensembles/`) and `results.json`;
 - `sustainability/` — cross-cutting energy analysis.
 
-Classifier checkpoints under `results/3_classifiers/seed_runs/` are resume and evaluation state:
-`checkpoint_latest`, `checkpoint_previous` and every representation of the best checkpoint must
+Following the project layout, trained models are kept out of the results tree: classifier
+checkpoints and the intermediate interpretability maps live under
+`experiments/classifiers/<architecture>/<condition>/seed_<seed>/` (git-ignored), while
+`results/3_classifiers/seed_runs/` keeps only the small CSV/JSON tables and plots. The resume state
+(`checkpoint_latest`, `checkpoint_previous`) and every representation of the best checkpoint must
 not be pruned.
 
 The earlier scripted pipeline is archived in the `publication-pipeline-scripted-v1` tag; the

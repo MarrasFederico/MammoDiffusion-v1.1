@@ -187,10 +187,14 @@ batch size, loss, class weighting, online real augmentation, validation manifest
 scheduler, early stopping and checkpoint criterion. The primary checkpoint metric is validation
 PR-AUC; an equal PR-AUC uses lower validation loss, then the earlier epoch; ROC-AUC never selects the
 checkpoint. No hidden oversampling; samples seen per source, optimizer updates and effective epochs
-are reported. Each run writes under
+are reported. Following the project layout, model files are separated from result tables. Each run
+writes its small tables and plots under
 `results/3_classifiers/seed_runs/<architecture>/<condition>/seed_<seed>/` (`configuration.json`,
-`dataset_summary.json`, checkpoint/resume, `training_history.csv`, `validation_predictions.csv`,
-`validation_metrics.json`, `interpretability/` when produced).
+`dataset_summary.json`, `model_summary.json`, `source_accounting.json`, `training_history.csv`,
+`validation_predictions.csv`, `validation_metrics.json`, `run_complete.json`), while the model
+checkpoints (`checkpoint_best.pt`, the resume `checkpoint_latest`/`checkpoint_previous`/`checkpoint_best`
+pickles) and the intermediate interpretability maps go under
+`experiments/classifiers/<architecture>/<condition>/seed_<seed>/`.
 
 **Inference and statistics.** The validation notebook reports patient-level PR-AUC, ROC-AUC, Brier,
 ECE, sensitivity, specificity, balanced accuracy, bootstrap intervals, seed mean ± SD and

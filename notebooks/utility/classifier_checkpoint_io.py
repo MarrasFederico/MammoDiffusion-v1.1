@@ -10,14 +10,18 @@ from pathlib import Path
 
 RESUME_NAMES = ("checkpoint_latest", "checkpoint_previous", "checkpoint_best")
 COMPLETION_NAME = "run_complete.json"
-FINAL_ARTIFACTS = (
-    "checkpoint_best.pt",
+FINAL_CHECKPOINT = "checkpoint_best.pt"
+# Small tabular/JSON outputs that live in the results tree.
+RESULT_ARTIFACTS = (
     "configuration.json",
     "dataset_summary.json",
     "model_summary.json",
     "source_accounting.json",
     "training_history.csv",
 )
+# The model weights live under experiments/; the run is complete only when both the result
+# artifacts and the final checkpoint exist.
+FINAL_ARTIFACTS = RESULT_ARTIFACTS + (FINAL_CHECKPOINT,)
 
 
 def resume_checkpoint_path(run: Path, name: str = "checkpoint_latest") -> Path:
@@ -160,17 +164,22 @@ def _completion_mismatches(payload: Mapping, expected: Mapping) -> dict:
 
 
 def inspect_completed_run(
-    run: Path, expected: Mapping, limits: Mapping
+    results_run: Path, checkpoint_run: Path, expected: Mapping, limits: Mapping
 ) -> tuple[dict | None, str]:
     """Recognize a finalized run without allocating a model or touching CUDA.
 
-    A completion marker is authoritative only while all final artifacts still exist and its
-    scientific identity matches.  Runs finalized before completion markers were introduced are
-    recovered once from their terminal resume checkpoint; the notebook then backfills the marker.
+    Result artifacts (JSON/CSV) live under ``results_run``; the model checkpoints live under
+    ``checkpoint_run`` (``experiments/classifiers/...``).  A completion marker is authoritative only
+    while all final artifacts still exist and its scientific identity matches.  Runs finalized before
+    completion markers were introduced are recovered once from their terminal resume checkpoint; the
+    notebook then backfills the marker.
     """
-    run = Path(run)
-    marker_path = completion_path(run)
-    missing_artifacts = [name for name in FINAL_ARTIFACTS if not (run / name).is_file()]
+    results_run = Path(results_run)
+    checkpoint_run = Path(checkpoint_run)
+    marker_path = completion_path(results_run)
+    missing_artifacts = [name for name in RESULT_ARTIFACTS if not (results_run / name).is_file()]
+    if not (checkpoint_run / FINAL_CHECKPOINT).is_file():
+        missing_artifacts.append(FINAL_CHECKPOINT)
 
     if marker_path.is_file():
         try:
@@ -189,7 +198,7 @@ def inspect_completed_run(
     if missing_artifacts:
         return None, f"missing final artifacts: {missing_artifacts}"
 
-    resume, resume_source = load_resume_checkpoint(run, dict(expected))
+    resume, resume_source = load_resume_checkpoint(checkpoint_run, dict(expected))
     if resume is None:
         return None, f"final artifacts have no compatible checkpoint: {resume_source}"
     reason = terminal_reason(resume, limits)
@@ -198,7 +207,7 @@ def inspect_completed_run(
 
     try:
         configuration = json.loads(
-            (run / "configuration.json").read_text(encoding="utf-8")
+            (results_run / "configuration.json").read_text(encoding="utf-8")
         )
     except (OSError, json.JSONDecodeError) as exc:
         return None, f"invalid configuration artifact: {type(exc).__name__}: {exc}"

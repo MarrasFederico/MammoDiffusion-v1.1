@@ -168,10 +168,13 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
             "early_stopping_patience": 10,
         }
         with tempfile.TemporaryDirectory() as temporary:
-            run = Path(temporary)
-            for name in checkpoint_io.FINAL_ARTIFACTS:
-                (run / name).write_text("placeholder", encoding="utf-8")
-            (run / "configuration.json").write_text(
+            results_run = Path(temporary) / "results"
+            checkpoint_run = Path(temporary) / "experiments"
+            results_run.mkdir(); checkpoint_run.mkdir()
+            for name in checkpoint_io.RESULT_ARTIFACTS:
+                (results_run / name).write_text("placeholder", encoding="utf-8")
+            (checkpoint_run / checkpoint_io.FINAL_CHECKPOINT).write_text("weights", encoding="utf-8")
+            (results_run / "configuration.json").write_text(
                 json.dumps(
                     {
                         "architecture": "maxvit512",
@@ -183,7 +186,7 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
                 encoding="utf-8",
             )
             checkpoint_io.save_resume_checkpoint(
-                run,
+                checkpoint_run,
                 {
                     **expected,
                     "epoch": 24,
@@ -195,7 +198,7 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
             )
 
             completion, source = checkpoint_io.inspect_completed_run(
-                run, expected, limits
+                results_run, checkpoint_run, expected, limits
             )
 
             self.assertEqual(source, "recovered_from_checkpoint_latest")

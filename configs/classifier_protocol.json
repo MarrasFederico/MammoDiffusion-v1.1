@@ -59,5 +59,6 @@
     "multiple_testing": "Holm correction over one family of eight preregistered comparisons"
   },
   "results_root": "results/3_classifiers/seed_runs",
+  "experiments_root": "experiments/classifiers",
   "final_evaluation": {"guard": "RUN_FINAL_EVALUATION", "default": false, "protocol_snapshot": "results/4_final_evaluation_protocol.json"}
 }

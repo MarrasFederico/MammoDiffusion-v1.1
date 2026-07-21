@@ -144,10 +144,8 @@ results/2_diffusers/benchmark/diagnostic_panels/
 # Obsolete local artifacts from the retired post-benchmark gate-calibration audit;
 # kept local only and never committed.
 results/2_diffusers/benchmark/gate_audit/
-results/3_classifiers/seed_runs/**/checkpoint_*
-results/3_classifiers/seed_runs/**/*.pkl
-results/3_classifiers/seed_runs/**/*.npy
-results/3_classifiers/seed_runs/**/*.npz
+# Classifier model checkpoints and heavy intermediate outputs live under experiments/classifiers/
+# (already ignored above); the results tree keeps only the small CSV/JSON tables and plots.
 data/synthetic/
 *RAD-DINO*weights*
 *rad_dino*weights*

@@ -3,14 +3,13 @@
 This does NOT recompute any generative metric, embedding, or benchmark quantity.  It reads the
 existing ``generator_summary.csv`` run snapshot and rewrites *only* the efficiency columns through
 the corrected canonical ``generator_benchmark.efficiency_from_manifest``, which refuses to report a
-duration as available without verified semantics.  The frozen originals under ``gate_audit/`` are
-never touched.
+duration as available without verified semantics.
 
 Outputs (runtime artifacts):
 
 * ``generator_summary_corrected.csv`` / ``generator_ranking_corrected.csv`` — canonical sources for
   reports and downstream;
-* ``gate_audit/efficiency_correction.json`` — traceability (source/corrected SHA-256, old/new values).
+* ``efficiency_correction.json`` — traceability (source/corrected SHA-256, old/new values).
 
 Run from the repository root: ``python notebooks/utility/correct_efficiency_summary.py``.
 """
@@ -26,7 +25,7 @@ sys.path.insert(0, str(ROOT / "notebooks/utility"))
 import generator_benchmark as gb  # noqa: E402
 
 BENCHMARK = ROOT / gb.BENCHMARK_ROOT
-AUDIT = BENCHMARK / "gate_audit"
+AUDIT = BENCHMARK
 
 EFFICIENCY_FIELDS = ("generation_seconds_per_image", "peak_vram_mb", "energy_kwh",
                      "checkpoint_size_bytes", "efficiency_source", "efficiency_status",

@@ -68,6 +68,25 @@ maximum optimizer-update budget is fixed within each architecture. Validation an
 patient-level; the eight primary comparisons use Holm correction. Checkpoints and thresholds are
 fixed on validation before any test access, so the test set contributes no model selection.
 
+## Limitations
+
+The study is deliberately scoped, and its conclusions should be read with the following caveats:
+
+- **Finite-sample uncertainty.** The real positive pool is small (340 training, 73 validation, 73
+  test positives), so patient-level bootstrap intervals are wide and single-point differences should
+  not be over-interpreted; FID in particular is only descriptive because its reference pool is small.
+- **Feature-space dependence.** Generator ranking is primary in the RAD-DINO feature space and
+  secondary in InceptionV3; the two spaces can disagree, and neither is a ground truth for
+  perceptual fidelity. Coverage and perceptual-hash similarity are descriptive, not gates.
+- **Selection and dataset scope.** Everything starts from a single institution's processed 512×512
+  MLO corpus; no external validation is performed, and the generator selection is validation-only.
+- **No clinical claim.** Interpretability maps and metrics are diagnostic aids for this experiment,
+  not evidence of clinical utility; nothing here is a diagnostic device or a substitute for expert
+  reading.
+- **Reproducibility boundary.** Runs reuse registered checkpoints and complete local pools rather
+  than retraining from scratch, and preprocessing verifies the processed corpus rather than
+  re-decoding the (absent) raw DICOMs.
+
 ## Results and checkpoints
 
 The active code writes or consumes these canonical roots under `results/`, named to mirror the

@@ -137,13 +137,11 @@ results/2_diffusers/benchmark/generator_ranking.csv
 # notebooks/utility/correct_efficiency_summary.py, never committed).
 results/2_diffusers/benchmark/generator_summary_corrected.csv
 results/2_diffusers/benchmark/generator_ranking_corrected.csv
+results/2_diffusers/benchmark/efficiency_correction.json
 results/2_diffusers/benchmark/resampling_plan.json
 results/2_diffusers/benchmark/paired_generator_differences.csv
 results/2_diffusers/benchmark/figures/
 results/2_diffusers/benchmark/diagnostic_panels/
-# Obsolete local artifacts from the retired post-benchmark gate-calibration audit;
-# kept local only and never committed.
-results/2_diffusers/benchmark/gate_audit/
 # Classifier model checkpoints and heavy intermediate outputs live under experiments/classifiers/
 # (already ignored above); the results tree keeps only the small CSV/JSON tables and plots.
 data/synthetic/

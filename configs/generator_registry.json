@@ -18,6 +18,7 @@
       ],
       "status": "completed_verified",
       "checkpoint": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": false,
       "samples": {
         "raw_positive": "experiments/diffusers/01_sd21_baseline_50steps/generated_images/final/positive",
@@ -51,6 +52,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet/diffusion_pytorch_model.safetensors",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "efficiency_manifest": "results/2_diffusers/02_sd21_filtered_100steps/metrics/generation_info.json",
       "samples": {
@@ -82,6 +84,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/03_sd21_vae_finetuned/model/checkpoint-4000/unet/diffusion_pytorch_model.safetensors",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "efficiency_manifest": "results/2_diffusers/03_sd21_vae_finetuned/metrics/generation_info.json",
       "samples": {
@@ -110,6 +113,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/04_sd21_lora/model/checkpoint-4500/pytorch_lora_weights.safetensors",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "efficiency_manifest": "results/2_diffusers/04_sd21_lora/metrics/generation_info.json",
       "samples": {
@@ -140,6 +144,7 @@
       ],
       "status": "completed_positive_only",
       "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "samples": {
         "raw_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_raw",
@@ -176,6 +181,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "samples": {
         "raw_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
@@ -210,6 +216,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "samples": {
         "raw_positive": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
@@ -237,6 +244,7 @@
       ],
       "status": "completed",
       "checkpoint": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
+      "training_corpus_manifest": "results/2_diffusers/provenance/runtime/shared/rsna_train_real_plus_positive_augmentation.csv",
       "filtering_applied": true,
       "samples": {
         "raw_positive": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",

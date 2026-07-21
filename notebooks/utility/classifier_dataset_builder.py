@@ -462,11 +462,14 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
     if overlap:
         raise RuntimeError(f"patient leakage between train and validation: {sorted(overlap)[:10]}")
     # These content hashes exist only to detect a changed dataset when resuming a checkpoint;
-    # they are never written into configs or read by any downstream gate.
+    # they are never written into configs or read by any downstream gate. The extra ``None`` field
+    # is kept in the hashed payload only to preserve signature stability with checkpoints trained
+    # before the provenance cleanup, so existing runs stay recognizable without retraining.
     training_signature = dataset_manifest_signature(root, file_list)
     validation_signature = validation_manifest_signature(root, val_rows)
     combined_signature = hashlib.sha256(json.dumps({
         "training_signature": training_signature, "validation_signature": validation_signature,
+        "approved_generator_signature": variant.get("approved_generator_signature"),
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     manifest_payload = {
         "schema_version": 3,

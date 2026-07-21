@@ -40,6 +40,21 @@ The protocol keeps exactly **2 architectures × 4 conditions × 3 seeds = 24 exp
 The architectures are MaxViT-512 and Mammo-FM; RAD-DINO is only a medical feature extractor
 used inside the generative benchmark.
 
+## Repository layout
+
+Following the course project guidelines, the repository separates data, notebooks, trained models
+and results:
+
+- `data/processed/` — the 512×512 grayscale MLO corpus and the split metadata;
+- `notebooks/` — the ordered preprocessing, generator, benchmark and classifier notebooks, plus the
+  reusable `notebooks/utility/` modules;
+- `experiments/` — trained models and heavy intermediate outputs (diffuser checkpoints under
+  `experiments/diffusers/`, classifier checkpoints and interpretability maps under
+  `experiments/classifiers/<architecture>/<condition>/seed_<seed>/`); kept local and git-ignored;
+- `results/` — only the small CSV/JSON tables and plots, in five numbered stages
+  (`1_preprocessing` … `5_sustainability`);
+- `configs/` — the benchmark protocol, the generator registry and the committed selection.
+
 ## Scientific rigor
 
 The benchmark targets a synthetic pool of 1,361 images but uses every real positive available
@@ -55,17 +70,17 @@ fixed on validation before any test access, so the test set contributes no model
 
 ## Results and checkpoints
 
-The active code writes or consumes these canonical roots under `results/`:
+The active code writes or consumes these canonical roots under `results/`, named to mirror the
+notebook stages:
 
-- `preprocessing/` — preprocessing and augmentation summaries;
-- `diffusers/` — generator metrics, plots, energy tracking and sampling sweeps (one folder per
-  experiment; the step-count sweep for experiment 08 lives under
-  `08_ldm_v3_sdvae_fromscratch/sampling/`);
-- `generator_benchmark/` — generator benchmark metrics, rankings and diagnostics;
-- `classifier_seed_runs/` — per-seed classifier tables and plots (CSV/JSON) only;
-- `classifier_validation_ensembles/` — the eight three-seed validation ensembles;
-- `final_evaluation/` — the test-set ensembles (`test_ensembles/`) and `results.json`;
-- `sustainability/` — cross-cutting energy analysis.
+- `1_preprocessing/` — preprocessing and traditional-augmentation summaries and plots;
+- `2_diffusers/` — per-generator metrics, plots and energy tracking (one folder per generator; the
+  step-count sweep for G08 lives under `08_ldm_v3_sdvae_fromscratch/sampling/`), plus
+  `2_diffusers/benchmark/` for the unified generator benchmark, rankings and diagnostics;
+- `3_classifiers/seed_runs/` — per-seed classifier tables (CSV/JSON) and plots, and the eight
+  three-seed validation ensembles;
+- `4_final_evaluation/` — the held-out test ensembles and the final report;
+- `5_sustainability/` — the cross-cutting energy and wall-clock comparison.
 
 Following the project layout, trained models are kept out of the results tree: classifier
 checkpoints and the intermediate interpretability maps live under
@@ -105,8 +120,8 @@ its own it is not enough to resume execution on another machine.
 
 ## Documentation
 
-- [Consolidated protocol](docs/PROTOCOL.md) — experimental design, generative benchmark,
-  Option B amendment, G02/G07 selection, the 2 × 4 × 3 downstream protocol, final evaluation
+- [Consolidated protocol](docs/PROTOCOL.md) — experimental design, generator benchmark and
+  eligibility policy, the G02/G07 selection, the 2 × 4 × 3 downstream protocol, final evaluation
   and manual execution.
 - [Generator status](docs/GENERATOR_STATUS.md)
 - [Shared SD2.1/Diffusers assets](docs/SHARED_ASSETS.md)
@@ -115,5 +130,4 @@ its own it is not enough to resume execution on another machine.
 - [Test suite](docs/TESTS.md) — what each regression test protects and how to run them.
 - [Mammo-FM academic license](docs/mammo_fm_license_note.md)
 
-Datasets, synthetic images, embeddings and weights stay local and must not be committed.
 Mammo-FM weights are subject to their academic license and are not redistributed.

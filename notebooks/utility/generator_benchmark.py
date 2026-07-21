@@ -986,7 +986,7 @@ def load_embedding_cache(path: Path) -> tuple[np.ndarray, dict[str, Any]]:
 
 
 def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], image_ids: Sequence[str], *,
-                              extractor: str, preprocessing: str, code_version: str, source_manifest: str,
+                              extractor: str, preprocessing: str, code_version: str, source_manifest: str | None = None,
                               extractor_model_id: str | None = None,
                               extractor_weights_identifier: str | None = None,
                               extractor_identity: Mapping[str, Any] | None = None,
@@ -999,10 +999,14 @@ def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], ima
     fingerprints = [{"image_id": str(image_id), "relative_path": os.path.relpath(value, common),
                      "file_size": value.stat().st_size, "sha256": file_sha256(value)}
                     for image_id, value in zip(image_ids, resolved)]
-    manifest_path = Path(source_manifest)
-    if not manifest_path.is_file():
-        raise FileNotFoundError(f"embedding source manifest is missing: {manifest_path}")
-    manifest_hash = file_sha256(manifest_path)
+    # The per-image fingerprints above already invalidate the cache on any image change; an optional
+    # source manifest is an extra key only when one is supplied (no provenance file is required).
+    manifest_path = Path(source_manifest) if source_manifest else None
+    manifest_hash = None
+    if manifest_path is not None:
+        if not manifest_path.is_file():
+            raise FileNotFoundError(f"embedding source manifest is missing: {manifest_path}")
+        manifest_hash = file_sha256(manifest_path)
     csv_path = Path(metadata_csv) if metadata_csv else None
     if csv_path is not None and not csv_path.is_file():
         raise FileNotFoundError(f"embedding metadata CSV is missing: {csv_path}")
@@ -1015,7 +1019,8 @@ def get_or_extract_embeddings(path: Path, image_paths: Sequence[str | Path], ima
                 "extractor_identity": dict(extractor_identity or {}),
                 "extractor_identity_sha256": _identity_digest(extractor_identity or {}),
                 "preprocessing_signature": preprocessing_signature, "code_version": code_version,
-                "source_manifest_path": str(manifest_path), "source_manifest_sha256": manifest_hash,
+                "source_manifest_path": str(manifest_path) if manifest_path else None,
+                "source_manifest_sha256": manifest_hash,
                 "metadata_csv_sha256": file_sha256(csv_path) if csv_path and csv_path.is_file() else None}
     if declared_dimension is not None:
         expected["feature_dimension"] = int(declared_dimension)
@@ -1541,9 +1546,13 @@ def plot_generator_summary(rows: Sequence[Mapping[str, Any]]):
 
 
 def validate_selected_generators(finetuned: str, from_scratch: str, registry: Mapping[str, Any],
-                                 benchmark_rows: Sequence[Mapping[str, Any]], synthetic_pool_target: int = 1361) -> dict[str, str]:
+                                 benchmark_rows: Sequence[Mapping[str, Any]], synthetic_pool_target: int = 1361,
+                                 gates: Mapping[str, Any] | None = None) -> dict[str, str]:
     by_id = {entry["id"]: entry for entry in registry["generators"]}
-    results = {str(row["generator_id"]): row for row in benchmark_rows}
+    # FILTERED is the official ranking representation; when the summary lists both RAW and FILTERED
+    # rows per generator, validate the FILTERED row rather than whichever row happens to come last.
+    filtered_rows = [row for row in benchmark_rows if row.get("condition") == "FILTERED"]
+    results = {str(row["generator_id"]): row for row in (filtered_rows or benchmark_rows)}
     selected = {"finetuned": finetuned, "from_scratch": from_scratch}
     for family, generator_id in selected.items():
         entry = by_id.get(generator_id)
@@ -1554,7 +1563,14 @@ def validate_selected_generators(finetuned: str, from_scratch: str, registry: Ma
         if not result or not _as_bool(result.get("metrics_complete")): raise ValueError(f"benchmark incomplete for {generator_id}")
         if int(result.get("valid_positive_images", 0)) < int(synthetic_pool_target): raise ValueError(f"insufficient images for {generator_id}")
         if _as_bool(result.get("test_access")): raise ValueError("generator selection must not use test data")
-        if not _as_bool(result.get("technical_gates_passed")): raise ValueError(f"technical gates failed for {generator_id}")
+        # Eligibility uses the live technical/scientific safety gates (the single source of truth),
+        # not a precomputed summary column that may reflect a superseded gate policy.
+        if gates is not None:
+            failures = [name for name in eligibility_failures({**result, "eligible_for_downstream_selection": True}, gates)
+                        if name != "registry_role"]
+            if failures: raise ValueError(f"eligibility gates failed for {generator_id}: {failures}")
+        elif not _as_bool(result.get("technical_gates_passed")):
+            raise ValueError(f"technical gates failed for {generator_id}")
     return selected
 
 
@@ -1565,11 +1581,33 @@ def _as_bool(value: Any) -> bool:
 
 def save_selected_generators(root: Path, finetuned: str, from_scratch: str, benchmark_rows: Sequence[Mapping[str, Any]],
                              *, notes: str = "", manual_override: bool = False) -> Path:
+    """Write the simple, authoritative selection file (the G02/G07 choice, no provenance seals).
+
+    Records the two selected ids, their family, descriptive rank and primary-metric value, and
+    ``test_access = false`` — enough for the classifier and app to resolve the selection without any
+    signed manifest, benchmark git-HEAD, run id, amendment reference or SHA chain.
+    """
     protocol, registry = load_protocol(root), load_registry(root)
     selected = validate_selected_generators(finetuned, from_scratch, registry, benchmark_rows,
-                                            protocol["synthetic_pool_target"])
-    payload = {**selected, "selection_basis": {"primary_metric": "raddino_kid",
-               "benchmark_results": protocol["outputs"]["metrics"], "manual_override": bool(manual_override), "notes": notes}}
+                                            protocol["synthetic_pool_target"], protocol["eligibility_gates"])
+    primary_metric = protocol["selection"]["primary_metric"]
+    target = int(protocol["synthetic_pool_target"])
+    filtered = {str(row["generator_id"]): row for row in benchmark_rows if row.get("condition") == "FILTERED"}
+    identity = {}
+    for family, generator_id in selected.items():
+        row = filtered.get(generator_id, {})
+        value = _metric_value(row, "raddino_kid", "raddino_kid_mean")
+        identity[family] = {
+            "generator_id": generator_id, "family": family, "descriptive_family_rank": 1,
+            "primary_metric": primary_metric,
+            "primary_metric_value": None if value == math.inf else float(value),
+            "filtered_image_count": target,
+        }
+    payload = {
+        "finetuned": selected["finetuned"], "from_scratch": selected["from_scratch"],
+        "schema_version": 2, "primary_metric": primary_metric, "test_access": False,
+        "selection_notes": notes, "selection_identity": identity,
+    }
     return atomic_json(Path(root) / "configs/selected_generators.json", payload)
 
 

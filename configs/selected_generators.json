@@ -4,14 +4,14 @@
   "schema_version": 2,
   "primary_metric": "raddino_kid",
   "test_access": false,
-  "selection_notes": "Authoritative record of the generator selection. Eligibility uses the technical/scientific safety gates only (image count, exact-duplicate and train-memorization rates, corruption, metric completeness, test isolation, registry role); perceptual-hash rate and RAD-DINO coverage are descriptive ranking metrics. Within each family the preregistered RAD-DINO KID-primary hierarchy selects G02 (fine-tuned) and G07 (from-scratch).",
+  "selection_notes": "Eligibility uses the technical/scientific safety gates only (image count, exact-duplicate and train-memorization rates, corruption, metric completeness, test isolation, registry role); perceptual-hash rate and RAD-DINO coverage are descriptive ranking metrics. The preregistered RAD-DINO KID-primary hierarchy selects G02 (fine-tuned) and G07 (from-scratch).",
   "selection_identity": {
     "finetuned": {
       "generator_id": "02_sd21_filtered_100steps",
       "family": "finetuned",
       "descriptive_family_rank": 1,
       "primary_metric": "raddino_kid",
-      "primary_metric_value": 0.1990891096955254,
+      "primary_metric_value": 0.19919923322522193,
       "filtered_image_count": 1361
     },
     "from_scratch": {
@@ -19,7 +19,7 @@
       "family": "from_scratch",
       "descriptive_family_rank": 1,
       "primary_metric": "raddino_kid",
-      "primary_metric_value": 0.08722443411855751,
+      "primary_metric_value": 0.08718217621399837,
       "filtered_image_count": 1361
     }
   }

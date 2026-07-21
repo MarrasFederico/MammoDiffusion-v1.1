@@ -108,9 +108,6 @@ checkpoints and the intermediate interpretability maps live under
 (`checkpoint_latest`, `checkpoint_previous`) and every representation of the best checkpoint must
 not be pruned.
 
-The earlier scripted pipeline is archived in the `publication-pipeline-scripted-v1` tag; the
-300-job matrix in the `classifier-matrix-v2-full` tag.
-
 ## Gradio demo
 
 `assets/mammodiffusion_gradio/app.py` reads the current selection from

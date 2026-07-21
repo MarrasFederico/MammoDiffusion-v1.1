@@ -6,7 +6,7 @@ from pathlib import Path
 
 PROJECT_NAME = "MammoDiffusion"
 DEFAULT_EXPERIMENT_NAME = "diffusers/05_ldm_basic_fromscratch"
-RESULTS_STAGE_NAME = "diffusers/05_ldm_basic_fromscratch"
+RESULTS_STAGE_NAME = "2_diffusers/05_ldm_basic_fromscratch"
 
 
 @dataclass(frozen=True)
@@ -38,6 +38,24 @@ class ResultsPaths:
 
 CLASS_NAME_BY_LABEL = {0: "negative", 1: "positive"}
 
+# G05 and G06 predate the shared ``data/synthetic`` layout. Their registered
+# manifests and benchmark provenance intentionally bind the positive pool to
+# the experiment-local directory. Keep that identity explicit instead of
+# silently substituting a similarly named pool from another experiment.
+EXPERIMENT_LOCAL_POSITIVE_FILTERED = {
+    "05_ldm_basic_fromscratch",
+    "06_ldm_extra1361_fromscratch",
+}
+
+FILTERED_DIR_NAME_BY_EXPERIMENT = {
+    "05_ldm_basic_fromscratch": "05_ldm_basic_fromscratch",
+    "06_ldm_extra1361_fromscratch": "06_ldm_extra1361_fromscratch",
+    "20260703_ldm_sdvae_extra1361": "07_ldm_sdvae_extra1361",
+    "20260707_ldm_v3_sdvae_extra1361": "08_ldm_v3_sdvae_fromscratch",
+    "07_ldm_sdvae_extra1361": "07_ldm_sdvae_extra1361",
+    "08_ldm_v3_sdvae_fromscratch": "08_ldm_v3_sdvae_fromscratch",
+}
+
 
 def class_name_for_label(target_label: int) -> str:
     """Restituisce il nome stabile della classe usato nei percorsi di output."""
@@ -48,13 +66,17 @@ def class_name_for_label(target_label: int) -> str:
 
 
 def get_class_image_dirs(paths: ExperimentPaths, target_label: int) -> tuple[Path, Path]:
-    """Restituisce raw e filtered canonici senza rompere gli output LDM positivi storici."""
+    """Restituisce i percorsi raw/filtered registrati per la classe richiesta."""
     class_name = class_name_for_label(target_label)
     if class_name == "positive":
         return paths.synthetic_raw_dir, paths.synthetic_filtered_dir
+    filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(
+        paths.experiment_dir.name,
+        paths.experiment_dir.name,
+    )
     return (
         paths.experiment_dir / "synthetic_raw_negative",
-        paths.synthetic_filtered_dir.parent / "negative",
+        paths.project_root / "data" / "synthetic" / filtered_dir_name / "negative",
     )
 
 
@@ -116,15 +138,11 @@ def get_experiment_paths(
     )
     # Ogni esperimento scrive le immagini filtrate finali in una sottocartella
     # esplicitamente legata al suo ID, evitando collisioni e nomi non interpretabili.
-    FILTERED_DIR_NAME_BY_EXPERIMENT = {
-        "05_ldm_basic_fromscratch": "05_ldm_basic_fromscratch",
-        "06_ldm_extra1361_fromscratch": "06_ldm_extra1361_fromscratch",
-        "20260703_ldm_sdvae_extra1361": "07_ldm_sdvae_extra1361",
-        "20260707_ldm_v3_sdvae_extra1361": "08_ldm_v3_sdvae_fromscratch",
-        "07_ldm_sdvae_extra1361": "07_ldm_sdvae_extra1361",
-        "08_ldm_v3_sdvae_fromscratch": "08_ldm_v3_sdvae_fromscratch",
-    }
     filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(exp.name, exp.name)
+    if exp.name in EXPERIMENT_LOCAL_POSITIVE_FILTERED:
+        positive_filtered_dir = exp / "synthetic_filtered"
+    else:
+        positive_filtered_dir = root / "data" / "synthetic" / filtered_dir_name / "positive"
 
     paths = ExperimentPaths(
         project_root=root,
@@ -137,7 +155,7 @@ def get_experiment_paths(
         logs_dir=exp / "logs",
         evaluation_dir=exp / "evaluation",
         synthetic_raw_dir=exp / "synthetic_raw",
-        synthetic_filtered_dir=root / "data" / "synthetic" / filtered_dir_name / "positive",
+        synthetic_filtered_dir=positive_filtered_dir,
     )
     if create:
         for directory in [

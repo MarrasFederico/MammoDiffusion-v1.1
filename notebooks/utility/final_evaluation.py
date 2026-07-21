@@ -34,7 +34,7 @@ class FinalEvaluationDatasetAdapter:
 
 
 def final_dataset_status(adapter: FinalEvaluationDatasetAdapter | None = None) -> dict[str, str]:
-    return {"Final evaluation dataset": "held-out test set", "Split provenance": "fixed before any test access",
+    return {"Final evaluation dataset": "held-out test set", "Split policy": "fixed before any test access",
             "Configured final adapter": type(adapter).__name__ if adapter is not None else "Not yet configured"}
 
 

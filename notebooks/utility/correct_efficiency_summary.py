@@ -27,8 +27,6 @@ import generator_benchmark as gb  # noqa: E402
 
 BENCHMARK = ROOT / gb.BENCHMARK_ROOT
 AUDIT = BENCHMARK / "gate_audit"
-RUN_ID = "generator_benchmark_20260714T221055Z_cd05886c"
-BENCHMARK_HEAD = "cd05886c0e7044325063d9e2db4bf2de6d285dc4"
 
 EFFICIENCY_FIELDS = ("generation_seconds_per_image", "peak_vram_mb", "energy_kwh",
                      "checkpoint_size_bytes", "efficiency_source", "efficiency_status",
@@ -40,8 +38,18 @@ def _read_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(stream))
 
 
+def _latest_execution_record() -> tuple[dict, str | None]:
+    """Return the newest benchmark execution record without assuming a historical run ID."""
+    records = sorted((BENCHMARK / "runs").glob("*/execution_config.json"))
+    if not records:
+        return {}, None
+    path = records[-1]
+    return json.loads(path.read_text()), str(path.relative_to(ROOT))
+
+
 def main() -> None:
     registry = gb.load_registry(ROOT)
+    execution_record, execution_record_path = _latest_execution_record()
     by_id = {entry["id"]: entry for entry in registry["generators"]}
     summary_path = BENCHMARK / "generator_summary.csv"
     rows = _read_csv(summary_path)
@@ -92,8 +100,7 @@ def main() -> None:
         "affected_generators": sorted(set(k.split(":")[0] for k in affected)),
         "old_values": old_values,
         "new_values": new_values,
-        "benchmark_run_id": RUN_ID,
-        "benchmark_HEAD": BENCHMARK_HEAD,
+        "benchmark_execution_status": execution_record.get("status"),
         "test_access": False,
     }
     (AUDIT / "efficiency_correction.json").write_text(json.dumps(correction, indent=1))

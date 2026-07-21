@@ -1,16 +1,22 @@
-"""Resolve one publication-protocol condition into signed train/validation file lists."""
+"""Resolve one publication-protocol condition into train/validation file lists.
+
+Synthetic positives come straight from the selected generator's canonical FILTERED pool
+directory (``data/synthetic/<generator_id>/positive``, as recorded in the generator registry).
+The pool is listed deterministically and verified for the expected image count, readability,
+uniqueness, and the absence of any test-split path — without signed manifests, SHA chains, or
+provenance records. The only hashing that remains here computes a dataset signature used purely
+for resume/checkpoint compatibility, which is never propagated into configs or downstream gates.
+"""
 from __future__ import annotations
 
 import csv
 import hashlib
 import json
-import sys
+import os
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from classifier_pipeline_contracts import PIPELINE_NAMESPACE, value_signature  # noqa: E402
-
 CLASS_LABEL = {"negative": 0, "positive": 1}
+EXPECTED_FILTERED_IMAGE_COUNT = 1361
 
 
 def deterministic_sample_signature(paths: list[str], count: int, seed: int) -> dict:
@@ -29,8 +35,6 @@ TEST_METADATA = "data/processed/metadata/test.csv"
 _FILE_HASH_CACHE: dict[tuple[str, int, int, int], str] = {}
 
 SUPPORTED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
-REQUIRED_MANIFEST_FIELDS = ("sample_id", "relative_path", "file_size", "sha256",
-                            "selection_rank", "source_raw_sample_id")
 _TEST_PATH_COMPONENTS = {"test", "historical_internal_test"}
 
 
@@ -53,112 +57,59 @@ def selected_family_for_generator(root: Path, generator_id: str) -> str | None:
     return None
 
 
-def load_selected_filtered_records(root: Path, payload: dict, family: str, *,
-                                   verify_file_content: bool = True) -> list[dict]:
-    """Load exactly the signed FILTERED manifest rows for a selected family (no directory rescan).
+def selected_pool_dir(root: Path, generator_id: str, klass: str = "positive") -> Path:
+    """Canonical FILTERED pool directory for a generator's class, taken from the registry.
 
-    Opens only ``selection_identity[family]['filtered_manifest_path']``, verifies its SHA-256 against
-    the selection record, requires every mandatory column, and returns the rows deterministically
-    ordered by (numeric ``selection_rank``, ``sample_id``).  With ``verify_file_content`` each image is
-    checked (path, existence, size, SHA-256, extension, positive pool, no test path) before use.
+    Falls back to the conventional ``data/synthetic/<generator_id>/<class>`` layout when the
+    registry entry does not record an explicit ``samples['filtered_<class>']`` path.
     """
     root = Path(root)
-    identity = (payload.get("selection_identity") or {}).get(family)
-    if not identity:
-        raise ValueError(f"selection has no identity for family {family}")
-    manifest_relative = str(identity["filtered_manifest_path"])
-    manifest_path = root / manifest_relative
-    resolved_manifest = manifest_path.resolve()
-    if Path(manifest_relative).is_absolute() or not resolved_manifest.is_relative_to(root.resolve()):
-        # Reject absolute paths and any '..' traversal that resolves outside the repository.
-        raise ValueError(f"FILTERED manifest path escapes the project root: {manifest_relative}")
-    if not manifest_path.is_file():
-        raise ValueError(f"FILTERED manifest missing: {manifest_relative}")
-    if _sha256_file_cached(manifest_path) != identity.get("filtered_manifest_sha256"):
-        raise ValueError(f"FILTERED manifest content changed for {family}: {manifest_relative}")
-    with manifest_path.open(newline="", encoding="utf-8") as stream:
-        rows = list(csv.DictReader(stream))
-    records: list[dict] = []
-    for row in rows:
-        for field in REQUIRED_MANIFEST_FIELDS:
-            if row.get(field) in (None, ""):
-                raise ValueError(f"FILTERED manifest row missing required field {field!r}: {manifest_relative}")
-        records.append({
-            "sample_id": row["sample_id"], "relative_path": row["relative_path"],
-            "file_size": int(row["file_size"]), "sha256": row["sha256"],
-            "selection_rank": int(row["selection_rank"]),
-            "source_raw_sample_id": row["source_raw_sample_id"],
-            "manifest_sha256": identity["filtered_manifest_sha256"]})
-    records.sort(key=lambda record: (record["selection_rank"], record["sample_id"]))
-    if verify_file_content:
-        verify_selected_filtered_records(root, records, identity)
-    return records
+    registry = json.loads((root / "configs/generator_registry.json").read_text())
+    entry = next((g for g in registry["generators"] if g["id"] == generator_id), None)
+    if entry is None:
+        raise ValueError(f"generator {generator_id} is not in the registry")
+    registered = (entry.get("samples") or {}).get(f"filtered_{klass}")
+    return (root / registered) if registered else (root / "data/synthetic" / generator_id / klass)
 
 
-def verify_selected_filtered_records(root: Path, records: list[dict], identity: dict) -> None:
-    """Per-image scientific-content verification of the signed FILTERED records."""
+def load_selected_pool_records(root: Path, generator_id: str, family: str, *,
+                               expected_count: int = EXPECTED_FILTERED_IMAGE_COUNT) -> list[dict]:
+    """List the selected generator's canonical FILTERED positive pool as ordered image records.
+
+    Reads the pool directory directly (no manifest, no SHA chain), sorts deterministically by
+    relative path, and verifies that it holds exactly ``expected_count`` unique, readable images
+    with a supported extension, none of which references a test split. Because the canonical pools
+    contain exactly the evaluated set, no separate file list is needed to pin the count.
+    """
     root = Path(root)
     project_root = root.resolve()
-    n = len(records)
-    expected = int(identity.get("filtered_image_count", -1))
-    if n != expected:
-        raise ValueError(f"FILTERED manifest has {n} records, expected {expected}")
-    sample_ids = [record["sample_id"] for record in records]
-    relatives = [record["relative_path"] for record in records]
-    ranks = [record["selection_rank"] for record in records]
-    if len(set(sample_ids)) != n:
-        raise ValueError("duplicate sample_id in FILTERED manifest")
-    if len(set(relatives)) != n:
-        raise ValueError("duplicate relative_path in FILTERED manifest")
-    if sorted(ranks) != list(range(n)):
-        raise ValueError("selection_rank values are not a contiguous 0..n-1 range")
-    positive_pools = {Path(rel).parent.as_posix() for rel in relatives}
-    if len(positive_pools) != 1 or not next(iter(positive_pools)).endswith("/positive"):
-        raise ValueError("FILTERED records are not a single canonical positive pool")
-    if not next(iter(positive_pools)).startswith("data/synthetic/"):
-        raise ValueError("FILTERED positive pool is not under data/synthetic")
-    for record in records:
-        relative = record["relative_path"]
-        candidate = Path(relative)
-        if candidate.is_absolute():
-            raise ValueError(f"absolute relative_path in manifest: {relative}")
-        if _TEST_PATH_COMPONENTS & set(candidate.parts):
-            raise ValueError(f"manifest references a test path: {relative}")
-        if candidate.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
-            raise ValueError(f"unsupported image extension: {relative}")
-        resolved = (root / candidate).resolve()
+    pool = selected_pool_dir(root, generator_id, "positive")
+    if not pool.is_dir():
+        raise ValueError(f"FILTERED positive pool is missing for {generator_id}: {pool}")
+    relatives: list[str] = []
+    for path in sorted(pool.iterdir()):
+        if not path.is_file() or path.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+            continue
+        resolved = path.resolve()
         if not resolved.is_relative_to(project_root):
-            raise ValueError(f"manifest path resolves outside the project root: {relative}")
-        if not resolved.exists() or not resolved.is_file():
-            raise ValueError(f"manifest file is missing or not a regular file: {relative}")
-        stat = resolved.stat()
-        if stat.st_size != record["file_size"]:
-            raise ValueError(f"file_size mismatch for {relative}")
-        if _sha256_file_cached(resolved) != record["sha256"]:
-            raise ValueError(f"SHA-256 mismatch for {relative}")
-
-
-def audit_built_synthetic_set(root: Path, built_file_list: dict, records: list[dict]) -> dict:
-    """Compare a built synthetic positive set against the signed FILTERED records (identity, not count)."""
-    root = Path(root)
-    manifest_paths = [record["relative_path"] for record in records]
-    manifest_shas = [record["sha256"] for record in records]
-    built = [entry for entry in built_file_list.get("positive", []) if entry.get("source") == "synthetic"]
-    built_paths = [entry["path"] for entry in built]
-    built_shas = [entry.get("file_sha256") or _sha256_file_cached(root / entry["path"]) for entry in built]
-    manifest_path_set, built_path_set = set(manifest_paths), set(built_paths)
-    test_paths = sum(1 for path in built_paths if _TEST_PATH_COMPONENTS & set(Path(path).parts))
-    return {
-        "expected_count": len(records),
-        "actual_count": len(built),
-        "exact_path_set_match": manifest_path_set == built_path_set,
-        "exact_sha256_set_match": set(manifest_shas) == set(built_shas),
-        "extra_files": len(built_path_set - manifest_path_set),
-        "missing_files": len(manifest_path_set - built_path_set),
-        "duplicate_paths": len(built_paths) - len(built_path_set),
-        "duplicate_sample_ids": len(manifest_paths) - len(set(manifest_paths)),
-        "test_paths": test_paths,
-    }
+            raise ValueError(f"pool file resolves outside the project root: {path}")
+        relative = resolved.relative_to(project_root).as_posix()
+        if _TEST_PATH_COMPONENTS & set(Path(relative).parts):
+            raise ValueError(f"FILTERED pool references a test path: {relative}")
+        if not os.access(resolved, os.R_OK):
+            raise ValueError(f"FILTERED pool file is unreadable: {relative}")
+        relatives.append(relative)
+    relatives.sort()
+    n = len(relatives)
+    if n != expected_count:
+        raise ValueError(f"{generator_id} FILTERED positive pool has {n} images, expected {expected_count}")
+    if len(set(relatives)) != n:
+        raise ValueError(f"{generator_id} FILTERED positive pool has duplicate relative paths")
+    pool_parents = {Path(rel).parent.as_posix() for rel in relatives}
+    if len(pool_parents) != 1 or not next(iter(pool_parents)).endswith("/positive"):
+        raise ValueError(f"{generator_id} FILTERED records are not a single canonical positive pool")
+    return [{"path": rel, "source": "synthetic", "generator_id": generator_id,
+             "synthetic_family": family, "sample_id": Path(rel).stem} for rel in relatives]
 
 
 def _sha256_file_cached(path: Path) -> str:
@@ -321,26 +272,16 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
     if gid and variant.get("synthetic_count_by_class"):
         selected_family = selected_family_for_generator(root, gid)
         if selected_family is not None:
-            # Publication path: consume exactly the signed FILTERED manifest, no scan/sampling.
-            payload = _load_selection_payload(root)
-            records = load_selected_filtered_records(root, payload, selected_family, verify_file_content=True)
-            manifest_sha = (payload["selection_identity"][selected_family]["filtered_manifest_sha256"])
+            # Publication path: consume the selected generator's canonical FILTERED positive pool.
+            records = load_selected_pool_records(root, gid, selected_family)
             for klass, k_count in variant["synthetic_count_by_class"].items():
                 if klass != "positive":
                     raise ValueError(f"selected synthetic condition adds positives only, got class {klass}")
                 if len(records) != k_count:
-                    raise ValueError(f"variant {variant['dataset_variant_id']}: manifest has {len(records)} "
-                                     f"records, synthetic_count_by_class requires {k_count}")
-                synthetic[klass] = [record["relative_path"] for record in records]
-                synthetic_records[klass] = [{
-                    "path": record["relative_path"], "source": "synthetic", "generator_id": gid,
-                    "synthetic_family": selected_family,
-                    "sample_id": record["sample_id"], "source_raw_sample_id": record["source_raw_sample_id"],
-                    "manifest_sha256": manifest_sha, "file_sha256": record["sha256"],
-                    "selection_rank": record["selection_rank"]} for record in records]
-            variant["_selected_manifest_provenance"] = {
-                "family": selected_family, "generator_id": gid, "manifest_sha256": manifest_sha,
-                "manifest_record_count": len(records)}
+                    raise ValueError(f"variant {variant['dataset_variant_id']}: FILTERED pool has "
+                                     f"{len(records)} images, synthetic_count_by_class requires {k_count}")
+                synthetic[klass] = [record["path"] for record in records]
+                synthetic_records[klass] = [dict(record) for record in records]
         else:
             # Legacy, non-publication utilities may still scan+sample an unselected generator.
             if generator_registry is None:
@@ -452,8 +393,7 @@ def rows_from_file_list(root: Path, file_list: dict) -> list[dict]:
             row = {"processed_path": key, "label": int(label), "source": entry["source"],
                    "patient_id": entry.get("patient_id"),
                    "image_id": entry.get("image_id") or path.stem}
-            for field in ("synthetic_family", "generator_id", "sample_id", "source_raw_sample_id",
-                          "manifest_sha256", "file_sha256", "selection_rank"):
+            for field in ("synthetic_family", "generator_id", "sample_id"):
                 if field in entry:
                     row[field] = entry[field]
             rows.append(row)
@@ -521,28 +461,26 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
     overlap = train_patients & val_patients
     if overlap:
         raise RuntimeError(f"patient leakage between train and validation: {sorted(overlap)[:10]}")
+    # These content hashes exist only to detect a changed dataset when resuming a checkpoint;
+    # they are never written into configs or read by any downstream gate.
     training_signature = dataset_manifest_signature(root, file_list)
     validation_signature = validation_manifest_signature(root, val_rows)
     combined_signature = hashlib.sha256(json.dumps({
         "training_signature": training_signature, "validation_signature": validation_signature,
-        "approved_generator_signature": variant.get("approved_generator_signature"),
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     manifest_payload = {
         "schema_version": 3,
-        "pipeline_namespace": PIPELINE_NAMESPACE,
         "artifact_type": "classifier_dataset_manifest",
         "dataset_variant_id": variant["dataset_variant_id"],
         "counts": {klass: len(entries) for klass, entries in file_list.items()},
         "signature": combined_signature,
         "training_signature": training_signature,
         "validation_signature": validation_signature,
-        "approved_generator_signature": variant.get("approved_generator_signature"),
         "files": file_list,
         "train_patient_ids": sorted(train_patients),
         "validation_patient_ids": sorted(val_patients),
         "patient_overlap": [],
     }
-    manifest_payload["manifest_signature"] = value_signature(manifest_payload)
     return train_rows, val_rows, manifest_payload
 
 

@@ -1,4 +1,4 @@
-"""Metadata-only downstream preflight audit: integrity checks with fixtures."""
+"""Metadata-only classifier preflight audit: integrity checks with fixtures."""
 from __future__ import annotations
 
 import csv
@@ -21,16 +21,6 @@ def _write_metadata(path: Path, rows: list[tuple[str, str, str]]) -> None:
         writer.writerows(rows)
 
 
-def _write_manifest(path: Path, paths: list[str], *, duplicate_id: bool = False) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="") as stream:
-        writer = csv.writer(stream)
-        writer.writerow(["sample_id", "relative_path", "source_raw_sample_id"])
-        for index, rel in enumerate(paths):
-            sample_id = "dup" if duplicate_id else f"s{index}"
-            writer.writerow([sample_id, rel, f"src{index}"])
-
-
 class RealPatientAuditTests(unittest.TestCase):
     def test_detects_no_overlap(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -51,46 +41,37 @@ class RealPatientAuditTests(unittest.TestCase):
         self.assertEqual(audit["train_validation_patient_overlap"], 1)
 
 
-class SyntheticManifestAuditTests(unittest.TestCase):
-    def _root(self, tmp: Path, paths: list[str], *, duplicate_id: bool = False,
-              create_files: bool = True) -> Path:
+class SyntheticPoolAuditTests(unittest.TestCase):
+    def _root(self, tmp: Path, pool_files: list[str], *, extra_files: list[str] | None = None) -> Path:
         root = Path(tmp)
-        manifest_rel = "results/2_diffusers/provenance/runtime/G/filtered_samples.csv"
-        _write_manifest(root / manifest_rel, paths, duplicate_id=duplicate_id)
-        (root / "configs/prov").mkdir(parents=True, exist_ok=True)
-        (root / "configs/prov/G.json").write_text(json.dumps({"filtered_sample_manifest": manifest_rel}))
+        pool_dir = "data/synthetic/G/positive"
+        (root / "configs").mkdir(parents=True, exist_ok=True)
         (root / "configs/generator_registry.json").write_text(json.dumps({"generators": [
-            {"id": "G", "provenance_manifest": "configs/prov/G.json"}]}))
-        if create_files:
-            for rel in paths:
-                target = root / rel
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(b"x")
+            {"id": "G", "scientific_family": "finetuned",
+             "samples": {"filtered_positive": pool_dir}}]}))
+        for rel in pool_files:
+            target = root / pool_dir / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"x")
+        for rel in extra_files or []:
+            target = root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"x")
         return root
 
-    def test_clean_manifest(self):
-        paths = [f"data/synthetic/g/positive/pos_{i}.png" for i in range(5)]
+    def test_clean_pool(self):
         with tempfile.TemporaryDirectory() as tmp:
-            audit = pre.synthetic_manifest_audit(self._root(tmp, paths), "G")
+            audit = pre.synthetic_pool_audit(self._root(tmp, [f"pos_{i}.png" for i in range(5)]), "G")
         self.assertEqual(audit["synthetic_sample_count"], 5)
         self.assertEqual(audit["class_counts"], {"positive": 5, "negative": 0})
         self.assertEqual(audit["test_paths_found"], 0)
-        self.assertEqual(audit["duplicate_sample_ids"], 0)
-        self.assertEqual(audit["missing_files"], 0)
+        self.assertEqual(audit["duplicate_relative_paths"], 0)
+        self.assertEqual(audit["unreadable_files"], 0)
 
-    def test_test_path_is_flagged(self):
-        paths = ["data/synthetic/g/positive/pos_0.png", "data/processed/test/1/leak.png"]
+    def test_missing_pool_reports_zero(self):
         with tempfile.TemporaryDirectory() as tmp:
-            audit = pre.synthetic_manifest_audit(self._root(tmp, paths), "G")
-        self.assertEqual(audit["test_paths_found"], 1)
-
-    def test_duplicate_ids_and_missing_files(self):
-        paths = [f"data/synthetic/g/positive/pos_{i}.png" for i in range(3)]
-        with tempfile.TemporaryDirectory() as tmp:
-            audit = pre.synthetic_manifest_audit(self._root(tmp, paths, duplicate_id=True,
-                                                            create_files=False), "G")
-        self.assertGreater(audit["duplicate_sample_ids"], 0)
-        self.assertEqual(audit["missing_files"], 3)
+            audit = pre.synthetic_pool_audit(self._root(tmp, []), "G")
+        self.assertEqual(audit["synthetic_sample_count"], 0)
 
 
 if __name__ == "__main__":

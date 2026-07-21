@@ -38,6 +38,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import json
 import contextlib
@@ -65,7 +66,6 @@ def configure_tensorflow_runtime_environment() -> None:
 
     candidates = [
         Path(sys.prefix) / "nvvm" / "libdevice" / "libdevice.10.bc",
-        Path("/home/fede/miniforge3/envs/tf-gpu/nvvm/libdevice/libdevice.10.bc"),
         Path("/usr/local/cuda/nvvm/libdevice/libdevice.10.bc"),
         Path("/usr/local/cuda-12.4/nvvm/libdevice/libdevice.10.bc"),
         Path("/usr/local/cuda-12.2/nvvm/libdevice/libdevice.10.bc"),
@@ -80,7 +80,9 @@ def configure_tensorflow_runtime_environment() -> None:
 
 configure_tensorflow_runtime_environment()
 
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
+)
 import matplotlib
 matplotlib.use("Agg")   # non-interactive — nessuna GUI richiesta
 import matplotlib.pyplot as plt

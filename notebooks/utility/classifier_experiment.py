@@ -298,7 +298,7 @@ def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True); fields = sorted({key for row in rows for key in row}) or ["epoch"]
     temporary = path.with_name(path.name + f".tmp.{os.getpid()}")
     with temporary.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields); writer.writeheader(); writer.writerows(rows)
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n"); writer.writeheader(); writer.writerows(rows)
         stream.flush(); os.fsync(stream.fileno())
     os.replace(temporary, path); return path
 

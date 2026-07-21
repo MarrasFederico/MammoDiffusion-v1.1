@@ -548,7 +548,7 @@ class ParallelGenerationTests(unittest.TestCase):
             self.assertNotIn('if _final_plan(cfg)["complete"]:', final_cell)
             self.assertNotIn('count_pngs(cfg["final_dir"]) ==', final_cell)
 
-    def test_notebook_evaluation_validates_manifest_before_missing_scan(self) -> None:
+    def test_notebook_evaluation_accepts_complete_pools_before_manifest_validation(self) -> None:
         for name in (
             "01_SD21_Baseline_50steps.ipynb", "02_SD21_Filtered_100steps.ipynb",
             "03_SD21_VAE_FineTuned.ipynb", "04_SD21_LoRA.ipynb",
@@ -557,9 +557,11 @@ class ParallelGenerationTests(unittest.TestCase):
             cell = next("".join(item.get("source", [])) for item in notebook["cells"] if "def _sd_parallel_generate_checkpoint_jobs" in "".join(item.get("source", [])))
             compile(cell, name, "exec")
             function_source = cell[cell.index("def _sd_parallel_generate_checkpoint_jobs"):cell.index("def _sd_parallel_generate_final")]
-            self.assertLess(function_source.index("prepare_sd_manifest(request"), function_source.index("missing = missing_named_png_indices"))
+            self.assertLess(function_source.index("missing = missing_named_png_indices"), function_source.index("prepare_sd_manifest(request"))
+            self.assertLess(function_source.index("if missing:"), function_source.index("prepare_sd_manifest(request"))
             final_function = cell[cell.index("def _sd_parallel_generate_final"):]
-            self.assertLess(final_function.index("prepare_sd_manifest(request"), final_function.index("plan = final_sd_generation_plan"))
+            self.assertLess(final_function.index("plan = final_sd_generation_plan"), final_function.index("prepare_sd_manifest(request"))
+            self.assertLess(final_function.index("if not missing:"), final_function.index("prepare_sd_manifest(request"))
 
     def test_notebooks_02_to_04_use_signature_cache_v2(self) -> None:
         for name in (

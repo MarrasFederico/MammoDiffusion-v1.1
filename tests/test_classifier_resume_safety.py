@@ -5,6 +5,7 @@ import sys
 import copy
 import hashlib
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -27,6 +28,13 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
             self.assertNotIn("MAMMOFM_LOCAL_CHECKPOINT_PATH", text)
             self.assertNotIn("GPU_SELECTOR", text)
             self.assertNotIn("GPU-82ec33a5-8b4f-40d0-ead7-8d1d9679055d", text)
+            self.assertIsNone(
+                re.search(
+                    r"GPU-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+                    text,
+                )
+            )
 
     def test_classifier_training_is_explicit_and_compilable_in_notebooks(self):
         builders = {
@@ -217,6 +225,26 @@ class ClassifierResumeBoundaryTests(unittest.TestCase):
             use_local_checkpoint=False,
             local_files_only=True,
         )
+
+    def test_mammofm_full_checkpoint_restore_does_not_require_foundation_archive(self):
+        checkpoint_architecture = mock.Mock(return_value="checkpoint-model")
+        foundation_loader = mock.Mock(
+            side_effect=AssertionError("the foundation archive must not be loaded")
+        )
+        fake_utils = SimpleNamespace(
+            DEFAULT_HF_REPO="batmanLab/Mammo-FM",
+            DEFAULT_CHECKPOINT_NAME="Mammo-FM_BatmanlabTrained_CLIP.tar",
+            build_mammofm_model=foundation_loader,
+            build_mammofm_checkpoint_architecture=checkpoint_architecture,
+        )
+        with mock.patch.dict(sys.modules, {"mammofm_utils": fake_utils}):
+            model = adapters.ArchitectureAdapter("mammofm", {}, ROOT).build_model(
+                pretrained=False
+            )
+
+        self.assertEqual(model, "checkpoint-model")
+        checkpoint_architecture.assert_called_once_with()
+        foundation_loader.assert_not_called()
 
     def test_periodic_checkpoint_resume_does_not_repeat_recorded_block(self):
         """A resumable checkpoint represents a completed validation block."""

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import os
 import shutil
 import subprocess
@@ -9,6 +10,8 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import ModuleType
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
@@ -77,6 +80,44 @@ class SharedDiffusersAssetsTests(unittest.TestCase):
     def test_default_diffusers_checkout_is_shared_under_notebooks(self):
         expected = ROOT / "notebooks" / "utility" / "diffusers_repo"
         self.assertEqual(assets.resolve_shared_diffusers_repo(), expected.resolve())
+
+    def test_editable_install_is_immediately_importable_in_running_interpreter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "diffusers"
+            package = repo / "src" / "diffusers"
+            package.mkdir(parents=True)
+            init_file = package / "__init__.py"
+            init_file.write_text("FIRST_RUN_MARKER = True\n")
+
+            original_path = list(sys.path)
+            previous_modules = {
+                name: module
+                for name, module in sys.modules.items()
+                if name == "diffusers" or name.startswith("diffusers.")
+            }
+            for name in previous_modules:
+                sys.modules.pop(name, None)
+            stale = ModuleType("diffusers")
+            stale.__file__ = str(Path(tmp) / "stale" / "diffusers" / "__init__.py")
+            sys.modules["diffusers"] = stale
+            sys.modules["diffusers.stale"] = ModuleType("diffusers.stale")
+            try:
+                with mock.patch.object(assets.subprocess, "run") as pip_run:
+                    imported = assets.ensure_diffusers_editable_install(repo)
+                pip_run.assert_called_once_with(
+                    [sys.executable, "-m", "pip", "install", "-e", str(repo.resolve())],
+                    check=True,
+                )
+                self.assertEqual(imported, init_file.resolve())
+                self.assertTrue(importlib.import_module("diffusers").FIRST_RUN_MARKER)
+                self.assertEqual(sys.path[0], str((repo / "src").resolve()))
+                self.assertNotIn("diffusers.stale", sys.modules)
+            finally:
+                for name in list(sys.modules):
+                    if name == "diffusers" or name.startswith("diffusers."):
+                        sys.modules.pop(name, None)
+                sys.modules.update(previous_modules)
+                sys.path[:] = original_path
 
     def test_duplicate_audit_is_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:

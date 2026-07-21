@@ -68,7 +68,6 @@ def load_jobs(root: Path) -> dict[str, Any]:
 
 
 SUPPORTED_SELECTION_SCHEMA_VERSIONS = (1, 2)
-EXPECTED_FILTERED_IMAGE_COUNT = 1361
 
 
 def _load_registry(root: Path) -> dict[str, Any]:
@@ -79,19 +78,12 @@ def _load_registry(root: Path) -> dict[str, Any]:
     return load_registry(root)
 
 
-def _file_sha256(path: Path) -> str:
-    try:
-        from .generator_benchmark import file_sha256
-    except ImportError:
-        from generator_benchmark import file_sha256
-    return file_sha256(path)
-
-
 def load_selected_generators(root: Path, *, required: bool = True) -> dict[str, Any] | None:
-    """Load and lightly validate the selection file (schema, test access, registry role and family).
+    """Load and validate the selection file: the authoritative record of the G02/G07 choice.
 
-    Deeper content binding (amendment / benchmark / provenance hashes) is applied by
-    ``validate_selection_content`` when a synthetic condition actually requires the selection.
+    Checks only what carries a direct scientific meaning: a supported schema, ``test_access = false``,
+    and that each selected id is a registry generator of the declared family that is eligible for
+    downstream selection. No amendment, benchmark, provenance, or SHA cross-binding is required.
     """
     path = Path(root) / "configs/selected_generators.json"
     if not path.is_file():
@@ -114,136 +106,22 @@ def load_selected_generators(root: Path, *, required: bool = True) -> dict[str, 
     return payload
 
 
-def _require_content_hash(root: Path, relative: str | None, expected: str | None, label: str,
-                          *, required: bool = True) -> bool:
-    if not relative or not expected:
-        if required:
-            raise ValueError(f"selection is missing the {label} content binding")
-        return False
-    path = Path(root) / str(relative)
-    if not path.is_file():
-        if required:
-            raise ValueError(f"selection {label} content is missing: {relative}")
-        return False
-    if _file_sha256(path) != expected:
-        raise ValueError(f"selection {label} content has changed since selection: {relative}")
-    return True
-
-
-def validate_selection_decision(root: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Portable, publication-oriented validation of the selection *decision*.
-
-    Uses only committed artifacts — the active amendment, the committed selection evidence and the
-    registry — so it runs in a clean ``git archive`` without the git-ignored runtime CSVs. Confirms the
-    selection matches the amended safety-gate results and the descriptive rank-1 recorded in evidence.
-    """
-    if int(payload.get("schema_version", 1)) < 2:
-        raise ValueError("a synthetic condition requires a content-aware (schema_version >= 2) selection")
-    if payload.get("test_access", False):
-        raise ValueError("selection declares test_access = true")
-    _require_content_hash(root, payload.get("active_amendment"), payload.get("active_amendment_sha256"), "amendment")
-    _require_content_hash(root, payload.get("selection_evidence_path"), payload.get("selection_evidence_sha256"),
-                          "selection evidence")
-    evidence = json.loads((Path(root) / str(payload["selection_evidence_path"])).read_text())
-    if evidence.get("test_access", True) is not False:
-        raise ValueError("selection evidence declares test access")
-    if evidence.get("active_amendment_sha256") != payload.get("active_amendment_sha256"):
-        raise ValueError("selection evidence is bound to a different amendment")
-    safety = {row["generator_id"]: row for row in evidence.get("amended_safety_gate_results", [])}
-    ranking = evidence.get("descriptive_family_ranking", {})
-    by_id = {entry["id"]: entry for entry in _load_registry(root)["generators"]}
-    identity = payload.get("selection_identity", {})
-    for family in ("finetuned", "from_scratch"):
-        generator_id = payload.get(family)
-        entry = by_id.get(generator_id)
-        if not entry or entry.get("scientific_family") != family:
-            raise ValueError(f"invalid selected {family} generator")
-        if not entry.get("eligible_for_downstream_selection", False):
-            raise ValueError(f"selected {generator_id} is not selection-eligible")
-        if evidence.get("selected_generators", {}).get(family) != generator_id:
-            raise ValueError(f"selection evidence does not select {generator_id} for {family}")
-        record = safety.get(generator_id)
-        if not record or not bool(record.get("amended_safety_gate_eligible")):
-            raise ValueError(f"{generator_id} is not amended-safety-gate eligible in evidence")
-        family_ranks = {row["generator_id"]: row for row in ranking.get(family, [])}
-        if int(family_ranks.get(generator_id, {}).get("descriptive_family_rank", -1)) != 1:
-            raise ValueError(f"{generator_id} is not descriptive_family_rank 1 in evidence")
-        if identity.get(family, {}).get("descriptive_family_rank") != 1:
-            raise ValueError(f"{generator_id} recorded rank is not 1")
-    return evidence
-
-
-def validate_selection_content(root: Path, payload: Mapping[str, Any]) -> None:
-    """Full content-aware validation used before building any synthetic dataset.
-
-    First validates the portable decision (amendment + committed evidence), then binds each selected
-    generator to its model / generation identity and FILTERED manifest in the scientific runtime.
-    The git-ignored runtime CSV hashes are verified only when those files are present (forensic).
-    Validity depends only on scientific content, not on git state, locks, or approvals.
-    """
-    import csv
-    validate_selection_decision(root, payload)
-    # Optional forensic bindings to the git-ignored runtime CSVs.
-    _require_content_hash(root, payload.get("benchmark_summary_path"), payload.get("benchmark_summary_sha256"),
-                          "benchmark summary", required=False)
-    _require_content_hash(root, payload.get("amended_gate_results_path"), payload.get("amended_gate_results_sha256"),
-                          "amended gate results", required=False)
-
-    by_id = {entry["id"]: entry for entry in _load_registry(root)["generators"]}
-    identity = payload.get("selection_identity", {})
-    for family in ("finetuned", "from_scratch"):
-        generator_id = payload.get(family)
-        entry = by_id.get(generator_id)
-        recorded = identity.get(family, {})
-        if recorded.get("descriptive_family_rank") != 1:
-            raise ValueError(f"{generator_id} recorded rank is not 1")
-        if int(recorded.get("filtered_image_count", -1)) != EXPECTED_FILTERED_IMAGE_COUNT:
-            raise ValueError(f"{generator_id} recorded FILTERED count is not {EXPECTED_FILTERED_IMAGE_COUNT}")
-
-        provenance = json.loads((Path(root) / entry["provenance_manifest"]).read_text())
-        if recorded.get("model_identity_sha256") != provenance.get("model_identity_sha256"):
-            raise ValueError(f"{generator_id} model identity changed")
-        if recorded.get("generation_identity_sha256") != provenance.get("generation_identity_sha256"):
-            raise ValueError(f"{generator_id} generation identity changed")
-        if recorded.get("filtered_manifest_path") != provenance.get("filtered_sample_manifest"):
-            raise ValueError(f"{generator_id} FILTERED manifest path changed")
-        expected_manifest_sha = provenance.get("manifest_sha256", {}).get("filtered_samples")
-        if recorded.get("filtered_manifest_sha256") != expected_manifest_sha:
-            raise ValueError(f"{generator_id} FILTERED manifest hash changed")
-        manifest_path = Path(root) / str(recorded["filtered_manifest_path"])
-        if "test" in manifest_path.parts:
-            raise ValueError(f"{generator_id} FILTERED manifest references a test path")
-        if not manifest_path.is_file() or _file_sha256(manifest_path) != expected_manifest_sha:
-            raise ValueError(f"{generator_id} FILTERED manifest content changed")
-        with manifest_path.open(newline="") as stream:
-            actual_count = sum(1 for _ in csv.DictReader(stream))
-        if actual_count != EXPECTED_FILTERED_IMAGE_COUNT:
-            raise ValueError(f"{generator_id} FILTERED manifest has {actual_count} records, expected "
-                             f"{EXPECTED_FILTERED_IMAGE_COUNT}")
-
-
 def selection_summary(payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
     """Compact, model-free view of the selection for the notebook configuration sections."""
     if not payload:
         return None
     identity = payload.get("selection_identity", {})
     return {
-        "active_amendment": payload.get("active_amendment"),
-        "post_benchmark_amendment": payload.get("post_benchmark_amendment"),
-        "benchmark_run_id": payload.get("benchmark_run_id"),
-        "benchmark_HEAD": payload.get("benchmark_HEAD"),
         "test_access": payload.get("test_access"),
+        "primary_metric": payload.get("primary_metric"),
         "selected": {family: {
-            "generator_id": record.get("generator_id"),
-            "descriptive_family_rank": record.get("descriptive_family_rank"),
+            "generator_id": record.get("generator_id") or payload.get(family),
             "primary_metric": record.get("primary_metric"),
             "primary_metric_value": record.get("primary_metric_value"),
-            "model_identity_sha256": record.get("model_identity_sha256"),
-            "generation_identity_sha256": record.get("generation_identity_sha256"),
-            "filtered_manifest_path": record.get("filtered_manifest_path"),
-            "filtered_manifest_sha256": record.get("filtered_manifest_sha256"),
             "filtered_image_count": record.get("filtered_image_count"),
-        } for family, record in identity.items()},
+        } for family, record in identity.items()} or {
+            family: {"generator_id": payload.get(family)} for family in ("finetuned", "from_scratch")
+        },
     }
 
 
@@ -254,7 +132,6 @@ def resolve_condition(root: Path, condition: str) -> dict[str, Any]:
     generator_id = None
     if family:
         payload = load_selected_generators(root)
-        validate_selection_content(root, payload)  # synthetic conditions require the full content binding
         generator_id = payload[family]
     return {"dataset_variant_id": condition, "condition": condition, "status": "ready",
             "real_source": bool(definition.get("real_source")),
@@ -281,5 +158,4 @@ def logical_experiments() -> list[dict[str, Any]]:
 
 __all__ = ["ARCHITECTURES", "CONDITIONS", "NAMESPACE", "SEEDS", "atomic_json", "experiment_id",
            "load_jobs", "load_protocol", "load_selected_generators", "logical_experiments", "parse_experiment_id",
-           "resolve_condition", "resolve_job", "selection_summary", "validate_jobs",
-           "validate_selection_content", "validate_selection_decision"]
+           "resolve_condition", "resolve_job", "selection_summary", "validate_jobs"]

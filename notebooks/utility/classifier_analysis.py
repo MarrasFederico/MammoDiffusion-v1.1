@@ -262,7 +262,7 @@ def _read_patient_rows(path: Path) -> list[dict[str, Any]]:
 def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True); fields = list(rows[0]) if rows else ["patient_id"]
     with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields); writer.writeheader(); writer.writerows(rows)
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n"); writer.writeheader(); writer.writerows(rows)
     return path
 
 

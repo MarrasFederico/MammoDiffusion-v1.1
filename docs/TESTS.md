@@ -1,10 +1,10 @@
 # Test suite
 
 The `tests/` directory is a fast, model-free regression suite that protects the validated logic of
-the project: the generator-selection integrity chain, the classifier protocol, the signed provenance
-of synthetic data, and the reproducibility invariants of the notebooks. The tests use fixtures and
-static inspection only — they never train a model, load model weights, or open the real image
-datasets — so the whole suite runs in well under a minute.
+the project: the generator selection, the classifier protocol, the exact-count/readability/isolation
+invariants of the synthetic data, and the reproducibility invariants of the notebooks. The tests use
+fixtures and static inspection only — they never train a model, load model weights, or open the real
+image datasets — so the whole suite runs in well under a minute.
 
 Run everything from the repository root:
 
@@ -16,7 +16,7 @@ The tests caught real regressions during the reorganization of this repository (
 leaking into committed notebook outputs, and a broken content-hash chain after a path refactor), so
 they are kept green as a gate before every commit.
 
-## Generator benchmark, selection and provenance integrity
+## Generator benchmark and selection
 
 | File | Tests | What it verifies |
 |---|---|---|
@@ -24,13 +24,7 @@ they are kept green as a gate before every commit.
 | `test_benchmark_metrics_guard.py` | 2 | The distribution-metrics guard in benchmark notebook 01. |
 | `test_generator_benchmark_local_encoders.py` | 6 | Notebook 01 only extracts through the configured local InceptionV3/RAD-DINO encoders; no downloads. |
 | `test_generator_representation_policy.py` | 9 | RAW vs FILTERED representations are kept separate; FILTERED is the official ranking. |
-| `test_generator_candidate_audit.py` | 3 | Candidate discovery, family/role resolution and eligibility. |
-| `test_gate_audit.py` | 16 | The post-benchmark gate calibration audit utilities. |
-| `test_gate_amendment.py` | 20 | The size-matched perceptual-hash audit, the Option B amendment and the selection it produces. |
-| `test_generator_provenance.py` | 18 | Signed per-generator provenance manifests and model/generation identities. |
-| `test_signed_manifest_dataset.py` | 18 | Classifier synthetic sets come only from the signed FILTERED manifest, never a directory scan. |
-| `test_selection_content_validation.py` | 14 | Content-aware selection validation: silent post-selection edits are rejected by SHA-256. |
-| `test_scientific_integrity_patch.py` | 11 | Scientific-integrity invariants across the selection and reporting artifacts. |
+| `test_scientific_integrity_patch.py` | 9 | Scientific-integrity invariants: filter-acceptance independence and descriptive-baseline ranking ineligibility. |
 
 ## Classifier pipeline
 

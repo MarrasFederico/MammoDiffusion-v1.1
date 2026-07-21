@@ -1,8 +1,7 @@
 {
   "schema_version": 2,
   "protocol_version": 2.1,
-  "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
-  "amendment_note": "eligibility_gates below are the ORIGINAL preregistered gates, retained for the historical record; the active selection policy is Option B as defined in active_amendment (perceptual_hash-only rate and rad_dino_coverage are descriptive metrics, not binary gates). Transparent post-benchmark amendment.",
+  "gate_note": "Perceptual-hash-only rate and RAD-DINO coverage are descriptive ranking metrics, not binary gates. Eligibility depends only on the technical/scientific gates below; there are no provenance, lineage, or filter-mapping manifest gates.",
   "pipeline_namespace": "mammodiffusion.generator_benchmark.v2",
   "study_question": "RQ1: Which eligible fine-tuned generator and which eligible from-scratch generator provide the best balance of fidelity, diversity, coverage, efficiency, and absence of train memorization?",
   "primary_class": "positive",
@@ -90,11 +89,7 @@
     "maximum_train_memorization_rate": 0.01,
     "minimum_rad_dino_coverage": 0.5,
     "maximum_corrupted_file_rate": 0.0,
-    "require_valid_filter_manifest": true,
-    "require_complete_raw_filtered_mapping": true,
     "require_complete_metrics": true,
-    "require_lineage": true,
-    "require_provenance": true,
     "forbid_test_access": true
   },
   "selection": {

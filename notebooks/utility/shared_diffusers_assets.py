@@ -178,6 +178,18 @@ def ensure_diffusers_editable_install(repo: str | Path) -> Path:
     except ImportError:
         pass
     subprocess.run([sys.executable, "-m", "pip", "install", "-e", str(repo)], check=True)
+    # Editable installs expose ``repo/src`` through a newly written ``.pth`` file.  Python only
+    # processes those files during interpreter start-up, so the first notebook run in a fresh
+    # environment would otherwise complete the installation and then fail to import Diffusers
+    # in the still-running kernel.  Add the checkout explicitly and discard any previously
+    # imported copy so this call is immediately effective as well as persistent for child jobs.
+    src_text = str(src)
+    if src_text in sys.path:
+        sys.path.remove(src_text)
+    sys.path.insert(0, src_text)
+    for module_name in list(sys.modules):
+        if module_name == "diffusers" or module_name.startswith("diffusers."):
+            sys.modules.pop(module_name, None)
     importlib.invalidate_caches()
     imported = Path(importlib.import_module("diffusers").__file__).resolve()
     if src not in imported.parents:

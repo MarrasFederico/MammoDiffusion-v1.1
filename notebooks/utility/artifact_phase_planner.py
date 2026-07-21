@@ -8,7 +8,7 @@ from pathlib import Path
 VALID_MODES = {
     "training": {"auto", "run", "skip"},
     "generation": {"auto", "run", "skip"},
-    "evaluation": {"auto", "run", "skip", "recompute"},
+    "evaluation": {"auto", "run", "skip", "recompute", "frozen"},
     "filter": {"auto", "run", "skip", "recompute"},
     "validation": {"auto", "run", "skip", "recompute"},
     "locked_test": {"manual", "run", "skip"},
@@ -101,6 +101,13 @@ def load_runtime_manifest(experiment_dir: str | Path) -> dict:
 def resolve_action(phase: str, mode: str, complete: bool, reason: str, allow_heavy: bool = True, has_partial_progress: bool = False) -> dict:
     if mode not in VALID_MODES[phase]: raise ValueError(f"Invalid {phase} mode: {mode}")
     if mode == "manual": return {"phase": phase, "status": "manual", "action": "skip", "reason": "manual locked-test gate"}
+    if mode == "frozen":
+        return {
+            "phase": phase,
+            "status": "frozen_selection",
+            "action": "skip",
+            "reason": "historical evaluation is frozen; the notebook must validate its recorded selection and immutable checkpoint",
+        }
     if mode == "skip":
         if not complete: raise RuntimeError(f"Cannot skip incomplete {phase}: {reason}")
         action = "skip"

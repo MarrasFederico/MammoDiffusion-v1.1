@@ -152,6 +152,8 @@ class ArchitectureAdapter:
         if self.architecture == "mammofm":
             import mammofm_utils as utils
 
+            if not pretrained:
+                return utils.build_mammofm_checkpoint_architecture()
             return utils.build_mammofm_model(
                 hf_repo=utils.DEFAULT_HF_REPO,
                 checkpoint_name=utils.DEFAULT_CHECKPOINT_NAME,

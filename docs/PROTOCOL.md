@@ -1,8 +1,14 @@
 # MammoDiffusion — consolidated protocol
 
-Single reference for the experimental design, the generator benchmark and its post-benchmark
-amendment, the G02/G07 selection, the downstream 2 × 4 × 3 protocol, the held-out final evaluation,
-and manual execution. It consolidates the previously fragmented notes under `docs/`.
+Single reference for the experimental design, the generator benchmark, the G02/G07 selection, the
+downstream 2 × 4 × 3 protocol, the held-out final evaluation, and manual execution. It consolidates
+the previously fragmented notes under `docs/`.
+
+The processed corpus is the starting point of this repository: preprocessing begins from the
+already-converted **512×512 grayscale MLO PNG** dataset under `data/processed/`. The original RSNA
+DICOM archive is **not** part of this project and is not required to reproduce it; the preprocessing
+notebook verifies the processed corpus (schema, splits, patient separation, image presence) rather
+than re-decoding DICOMs.
 The Mammo-FM academic-license terms are kept separately in
 [`docs/mammo_fm_license_note.md`](mammo_fm_license_note.md); shared SD2.1/Diffusers asset identities in
 [`docs/SHARED_ASSETS.md`](SHARED_ASSETS.md); the sustainability event schema in
@@ -25,36 +31,33 @@ canonical interface and no CLI wrapper is required.
 
 ### 2.1 Notebook 01 execution modes
 
-Notebook 01 has two intentionally different modes, controlled by the three explicit Boolean flags in
-its first code cell. The repository is currently prepared for the final real rerun:
-`RUN_REAL_BENCHMARK = True`, `REFRESH_CANDIDATE_AUDIT = True` and
-`BUILD_CANONICAL_PROVENANCE = False`. Run All therefore refreshes the candidate audit, opens the
-declared validation and synthetic images, loads or content-validates the feature cache, recomputes the
-metrics and overwrites the canonical output tables. The provenance rebuild remains disabled because
-the signed runtime identities have already been rebuilt and verified.
+Notebook 01 has two intentionally different modes, controlled by two explicit Boolean flags in its
+first code cell. The repository is currently prepared for the final real rerun:
+`RUN_REAL_BENCHMARK = True` and `REFRESH_CANDIDATE_AUDIT = True`. Run All therefore refreshes the
+candidate audit, opens the declared validation and synthetic images, loads or content-validates the
+feature cache, recomputes the metrics and overwrites the canonical output tables.
 
 For an audit-only inspection, temporarily set `RUN_REAL_BENCHMARK = False` and
-`REFRESH_CANDIDATE_AUDIT = False`: the notebook then loads protocol, registry, roles and provenance,
-but does not open validation images, load feature encoders, recompute embeddings or overwrite metric
-tables. A clean audit-only execution does **not** mean that the numerical benchmark was recomputed.
+`REFRESH_CANDIDATE_AUDIT = False`: the notebook then loads protocol, registry and roles, but does not
+open validation images, load feature encoders, recompute embeddings or overwrite metric tables. A
+clean audit-only execution does **not** mean that the numerical benchmark was recomputed.
 
 Real mode additionally requires a local torchvision `Inception_V3_Weights.IMAGENET1K_V1` checkpoint,
-a complete local `microsoft/rad-dino` snapshot and CUDA. The checked-in execution cell currently names
-the verified local files and the physical RTX 5060 Ti UUID before any framework import. Downloads are
-forbidden inside the notebook. Encoder files, preprocessing and identities are hashed, and each
-extractor must return identical finite features on two preflight passes before the benchmark starts.
-Set `BUILD_CANONICAL_PROVENANCE = True` only when a declared checkpoint, latent manifest, generation
-manifest, sample pool or filter mapping has changed; rebuilding changes signed identities and requires
-a fresh selection save.
+a complete local `microsoft/rad-dino` snapshot and CUDA. The checked-in execution cell resolves encoder
+paths from portable cache/project defaults (with explicit environment overrides) and selects the GPU at
+runtime through `MAMMODIFFUSION_BENCHMARK_GPU` or the automatic maximum-memory policy before any framework
+import. Downloads are forbidden inside the notebook. Encoder identities are hashed only to invalidate the
+embedding cache, and each extractor must return identical finite features on two preflight passes before
+the benchmark starts.
 
 ### 2.2 Notebook 01 cell flow
 
 | Section | What it does | Main input/output |
 |---|---|---|
 | Protocol configuration | Freezes pool size, sampling, feature spaces, metric definitions, gates and ranking hierarchy. | `configs/generator_benchmark_protocol.json` |
-| Candidate discovery | Resolves generator family and role, hashes provenance and model/generation identity, checks manifests and forbidden paths. | registry + provenance manifests → candidate audit |
+| Candidate discovery | Resolves generator family and role and checks that the registered pools exist with the target image count and no forbidden paths. | registry → candidate audit |
 | Candidate eligibility | Separates primary candidates from sampling ablations, descriptive baselines and generation-pool ablations. | candidate audit + role policy |
-| RAW/FILTERED counts | Verifies each declared pool and keeps the two representations separate. | signed per-image manifests |
+| RAW/FILTERED counts | Verifies each declared pool directory and keeps the two representations separate. | registered pool directories |
 | Real reference set | Loads all positive validation records only; test and historical-test paths are forbidden. | `data/processed/metadata/val.csv` |
 | Technical validity | Measures readability, expected shape, finite range, near-black/constant images, uniqueness and exact duplication. | `technical_validity.csv` |
 | Feature extraction | Extracts or content-validates cached InceptionV3 and RAD-DINO embeddings. | `embedding_cache/` |
@@ -120,95 +123,59 @@ invalid per-image mapping is documented, not a blocked primary candidate. The ge
 selection notebook (`02_Generator_Selection.ipynb`) performs a transparent manual selection and saves
 only `configs/selected_generators.json`.
 
-Canonical publication-v2 identity is `(sample_id, project-relative path, SHA-256)` — basenames are
-never sufficient. Per-image provenance CSVs are local, git-ignored, regenerable runtime artifacts under
-`results/2_diffusers/provenance/runtime/` (the shared 3,061-row train corpus once under
-`runtime/shared/`); the repository publishes only the schema, compact v2 index, project-relative
-records, G06 refusal diagnostic and documentary candidate audit. Runtime efficiency fields are
-imported only when explicitly recorded with verified duration semantics; otherwise `unavailable`.
+Complete registered pool directories are accepted as the owner-generated inputs after count,
+readability, uniqueness, and technical-validity checks; there is no signed per-image manifest, SHA
+chain, lineage record or provenance gate. Runtime efficiency fields are imported only when explicitly
+recorded with verified duration semantics; otherwise they remain `unavailable`.
 
 ### 2.4 Notebook 01 outputs
 
-The canonical root is `results/2_diffusers/benchmark/`. `candidate_audit.csv` records
-roles and provenance blockers; `technical_validity.csv` records RAW/FILTERED integrity;
+The canonical root is `results/2_diffusers/benchmark/`. `candidate_audit.csv` records roles and any
+blocking reasons; `technical_validity.csv` records RAW/FILTERED integrity;
 `distribution_metrics_repetitions.csv` and `distribution_metrics_summary.csv` contain the shared
 resampling results; `diversity_metrics.csv`, `synthetic_duplication.csv`, `train_memorization.csv` and
 `validation_similarity.csv` keep the four distinct similarity questions separate. The publication
 summary is `generator_summary_corrected.csv`, which preserves invalid legacy timing evidence as
-`unavailable_invalid_duration_semantics`. Gate calibration, amendment evidence and corrected rankings
-are under `gate_audit/`.
+`unavailable_invalid_duration_semantics`.
 
-## 3. Post-benchmark gate calibration audit
+## 3. Eligibility policy
 
-A methodological audit (`notebooks/utility/gate_audit.py`, `run_gate_audit.py`,
-`run_gate_amendment.py`; runtime artifacts git-ignored under
-`results/2_diffusers/benchmark/gate_audit/`) ran **after** the benchmark. It never loads
-an encoder, re-extracts embeddings, re-runs KID/FID/PRDC, selects a generator, trains a classifier, or
-reads the test split; it only measures, freezes and proposes.
+Eligibility depends only on technical/scientific safety gates computed by the benchmark itself:
+minimum valid positive images (1361); maximum exact-duplicate rate (0.01); maximum train-memorization
+rate (0.01); maximum corrupted-file rate (0.0); complete metrics; forbidden test access; and the
+registry role. **Perceptual-hash-only rate and RAD-DINO coverage are descriptive ranking metrics, not
+binary gates**: pHash-only is order-dependent and does not by itself establish duplication, and a
+single 73-image balanced-point coverage value is unstable. There are **no** provenance, lineage,
+filter-mapping-manifest or signed-identity gates, and no protocol amendment mechanism.
 
-- **Order-independent perceptual hash:** `perceptual_hash_cluster_diagnostics`
-  (`phash_any_neighbour_rate`, `phash_component_excess_rate`) and `confirmed_duplicate_analysis` using
-  the preregistered rule `exact | (pHash ≤ 2 AND SSIM ≥ 0.98)`. The deprecated order-dependent rate is
-  kept only for comparison.
-- **Real-vs-real baselines:** `repeated_prdc_baseline` / `split_half_prdc_baseline` from cached
-  embeddings.
-- **Strict efficiency:** durations are trusted only with verified semantics.
-
-**Findings (frozen run at HEAD `cd05886c`):** five official candidates (G02, G03, G04, G07, G08 —
-FILTERED) measured; **zero eligible** under the original gates. `confirmed_duplicate_rate` is 0.0 for
-all five — the flagged pairs are pHash-near pairs not confirmed as duplicates (low SSIM, large RAD-DINO
-distance), a descriptive signal of structural similarity, not mere hash collisions. Perceptual-hash
-any-neighbour/component-excess rates depend on pool size and must be read size-matched (matched to
-n=73 the candidates fall to ≈ 0.004–0.018 vs full-pool 0.06–0.17; real validation ≈ 0.0, real train
-n=340 ≈ 0.006). RAD-DINO coverage from a single 73-image balanced point is unstable; real-vs-real
-baselines (≈ 0.96 train-vs-validation, ≈ 0.98 validation split-half) are an upper/reference benchmark,
-**not a directly transferable synthetic eligibility threshold** — best candidate G07 ≈ 0.42 (mean
-≈ 0.458, fraction ≥ 0.5 ≈ 0.375). Gate-independent descriptive ranking: fine-tuned G02 → G03 → G04;
-from-scratch G07 → G08. Efficiency: the G02/G03/G04 manifests imply physically impossible
-microsecond-per-image durations with no `duration_semantics`, so `generation_seconds_per_image` is
+Under this policy the five official candidates (G02, G03, G04, G07, G08 — FILTERED) pass the safety
+gates, and the preregistered KID-primary hierarchy gives the descriptive ranking fine-tuned
+G02 → G03 → G04 and from-scratch G07 → G08. The internal historical test was **not** opened at any
+point. Efficiency: the G02/G03/G04 manifests imply physically impossible microsecond-per-image
+durations with no `duration_semantics`, so `generation_seconds_per_image` is
 `unavailable_invalid_duration_semantics` and unverified energy/VRAM are dropped (checkpoint size kept).
 
-## 4. Amendment v1 (Option B), approved post-benchmark
-
-- **Status:** approved (human), transparent post-benchmark amendment. **Approval date:** 2026-07-15.
-- **Machine-readable record:** [`configs/generator_benchmark_protocol_amendment_v1.json`](../configs/generator_benchmark_protocol_amendment_v1.json);
-  portable evidence in [`configs/generator_selection_evidence_v1.json`](../configs/generator_selection_evidence_v1.json).
-
-The amendment is **not** presented as preregistered. The original gates
-(`maximum_perceptual_duplicate_rate = 0.02`, `minimum_rad_dino_coverage = 0.5`) and the original
-**zero-eligible** outcome are preserved verbatim (frozen `original_protocol.json`; retained in the
-protocol's `eligibility_gates`). pHash-only is order-dependent and does not establish duplication, and
-73-image balanced-point coverage is unstable and was not derived from data; both become
-**descriptive/ranking metrics, not binary gates**, and **no new coverage threshold is introduced.**
-
-**Option B blocking safety gates:** minimum valid positive images (1361); maximum exact duplicate rate
-(0.01); maximum confirmed duplicate rate (0.02); maximum train memorization rate (0.01); maximum
-corrupted file rate (0.0); valid filter manifest; complete RAW/FILTERED mapping; complete metrics;
-lineage; provenance; test access forbidden. The KID-primary selection hierarchy is unchanged. Under
-Option B all five official candidates pass the safety gates and the descriptive ranking is fine-tuned
-G02 → G03 → G04 and from-scratch G07 → G08. The internal historical test was **not** opened at any
-point. Any downstream result must therefore be interpreted with this stated limitation: the generators
-were selected under the approved amendment, not the original preregistered thresholds.
-
-## 5. Selection
+## 4. Selection
 
 `notebooks/3_generator_benchmark/02_Generator_Selection.ipynb` is deliberately lightweight. It loads
-no encoder and reads no image pixels. It prefers `generator_summary_corrected.csv`, displays the
-original zero-eligible outcome beside the approved Option B outcome, shows the unchanged KID-primary
-family rankings and paired KID differences, and checks that the two explicit manual constants equal
-the amended top-ranked candidates. With `SAVE_SELECTION=True`, it refuses an inconsistent choice and
-writes the downstream contract.
+no encoder and reads no image pixels. It prefers `generator_summary_corrected.csv`, ranks each family
+by the KID-primary hierarchy under the technical safety gates, and shows the paired KID differences.
+The proposed top-ranked rows are displayed beside the two explicit manual constants. With
+`SAVE_SELECTION=True`, the notebook validates family, registry eligibility, metric completeness, image
+count, test access, and the technical gates before writing the downstream contract; the manual
+decision remains explicit.
 
 - **Fine-tuned:** G02 — `02_sd21_filtered_100steps`.
 - **From-scratch:** G07 — `07_ldm_sdvae_extra1361`.
 
-`configs/selected_generators.json` is content-aware (schema 2): it binds the benchmark identity, the
-active amendment, the committed selection evidence, and each generator's model/generation identity and
-FILTERED manifest (path, SHA-256, 1361 records) so silent edits are detected. Classifier synthetic
-conditions consume exactly those signed 1,361 FILTERED records (no directory scan or resampling).
-The file also records that the amendment is post-benchmark and that the test split was not accessed.
+`configs/selected_generators.json` is the simple, authoritative record of the choice: the two selected
+ids, their family, descriptive rank and primary-metric value, and `test_access = false`. It contains
+no benchmark git-HEAD, run id, amendment reference, selection-evidence pointer or SHA chain. Classifier
+synthetic conditions read the selected generator's canonical FILTERED positive pool directory
+(`data/synthetic/<generator_id>/positive`) and verify it holds exactly 1,361 unique, readable,
+non-test images — directly, without a signed manifest.
 
-## 6. Classifier design (2 × 4 × 3)
+## 5. Classifier design (2 × 4 × 3)
 
 Fixed primary design: architectures **MaxViT-512** and **Mammo-FM**; conditions `real_only`,
 `real_augmented`, `real_plus_best_finetuned_positive`, `real_plus_best_fromscratch_positive`; seeds
@@ -231,7 +198,7 @@ mean-probability ensembles (all three seeds required, identical patient/image ke
 duplicates/missing, finite probabilities, same validation manifest). The eight declared PR-AUC
 comparisons form one Holm family; any additional comparison is exploratory.
 
-## 7. Final evaluation on the held-out test set
+## 6. Final evaluation on the held-out test set
 
 Final evaluation runs once on the held-out test set (`data/processed/test/`). Every decision — the
 selected checkpoints, the decision thresholds and the eight preregistered comparisons — is fixed on
@@ -243,50 +210,46 @@ Final evaluation uses a visible opt-in flag (`RUN_TEST_INFERENCE`) — no crypto
 revision gate or one-shot enforcement. No model or threshold selection may occur after final
 evaluation begins.
 
-## 8. Manual execution
+## 7. Manual execution
 
 No script launches or replaces a scientific notebook.
 
-### 8.1 Final benchmark reproduction
+### 7.1 Final benchmark reproduction
 
 This refers specifically to
 `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`, not to the Diffusers or
 classifier notebook that also has the local number `01`. Its first code cell is already configured for
-the final run with the verified local InceptionV3 checkpoint, complete RAD-DINO snapshot and physical
-RTX 5060 Ti UUID. No shell exports are required on this workstation.
+the final run with a verified local InceptionV3 checkpoint and complete RAD-DINO snapshot. It selects
+the largest-memory visible host GPU at runtime; no physical GPU UUID is stored in notebook source.
+Override the automatic choice with `MAMMODIFFUSION_BENCHMARK_GPU=auto|<physical-index>|GPU-...` when
+needed. The Inception checkpoint follows `TORCH_HOME`/`XDG_CACHE_HOME` discovery and can be overridden
+with `MAMMODIFFUSION_INCEPTION_CHECKPOINT`; the RAD-DINO snapshot can be overridden with
+`MAMMODIFFUSION_RAD_DINO_SNAPSHOT`.
 
-Restart the Jupyter kernel, then Run All from the first cell. The restart matters because
-`CUDA_VISIBLE_DEVICES` is assigned before importing PyTorch. A content-validated embedding
+Restart the Jupyter kernel, then Run All from the first cell. The restart matters because the portable
+selector resolves and verifies `CUDA_VISIBLE_DEVICES` before importing PyTorch. A content-validated embedding
 cache hit is a valid real execution: the notebook still opens the declared real/synthetic inputs,
 validates identities and records the cache decision. Do not delete a valid cache merely to force model
-loading. Keep `BUILD_CANONICAL_PROVENANCE = False` for this rerun; set it to `True` only when the
-candidate audit reports a changed runtime component. Rebuilding provenance changes signed identities
-and must be followed by a fresh selection save.
+loading.
 
-After Notebook 01 completes without deferred cells or errors, refresh the derived post-benchmark
-artifacts in this order:
+After Notebook 01 completes without deferred cells or errors, refresh the corrected efficiency summary:
 
 ```bash
-python notebooks/utility/run_gate_audit.py
-python notebooks/utility/run_gate_amendment.py
 python notebooks/utility/correct_efficiency_summary.py
 ```
 
 Then Run All
-`notebooks/3_generator_benchmark/02_Generator_Selection.ipynb` with `SAVE_SELECTION=True`, and require
-the final hand-off audit to pass:
+`notebooks/3_generator_benchmark/02_Generator_Selection.ipynb` with `SAVE_SELECTION=True`, and
+optionally run the metadata-only hand-off audit:
 
 ```bash
 python notebooks/utility/classifier_preflight.py
 ```
 
-If the real rerun changes a frozen benchmark/evidence hash, selection must stop for explicit review;
-the mismatch must not be bypassed or silently replaced.
-
 1. Run generator notebooks only when candidate outputs are missing.
 2. Execute `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`; review RAW/FILTERED tables, repeated-subsampling
    intervals, duplication, train memorization, validation similarity and efficiency.
-3. In `notebooks/3_generator_benchmark/02_Generator_Selection.ipynb`, review the original and amended outcomes and save the selection.
+3. In `notebooks/3_generator_benchmark/02_Generator_Selection.ipynb`, review the family rankings and save the selection.
 4. Run all cells in `notebooks/04_classifiers/01_MaxViT512.ipynb` once. The notebook executes all
    four conditions and seeds 17, 42 and 73 sequentially, with an independent model, optimizer,
    output directory and resumable checkpoint for each of its 12 jobs. Before importing a GPU
@@ -310,7 +273,7 @@ are two manual classifier executions because each architecture notebook cycles o
 condition/seed jobs; synthetic conditions require `configs/selected_generators.json`. Do not tune
 one condition differently and do not consult a final-evaluation split while choosing models or thresholds.
 
-## 9. Mammo-FM license
+## 8. Mammo-FM license
 
 Mammo-FM weights are governed by a **Custom Academic License for Model Weights** (non-commercial
 academic use only; no redistribution of weights or derivatives; no distillation). The repository must

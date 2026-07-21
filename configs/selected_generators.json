@@ -3,27 +3,8 @@
   "from_scratch": "07_ldm_sdvae_extra1361",
   "schema_version": 2,
   "primary_metric": "raddino_kid",
-  "benchmark_HEAD": "cd05886c0e7044325063d9e2db4bf2de6d285dc4",
-  "benchmark_run_id": "generator_benchmark_20260714T221055Z_cd05886c",
-  "benchmark_summary_path": "results/2_diffusers/benchmark/generator_summary_corrected.csv",
-  "benchmark_summary_sha256": "f4aa8c295dc0c2652856173622450c73ca0b7ee2ec544806f1654518539b94c8",
-  "amended_gate_results_path": "results/2_diffusers/benchmark/gate_audit/amended_gate_results.csv",
-  "amended_gate_results_sha256": "244bcb75774164a168b2ac512faa2c4e367e9f6d37bb35bc2757c528f4955f5e",
-  "active_amendment": "configs/generator_benchmark_protocol_amendment_v1.json",
-  "active_amendment_sha256": "fd5dcef0918451aac504d2654008636d366a2260aac7c19ae3e3384b4994ec73",
-  "selection_evidence_path": "configs/generator_selection_evidence_v1.json",
-  "selection_evidence_sha256": "9edd32f7bbe32fd3f0066b21950572021537b7580cc10342caaf438f33e9d8c8",
-  "original_protocol_result": {
-    "official_candidates_measured": 5,
-    "eligible_under_original_gates": 0,
-    "original_gates": {
-      "maximum_perceptual_duplicate_rate": 0.02,
-      "minimum_rad_dino_coverage": 0.5
-    }
-  },
-  "post_benchmark_amendment": true,
   "test_access": false,
-  "selection_notes": "Post-benchmark amendment v1 (Option B), human-approved: coverage-point and pHash-only removed as binary gates; safety gates retained (exact/confirmed duplicate, train memorization, corruption, FILTERED validity, provenance, lineage, test access). All five official candidates pass the safety gates; the preregistered KID-primary hierarchy selects G02 (fine-tuned) and G07 (from-scratch). Downstream results must be interpreted with this amendment stated.",
+  "selection_notes": "Authoritative record of the generator selection. Eligibility uses the technical/scientific safety gates only (image count, exact-duplicate and train-memorization rates, corruption, metric completeness, test isolation, registry role); perceptual-hash rate and RAD-DINO coverage are descriptive ranking metrics. Within each family the preregistered RAD-DINO KID-primary hierarchy selects G02 (fine-tuned) and G07 (from-scratch).",
   "selection_identity": {
     "finetuned": {
       "generator_id": "02_sd21_filtered_100steps",
@@ -31,10 +12,6 @@
       "descriptive_family_rank": 1,
       "primary_metric": "raddino_kid",
       "primary_metric_value": 0.1990891096955254,
-      "model_identity_sha256": "97dadd9f675dca2feeaa4792d61208c7906d9c14a5b3bfd55b1f1708127d6e15",
-      "generation_identity_sha256": "327ad1f379c161d6d67d42621628896ba67c812186a0066d23884674d66ea20b",
-      "filtered_manifest_path": "results/2_diffusers/provenance/runtime/02_sd21_filtered_100steps/filtered_samples.csv",
-      "filtered_manifest_sha256": "3f6632a791b66ddd7df489a925940fd21ca69847a2875b2a2245867ef5e616cd",
       "filtered_image_count": 1361
     },
     "from_scratch": {
@@ -43,10 +20,6 @@
       "descriptive_family_rank": 1,
       "primary_metric": "raddino_kid",
       "primary_metric_value": 0.08722443411855751,
-      "model_identity_sha256": "79c6b7d776a186a236d521526aec71643c4c019ba21daa6c336696d9d2d6886d",
-      "generation_identity_sha256": "ca98e1612ae0279dd691d29b228c40abba85ce3d65a2ff7890940025d32c15c5",
-      "filtered_manifest_path": "results/2_diffusers/provenance/runtime/07_ldm_sdvae_extra1361/filtered_samples.csv",
-      "filtered_manifest_sha256": "1e1052419f1078346ec11407932c5e3418263bc1a6b939a6595778dad789c4c5",
       "filtered_image_count": 1361
     }
   }

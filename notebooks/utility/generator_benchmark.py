@@ -23,16 +23,6 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
 FAMILIES = ("finetuned", "from_scratch")
 REPRESENTATIONS = ("raw", "filtered")
 FEATURE_SPACES = ("inception_v3", "rad_dino")
-SUPPORTED_PROVENANCE_SCHEMA_VERSION = 2
-SUPPORTED_PROVENANCE_INDEX_VERSION = 2
-PROVENANCE_REQUIRED_FIELDS = {
-    "schema_version", "generator_id", "scientific_family", "candidate_role", "parent_generator_id",
-    "model_components", "model_configuration", "model_identity_sha256", "generation_identity",
-    "generation_identity_sha256", "model_checkpoint_identifier", "checkpoint_path", "checkpoint_sha256",
-    "training_notebook_config_identifier", "training_corpus_manifest", "raw_sample_manifest",
-    "filtered_sample_manifest", "filter_mapping_manifest", "manifest_sha256", "training_dataset_identifier",
-    "generation_configuration", "filter_configuration", "lineage_status",
-}
 BENCHMARK_ROOT = Path("results/2_diffusers/benchmark")
 PROVENANCE_ROOT = Path("results/2_diffusers/provenance")
 RUNTIME_PROVENANCE_ROOT = PROVENANCE_ROOT / "runtime"
@@ -375,170 +365,32 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def canonical_model_components(components: Sequence[Mapping[str, Any]]) -> list[dict[str, str]]:
-    """Validate and order generator components without making storage paths scientific identity.
-
-    Paths are retained for runtime verification, but equivalent byte-identical copies of a
-    component have the same generator identity.  This is what allows G01/G02 and G05/G06 to
-    be recognized as the same model despite living in different experiment directories.
-    """
-    if not isinstance(components, Sequence) or isinstance(components, (str, bytes)) or not components:
-        raise ValueError("model_components must be a non-empty list")
-    normalized: list[dict[str, str]] = []
-    for component in components:
-        required = {"role", "identifier", "path", "sha256", "source_type"}
-        missing = required - set(component)
-        if missing:
-            raise ValueError(f"model component missing fields: {sorted(missing)}")
-        digest = str(component["sha256"])
-        if not re.fullmatch(r"[0-9a-f]{64}", digest):
-            raise ValueError(f"invalid component SHA-256 for {component.get('role')}")
-        source_type = str(component["source_type"])
-        if source_type not in {"local", "shared", "pretrained"}:
-            raise ValueError(f"invalid component source_type: {source_type}")
-        normalized.append({key: str(component[key]) for key in
-                           ("role", "identifier", "path", "sha256", "source_type")})
-    keys = [(row["role"], row["identifier"]) for row in normalized]
-    if len(keys) != len(set(keys)):
-        raise ValueError("model component role/identifier pairs must be unique")
-    return sorted(normalized, key=lambda row: (row["role"], row["identifier"], row["sha256"]))
-
-
-def model_identity_sha256(components: Sequence[Mapping[str, Any]],
-                          model_configuration: Mapping[str, Any]) -> str:
-    """Hash scientific model identity; component ordering and copy paths are immaterial."""
-    canonical = canonical_model_components(components)
-    material = {
-        "components": [{key: row[key] for key in ("role", "identifier", "sha256")}
-                       for row in canonical],
-        "model_configuration": dict(model_configuration),
-    }
-    return _identity_digest(material)
-
-
-def generation_identity_sha256(generation_identity: Mapping[str, Any]) -> str:
-    """Hash only the model signature and generation/filter configuration, never Git HEAD."""
-    material = {key: value for key, value in generation_identity.items()
-                if key != "generation_identity_sha256"}
-    return _identity_digest(material)
-
-
-def _required_component_roles(record: Mapping[str, Any]) -> tuple[set[str], list[set[str]]]:
-    configuration = record.get("model_configuration", {})
-    model_type = str(configuration.get("model_type", ""))
-    if model_type == "stable_diffusion_full_unet":
-        return ({"unet", "unet_config", "base_model_config", "vae", "vae_config", "text_encoder",
-                 "text_encoder_config", "tokenizer_config", "tokenizer_vocab", "scheduler_config"}, [])
-    if model_type == "stable_diffusion_lora":
-        return ({"lora_adapter", "lora_config", "base_unet", "base_unet_config", "base_model_config",
-                 "vae", "vae_config", "text_encoder", "text_encoder_config", "tokenizer_config",
-                 "tokenizer_vocab", "scheduler_config"}, [])
-    if model_type == "latent_diffusion":
-        return ({"ldm_unet", "latent_stats", "latents_manifest", "latents_train", "latents_validation",
-                 "architecture_config"}, [{"vae"}, {"vae_encoder", "vae_decoder"}])
-    return (set(), [])
-
-
-def validate_generator_provenance_record(root: Path, record: Mapping[str, Any],
-                                         schema: Mapping[str, Any] | None = None,
-                                         *, verify_component_files: bool = False) -> None:
-    """Validate one v2 record explicitly; v1 and future records are never reinterpreted."""
-    root = Path(root)
-    if schema is None:
-        schema_path = root / "configs/generator_provenance_schema.json"
-        schema = json.loads(schema_path.read_text(encoding="utf-8")) if schema_path.is_file() else {
-            "schema_version": SUPPORTED_PROVENANCE_SCHEMA_VERSION,
-            "provenance_json": {"required_fields": sorted(PROVENANCE_REQUIRED_FIELDS)},
-        }
-    supported = int(schema.get("schema_version", 0))
-    if supported != SUPPORTED_PROVENANCE_SCHEMA_VERSION:
-        raise ValueError(f"unsupported generator provenance schema: {supported}")
-    version = record.get("schema_version")
-    if version != supported:
-        raise ValueError(f"unsupported provenance record version: {version!r}; expected {supported}")
-    required = set(schema["provenance_json"]["required_fields"])
-    missing = required - set(record)
-    if missing:
-        raise ValueError(f"provenance fields missing: {sorted(missing)}")
-    components = canonical_model_components(record["model_components"])
-    roles = {row["role"] for row in components}
-    required_roles, alternatives = _required_component_roles(record)
-    missing_roles = required_roles - roles
-    if missing_roles:
-        raise ValueError(f"model component roles missing: {sorted(missing_roles)}")
-    if alternatives and not any(option <= roles for option in alternatives):
-        raise ValueError(f"model component role alternative missing: {alternatives}")
-    configuration = record.get("model_configuration", {})
-    if configuration.get("model_type") == "latent_diffusion":
-        for field in ("architecture_version", "parameterization", "min_snr_enabled", "min_snr_gamma"):
-            if field not in configuration:
-                raise ValueError(f"LDM model configuration missing: {field}")
-    if configuration.get("model_type") == "stable_diffusion_lora" and "lora_rank" not in configuration:
-        raise ValueError("LoRA model configuration missing lora_rank")
-    observed_model_identity = model_identity_sha256(components, configuration)
-    if record.get("model_identity_sha256") != observed_model_identity:
-        raise ValueError("model_identity_sha256 mismatch")
-    generation = record.get("generation_identity")
-    if not isinstance(generation, Mapping):
-        raise ValueError("generation_identity must be an object")
-    generation_required = {"model_identity_sha256", "sampling_steps", "guidance_scale", "seed_strategy",
-                           "prompt_or_condition", "resolution", "scheduler", "generation_code_signature",
-                           "representation_configuration"}
-    if generation_required - set(generation):
-        raise ValueError(f"generation identity fields missing: {sorted(generation_required - set(generation))}")
-    if generation.get("model_identity_sha256") != observed_model_identity:
-        raise ValueError("generation identity references a different model")
-    observed_generation_identity = generation_identity_sha256(generation)
-    if record.get("generation_identity_sha256") != observed_generation_identity:
-        raise ValueError("generation_identity_sha256 mismatch")
-    for component in components:
-        relative = _project_relative(root, component["path"])
-        if verify_component_files:
-            path = root / relative
-            if not path.is_file() or file_sha256(path) != component["sha256"]:
-                raise ValueError(f"model component fingerprint mismatch: {relative}")
-
-
 def detect_duplicate_generator_identities(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Annotate model duplicates and reject duplicate official ranking competitors."""
-    groups: dict[str, list[str]] = {}
-    for row in rows:
-        identity = str(row.get("model_identity_sha256", ""))
-        if identity:
-            groups.setdefault(identity, []).append(str(row.get("generator_id") or row.get("id")))
+    """Annotate model duplicates and reject duplicate official ranking competitors.
+
+    Same-model membership is taken from the registry's declarative ``duplicate_model_group`` (e.g.
+    a sampling ablation that reuses another generator's checkpoint) rather than from a computed model
+    identity hash. Two generators that share a declared model group cannot both enter the official
+    family ranking.
+    """
     annotated = []
     for row in rows:
         result = dict(row)
-        identity = str(result.get("model_identity_sha256", ""))
-        members = sorted(groups.get(identity, []))
+        members = sorted({str(member) for member in (result.get("duplicate_model_group") or [])})
         result["duplicate_model_group"] = "|".join(members) if len(members) > 1 else ""
         role = result.get("candidate_role")
         result["distinct_generator_for_ranking"] = bool(
             result.get("eligible_for_official_family_ranking") and role == "primary_candidate")
         annotated.append(result)
-    for identity, members in groups.items():
-        competitors = [row for row in annotated if row.get("model_identity_sha256") == identity and
-                       row.get("distinct_generator_for_ranking")]
+    by_group: dict[str, list[str]] = {}
+    for row in annotated:
+        key = row.get("duplicate_model_group")
+        if key and row.get("distinct_generator_for_ranking"):
+            by_group.setdefault(key, []).append(str(row.get("generator_id") or row.get("id")))
+    for key, competitors in by_group.items():
         if len(competitors) > 1:
-            raise ValueError(f"duplicate model identity cannot enter official ranking twice: {members}")
+            raise ValueError(f"duplicate model group cannot enter official ranking twice: {sorted(competitors)}")
     return annotated
-
-
-def classify_generation_pool_ablation(parent: Mapping[str, Any], candidate: Mapping[str, Any]) -> dict[str, Any]:
-    """Resolve whether a larger/differently filtered pool is a model or generation variant."""
-    same_model = bool(parent.get("model_identity_sha256")) and \
-        parent.get("model_identity_sha256") == candidate.get("model_identity_sha256")
-    if same_model:
-        return {"candidate_role": "generation_pool_ablation",
-                "parent_generator_id": parent.get("generator_id") or parent.get("id"),
-                "eligible_for_downstream_selection": False,
-                "distinct_generator_for_ranking": False,
-                "same_generator_identity": True}
-    return {"candidate_role": candidate.get("candidate_role", "primary_candidate"),
-            "parent_generator_id": candidate.get("parent_generator_id"),
-            "eligible_for_downstream_selection": False,
-            "distinct_generator_for_ranking": True,
-            "same_generator_identity": False}
 
 
 def _project_relative(root: Path, path: str | Path) -> str:
@@ -705,140 +557,6 @@ def _resolve_filter_mapping(root: Path, report_path: Path, raw_rows: Sequence[Ma
     if len(seen_raw) != len(raw_rows): raise ValueError("filter report does not cover the complete RAW pool")
     if len(seen_filtered) != len(filtered_rows): raise ValueError("filter report does not cover the complete FILTERED pool")
     return mapping, sorted(selected_filtered, key=lambda row: (str(row["selection_rank"]), row["sample_id"]))
-
-
-def build_canonical_generator_provenance(root: Path, sources: Mapping[str, Any]) -> dict[str, Any]:
-    """Build one generator's five canonical manifests from explicit, metadata-only evidence.
-
-    This function never imports a model library, never accesses a test path, and refuses
-    partial or ambiguous reconstruction before writing any output.
-    """
-    root = Path(root).resolve(); generator_id = str(sources["generator_id"])
-    record_output = root / PROVENANCE_ROOT / generator_id
-    runtime_output = root / RUNTIME_PROVENANCE_ROOT / generator_id
-    checkpoint_relative = _project_relative(root, sources["checkpoint"])
-    checkpoint = root / checkpoint_relative
-    if not checkpoint.is_file(): raise FileNotFoundError(f"checkpoint missing: {checkpoint_relative}")
-    training_rows = _canonical_training_rows(root, Path(sources["training_metadata"]))
-    generation = dict(sources.get("generation_configuration", {}))
-    raw_rows = _canonical_image_rows(root, Path(sources["raw_directory"]), generator_id, "raw",
-                                     int(sources.get("class_label", 1)), generation)
-    filtered_base = _canonical_image_rows(root, Path(sources["filtered_directory"]), generator_id, "filtered",
-                                          int(sources.get("class_label", 1)), {})
-    report_relative = None
-    if sources.get("filtering_applied", True):
-        report_relative = _project_relative(root, sources["filter_report"])
-        mapping_rows, filtered_rows = _resolve_filter_mapping(root, root / report_relative, raw_rows, filtered_base)
-    else:
-        filtered_by_path = {row["relative_path"]: row for row in filtered_base}
-        if set(filtered_by_path) != {row["relative_path"] for row in raw_rows}:
-            raise ValueError("unfiltered RAW/FILTERED identity requires the same project-relative files")
-        mapping_rows, filtered_rows = [], []
-        for rank, raw in enumerate(raw_rows):
-            filtered = filtered_by_path[raw["relative_path"]]
-            if filtered["sha256"] != raw["sha256"]: raise ValueError("unfiltered RAW/FILTERED hash mismatch")
-            mapping_rows.append({"raw_sample_id": raw["sample_id"], "raw_relative_path": raw["relative_path"],
-                                 "raw_sha256": raw["sha256"], "selected": True,
-                                 "filtered_sample_id": filtered["sample_id"], "filtered_relative_path": filtered["relative_path"],
-                                 "filtered_sha256": filtered["sha256"], "selection_rank": rank, "reject_reason": ""})
-            filtered_rows.append({"sample_id": filtered["sample_id"], "relative_path": filtered["relative_path"],
-                                  "source_raw_sample_id": raw["sample_id"], "file_size": filtered["file_size"],
-                                  "sha256": filtered["sha256"], "selection_rank": rank, "filter_reason": "unfiltered_identity"})
-    target = int(sources.get("filtered_target", 1361))
-    if len(filtered_rows) < target: raise ValueError(f"FILTERED target not reached: {len(filtered_rows)} < {target}")
-    training_manifest = Path(sources.get("training_corpus_manifest", SHARED_TRAINING_CORPUS))
-    training_manifest = training_manifest if training_manifest.is_absolute() else root / training_manifest
-    manifest_paths = {"training_corpus": training_manifest,
-                      **{name: runtime_output / f"{name}.csv" for name in
-                         ("raw_samples", "filtered_samples", "filter_mapping")}}
-    record_output.mkdir(parents=True, exist_ok=True); runtime_output.mkdir(parents=True, exist_ok=True)
-    if manifest_paths["training_corpus"].is_file():
-        with manifest_paths["training_corpus"].open(newline="", encoding="utf-8") as stream:
-            existing_training_rows = list(csv.DictReader(stream))
-        normalized = [{key: str(value) for key, value in row.items()} for row in training_rows]
-        if existing_training_rows != normalized:
-            raise ValueError("shared training corpus differs from the generator-declared training metadata")
-    else:
-        write_csv_rows(manifest_paths["training_corpus"], training_rows)
-    write_csv_rows(manifest_paths["raw_samples"], raw_rows)
-    write_csv_rows(manifest_paths["filtered_samples"], filtered_rows)
-    write_csv_rows(manifest_paths["filter_mapping"], mapping_rows)
-    relative_manifests = {name: _project_relative(root, path) for name, path in manifest_paths.items()}
-    components = canonical_model_components(sources["model_components"])
-    model_configuration = dict(sources["model_configuration"])
-    model_identity = model_identity_sha256(components, model_configuration)
-    generation_identity = {
-        "model_identity_sha256": model_identity,
-        "sampling_steps": sources.get("sampling_steps"),
-        "guidance_scale": sources.get("guidance_conditioning_configuration", {}).get("guidance_scale"),
-        "seed_strategy": generation.get("seed_strategy"),
-        "prompt_or_condition": sources.get("guidance_conditioning_configuration", {}),
-        "resolution": int(sources.get("resolution", 512)),
-        "scheduler": sources.get("scheduler", model_configuration.get("scheduler")),
-        "generation_code_signature": sources["generation_code_signature"],
-        "parameterization": model_configuration.get("parameterization"),
-        "representation_configuration": {
-            "raw": generation,
-            "filtered": dict(sources.get("filter_configuration", {})),
-        },
-    }
-    payload = {
-        "schema_version": 2, "generator_id": generator_id,
-        "scientific_family": sources["scientific_family"], "candidate_role": sources["candidate_role"],
-        "parent_generator_id": sources.get("parent_generator_id"),
-        "model_components": components, "model_configuration": model_configuration,
-        "model_identity_sha256": model_identity,
-        "generation_identity": generation_identity,
-        "generation_identity_sha256": generation_identity_sha256(generation_identity),
-        "model_checkpoint_identifier": sources.get("model_checkpoint_identifier", Path(checkpoint_relative).name),
-        "checkpoint_path": checkpoint_relative, "checkpoint_sha256": file_sha256(checkpoint),
-        "training_notebook_config_identifier": sources["training_notebook_config_identifier"],
-        "training_corpus_manifest": relative_manifests["training_corpus"],
-        "raw_sample_manifest": relative_manifests["raw_samples"],
-        "filtered_sample_manifest": relative_manifests["filtered_samples"],
-        "filter_mapping_manifest": relative_manifests["filter_mapping"],
-        "manifest_sha256": {name: file_sha256(path) for name, path in manifest_paths.items()},
-        "training_dataset_identifier": sources["training_dataset_identifier"],
-        "generation_configuration": generation, "sampling_steps": sources.get("sampling_steps"),
-        "guidance_conditioning_configuration": sources.get("guidance_conditioning_configuration", {}),
-        "filter_configuration": sources.get("filter_configuration", {}),
-        "filter_report_evidence": report_relative,
-        "lineage_status": {"complete": True, "mapping_method": "explicit_path_preserved_name_or_exact_sha256",
-                           "raw_count": len(raw_rows), "filtered_count": len(filtered_rows)},
-        "known_limitations": list(sources.get("known_limitations", [])),
-        "source_evidence": [_project_relative(root, value) for value in sources.get("source_evidence", [])],
-    }
-    atomic_json(record_output / "provenance.json", payload)
-    return payload
-
-
-def load_provenance_index(root: Path) -> dict[str, Any]:
-    path = Path(root) / "configs/generator_provenance_index.json"
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if payload.get("schema_version") != SUPPORTED_PROVENANCE_INDEX_VERSION or not isinstance(payload.get("generators"), list):
-        raise ValueError("unsupported generator provenance index")
-    ids = [row.get("generator_id") for row in payload["generators"]]
-    if len(ids) != len(set(ids)):
-        raise ValueError("generator provenance index contains duplicate IDs")
-    return payload
-
-
-def audit_training_corpus_dependencies(root: Path, index: Mapping[str, Any] | None = None) -> dict[str, bool | None]:
-    """Check declared corpus hashes; one changed shared file invalidates every dependent generator."""
-    root = Path(root); index = index or load_provenance_index(root)
-    observed: dict[str, str | None] = {}; result: dict[str, bool | None] = {}
-    for row in index["generators"]:
-        path_value = row.get("training_corpus_manifest")
-        expected = row.get("training_corpus_manifest_sha256")
-        if not path_value or not expected:
-            result[str(row["generator_id"])] = None
-            continue
-        relative = _project_relative(root, str(path_value))
-        if relative not in observed:
-            path = root / relative
-            observed[relative] = file_sha256(path) if path.is_file() else None
-        result[str(row["generator_id"])] = observed[relative] == expected if observed[relative] else None
-    return result
 
 
 def _identity_digest(value: Mapping[str, Any]) -> str:
@@ -1086,18 +804,6 @@ def _manifest_sample_paths(payload: Any, representation: str) -> list[str]:
     return []
 
 
-def _manifest_sample_records(payload: Any, representation: str) -> list[Mapping[str, Any]]:
-    if not isinstance(payload, Mapping): return []
-    samples = payload.get("samples", {})
-    values = samples.get(representation, []) if isinstance(samples, Mapping) else []
-    return [value for value in values if isinstance(value, Mapping) and value.get("path") and value.get("sha256")]
-
-
-def _path_names(values: Sequence[str | Path]) -> set[str]:
-    """Legacy-reader helper only; canonical publication-v2 comparisons never use it."""
-    return {Path(str(value)).name for value in values if str(value)}
-
-
 def filter_acceptance_from_manifest(path: Path, filtered_paths: Sequence[str | Path],
                                     raw_paths: Sequence[str | Path] | None = None) -> dict[str, Any]:
     """Read acceptance only from a filter manifest, never from directory validity."""
@@ -1172,292 +878,24 @@ def _canonical_manifest_rows(root: Path, value: str, required: set[str]) -> list
     return rows
 
 
-def _audit_canonical_provenance(root: Path, entry: Mapping[str, Any], payload: Mapping[str, Any]) -> dict[str, Any]:
-    reasons = []
-    required = {"generator_id", "checkpoint_path", "checkpoint_sha256", "training_corpus_manifest",
-                "raw_sample_manifest", "filtered_sample_manifest", "filter_mapping_manifest",
-                "training_dataset_identifier", "generation_configuration", "filter_configuration", "lineage_status"}
-    if required - set(payload): reasons.append(f"missing_fields:{','.join(sorted(required - set(payload)))}")
-    try:
-        validate_generator_provenance_record(root, payload, verify_component_files=True)
-    except Exception as exc:
-        reasons.append(f"generator_identity_invalid:{type(exc).__name__}:{exc}")
-    if payload.get("generator_id") != entry.get("id"): reasons.append("wrong_generator_id")
-    checkpoint_value = str(payload.get("checkpoint_path", ""))
-    try:
-        checkpoint_relative = _project_relative(root, checkpoint_value)
-        checkpoint = Path(root) / checkpoint_relative
-        if not checkpoint.is_file() or file_sha256(checkpoint) != payload.get("checkpoint_sha256"):
-            reasons.append("checkpoint_fingerprint_mismatch")
-        if entry.get("checkpoint") and checkpoint_relative != str(entry["checkpoint"]): reasons.append("wrong_checkpoint")
-    except Exception as exc: reasons.append(f"checkpoint_invalid:{type(exc).__name__}")
-    training_value = str(payload.get("training_corpus_manifest", ""))
-    training_valid = False
-    try:
-        training_corpus_from_manifest(root, training_value); training_valid = True
-    except Exception as exc: reasons.append(f"training_corpus_invalid:{type(exc).__name__}:{exc}")
-    raw_required = {"sample_id", "relative_path", "class_label", "file_size", "sha256"}
-    filtered_required = {"sample_id", "relative_path", "source_raw_sample_id", "file_size", "sha256", "selection_rank", "filter_reason"}
-    mapping_required = {"raw_sample_id", "raw_relative_path", "raw_sha256", "selected", "filtered_sample_id",
-                        "filtered_relative_path", "filtered_sha256", "selection_rank", "reject_reason"}
-    raw_rows: list[dict[str, str]] = []; filtered_rows: list[dict[str, str]] = []; mapping_rows: list[dict[str, str]] = []
-    try:
-        raw_rows = _canonical_manifest_rows(root, str(payload["raw_sample_manifest"]), raw_required)
-        filtered_rows = _canonical_manifest_rows(root, str(payload["filtered_sample_manifest"]), filtered_required)
-        mapping_rows = _canonical_manifest_rows(root, str(payload["filter_mapping_manifest"]), mapping_required)
-        for rows in (raw_rows, filtered_rows):
-            keys = [canonical_sample_key(row) for row in rows]
-            if len(keys) != len(set(keys)): raise ValueError("duplicate canonical sample identity")
-            for row in rows:
-                relative = _project_relative(root, row["relative_path"]); sample = Path(root) / relative
-                if not sample.is_file() or sample.stat().st_size != int(row["file_size"]) or file_sha256(sample) != row["sha256"]:
-                    raise ValueError(f"sample fingerprint mismatch: {relative}")
-                try:
-                    from PIL import Image
-                    with Image.open(sample) as image: image.verify()
-                except Exception as exc:
-                    raise ValueError(f"corrupt image file: {relative}") from exc
-        if len({row["sha256"] for row in filtered_rows}) != len(filtered_rows):
-            raise ValueError("FILTERED pool contains duplicate file content")
-        raw_by_id = {row["sample_id"]: row for row in raw_rows}; filtered_by_id = {row["sample_id"]: row for row in filtered_rows}
-        if len(mapping_rows) != len(raw_rows): raise ValueError("mapping does not cover complete RAW pool")
-        mapped_raw, mapped_filtered = set(), set()
-        for row in mapping_rows:
-            raw = raw_by_id.get(row["raw_sample_id"])
-            if not raw or (raw["relative_path"], raw["sha256"]) != (row["raw_relative_path"], row["raw_sha256"]):
-                raise ValueError("mapping RAW identity mismatch")
-            mapped_raw.add(row["raw_sample_id"])
-            if _parse_bool(row["selected"]):
-                filtered = filtered_by_id.get(row["filtered_sample_id"])
-                if not filtered or (filtered["relative_path"], filtered["sha256"], filtered["source_raw_sample_id"]) != (
-                        row["filtered_relative_path"], row["filtered_sha256"], row["raw_sample_id"]):
-                    raise ValueError("mapping FILTERED identity mismatch")
-                if filtered["sha256"] != raw["sha256"]: raise ValueError("mapped copy hash differs from RAW")
-                mapped_filtered.add(row["filtered_sample_id"])
-        if mapped_raw != set(raw_by_id) or mapped_filtered != set(filtered_by_id):
-            raise ValueError("mapping coverage is incomplete")
-    except Exception as exc: reasons.append(f"canonical_sample_manifest_invalid:{type(exc).__name__}:{exc}")
-    lineage = bool(payload.get("lineage_status", {}).get("complete")) and bool(raw_rows and filtered_rows and mapping_rows) \
-        and not any(reason.startswith("canonical_sample_manifest_invalid") for reason in reasons)
-    filter_result = {"filter_acceptance_rate": len(filtered_rows) / len(raw_rows) if raw_rows else None,
-                     "filter_provenance_complete": lineage, "n_raw_submitted_to_filter": len(raw_rows) or None,
-                     "n_filter_accepted": len(filtered_rows) or None, "filter_manifest_valid": lineage,
-                     "filter_failure_reason": "" if lineage else "canonical_mapping_invalid"}
-    valid = not reasons
-    return {**filter_result, "provenance_manifest_valid": valid, "lineage_complete": lineage,
-            "raw_manifest_valid": bool(raw_rows) and lineage, "sample_set_matches_manifest": lineage,
-            "training_corpus_manifest": training_value or None, "training_corpus_manifest_valid": training_valid,
-            "canonical_raw_count": len(raw_rows) if raw_rows else None,
-            "canonical_filtered_count": len(filtered_rows) if filtered_rows else None,
-            "provenance_failure_reason": "; ".join(dict.fromkeys(reasons))}
-
-
-def _provenance_audit(root: Path, entry: Mapping[str, Any], representations: Mapping[str, Any]) -> dict[str, Any]:
-    manifest_value = entry.get("provenance_manifest")
-    path = Path(root) / str(manifest_value) if manifest_value else Path("")
-    base = {"provenance_manifest_exists": bool(manifest_value and path.is_file()),
-            "provenance_manifest_valid": False, "lineage_complete": False, "raw_manifest_valid": False,
-            "filter_manifest_valid": False, "sample_set_matches_manifest": False,
-            "training_corpus_manifest": None, "training_corpus_manifest_valid": False,
-            "provenance_failure_reason": ""}
-    reasons = []
-    if not base["provenance_manifest_exists"]:
-        reasons.append("provenance_manifest_missing")
-        return {**base, "provenance_failure_reason": "; ".join(reasons)}
-    try:
-        payload = _read_manifest(path)
-    except Exception as exc:
-        reasons.append(f"provenance_manifest_unreadable:{type(exc).__name__}")
-        return {**base, "provenance_failure_reason": "; ".join(reasons)}
-    if not isinstance(payload, Mapping):
-        reasons.append("provenance_manifest_not_object")
-        return {**base, "provenance_failure_reason": "; ".join(reasons)}
-    if payload.get("schema_version") == SUPPORTED_PROVENANCE_SCHEMA_VERSION:
-        return {**base, **_audit_canonical_provenance(root, entry, payload)}
-    if "schema_version" in payload:
-        reasons.append(f"unsupported_provenance_version:{payload.get('schema_version')}")
-        return {**base, "provenance_failure_reason": "; ".join(reasons)}
-    recorded_id = payload.get("generator_id") or payload.get("experiment_id") or payload.get("id")
-    if recorded_id != entry.get("id"): reasons.append("wrong_generator_id")
-    checkpoint = payload.get("checkpoint") or payload.get("checkpoint_path") or payload.get("selected_checkpoint") or payload.get("best_checkpoint")
-    if not checkpoint: reasons.append("missing_checkpoint_identifier")
-    elif entry.get("checkpoint") and Path(str(checkpoint)).name not in str(entry["checkpoint"]): reasons.append("wrong_checkpoint")
-    training_manifest = payload.get("training_corpus_manifest") or entry.get("training_corpus_manifest")
-    training_ids, training_labels = payload.get("training_image_ids"), payload.get("training_labels")
-    training_path = Path(root) / str(training_manifest) if training_manifest else None
-    training_valid = bool(training_ids and training_labels and len(training_ids) == len(training_labels))
-    if training_path and training_path.is_file():
-        try:
-            training_payload = _read_manifest(training_path)
-            if isinstance(training_payload, list):
-                training_valid = bool(training_payload) and all(row.get("label") not in (None, "") and
-                    (row.get("image_id") or row.get("sample_id") or row.get("processed_path") or row.get("path"))
-                    for row in training_payload)
-            elif isinstance(training_payload, Mapping):
-                ids = training_payload.get("training_image_ids")
-                labels = training_payload.get("training_labels")
-                training_valid = bool(ids and labels and len(ids) == len(labels))
-        except Exception:
-            training_valid = False
-    if not training_valid: reasons.append("missing_training_corpus")
-    training_dataset = payload.get("training_dataset") or payload.get("training_corpus") or training_manifest
-    if not training_dataset: reasons.append("missing_training_dataset_identifier")
-    actual_paths = {name: list_image_paths(Path(root) / value["path"]) if value.get("path") else []
-                    for name, value in representations.items()}
-    actual_by_representation = {name: _path_names(values) for name, values in actual_paths.items()}
-    records_by_representation = {name: _manifest_sample_records(payload, name) for name in REPRESENTATIONS}
-    declared_by_representation = {name: _path_names([record["path"] for record in records])
-                                  for name, records in records_by_representation.items()}
-    sets_match = all(declared_by_representation[name] and
-        declared_by_representation[name] == actual_by_representation[name] for name in REPRESENTATIONS)
-    fingerprints_match = False
-    if sets_match:
-        actual_hashes = {name: {path.name: file_sha256(path) for path in values}
-                         for name, values in actual_paths.items()}
-        fingerprints_match = all(all(actual_hashes[name].get(Path(str(record["path"])).name) == str(record["sha256"])
-            for record in records_by_representation[name]) for name in REPRESENTATIONS)
-    samples_match = sets_match and fingerprints_match
-    if not samples_match: reasons.append("sample_set_mismatch")
-    raw_manifest = entry.get("raw_generation_manifest") or payload.get("raw_generation_manifest")
-    raw_path = Path(root) / str(raw_manifest) if raw_manifest else path
-    raw_valid = raw_path.is_file() and bool(declared_by_representation["raw"])
-    if not raw_valid: reasons.append("raw_manifest_invalid")
-    filtered_paths = list_image_paths(Path(root) / representations["filtered"]["path"]) if representations["filtered"].get("path") else []
-    raw_paths = list_image_paths(Path(root) / representations["raw"]["path"]) if representations["raw"].get("path") else []
-    filter_value = entry.get("filter_manifest") or payload.get("filter_manifest")
-    filter_result = filter_acceptance_from_manifest(Path(root) / str(filter_value), filtered_paths, raw_paths) if filter_value else {
-        "filter_manifest_valid": not entry.get("filtering_applied", False), "filter_provenance_complete": not entry.get("filtering_applied", False),
-        "filter_acceptance_rate": 1.0 if not entry.get("filtering_applied", False) else None,
-        "n_raw_submitted_to_filter": len(filtered_paths) if not entry.get("filtering_applied", False) else None,
-        "n_filter_accepted": len(filtered_paths) if not entry.get("filtering_applied", False) else None,
-        "filter_failure_reason": "" if not entry.get("filtering_applied", False) else "missing_filter_manifest"}
-    if not filter_result["filter_manifest_valid"]: reasons.append(filter_result["filter_failure_reason"])
-    lineage = raw_valid and filter_result["filter_manifest_valid"] and samples_match
-    return {**base, **filter_result, "provenance_manifest_valid": not any(reason.startswith(("wrong_generator", "wrong_checkpoint", "provenance_", "missing_checkpoint", "missing_training_dataset")) for reason in reasons),
-            "lineage_complete": lineage, "raw_manifest_valid": raw_valid,
-            "sample_set_matches_manifest": samples_match, "training_corpus_manifest": training_manifest,
-            "training_corpus_manifest_valid": training_valid,
-            "provenance_failure_reason": "; ".join(dict.fromkeys(reasons))}
-
-
-def audit_source_generator_metadata(root: Path, entry: Mapping[str, Any],
-                                    protocol: Mapping[str, Any] | None = None,
-                                    index: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    """Validate publishable records without inspecting checkpoints, datasets, or images."""
-    root = Path(root); protocol = protocol or load_protocol(root)
-    schema_path = root / "configs/generator_provenance_schema.json"
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    if schema.get("schema_version") != SUPPORTED_PROVENANCE_SCHEMA_VERSION:
-        raise ValueError("unsupported generator provenance schema")
-    index = index or load_provenance_index(root)
-    indexed = {str(row["generator_id"]): row for row in index["generators"]}
-    generator_id = str(entry["id"]); row = indexed.get(generator_id)
-    reasons: list[str] = []
-    refusal = entry.get("canonical_provenance_refusal")
-    manifest_value = entry.get("provenance_manifest")
-    manifest_path = root / str(manifest_value) if manifest_value else None
-    recorded = bool(manifest_path and manifest_path.is_file())
-    payload: Mapping[str, Any] = {}
-    if recorded:
-        try:
-            loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
-            if not isinstance(loaded, Mapping): raise ValueError("provenance record is not an object")
-            payload = loaded
-        except Exception as exc:
-            reasons.append(f"provenance_record_invalid:{type(exc).__name__}")
-    elif not refusal:
-        reasons.append("provenance_record_missing")
-    if row is None:
-        reasons.append("provenance_index_entry_missing")
-    schema_valid = False
-    if payload:
-        try:
-            validate_generator_provenance_record(root, payload, schema, verify_component_files=False)
-            schema_valid = True
-        except Exception as exc:
-            reasons.append(f"provenance_record_schema_invalid:{type(exc).__name__}:{exc}")
-        if payload.get("generator_id") != generator_id: reasons.append("wrong_generator_id")
-        if payload.get("scientific_family") != entry.get("scientific_family"): reasons.append("wrong_scientific_family")
-        if payload.get("candidate_role") != entry.get("candidate_role"): reasons.append("wrong_candidate_role")
-        for field in ("checkpoint_path", "training_corpus_manifest", "raw_sample_manifest",
-                      "filtered_sample_manifest", "filter_mapping_manifest"):
-            if payload.get(field) is None:
-                continue
-            try: _project_relative(root, str(payload.get(field, "")))
-            except Exception: reasons.append(f"nonportable_path:{field}")
-        hashes = payload.get("manifest_sha256", {})
-        if set(hashes) != {"training_corpus", "raw_samples", "filtered_samples", "filter_mapping"} or \
-                any(value is not None and not re.fullmatch(r"[0-9a-f]{64}", str(value)) for value in hashes.values()):
-            reasons.append("invalid_declared_manifest_hashes")
-    if row is not None and payload:
-        comparisons = {
-            "training_corpus_manifest": row.get("training_corpus_manifest"),
-            "raw_sample_manifest": row.get("raw_sample_manifest"),
-            "filtered_sample_manifest": row.get("filtered_sample_manifest"),
-            "filter_mapping_manifest": row.get("filter_mapping_manifest"),
-        }
-        for field, expected in comparisons.items():
-            if payload.get(field) != expected: reasons.append(f"index_path_mismatch:{field}")
-        hashes = payload.get("manifest_sha256", {})
-        for name in ("training_corpus", "raw_samples", "filtered_samples", "filter_mapping"):
-            if hashes.get(name) != row.get(f"{name}_manifest_sha256"):
-                reasons.append(f"index_hash_mismatch:{name}")
-        lineage = payload.get("lineage_status", {})
-        if int(lineage.get("raw_count", -1)) != int(row.get("raw_count", -2)): reasons.append("index_raw_count_mismatch")
-        if int(lineage.get("filtered_count", -1)) != int(row.get("filtered_count", -2)): reasons.append("index_filtered_count_mismatch")
-    index_reasons = [reason for reason in reasons if reason.startswith("provenance_index_") or
-                     reason.startswith("index_")]
-    index_consistent = row is not None and not index_reasons
-    manifest_hashes = payload.get("manifest_sha256", {}) if payload else {}
-    runtime_hashes_declared = bool(manifest_hashes) and all(
-        re.fullmatch(r"[0-9a-f]{64}", str(manifest_hashes.get(name, "")))
-        for name in ("training_corpus", "raw_samples", "filtered_samples", "filter_mapping"))
-    mismatch = bool(refusal) or bool(reasons)
-    return {"generator_id": generator_id, "audit_mode": "source_metadata_only",
-            "provenance_recorded": recorded, "provenance_record_schema_valid": schema_valid,
-            "provenance_index_consistent": index_consistent,
-            "runtime_manifest_hashes_declared": runtime_hashes_declared,
-            "runtime_manifest_contents_verified": False,
-            "runtime_assets_verified": False, "runtime_assets_unavailable": True,
-            "runtime_assets_mismatch": mismatch, "eligible_for_descriptive_benchmark": False,
-            "eligible_for_official_family_ranking": False,
-            "model_identity_sha256": payload.get("model_identity_sha256"),
-            "generation_identity_sha256": payload.get("generation_identity_sha256"),
-            "parent_generator_id": entry.get("parent_generator_id"),
-            "source_audit_reasons": sorted(set(([str(refusal)] if refusal else []) + reasons))}
-
-
 def audit_runtime_generator_assets(root: Path, entry: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
-    """Verify the current host assets. This is required immediately before benchmark execution."""
-    if (Path(root) / "configs/generator_provenance_schema.json").is_file() and \
-            (Path(root) / "configs/generator_provenance_index.json").is_file():
-        source_status = audit_source_generator_metadata(root, entry, protocol)
-    else:
-        source_status = {"provenance_record_schema_valid": None, "provenance_index_consistent": None,
-                         "runtime_manifest_hashes_declared": None}
+    """Verify the current host assets required immediately before benchmark execution.
+
+    Checks only what carries a direct scientific meaning: each representation's positive pool exists
+    with at least the target number of images, the scientific family is known, and the registered
+    checkpoint and pools are present on disk. No provenance/lineage/manifest record is consulted and
+    no such record can block a generator whose local images are complete.
+    """
+    root = Path(root)
     target = int(protocol["synthetic_pool_target"])
     blockers = []
     representations = {}
     for representation in REPRESENTATIONS:
         relative = entry.get("samples", {}).get(f"{representation}_positive")
-        paths = _top_level_images(Path(root) / relative) if relative else []
+        paths = _top_level_images(root / relative) if relative else []
         representations[representation] = {"path": relative, "count": len(paths)}
         if len(paths) < target: blockers.append(f"insufficient_{representation}_positive_images:{len(paths)}<{target}")
     if entry.get("scientific_family") not in FAMILIES: blockers.append("invalid_scientific_family")
-    if entry.get("canonical_provenance_refusal"): blockers.append(str(entry["canonical_provenance_refusal"]))
-    provenance = _provenance_audit(Path(root), entry, representations)
-    if provenance.get("canonical_raw_count") is not None:
-        representations["raw"]["count"] = int(provenance["canonical_raw_count"])
-        representations["filtered"]["count"] = int(provenance["canonical_filtered_count"])
-        blockers = [reason for reason in blockers if not reason.startswith(("insufficient_raw_", "insufficient_filtered_"))]
-        if representations["raw"]["count"] < target: blockers.append(f"insufficient_raw_positive_images:{representations['raw']['count']}<{target}")
-        if representations["filtered"]["count"] < target: blockers.append(f"insufficient_filtered_positive_images:{representations['filtered']['count']}<{target}")
-    gates = protocol["eligibility_gates"]
-    if gates.get("require_provenance") and not provenance["provenance_manifest_valid"]: blockers.append("provenance_invalid")
-    if gates.get("require_lineage") and not provenance["lineage_complete"]: blockers.append("lineage_incomplete")
-    if entry.get("candidate_role", "primary_candidate") == "primary_candidate":
-        if entry.get("filtering_applied") and not provenance.get("filter_provenance_complete"): blockers.append("filter_provenance_incomplete")
-        if not provenance.get("training_corpus_manifest_valid"): blockers.append("training_corpus_missing")
     role = entry.get("candidate_role", "primary_candidate")
     eligible = bool(entry.get("eligible_for_downstream_selection", False))
     descriptive = not blockers
@@ -1465,39 +903,22 @@ def audit_runtime_generator_assets(root: Path, entry: Mapping[str, Any], protoco
     expected = []
     for representation in REPRESENTATIONS:
         value = entry.get("samples", {}).get(f"{representation}_positive")
-        if value: expected.append(Path(root) / str(value))
-    if entry.get("checkpoint"): expected.append(Path(root) / str(entry["checkpoint"]))
+        if value: expected.append(root / str(value))
+    if entry.get("checkpoint"): expected.append(root / str(entry["checkpoint"]))
     runtime_unavailable = any(not path.exists() for path in expected)
-    runtime_mismatch = bool(entry.get("canonical_provenance_refusal")) or (bool(blockers) and not runtime_unavailable)
+    runtime_mismatch = bool(blockers) and not runtime_unavailable
     runtime_verified = descriptive and not runtime_unavailable
     audit_mode = "runtime_assets_verified" if runtime_verified else (
         "runtime_assets_unavailable" if runtime_unavailable else "runtime_assets_mismatch")
-    payload = {}
-    provenance_path = Path(root) / str(entry.get("provenance_manifest", ""))
-    if provenance_path.is_file():
-        try: payload = json.loads(provenance_path.read_text(encoding="utf-8"))
-        except Exception: payload = {}
     return {"generator_id": entry["id"], "scientific_family": entry.get("scientific_family"),
             "model_family": entry.get("model_family"), "model_variant": entry.get("model_variant"),
             "sampling_steps": entry.get("sampling_steps"), "candidate_role": role,
-            "eligible_for_downstream_selection": eligible, "representations": representations, **provenance,
+            "eligible_for_downstream_selection": eligible, "representations": representations,
             "blockers": sorted(set(blockers)), "eligible_for_descriptive_benchmark": descriptive,
             "eligible_for_official_family_ranking": official,
             "eligible_for_benchmark_execution": runtime_verified, "audit_mode": audit_mode,
-            "provenance_recorded": provenance["provenance_manifest_exists"],
-            "provenance_record_schema_valid": (source_status["provenance_record_schema_valid"]
-                if source_status["provenance_record_schema_valid"] is not None else
-                bool(payload) and not any(reason.startswith("generator_identity_invalid") for reason in
-                                          provenance.get("provenance_failure_reason", "").split("; "))),
-            "provenance_index_consistent": source_status["provenance_index_consistent"],
-            "runtime_manifest_hashes_declared": (source_status["runtime_manifest_hashes_declared"]
-                if source_status["runtime_manifest_hashes_declared"] is not None else
-                bool(payload.get("manifest_sha256")) and all(payload.get("manifest_sha256", {}).get(name)
-                    for name in ("training_corpus", "raw_samples", "filtered_samples", "filter_mapping"))),
-            "runtime_manifest_contents_verified": provenance["provenance_manifest_valid"],
-            "model_identity_sha256": payload.get("model_identity_sha256"),
-            "generation_identity_sha256": payload.get("generation_identity_sha256"),
             "parent_generator_id": entry.get("parent_generator_id"),
+            "duplicate_model_group": list(entry.get("duplicate_model_group") or []),
             "runtime_assets_verified": runtime_verified, "runtime_assets_unavailable": runtime_unavailable,
             "runtime_assets_mismatch": runtime_mismatch}
 
@@ -1524,18 +945,11 @@ def candidate_audit_document_rows(candidate_audits: Sequence[Mapping[str, Any]],
         "scientific_family": row["scientific_family"],
         "candidate_role": row["candidate_role"],
         "parent_generator_id": row.get("parent_generator_id"),
-        "model_identity_sha256": row.get("model_identity_sha256"),
-        "generation_identity_sha256": row.get("generation_identity_sha256"),
         "duplicate_model_group": row.get("duplicate_model_group", ""),
         "distinct_generator_for_ranking": row.get("distinct_generator_for_ranking", False),
         "audit_mode": row["audit_mode"],
         "audit_generated_at": generated_at,
         "project_root_independent_paths": True,
-        "provenance_recorded": row["provenance_recorded"],
-        "provenance_record_schema_valid": row["provenance_record_schema_valid"],
-        "provenance_index_consistent": row["provenance_index_consistent"],
-        "runtime_manifest_hashes_declared": row["runtime_manifest_hashes_declared"],
-        "runtime_manifest_contents_verified": row["runtime_manifest_contents_verified"],
         "runtime_assets_verified": row["runtime_assets_verified"],
         "runtime_assets_unavailable": row["runtime_assets_unavailable"],
         "runtime_assets_mismatch": row["runtime_assets_mismatch"],
@@ -1543,17 +957,6 @@ def candidate_audit_document_rows(candidate_audits: Sequence[Mapping[str, Any]],
         "eligible_for_official_family_ranking": row["eligible_for_official_family_ranking"],
         "raw_count": row["representations"]["raw"]["count"],
         "filtered_count": row["representations"]["filtered"]["count"],
-        "filter_acceptance_rate_descriptive": row.get("filter_acceptance_rate"),
-        "provenance_manifest_exists": row["provenance_manifest_exists"],
-        "provenance_manifest_valid": row["provenance_manifest_valid"],
-        "lineage_complete": row["lineage_complete"],
-        "raw_manifest_valid": row["raw_manifest_valid"],
-        "filter_manifest_valid": row["filter_manifest_valid"],
-        "sample_set_matches_manifest": row["sample_set_matches_manifest"],
-        "training_corpus_manifest": row["training_corpus_manifest"],
-        "training_corpus_manifest_valid": row["training_corpus_manifest_valid"],
-        "filter_provenance_complete": row.get("filter_provenance_complete"),
-        "provenance_failure_reason": row["provenance_failure_reason"],
         "block_reasons": "; ".join(row["blockers"]),
     } for row in candidate_audits]
 
@@ -1972,23 +1375,19 @@ def similarity_summaries(train_rows: Sequence[Mapping[str, Any]], validation_row
 
 
 def eligibility_failures(row: Mapping[str, Any], gates: Mapping[str, Any]) -> list[str]:
+    """Technical/scientific eligibility only: image count, exact-duplicate and memorization safety,
+    corruption, metric completeness, test isolation and registry role. Perceptual-hash rate and
+    RAD-DINO coverage remain descriptive ranking metrics rather than binary gates, and there are no
+    provenance, lineage, filter-mapping or training-corpus manifest gates.
+    """
     checks = [
         (int(row.get("valid_positive_images", 0)) >= int(gates["minimum_valid_positive_images"]), "valid_positive_images"),
         (_metric_value(row, "synthetic_exact_duplicate_rate") <= gates["maximum_exact_duplicate_rate"], "exact_duplicate_rate"),
-        (_metric_value(row, "perceptual_hash_duplicate_rate") <= gates["maximum_perceptual_duplicate_rate"], "perceptual_duplicate_rate"),
         (_metric_value(row, "train_memorization_rate") <= gates["maximum_train_memorization_rate"], "train_memorization_rate"),
-        (_metric_value(row, "raddino_coverage", "coverage", default=-math.inf) >= gates["minimum_rad_dino_coverage"], "rad_dino_coverage"),
-        (_as_bool(row.get("filter_manifest_valid")), "filter_manifest"),
-        (_as_bool(row.get("filter_provenance_complete")), "filter_mapping"),
         (_metric_value(row, "corrupted_rate", "n_corrupt", default=0.0) <= gates["maximum_corrupted_file_rate"], "corrupt_files"),
         (_as_bool(row.get("metrics_complete")), "metrics_complete"),
         (not _as_bool(row.get("test_access")), "test_access"),
     ]
-    if gates.get("require_lineage"):
-        checks.append((_as_bool(row.get("lineage_complete")), "lineage"))
-    if gates.get("require_provenance"):
-        checks.append((_as_bool(row.get("provenance_manifest_valid")), "provenance"))
-    checks.append((_as_bool(row.get("training_corpus_manifest_valid")), "training_corpus"))
     if not _as_bool(row.get("eligible_for_selection", row.get("eligible_for_downstream_selection", False))):
         checks.append((False, "registry_role"))
     return [name for passed, name in checks if not passed]
@@ -2177,12 +1576,12 @@ def save_selected_generators(root: Path, finetuned: str, from_scratch: str, benc
 __all__ = ["BENCHMARK_ROOT", "PROVENANCE_ROOT", "RUNTIME_PROVENANCE_ROOT", "SHARED_TRAINING_CORPUS",
            "CANONICAL_OUTPUTS", "FEATURE_SPACES", "FAMILIES", "REPRESENTATIONS", "atomic_json",
            "NonFiniteEmbeddingError",
-           "audit_candidate", "audit_runtime_generator_assets", "audit_source_generator_metadata",
-           "audit_training_corpus_dependencies", "balanced_subsample_indices", "build_canonical_generator_provenance", "canonical_sample_key",
+           "audit_candidate", "audit_runtime_generator_assets",
+           "balanced_subsample_indices", "canonical_sample_key",
            "canonical_samples_from_manifest", "deterministic_sample", "discover_candidates", "duplicate_diagnostics",
            "build_synthetic_duplication_rows", "build_train_memorization_rows", "build_validation_similarity_rows",
            "deterministic_pair_indices", "diversity_metrics", "efficiency_from_manifest", "eligibility_failures", "evaluation_subset_size", "extract_features", "FrozenLocalFeatureExtractor", "fid", "file_sha256", "filter_acceptance_from_manifest", "get_or_extract_embeddings",
-           "image_similarity", "inception_v3_identity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_provenance_index", "load_registry", "metadata_positive_paths",
+           "image_similarity", "inception_v3_identity", "kid", "list_image_paths", "load_embedding_cache", "load_protocol", "load_registry", "metadata_positive_paths",
            "multiscale_ssim", "nearest_neighbours", "paired_kid_differences", "plot_generator_summary", "practical_equivalence", "prdc", "rank_generator_family", "render_similarity_panel", "repeated_distribution_metrics", "save_resampling_plan", "save_selected_generators",
            "rad_dino_identity", "representation_preflight_rows", "require_official_family_coverage",
            "sample_sets_equivalent", "similarity_summaries", "summarize", "technical_audit", "validate_protocol",

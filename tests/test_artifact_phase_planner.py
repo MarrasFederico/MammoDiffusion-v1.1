@@ -32,6 +32,16 @@ class ArtifactPhasePlannerTests(unittest.TestCase):
    self.assertEqual([x['action'] for x in p],['skip','skip','run'])
    p=plan_experiment(root,{'training':'auto','generation':'auto','evaluation':'recompute'})
    self.assertEqual([x['action'] for x in p],['skip','skip','recompute'])
+ def test_frozen_evaluation_defers_to_notebook_selection_validation(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); self.fixture(root)
+   manifest=json.loads((root/'runtime_manifest.json').read_text())
+   manifest['phases']['evaluation']['files'][0]['path']='legacy_metrics.json'
+   (root/'runtime_manifest.json').write_text(json.dumps(manifest))
+   plan=plan_experiment(root,{'evaluation':'frozen'})
+   self.assertEqual(plan[0]['status'],'frozen_selection')
+   self.assertEqual(plan[0]['action'],'skip')
+   self.assertFalse(phase_should_run(plan,'evaluation'))
  def test_partial_images_resume_generation_only(self):
   with tempfile.TemporaryDirectory() as t:
    root=Path(t); self.fixture(root); (root/'images/gen_0001.png').unlink()

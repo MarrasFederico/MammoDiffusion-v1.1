@@ -101,6 +101,12 @@ _SUPPORTED_CNN_ENCODERS = {
     "tf_efficientnetv2-detect": ("efficientnet-b2", 1408),
 }
 
+# The published classifier protocol fixes Mammo-FM to the B5 image encoder.  A
+# complete project checkpoint contains every parameter of this architecture, so
+# inference can reconstruct the module and then load that state dict without
+# reopening the separately licensed foundation archive.
+PROJECT_CHECKPOINT_ENCODER_NAME = "tf_efficientnet_b5_ns-detect"
+
 # Prefissi comuni con cui i CLIP checkpoint (Mammo-FM/Mammo-CLIP e varianti) annidano i tensori
 # dell'image encoder nello state dict completo (che include anche text encoder e projection
 # head). Rimossi iterativamente (non in un unico passaggio) perche' possono comparire annidati
@@ -256,6 +262,29 @@ def _resolve_encoder_arch(enc_config: dict) -> tuple:
             "un'altra architettura (es. DINOv2/RAD-DINO/ViT generico)."
         )
     return _SUPPORTED_CNN_ENCODERS[name]
+
+
+def build_mammofm_checkpoint_architecture(
+    num_classes: int = 1,
+    dropout: float = 0.1,
+):
+    """Build the exact architecture used by complete project checkpoints.
+
+    This constructor intentionally does not load or claim to provide pretrained
+    Mammo-FM weights.  It is only the architecture half of a strict full-state
+    restore performed by :class:`ArchitectureAdapter`; training initialization
+    continues to require the authorized upstream Mammo-FM archive.
+    """
+    arch_name, out_dim = _resolve_encoder_arch(
+        {"source": "cnn", "name": PROJECT_CHECKPOINT_ENCODER_NAME}
+    )
+    image_encoder = MammoFMImageEncoder(arch_name=arch_name, out_dim=out_dim)
+    return MammoFMClassifier(
+        image_encoder,
+        hidden_size=out_dim,
+        num_classes=num_classes,
+        dropout=dropout,
+    )
 
 
 def build_mammofm_model(

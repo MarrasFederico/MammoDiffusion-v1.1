@@ -10,7 +10,9 @@ from typing import Iterable
 
 import numpy as np
 
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
+)
 
 # Garantisce che la cartella notebooks/ sia in sys.path anche se questo modulo
 # viene importato in un contesto dove lo script invocato direttamente non e'

@@ -6,6 +6,7 @@ import argparse
 import gc
 import json
 import os
+import tempfile
 import secrets
 import subprocess
 import sys
@@ -300,7 +301,9 @@ def validate_ldm_model_paths() -> None:
 
 
 def configure_ldm_environment() -> None:
-    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+    os.environ.setdefault(
+        "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
+    )
     if "XLA_FLAGS" in os.environ:
         return
 

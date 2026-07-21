@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -59,7 +60,9 @@ def parse_args() -> argparse.Namespace:
 
 def configure_environment(args: argparse.Namespace) -> None:
     """Imposta le variabili d'ambiente (GPU visibili, path CUDA per XLA) prima di importare TensorFlow."""
-    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+    os.environ.setdefault(
+        "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
+    )
     if args.gpu_visible_devices is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_visible_devices
 

@@ -58,6 +58,8 @@ class GradioSelectedGeneratorsTests(unittest.TestCase):
         for path in ROOT.rglob("README*"):
             relative = path.relative_to(ROOT)
             relative_text = relative.as_posix()
+            if relative_text.startswith(".cache/"):
+                continue
             if relative_text.startswith("notebooks/utility/diffusers_repo/"):
                 continue
             if relative_text.startswith("notebooks/pretrained_model/"):

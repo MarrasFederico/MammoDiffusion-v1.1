@@ -4,6 +4,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Iterable
 
@@ -23,7 +24,9 @@ QUALITY_FEATURES = [
     "largest_component_frac",
 ]
 FILTER_SCHEMA_VERSION = 1
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault(
+    "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
+)
 
 
 def estimate_foreground_mask(arr, min_threshold: int = 10):

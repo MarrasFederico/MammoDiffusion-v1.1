@@ -43,7 +43,6 @@ class GeneratorCompletionTests(unittest.TestCase):
         text = (ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb").read_text()
         self.assertIn("RUN_REAL_BENCHMARK = True", text)
         self.assertIn("REFRESH_CANDIDATE_AUDIT = True", text)
-        self.assertIn("BUILD_CANONICAL_PROVENANCE = False", text)
         for forbidden in ("diversity_results = {}", "train_memorization_rows = []",
                           "validation_similarity_rows = []", "results_table = []"):
             self.assertNotIn(forbidden, text)
@@ -139,15 +138,14 @@ class GeneratorCompletionTests(unittest.TestCase):
         fs = gb.rank_generator_family(rows, "from_scratch", protocol["eligibility_gates"])
         self.assertEqual(next(row["generator_id"] for row in fs if row["eligible"]), "06_primary")
 
-    def test_selection_notebook_records_amended_selection(self):
-        # After the benchmark and the human-approved post-benchmark amendment (Option B), notebook 02
-        # reads the active amendment, shows the original zero-eligible outcome alongside the amended
-        # safety-gate outcome, and records the explicit G02/G07 selection.
+    def test_selection_notebook_records_selection(self):
+        # Notebook 02 ranks each family by the preregistered hierarchy under the technical safety
+        # gates and records the explicit G02/G07 selection via the simple selection writer.
         text = (ROOT / "notebooks/3_generator_benchmark/02_Generator_Selection.ipynb").read_text()
         for token in ("SELECTED_FINETUNED_GENERATOR", "SELECTED_FROM_SCRATCH_GENERATOR",
                       "02_sd21_filtered_100steps", "07_ldm_sdvae_extra1361",
-                      "load_active_amendment", "amended_family_ranking", "save_amended_selection",
-                      "original_finetuned", "amended_finetuned", "SAVE_SELECTION"):
+                      "rank_generator_family", "save_selected_generators",
+                      "finetuned_ranking", "fromscratch_ranking", "SAVE_SELECTION"):
             self.assertIn(token, text)
 
 

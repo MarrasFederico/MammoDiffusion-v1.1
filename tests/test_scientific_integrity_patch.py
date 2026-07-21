@@ -125,30 +125,12 @@ class ProvenanceAndFilterTests(unittest.TestCase):
             self.assertNotEqual(filtering["filter_acceptance_rate"], technical["technical_validity_rate"])
             self.assertTrue(gb.audit_candidate(root, entry, self.protocol)["eligible_for_benchmark_execution"])
 
-    def test_missing_wrong_and_mismatched_provenance_fail(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary); entry, payload, manifest, filter_manifest, _ = self._fixture(root)
-            manifest.unlink()
-            self.assertFalse(gb.audit_candidate(root, entry, self.protocol)["eligible_for_benchmark_execution"])
-            manifest.write_text(json.dumps({**payload, "generator_id": "another"}))
-            self.assertIn("wrong_generator_id", gb.audit_candidate(root, entry, self.protocol)["provenance_failure_reason"])
-            manifest.write_text(json.dumps({**payload, "checkpoint": "wrong.pt"}))
-            self.assertIn("wrong_checkpoint", gb.audit_candidate(root, entry, self.protocol)["provenance_failure_reason"])
-            manifest.write_text(json.dumps({**payload, "samples": {"raw": payload["samples"]["raw"], "filtered": ["other.png"]}}))
-            self.assertIn("sample_set_mismatch", gb.audit_candidate(root, entry, self.protocol)["provenance_failure_reason"])
-            manifest.write_text(json.dumps(payload)); filter_manifest.unlink()
-            audit = gb.audit_candidate(root, entry, self.protocol)
-            self.assertFalse(audit["filter_manifest_valid"]); self.assertFalse(audit["eligible_for_benchmark_execution"])
-
-    def test_descriptive_g05_with_autonomous_provenance_stays_selection_ineligible(self):
+    def test_descriptive_baseline_stays_official_ranking_ineligible(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); entry, _, _, _, _ = self._fixture(root)
             entry["id"] = "05_fixture"; entry["candidate_role"] = "descriptive_baseline"
             entry["eligible_for_downstream_selection"] = False
-            payload = json.loads((root / "provenance.json").read_text()); payload["generator_id"] = "05_fixture"
-            (root / "provenance.json").write_text(json.dumps(payload))
             audit = gb.audit_candidate(root, entry, self.protocol)
-            self.assertTrue(audit["lineage_complete"])
             self.assertTrue(audit["eligible_for_descriptive_benchmark"])
             self.assertFalse(audit["eligible_for_official_family_ranking"])
 

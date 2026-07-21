@@ -9,6 +9,11 @@ usefulness. The workflow is modular, readable and reproducible: the notebooks sh
 configuration, the data, the audits, the utility calls, the metrics, the plots and the
 artifacts. There is no mandatory automatic pipeline.
 
+The project starts from the already-processed **512×512 grayscale MLO PNG** corpus under
+`data/processed/`; the original RSNA DICOM archive is not part of this repository and is not
+needed to reproduce it. The preprocessing notebook therefore verifies the processed corpus
+(schema, splits, patient separation, image presence) rather than re-decoding DICOMs.
+
 ## Research questions
 
 - **RQ1:** which fine-tuned and which from-scratch generator best balance fidelity,
@@ -56,7 +61,7 @@ The active code writes or consumes these canonical roots under `results/`:
 - `diffusers/` — generator metrics, plots, energy tracking and sampling sweeps (one folder per
   experiment; the step-count sweep for experiment 08 lives under
   `08_ldm_v3_sdvae_fromscratch/sampling/`);
-- `generator_benchmark/` and `generator_provenance/` — generator benchmark and provenance;
+- `generator_benchmark/` — generator benchmark metrics, rankings and diagnostics;
 - `classifier_seed_runs/` — per-seed classifier training and validation outputs;
 - `classifier_validation_ensembles/` — the eight three-seed validation ensembles;
 - `final_evaluation/` — the test-set ensembles (`test_ensembles/`) and `results.json`;

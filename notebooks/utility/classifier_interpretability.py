@@ -139,6 +139,25 @@ def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path,
     return figure
 
 
+def save_attribution_figure(figure, results_root: Path, *, architecture: str,
+                            condition: str, seed: int, method: str) -> Path:
+    """Persist one validation attribution panel under the classifier results tree."""
+    filenames = {
+        "gradcam": "gradcam_validation_cases.png",
+        "integrated_gradients": "integrated_gradients_validation_cases.png",
+    }
+    if method not in filenames:
+        raise ValueError(f"unsupported attribution figure method: {method}")
+    output_dir = (
+        Path(results_root) / "figures" / "interpretability" / architecture
+        / condition / f"seed_{int(seed)}"
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / filenames[method]
+    figure.savefig(output_path, dpi=180, bbox_inches="tight", facecolor="white")
+    return output_path
+
+
 def write_manifest(path: Path, *, architecture: str, method: str, samples: Sequence[Mapping]) -> Path:
     if architecture not in {"maxvit512", "mammofm"}:
         raise ValueError("interpretability is defined only for the two downstream architectures")
@@ -152,4 +171,5 @@ def write_manifest(path: Path, *, architecture: str, method: str, samples: Seque
 
 __all__ = ["ensemble_heatmaps", "integrated_gradients", "largest_ft_fs_disagreements",
            "mammofm_attribution", "normalize_heatmap", "preregistered_cases",
-           "render_attribution_overlays", "torch_spatial_attribution", "write_manifest"]
+           "render_attribution_overlays", "save_attribution_figure", "torch_spatial_attribution",
+           "write_manifest"]

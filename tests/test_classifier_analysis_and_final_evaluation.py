@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 from classifier_analysis import aggregate_patient, align_seed_predictions, discover_experiments  # noqa: E402
+from classifier_interpretability import save_attribution_figure  # noqa: E402
 from final_evaluation import require_final_evaluation_opt_in, save_protocol_snapshot  # noqa: E402
 
 
@@ -60,6 +61,28 @@ class EnsembleAndFinalEvaluationTests(unittest.TestCase):
             self.assertIn("planned_statistical_comparisons", payload)
             self.assertNotIn("signature", payload)
             self.assertNotIn("lock", payload)
+
+    def test_attribution_figure_is_persisted_under_results_figures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            calls = {}
+
+            class Figure:
+                def savefig(self, path, **kwargs):
+                    calls.update(path=Path(path), kwargs=kwargs)
+                    Path(path).write_bytes(b"png")
+
+            root = Path(temporary) / "results/3_classifiers"
+            path = save_attribution_figure(
+                Figure(), root, architecture="maxvit512", condition="real_only",
+                seed=17, method="gradcam",
+            )
+            self.assertEqual(
+                path,
+                root / "figures/interpretability/maxvit512/real_only/seed_17"
+                / "gradcam_validation_cases.png",
+            )
+            self.assertTrue(path.is_file())
+            self.assertEqual(calls["kwargs"]["dpi"], 180)
 
 
 if __name__ == "__main__": unittest.main()

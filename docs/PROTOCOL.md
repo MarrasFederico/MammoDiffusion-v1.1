@@ -194,7 +194,10 @@ writes its small tables and plots under
 `validation_predictions.csv`, `validation_metrics.json`, `run_complete.json`), while the model
 checkpoints (`checkpoint_best.pt`, the resume `checkpoint_latest`/`checkpoint_previous`/`checkpoint_best`
 pickles) and the intermediate interpretability maps go under
-`experiments/classifiers/<architecture>/<condition>/seed_<seed>/`.
+`experiments/classifiers/<architecture>/<condition>/seed_<seed>/`. The corresponding presentation-ready
+Grad-CAM and Integrated Gradients panels are persisted as PNG files under
+`results/3_classifiers/figures/interpretability/<architecture>/<condition>/seed_<seed>/`, rather than
+remaining available only as notebook output.
 
 **Inference and statistics.** The validation notebook reports patient-level PR-AUC, ROC-AUC, Brier,
 ECE, sensitivity, specificity, balanced accuracy, bootstrap intervals, seed mean ± SD and

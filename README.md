@@ -96,15 +96,19 @@ notebook stages:
 - `2_diffusers/` — per-generator metrics, plots and energy tracking (one folder per generator; the
   step-count sweep for G08 lives under `08_ldm_v3_sdvae_fromscratch/sampling/`), plus
   `2_diffusers/benchmark/` for the unified generator benchmark, rankings and diagnostics;
-- `3_classifiers/seed_runs/` — per-seed classifier tables (CSV/JSON) and plots, and the eight
-  three-seed validation ensembles;
+- `3_classifiers/seed_runs/` — per-seed classifier tables (CSV/JSON), with the eight three-seed
+  validation ensembles under `3_classifiers/validation_ensembles/`;
+- `3_classifiers/figures/interpretability/` — reusable Grad-CAM and Integrated Gradients PNGs,
+  organized by architecture, condition and seed;
 - `4_final_evaluation/` — the held-out test ensembles and the final report;
 - `5_sustainability/` — the cross-cutting energy and wall-clock comparison.
 
 Following the project layout, trained models are kept out of the results tree: classifier
 checkpoints and the intermediate interpretability maps live under
 `experiments/classifiers/<architecture>/<condition>/seed_<seed>/` (git-ignored), while
-`results/3_classifiers/seed_runs/` keeps only the small CSV/JSON tables and plots. The resume state
+`results/3_classifiers/seed_runs/` keeps only the small CSV/JSON tables. Presentation-ready
+interpretability panels are exported separately under `results/3_classifiers/figures/interpretability/`.
+The resume state
 (`checkpoint_latest`, `checkpoint_previous`) and every representation of the best checkpoint must
 not be pruned.
 
@@ -130,9 +134,16 @@ project-permitted `data/` material. In particular include:
 - the filtered synthetic datasets used by the benchmark and the classifiers.
 
 Keep checkpoints, latents, checkpoint-validation caches, evaluation outputs and embedding
-caches. Exclude only regenerable Hugging Face caches/compositions, `__pycache__`, `*.pyc`
-files and empty work queues. `experiments/diffusers/` can be uploaded as a first block, but on
-its own it is not enough to resume execution on another machine.
+caches. Exclude the top-level `.git/`, `.cache/` and editor/assistant workspace-state directories,
+regenerable Hugging Face caches/compositions, `__pycache__`, `*.pyc` files and empty work queues.
+The nested `notebooks/utility/diffusers_repo/.git` is the exception and must be retained
+because it identifies the pinned vendored source revision. `experiments/diffusers/` can be uploaded
+as a first block, but on its own it is not enough to resume execution on another machine.
+
+Mammo-FM original and derived weights must not be redistributed. Do not place the authorized
+foundation archive, `experiments/classifiers/mammofm/`, or Mammo-FM checkpoints in a shared Drive;
+each authorized researcher must obtain the official asset and reproduce private derivatives under
+the terms summarized in `docs/mammo_fm_license_note.md`.
 
 ## Documentation
 

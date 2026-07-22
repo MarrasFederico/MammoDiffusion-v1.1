@@ -10,7 +10,7 @@ from.
 ## Schema
 
 `notebooks/utility/sustainability_registry.py` defines the canonical event
-(`results/5_sustainability/events.jsonl`, one JSON object per line): `run_id, experiment_id,
+(`results/5_sustainability/canonical_events.jsonl`, one JSON object per line): `run_id, experiment_id,
 dataset_variant_id, architecture, seed, phase, status, parent_run_id, canonical, reused_artifact,
 start_time, end_time, elapsed_seconds, energy_kwh, co2_kg, peak_ram_mb, peak_vram_mb, gpu_uuid,
 gpu_name, num_images, optimizer_updates, epochs, source_log, signature, value_precision`. `phase`
@@ -45,10 +45,9 @@ and `co2_kg` are unreliable on the RTX 5060 Ti (CodeCarbon has no power model fo
 **discarded**. Only the recorded `elapsed_seconds` is trusted; energy is always recomputed as
 `hours × 0.170 kW`. The `energy_kwh`/`co2_kg` fields still exist in the event schema for
 backward compatibility with the historical logs, but no analysis reads them.
-## Legacy canonical import
 
-`python scripts/import_legacy_sustainability_logs.py` idempotently normalizes the EcoTracker
-JSON/JSONL logs already present under `experiments/` and `results/`, deduplicates them by content
-signature and writes `results/5_sustainability/canonical_events.jsonl`. The current dataset contains
-193 imported events. The publication-oriented report may use this registry and must report actual
-and canonical energy separately.
+## Frozen canonical registry
+
+`results/5_sustainability/canonical_events.jsonl` is the versioned publication snapshot and contains
+193 events. The comparison notebook consumes this file directly and does not rediscover or rewrite
+events from machine-local logs. Reports must continue to distinguish actual and canonical energy.

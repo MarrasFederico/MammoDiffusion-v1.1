@@ -152,8 +152,8 @@ the terms summarized in `docs/mammo_fm_license_note.md`.
   and manual execution.
 - [Generator status](docs/GENERATOR_STATUS.md)
 - [Shared SD2.1/Diffusers assets](docs/SHARED_ASSETS.md)
-- [Sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md) — the energy registry, the legacy-log
-  import script and the comparison notebook.
+- [Sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md) — the frozen energy registry and the
+  comparison notebook.
 - [Test suite](docs/TESTS.md) — what each regression test protects and how to run them.
 - [Mammo-FM academic license](docs/mammo_fm_license_note.md)
 

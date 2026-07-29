@@ -4,157 +4,131 @@
 
 # MammoDiffusion v2
 
-MammoDiffusion is a notebook-first study of synthetic mammography and its downstream
-usefulness. The workflow is modular, readable and reproducible: the notebooks show the
-configuration, the data, the audits, the utility calls, the metrics, the plots and the
-artifacts. There is no mandatory automatic pipeline.
+MammoDiffusion is a notebook-first study of synthetic 512×512 grayscale MLO mammograms and
+their downstream use for binary classification: malignant finding versus no lesion. The fixed
+classifier design is 2 architectures × 4 training conditions × 3 seeds, for 24 seed runs and
+8 mean-probability ensembles.
 
-The project starts from the already-processed **512×512 grayscale MLO PNG** corpus under
-`data/processed/`; the original RSNA DICOM archive is not part of this repository and is not
-needed to reproduce it. The preprocessing notebook therefore verifies the processed corpus
-(schema, splits, patient separation, image presence) rather than re-decoding DICOMs.
+The active generator benchmark uses real training data for memorization, validation data for
+quality and selection, and synthetic pools for synthetic metrics. It never uses the classifier
+test split.
 
-## Research questions
+## Dataset workflows
 
-- **RQ1:** which fine-tuned and which from-scratch generator best balance fidelity,
-  diversity, coverage, efficiency and absence of train memorization?
-- **RQ2:** does adding synthetic positive mammograms improve classification over real-only
-  data and traditional augmentation?
-- **RQ3:** is the effect consistent across MaxViT-512 and Mammo-FM?
+There are two distinct ways to reproduce the data setup.
 
-## Notebook-first workflow
+### A. Reuse the processed cohort
 
-1. Run the generator notebooks if their outputs are missing.
-2. Run `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`.
-3. Inspect the RAW/FILTERED metrics and the diagnostic panels.
-4. In `notebooks/3_generator_benchmark/02_Generator_Selection.ipynb`, manually choose one
-   fine-tuned and one from-scratch generator.
-5. Run `notebooks/04_classifiers/01_MaxViT512.ipynb` once; it loops 4 conditions × 3 seeds.
-6. Run `notebooks/04_classifiers/02_MammoFM.ipynb` once; it loops 4 conditions × 3 seeds.
-7. Run `notebooks/04_classifiers/03_Validation_Comparison.ipynb` and freeze the checkpoints
-   and thresholds on validation.
-8. Run `notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb` to score the frozen
-   decisions once on the held-out test set.
+This is the normal analysis workflow and does not require the original DICOM archive. Provide:
 
-The protocol keeps exactly **2 architectures × 4 conditions × 3 seeds = 24 experiments**.
-The architectures are MaxViT-512 and Mammo-FM; RAD-DINO is only a medical feature extractor
-used inside the generative benchmark.
+```text
+data/processed/
+├── train/{0,1}/*.png
+├── val/{0,1}/*.png
+├── test/{0,1}/*.png
+└── metadata/
+    ├── all_processed.csv
+    ├── train.csv
+    ├── val.csv
+    └── test.csv
+```
+
+Each metadata row needs at least `patient_id`, `image_id`, `label`, `split`, and
+`processed_path`. `notebooks/utility/processed_dataset_reuse.py` checks the schema, image
+presence, binary labels, unique output paths, reconciliation of the split CSVs, and patient
+separation before reuse. The canonical test cohort contains 438 patients.
+
+### B. Rebuild from original RSNA data
+
+Obtain the data under the terms of the official
+[RSNA Screening Mammography Breast Cancer Detection competition](https://www.kaggle.com/competitions/rsna-breast-cancer-detection/data)
+and place the user-supplied archive where the preprocessing notebook requests it. The repository
+does not perform an opaque automatic download.
+
+`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` filters to MLO views,
+selects one image per patient, handles laterality and visual-side normalization, rescales the
+tissue intensity, converts DICOM to grayscale PNG, resizes to 512×512, and writes patient-level
+train/validation/test splits. Corrupt inputs are reported rather than silently accepted. A patient
+ID may occur in exactly one split.
+
+## Workflow
+
+1. Validate or reconstruct the processed cohort.
+2. Run generator notebooks only when their local checkpoints or pools must genuinely be rebuilt.
+3. Review `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`. Its default is
+   `RUN_REAL_BENCHMARK = False`, which reads only the saved small CSV/JSON reports.
+4. Enable the real benchmark explicitly only when data, pools, local encoders, and GPU are present.
+5. Review the G02/G07 selection in `02_Generator_Selection.ipynb` and
+   `configs/selected_generators.json`.
+6. Run the MaxViT-512 and Mammo-FM notebooks for the four conditions and seeds 17, 42, and 73.
+7. Build validation ensembles and freeze both the decision threshold and the operating point for
+   target specificity 0.90.
+8. Keep `RUN_FINAL_EVALUATION = False` while reviewing saved outputs. A future inference run needs
+   explicit opt-in and a separate `OVERWRITE_TEST_PREDICTIONS=True` confirmation before replacing
+   existing predictions.
+
+No test-mode function may choose a threshold. Seed test reports read their own validation
+thresholds; test ensembles read the matching validation-ensemble thresholds. The same frozen
+operating points are used in every patient-bootstrap replica.
+
+## Generator benchmark and selection
+
+The canonical synthetic target is 1,361 images. RAW and FILTERED representations stay separate.
+The benchmark reports KID, descriptive FID, PRDC, diversity, train memorization, validation
+similarity, exact duplication, and perceptual-duplicate diagnostics. RAD-DINO KID is the primary
+ranking metric; coverage and perceptual-hash duplicate rate are descriptive, not eligibility gates.
+All ranking metrics must be available for every eligible candidate, so a missing optional value
+cannot become a hidden worst-value penalty.
+
+The authoritative selection remains:
+
+- G02 (`02_sd21_filtered_100steps`), fine-tuned family;
+- G07 (`07_ldm_sdvae_extra1361`), from-scratch family.
+
+Memorization builds its reference list in memory from `data/processed/metadata/train.csv` and, when
+present, `data/real_augmented/metadata.csv`. It validates train paths, labels, unique samples, and
+patient separation from validation without creating another manifest.
+
+Small, versionable benchmark outputs live in `results/2_diffusers/benchmark/`:
+`candidate_audit.csv`, `generator_summary.csv`, `generator_ranking.csv`,
+`resampling_plan.json`, `paired_generator_differences.csv`, `selection_summary.json`, and the
+summary figure. Embeddings, per-image tables, diagnostic panels, and execution records are local
+runtime outputs. `notebooks/utility/rebuild_generator_ranking.py` deterministically regenerates the
+ranking from the required canonical `generator_summary.csv` without modifying the summary or opening
+images or models.
+
+In the current pipeline, generator benchmarking and selection use only training and validation
+data. The test split is used for final classifier evaluation.
 
 ## Repository layout
 
-Following the course project guidelines, the repository separates data, notebooks, trained models
-and results:
+- `configs/`: plain protocols, registry, and the G02/G07 selection;
+- `data/`: local datasets and synthetic pools;
+- `experiments/`: checkpoints, resume state, latents, and other heavy execution artifacts;
+- `notebooks/`: preprocessing, generators, benchmark, classifiers, and reusable utilities;
+- `results/`: canonical scientific reports for preprocessing, generators, classifiers, final
+  evaluation, and sustainability;
+- `tests/`: model-free fixture tests and static notebook checks.
 
-- `data/processed/` — the 512×512 grayscale MLO corpus and the split metadata;
-- `notebooks/` — the ordered preprocessing, generator, benchmark and classifier notebooks, plus the
-  reusable `notebooks/utility/` modules;
-- `experiments/` — trained models and heavy intermediate outputs (diffuser checkpoints under
-  `experiments/diffusers/`, classifier checkpoints and interpretability maps under
-  `experiments/classifiers/<architecture>/<condition>/seed_<seed>/`); kept local and git-ignored;
-- `results/` — only the small CSV/JSON tables and plots, in five numbered stages
-  (`1_preprocessing` … `5_sustainability`);
-- `configs/` — the benchmark protocol, the generator registry and the committed selection.
+Checkpoints and data remain outside Git. Mammo-FM weights and derivatives must not be
+redistributed; see [docs/mammo_fm_license_note.md](docs/mammo_fm_license_note.md).
 
-## Scientific rigor
+## Validation and reproducibility
 
-The benchmark targets a synthetic pool of 1,361 images but uses every real positive available
-in validation and evaluates balanced subsets of size `min(real_reference_count,
-synthetic_pool_count)`. KID and PRDC use repeated subsampling without replacement; FID is
-secondary and uses a single repetition by default. Train memorization, validation similarity
-and synthetic duplication are reported as distinct results.
+Run from the repository root:
 
-Checkpoints, early stopping and the downstream scheduler all monitor validation PR-AUC. The
-maximum optimizer-update budget is fixed within each architecture. Validation and bootstrap are
-patient-level; the eight primary comparisons use Holm correction. Checkpoints and thresholds are
-fixed on validation before any test access, so the test set contributes no model selection.
+```bash
+python -m pip install -r requirements-dev.txt
+python -m compileall -q notebooks/utility tests assets/mammodiffusion_gradio
+python -m unittest discover -s tests -p 'test_*.py' -v
+python -m pytest -q
+```
 
-## Limitations
+`pytest.ini` restricts collection to `tests/` and excludes data, experiments, results, caches, and
+the vendored Diffusers repository. Hashes are used only for duplicate detection, cache validation,
+and resume safety. GPU index/UUID selection is an operational
+convenience and is not a scientific compatibility condition.
 
-The study is deliberately scoped, and its conclusions should be read with the following caveats:
-
-- **Finite-sample uncertainty.** The real positive pool is small (340 training, 73 validation, 73
-  test positives), so patient-level bootstrap intervals are wide and single-point differences should
-  not be over-interpreted; FID in particular is only descriptive because its reference pool is small.
-- **Feature-space dependence.** Generator ranking is primary in the RAD-DINO feature space and
-  secondary in InceptionV3; the two spaces can disagree, and neither is a ground truth for
-  perceptual fidelity. Coverage and perceptual-hash similarity are descriptive, not gates.
-- **Selection and dataset scope.** Everything starts from a single institution's processed 512×512
-  MLO corpus; no external validation is performed, and the generator selection is validation-only.
-- **No clinical claim.** Interpretability maps and metrics are diagnostic aids for this experiment,
-  not evidence of clinical utility; nothing here is a diagnostic device or a substitute for expert
-  reading.
-- **Reproducibility boundary.** Runs reuse registered checkpoints and complete local pools rather
-  than retraining from scratch, and preprocessing verifies the processed corpus rather than
-  re-decoding the (absent) raw DICOMs.
-
-## Results and checkpoints
-
-The active code writes or consumes these canonical roots under `results/`, named to mirror the
-notebook stages:
-
-- `1_preprocessing/` — preprocessing and traditional-augmentation summaries and plots;
-- `2_diffusers/` — per-generator metrics, plots and energy tracking (one folder per generator; the
-  step-count sweep for G08 lives under `08_ldm_v3_sdvae_fromscratch/sampling/`), plus
-  `2_diffusers/benchmark/` for the unified generator benchmark, rankings and diagnostics;
-- `3_classifiers/seed_runs/` — per-seed classifier tables (CSV/JSON), with the eight three-seed
-  validation ensembles under `3_classifiers/validation_ensembles/`;
-- `3_classifiers/figures/interpretability/` — reusable Grad-CAM and Integrated Gradients PNGs,
-  organized by architecture, condition and seed;
-- `4_final_evaluation/` — the held-out test ensembles and the final report;
-- `5_sustainability/` — the cross-cutting energy and wall-clock comparison.
-
-Following the project layout, trained models are kept out of the results tree: classifier
-checkpoints and the intermediate interpretability maps live under
-`experiments/classifiers/<architecture>/<condition>/seed_<seed>/` (git-ignored), while
-`results/3_classifiers/seed_runs/` keeps only the small CSV/JSON tables. Presentation-ready
-interpretability panels are exported separately under `results/3_classifiers/figures/interpretability/`.
-The resume state
-(`checkpoint_latest`, `checkpoint_previous`) and every representation of the best checkpoint must
-not be pruned.
-
-## Gradio demo
-
-`assets/mammodiffusion_gradio/app.py` reads the current selection from
-`configs/selected_generators.json` and serves the two family winners with their best checkpoints:
-
-- G02, Stable Diffusion 2.1 fine-tuned, `checkpoint-3000`, canonical 100-step sampling;
-- G07, from-scratch LDM with SD-VAE, `ldm_unet_best_eval.keras` selected at step 130000,
-  100-step sampling.
-
-The demo has its own README because it is a separately launchable application:
-[Gradio instructions](assets/mammodiffusion_gradio/README.md).
-
-## Portable hand-off and Google Drive
-
-For a complete hand-off, upload `notebooks/`, `configs/`, `experiments/`, `results/` and the
-project-permitted `data/` material. In particular include:
-
-- `notebooks/utility/diffusers_repo`, together with its `.git`, to verify the pinned commit;
-- `notebooks/pretrained_model/stable-diffusion-2-1-base`;
-- the filtered synthetic datasets used by the benchmark and the classifiers.
-
-Keep checkpoints, latents, checkpoint-validation caches, evaluation outputs and embedding
-caches. Exclude the top-level `.git/`, `.cache/` and editor/assistant workspace-state directories,
-regenerable Hugging Face caches/compositions, `__pycache__`, `*.pyc` files and empty work queues.
-The nested `notebooks/utility/diffusers_repo/.git` is the exception and must be retained
-because it identifies the pinned vendored source revision. `experiments/diffusers/` can be uploaded
-as a first block, but on its own it is not enough to resume execution on another machine.
-
-Mammo-FM original and derived weights must not be redistributed. Do not place the authorized
-foundation archive, `experiments/classifiers/mammofm/`, or Mammo-FM checkpoints in a shared Drive;
-each authorized researcher must obtain the official asset and reproduce private derivatives under
-the terms summarized in `docs/mammo_fm_license_note.md`.
-
-## Documentation
-
-- [Consolidated protocol](docs/PROTOCOL.md) — experimental design, generator benchmark and
-  eligibility policy, the G02/G07 selection, the 2 × 4 × 3 downstream protocol, final evaluation
-  and manual execution.
-- [Generator status](docs/GENERATOR_STATUS.md)
-- [Shared SD2.1/Diffusers assets](docs/SHARED_ASSETS.md)
-- [Sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md) — the frozen energy registry and the
-  comparison notebook.
-- [Test suite](docs/TESTS.md) — what each regression test protects and how to run them.
-- [Mammo-FM academic license](docs/mammo_fm_license_note.md)
-
-Mammo-FM weights are subject to their academic license and are not redistributed.
+Further details: [consolidated protocol](docs/PROTOCOL.md),
+[generator status](docs/GENERATOR_STATUS.md), [test suite](docs/TESTS.md), and
+[shared Diffusers assets](docs/SHARED_ASSETS.md).

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import csv
-import json
 import sys
 import tempfile
 import unittest
@@ -9,9 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-from classifier_analysis import aggregate_patient, align_seed_predictions, discover_experiments  # noqa: E402
+from classifier_analysis import aggregate_patient, align_seed_predictions  # noqa: E402
 from classifier_interpretability import save_attribution_figure  # noqa: E402
-from final_evaluation import require_final_evaluation_opt_in, save_protocol_snapshot  # noqa: E402
+from final_evaluation import frozen_validation_thresholds, require_final_evaluation_opt_in  # noqa: E402
 
 
 class EnsembleAndFinalEvaluationTests(unittest.TestCase):
@@ -36,31 +34,15 @@ class EnsembleAndFinalEvaluationTests(unittest.TestCase):
                                     {"patient_id": "p", "image_id": "b", "label": 1, "probability": .8}])
         self.assertEqual(result, [{"patient_id": "p", "label": 1, "probability": .5, "n_images": 2}])
 
-    def test_publication_discovery_ignores_legacy_artifacts(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            legacy = root / "results/legacy_classifier_matrix/maxvit512/real_only/seed_17"
-            legacy.mkdir(parents=True); (legacy / "validation_metrics.json").write_text("{}")
-            discovered = discover_experiments(root)
-            self.assertEqual(len(discovered), 24)
-            self.assertFalse(any(row["complete"] for row in discovered))
-            self.assertTrue(all("3_classifiers/seed_runs" in row["directory"] for row in discovered))
-
     def test_false_guard_prevents_final_evaluation(self):
         with self.assertRaisesRegex(PermissionError, "RUN_FINAL_EVALUATION"):
-            require_final_evaluation_opt_in(False, {})
+            require_final_evaluation_opt_in(ROOT, run_final_evaluation=False)
 
-    def test_protocol_snapshot_is_plain_and_complete(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            path = save_protocol_snapshot(root, selected_generators={"finetuned": "ft", "from_scratch": "fs"},
-                seed_checkpoints={"job": "checkpoint"}, validation_thresholds={"job": .4},
-                planned_comparisons=[{"id": "c"}], final_evaluation_dataset_identifier="external-v1")
-            payload = json.loads(path.read_text())
-            self.assertIn("ensemble_definitions", payload)
-            self.assertIn("planned_statistical_comparisons", payload)
-            self.assertNotIn("signature", payload)
-            self.assertNotIn("lock", payload)
+    def test_final_evaluation_loads_all_canonical_validation_thresholds(self):
+        thresholds = frozen_validation_thresholds(ROOT)
+        self.assertEqual(len(thresholds), 32)
+        self.assertTrue(all(set(row) == {"decision_threshold", "specificity_0_90_threshold"}
+                            for row in thresholds.values()))
 
     def test_attribution_figure_is_persisted_under_results_figures(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
-NAMESPACE = "mammodiffusion.classifier_validation.v2"
+PROTOCOL_VERSION = 2
 ARCHITECTURES = ("maxvit512", "mammofm")
 CONDITIONS = ("real_only", "real_augmented", "real_plus_best_finetuned_positive",
               "real_plus_best_fromscratch_positive")
@@ -25,7 +25,7 @@ def atomic_json(path: Path, value: Any) -> Path:
 
 def load_protocol(root: Path) -> dict[str, Any]:
     payload = json.loads((Path(root) / "configs/classifier_protocol.json").read_text())
-    if payload.get("pipeline_namespace") != NAMESPACE: raise ValueError("unsupported classifier protocol")
+    if int(payload.get("protocol_version", 0)) != PROTOCOL_VERSION: raise ValueError("unsupported classifier protocol")
     for architecture in ARCHITECTURES:
         policy = payload["architectures"][architecture]
         if policy["scheduler_params"]["monitor"] != "val_pr_auc": raise ValueError("scheduler must monitor val_pr_auc")
@@ -47,7 +47,7 @@ def parse_experiment_id(value: str) -> dict[str, Any]:
 
 
 def validate_jobs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-    if payload.get("pipeline_namespace") != NAMESPACE: raise ValueError("unsupported classifier job namespace")
+    if int(payload.get("protocol_version", 0)) != PROTOCOL_VERSION: raise ValueError("unsupported classifier job protocol")
     jobs = payload.get("jobs")
     if not isinstance(jobs, list) or len(jobs) != 24: raise ValueError("primary classifier matrix must contain 24 jobs")
     keys = []
@@ -67,7 +67,7 @@ def load_jobs(root: Path) -> dict[str, Any]:
     return payload
 
 
-SUPPORTED_SELECTION_SCHEMA_VERSIONS = (1, 2)
+SUPPORTED_SELECTION_SCHEMA_VERSIONS = (1, 2, 3)
 
 
 def _load_registry(root: Path) -> dict[str, Any]:
@@ -83,7 +83,7 @@ def load_selected_generators(root: Path, *, required: bool = True) -> dict[str, 
 
     Checks only what carries a direct scientific meaning: a supported schema, ``test_access = false``,
     and that each selected id is a registry generator of the declared family that is eligible for
-    downstream selection. No amendment, benchmark, provenance, or SHA cross-binding is required.
+    downstream selection.
     """
     path = Path(root) / "configs/selected_generators.json"
     if not path.is_file():
@@ -110,17 +110,17 @@ def selection_summary(payload: Mapping[str, Any] | None) -> dict[str, Any] | Non
     """Compact, model-free view of the selection for the notebook configuration sections."""
     if not payload:
         return None
-    identity = payload.get("selection_identity", {})
+    records = {row["role"]: row for row in payload.get("generators", [])}
     return {
         "test_access": payload.get("test_access"),
-        "primary_metric": payload.get("primary_metric"),
-        "selected": {family: {
-            "generator_id": record.get("generator_id") or payload.get(family),
-            "primary_metric": record.get("primary_metric"),
-            "primary_metric_value": record.get("primary_metric_value"),
-            "filtered_image_count": record.get("filtered_image_count"),
-        } for family, record in identity.items()} or {
-            family: {"generator_id": payload.get(family)} for family in ("finetuned", "from_scratch")
+        "protocol_version": payload.get("protocol_version"),
+        "selected": {
+            family: {
+                "generator_id": payload.get(family),
+                "canonical_filtered_pool": records.get(family, {}).get("canonical_filtered_pool"),
+                "expected_count": records.get(family, {}).get("expected_count"),
+            }
+            for family in ("finetuned", "from_scratch")
         },
     }
 
@@ -156,6 +156,6 @@ def logical_experiments() -> list[dict[str, Any]]:
             for a in ARCHITECTURES for c in CONDITIONS for s in SEEDS]
 
 
-__all__ = ["ARCHITECTURES", "CONDITIONS", "NAMESPACE", "SEEDS", "atomic_json", "experiment_id",
+__all__ = ["ARCHITECTURES", "CONDITIONS", "PROTOCOL_VERSION", "SEEDS", "atomic_json", "experiment_id",
            "load_jobs", "load_protocol", "load_selected_generators", "logical_experiments", "parse_experiment_id",
            "resolve_condition", "resolve_job", "selection_summary", "validate_jobs"]

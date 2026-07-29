@@ -93,26 +93,6 @@ def _torch_payload(raw):
     return state
 
 
-def _normalized_gpu_uuid(value) -> str:
-    return str(value or "").strip().lower().removeprefix("gpu-")
-
-
-def _gpu_resume_provenance(payload, runtime_gpu_uuid):
-    checkpoint_gpu_uuid = payload.get("gpu_uuid") if payload is not None else None
-    gpu_changed = bool(
-        payload is not None
-        and checkpoint_gpu_uuid
-        and runtime_gpu_uuid
-        and _normalized_gpu_uuid(checkpoint_gpu_uuid)
-        != _normalized_gpu_uuid(runtime_gpu_uuid)
-    )
-    return {
-        "checkpoint_gpu_uuid": checkpoint_gpu_uuid,
-        "runtime_gpu_uuid": runtime_gpu_uuid,
-        "gpu_changed": gpu_changed,
-    }
-
-
 def _validate_resume_payload(payload: dict) -> None:
     required = (
         "model_state_dict",
@@ -257,11 +237,6 @@ class ArchitectureAdapter:
                 for index, row in enumerate(validation_rows)
             ],
         }
-
-    def predict_locked_test(self, checkpoint_path, test_rows, *, lock_verified=False, **kwargs):
-        if not lock_verified:
-            raise PermissionError("a verified downstream test lock is required")
-        return self.predict_validation(checkpoint_path, test_rows, **kwargs)
 
     def estimate_memory_profile(self, **_):
         return {

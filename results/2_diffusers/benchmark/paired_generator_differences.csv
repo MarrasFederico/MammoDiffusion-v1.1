@@ -1,0 +1,3 @@
+family,left_generator_id,right_generator_id,difference_definition,mean_paired_difference,median_paired_difference,stability_interval_low,stability_interval_high,left_win_fraction,right_win_fraction,tie_fraction,interval_type
+finetuned,02_sd21_filtered_100steps,03_sd21_vae_finetuned,left_kid_minus_right_kid,-0.07497774627397792,-0.07459933816010333,-0.14375900977690842,-0.024837782068081595,1.0,0.0,0.0,repeated-subsampling stability interval
+from_scratch,07_ldm_sdvae_extra1361,08_ldm_v3_sdvae_fromscratch,left_kid_minus_right_kid,-0.05027876056250467,-0.04917094291590929,-0.07752943456586313,-0.023455672728027798,1.0,0.0,0.0,repeated-subsampling stability interval

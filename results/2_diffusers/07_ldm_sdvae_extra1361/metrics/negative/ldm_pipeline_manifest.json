@@ -14,19 +14,6 @@
       "uses_vae_ft_from_03": false,
       "canonical_csv": "/mnt/MammoDiffusion/MammoDiffusion/results/2_diffusers/07_ldm_sdvae_extra1361/metrics/negative/raw_vs_filtered_validation.csv",
       "canonical_json": "/mnt/MammoDiffusion/MammoDiffusion/results/2_diffusers/07_ldm_sdvae_extra1361/metrics/negative/raw_vs_filtered_validation.json"
-    },
-    "test": {
-      "stage": "test",
-      "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/07_ldm_sdvae_extra1361/negative",
-      "target_label": 0,
-      "csv": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/evaluation/negative/final_filtered_vs_test.csv",
-      "json": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/evaluation/negative/final_filtered_vs_test.json",
-      "canonical_run": true,
-      "notebook": null,
-      "unet_version": "v2",
-      "parameterization": "eps",
-      "vae_source": "sd_vae_original",
-      "uses_vae_ft_from_03": false
     }
   }
 }

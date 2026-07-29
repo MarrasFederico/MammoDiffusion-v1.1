@@ -3,8 +3,8 @@
 Synthetic positives come straight from the selected generator's canonical FILTERED pool
 directory (``data/synthetic/<generator_id>/positive``, as recorded in the generator registry).
 The pool is listed deterministically and verified for the expected image count, readability,
-uniqueness, and the absence of any test-split path — without signed manifests, SHA chains, or
-provenance records. The only hashing that remains here computes a dataset signature used purely
+uniqueness, and the absence of any test-split path using direct, local checks.
+The only hashing that remains here computes a dataset signature used purely
 for resume/checkpoint compatibility, which is never propagated into configs or downstream gates.
 """
 from __future__ import annotations
@@ -47,7 +47,7 @@ def _load_selection_payload(root: Path) -> dict | None:
 
 
 def selected_family_for_generator(root: Path, generator_id: str) -> str | None:
-    """Return the primary family whose approved selection is this generator, or None (legacy)."""
+    """Return the primary family whose approved selection is this generator, or None."""
     payload = _load_selection_payload(root)
     if not payload:
         return None
@@ -150,8 +150,8 @@ def _real_files_by_class(root: Path) -> dict[str, list[dict]]:
     return by_class
 
 
-class AugmentationProvenanceError(RuntimeError):
-    """Raised when an augmented file cannot be traced to a real train-split source image."""
+class AugmentationSourceError(RuntimeError):
+    """Raised when an augmented file cannot be linked to a real train-split source image."""
 
 
 def _real_train_patient_ids(root: Path) -> set[str]:
@@ -165,10 +165,9 @@ def _augmented_files_by_class(root: Path) -> dict[str, list[dict]]:
     notebooks/1_preprocessing/02_Data_Augmentation_Trad.ipynb), which already links every
     augmented file to its real source patient_id/image_id and original_processed_path.
 
-    Never falls back to inferring provenance from the filename alone: an augmented file with
+    Never falls back to inferring the source from the filename alone: an augmented file with
     no traceable, train-split source patient is rejected outright rather than silently
-    included as an unprovenanced image (spec: "il runtime deve rifiutare augmented prive di
-    provenance o provenienti da validation/test").
+    included without a verified train source.
     """
     label_to_class = {v: k for k, v in CLASS_LABEL.items()}
     by_class: dict[str, list[dict]] = {k: [] for k in CLASS_LABEL}
@@ -190,11 +189,11 @@ def _augmented_files_by_class(root: Path) -> dict[str, list[dict]]:
         patient_id = row.get("patient_id")
         original_path = row.get("original_processed_path", "")
         if not patient_id or patient_id not in train_patients:
-            raise AugmentationProvenanceError(
+            raise AugmentationSourceError(
                 f"augmented file {row.get('file_name')} has no train-split source patient "
                 f"(patient_id={patient_id!r}): refusing to include it")
         if "/processed/train/" not in original_path.replace("\\", "/"):
-            raise AugmentationProvenanceError(
+            raise AugmentationSourceError(
                 f"augmented file {row.get('file_name')} traces to a non-train source "
                 f"({original_path!r}): refusing to include it")
         by_class[klass].append({
@@ -283,7 +282,7 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
                 synthetic[klass] = [record["path"] for record in records]
                 synthetic_records[klass] = [dict(record) for record in records]
         else:
-            # Legacy, non-publication utilities may still scan+sample an unselected generator.
+            # Older non-publication utilities may still scan and sample an unselected generator.
             if generator_registry is None:
                 generator_registry = json.loads((root / "configs/generator_registry.json").read_text())
             entry = next((g for g in generator_registry["generators"] if g["id"] == gid), None)
@@ -314,7 +313,7 @@ def build_file_list(root: Path, variant: dict, generator_registry: dict | None =
 
 
 def _content_aware_record(root: Path, *, klass: str, entry: dict) -> dict:
-    """Canonical scientific identity for one image and its provenance."""
+    """Resume-safety record for one input image."""
     path = resolve_project_path(root, entry["path"])
     if not path.is_file():
         raise FileNotFoundError(f"dataset file does not exist: {path}")
@@ -462,16 +461,13 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
     if overlap:
         raise RuntimeError(f"patient leakage between train and validation: {sorted(overlap)[:10]}")
     # These content hashes exist only to detect a changed dataset when resuming a checkpoint;
-    # they are never written into configs or read by any downstream gate. The extra ``None`` field
-    # is kept in the hashed payload only to preserve signature stability with checkpoints trained
-    # before the provenance cleanup, so existing runs stay recognizable without retraining.
+    # they are never written into configs or read by any downstream scientific gate.
     training_signature = dataset_manifest_signature(root, file_list)
     validation_signature = validation_manifest_signature(root, val_rows)
     combined_signature = hashlib.sha256(json.dumps({
         "training_signature": training_signature, "validation_signature": validation_signature,
-        "approved_generator_signature": variant.get("approved_generator_signature"),
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
-    manifest_payload = {
+    dataset_metadata = {
         "schema_version": 3,
         "artifact_type": "classifier_dataset_manifest",
         "dataset_variant_id": variant["dataset_variant_id"],
@@ -484,7 +480,7 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
         "validation_patient_ids": sorted(val_patients),
         "patient_overlap": [],
     }
-    return train_rows, val_rows, manifest_payload
+    return train_rows, val_rows, dataset_metadata
 
 
 def write_dataset_manifest(root: Path, variant: dict, file_list: dict, out_path: Path) -> dict:

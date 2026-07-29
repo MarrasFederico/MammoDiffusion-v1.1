@@ -1,6 +1,6 @@
 """Regression test for the distribution-metrics guard in benchmark notebook 01.
 
-Excluded generators (for example the G06 generation-pool ablation, a provenance mismatch) are
+Excluded generators (for example the G06 generation-pool ablation) are
 absent from ``technical_rows``.  The distribution-metrics loop must skip them without raising a
 ``KeyError`` and must never emit a metric row for them.  This exercises the *behaviour* of the
 actual notebook cell source (executed with stubbed heavy dependencies), not the presence of the
@@ -64,8 +64,6 @@ def _stub_summary() -> dict:
 
 class DistributionMetricsGuardTests(unittest.TestCase):
     def _run_cell(self, technical_rows, candidate_audits):
-        calls: list[tuple] = []
-
         def fake_repeated_distribution_metrics(reference, candidate, protocol, *, resampling_plan=None):
             # Records is empty so the extend() generator never indexes validation/candidate ids.
             return [], _stub_summary()

@@ -3,7 +3,7 @@
 The only canonical clean Diffusers checkout is
 `notebooks/utility/diffusers_repo`, pinned at
 `3759fab56d3170a04d747e918a13e55fda6681e2` with remote
-`https://github.com/huggingface/diffusers`. Its working tree was clean at the recovery audit.
+`https://github.com/huggingface/diffusers`. Its working tree was clean when last verified.
 All code resolves it through `notebooks/utility/shared_diffusers_assets.py`; arbitrary experiment
 fallbacks are forbidden.
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import sys
 import tempfile
@@ -20,7 +19,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
 import classifier_checkpoint_io as checkpoint_io  # noqa: E402
-import classifier_architecture_adapters as adapters  # noqa: E402
 import classifier_analysis as da  # noqa: E402
 import classifier_experiment as de  # noqa: E402
 import classifier_protocol as dp  # noqa: E402
@@ -41,7 +39,7 @@ class GeneratorCompletionTests(unittest.TestCase):
 
     def test_benchmark_notebook_01_has_full_wiring_and_no_permanent_empty_placeholders(self):
         text = (ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb").read_text()
-        self.assertIn("RUN_REAL_BENCHMARK = True", text)
+        self.assertIn("RUN_REAL_BENCHMARK = False", text)
         self.assertIn("REFRESH_CANDIDATE_AUDIT = True", text)
         for forbidden in ("diversity_results = {}", "train_memorization_rows = []",
                           "validation_similarity_rows = []", "results_table = []"):
@@ -69,7 +67,10 @@ class GeneratorCompletionTests(unittest.TestCase):
                  for path in output.rglob("*") if path.is_file()} if output.exists() else set()
         self.assertFalse(namespace["RUN_REAL_BENCHMARK"])
         self.assertEqual(namespace["reference_status"]["status"], "Deferred: no real dataset was opened")
-        self.assertIsNone(namespace["generator_summary"])
+        self.assertIsInstance(namespace["generator_summary"], list)
+        self.assertGreater(len(namespace["generator_summary"]), 0)
+        self.assertIsInstance(namespace["generator_ranking"], list)
+        self.assertGreater(len(namespace["generator_ranking"]), 0)
         self.assertEqual(before, after)
 
     def test_technical_validity_schema_is_complete(self):
@@ -119,9 +120,7 @@ class GeneratorCompletionTests(unittest.TestCase):
                 "valid_positive_images": 1361, "synthetic_exact_duplicate_rate": 0,
                 "perceptual_hash_duplicate_rate": 0, "train_memorization_rate": 0,
                 "raddino_coverage": .8, "filter_acceptance_rate": .9, "metrics_complete": True,
-                "lineage_complete": True, "provenance_manifest_valid": True,
-                "filter_manifest_valid": True, "filter_provenance_complete": True, "n_corrupt": 0,
-                "training_corpus_manifest_valid": True,
+                "filter_manifest_valid": True, "n_corrupt": 0,
                 "test_access": False, "raddino_kid": kid, "raddino_precision": .8,
                 "raddino_fid": 3, "inception_kid": .2, "raddino_kid_std": .01}
 
@@ -243,16 +242,6 @@ class GPUResumeAndVisualizationTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises(RuntimeError):
                 de.assert_no_forbidden_data_paths(ROOT, [{"path": path, "label": 1}])
 
-    def test_resume_records_portable_gpu_change(self):
-        provenance = adapters._gpu_resume_provenance(
-            {"gpu_uuid": "GPU-old"}, "GPU-right"
-        )
-        self.assertEqual(provenance, {
-            "checkpoint_gpu_uuid": "GPU-old",
-            "runtime_gpu_uuid": "GPU-right",
-            "gpu_changed": True,
-        })
-
     def _checkpoint(self, root: Path):
         run = de.experiment_dir(root, "maxvit512", "real_only", 17)
         expected = {"architecture": "maxvit512", "experiment_id": "maxvit512__real_only__seed17",
@@ -331,10 +320,10 @@ class EnsembleFinalAndArchiveTests(unittest.TestCase):
             def load_manifest(self, root):
                 raise AssertionError("final data accessed")
         with self.assertRaises(PermissionError):
-            fe.run_final_evaluation(ROOT, run_final_evaluation=False, checklist={}, adapter=Trap())
-        complete = {item: True for item in fe.REQUIRED_CHECKLIST}
+            fe.run_final_evaluation(ROOT, run_final_evaluation=False, adapter=Trap())
         with self.assertRaisesRegex(RuntimeError, "No final evaluation dataset adapter"):
-            fe.run_final_evaluation(ROOT, run_final_evaluation=True, checklist=complete, adapter=None)
+            fe.run_final_evaluation(ROOT, run_final_evaluation=True,
+                                    overwrite_test_predictions=True, adapter=None)
 
 
     def test_final_paths_have_no_unimplemented_error(self):

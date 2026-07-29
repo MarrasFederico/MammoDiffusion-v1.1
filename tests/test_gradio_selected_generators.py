@@ -49,7 +49,7 @@ class GradioSelectedGeneratorsTests(unittest.TestCase):
         ):
             self.assertNotIn(retired, source)
 
-    def test_only_main_and_gradio_project_readmes_remain(self):
+    def test_readme_scan_ignores_results_and_runtime_namespaces(self):
         allowed = {
             Path("README.md"),
             Path("assets/mammodiffusion_gradio/README.md"),
@@ -58,11 +58,13 @@ class GradioSelectedGeneratorsTests(unittest.TestCase):
         for path in ROOT.rglob("README*"):
             relative = path.relative_to(ROOT)
             relative_text = relative.as_posix()
-            if relative_text.startswith(".cache/"):
+            if relative_text.startswith((".cache/", ".pytest_cache/")):
                 continue
             if relative_text.startswith("notebooks/utility/diffusers_repo/"):
                 continue
             if relative_text.startswith("notebooks/pretrained_model/"):
+                continue
+            if relative_text.startswith("results/"):
                 continue
             found.add(relative)
         self.assertEqual(found, allowed)

@@ -4,8 +4,8 @@
 # ║   Script STANDALONE: cella 4 → fine LDM Training (celle 4-23)              ║
 # ║                                                                              ║
 # ║   Prerequisiti su disco:                                                    ║
-# ║     data/processed/{train,val,test}/{0,1}/*.png                              ║
-# ║     data/processed/metadata/{train,val,test}.csv                             ║
+# ║     data/processed/{train,val}/{0,1}/*.png                                   ║
+# ║     data/processed/metadata/{train,val}.csv                                  ║
 # ║     experiments/<esperimento>/models/vae_{encoder,decoder}_best.keras        ║
 # ║                                                                              ║
 # ║   Avvio dal notebook (processo figlio indipendente):                        ║
@@ -42,7 +42,6 @@ import tempfile
 import time
 import json
 import contextlib
-import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -311,10 +310,8 @@ LATENT_STATS_PATH     = LATENTS_DIR / "latent_stats.npz"
 LATENTS_MANIFEST_PATH = LATENTS_DIR / "latents_manifest.json"
 
 METADATA_DIR   = DATA_PROCESSED_DIR / "metadata"
-ALL_CSV_PATH   = METADATA_DIR / "all_processed.csv"
 TRAIN_CSV_PATH = METADATA_DIR / "train.csv"
 VAL_CSV_PATH   = METADATA_DIR / "val.csv"
-TEST_CSV_PATH  = METADATA_DIR / "test.csv"
 
 print("PROJECT_ROOT:", PROJECT_ROOT)
 print("EXPERIMENT_DIR:", EXPERIMENT_DIR)
@@ -485,9 +482,9 @@ except ImportError:
 # ── HELPER: caricamento metadata ─────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 IMAGE_EXTENSIONS  = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-EXPECTED_SPLITS   = ["train", "val", "test"]
+EXPECTED_SPLITS   = ["train", "val"]
 EXPECTED_LABELS   = ["0", "1"]
-REQUIRED_METADATA = ["all_processed.csv", "train.csv", "val.csv", "test.csv"]
+REQUIRED_METADATA = ["train.csv", "val.csv"]
 DATASET_ROOT      = DATA_PROCESSED_DIR.resolve()
 
 
@@ -523,11 +520,10 @@ def load_metadata(csv_path, dataset_root):
 
 
 print("\n── Caricamento metadata ──")
-processed_df = load_metadata(ALL_CSV_PATH, DATASET_ROOT)
 train_df     = load_metadata(TRAIN_CSV_PATH, DATASET_ROOT)
 val_df       = load_metadata(VAL_CSV_PATH, DATASET_ROOT)
-test_df      = load_metadata(TEST_CSV_PATH, DATASET_ROOT)
-print(f"Totale: {len(processed_df)} | Train: {len(train_df)} | Val: {len(val_df)} | Test: {len(test_df)}")
+processed_df = pd.concat([train_df, val_df], ignore_index=True)
+print(f"Totale sviluppo: {len(processed_df)} | Train: {len(train_df)} | Val: {len(val_df)}")
 print(pd.crosstab(processed_df["split"], processed_df["label"]))
 
 

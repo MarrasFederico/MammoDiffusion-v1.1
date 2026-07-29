@@ -1,4 +1,0 @@
-class,FID,IS_mean,IS_std,precision,recall,density,coverage,n_generated,inference_steps,stage,class_name,label,real_label,n_real_reference,real_reference_metadata,generated_dir
-positive,99.2377,2.0923,0.0488,0.6811,0.0685,0.4481,0.9315,1361,100,filtered,positive,1,1,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/positive
-negative,108.9628,2.1516,0.0786,0.5195,0.0685,0.2273,0.8219,1361,100,filtered,negative,0,0,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/03_sd21_vae_finetuned/negative
-average,104.1003,2.122,0.0637,0.6003,0.0685,0.3377,0.8767,2722,100,filtered,average,,,73,/mnt/MammoDiffusion/MammoDiffusion/data/processed/metadata/test.csv,

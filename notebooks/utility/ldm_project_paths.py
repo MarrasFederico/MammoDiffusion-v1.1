@@ -39,7 +39,7 @@ class ResultsPaths:
 CLASS_NAME_BY_LABEL = {0: "negative", 1: "positive"}
 
 # G05 and G06 predate the shared ``data/synthetic`` layout. Their registered
-# manifests and benchmark provenance intentionally bind the positive pool to
+# operational manifests and benchmark inputs bind the positive pool to
 # the experiment-local directory. Keep that identity explicit instead of
 # silently substituting a similarly named pool from another experiment.
 EXPERIMENT_LOCAL_POSITIVE_FILTERED = {

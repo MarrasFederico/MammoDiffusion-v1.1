@@ -222,14 +222,14 @@ def construct_dataset(root: Path, configuration: Mapping[str, Any]) -> dict[str,
         from . import classifier_dataset_builder as builder
     except ImportError:
         import classifier_dataset_builder as builder
-    train_rows, validation_rows, provenance = builder.build_training_and_validation_rows(
+    train_rows, validation_rows, dataset_metadata = builder.build_training_and_validation_rows(
         Path(root), configuration["variant"])
     assert_no_forbidden_data_paths(root, train_rows + validation_rows)
     full_audit = audit_dataset(train_rows, validation_rows)
     if full_audit["train_validation_patient_overlap"]:
         raise RuntimeError("patient leakage detected before training")
     return {"train_rows": train_rows, "validation_rows": validation_rows,
-            "provenance": provenance, "audit": {"full": full_audit}}
+            "dataset_metadata": dataset_metadata, "audit": {"full": full_audit}}
 
 
 def audit_dataset(train_rows: Sequence[Mapping[str, Any]], validation_rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -323,13 +323,35 @@ def run_validation(root: Path, configuration: Mapping[str, Any], dataset: Mappin
                  dataset["validation_rows"], prediction["labels"], prediction["probabilities"])]
     probabilities = [row["probability"] for row in rows]
     if any(not math.isfinite(value) or not 0 <= value <= 1 for value in probabilities): raise ValueError("invalid probabilities")
-    report = metrics.full_report([row["label"] for row in rows], probabilities)
+    report = metrics.full_report(
+        [row["label"] for row in rows], probabilities, split="validation"
+    )
     output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
     _write_csv(output / "validation_predictions.csv", rows); atomic_json(output / "validation_metrics.json", report)
     return {"rows": rows, "metrics": report, "prediction_path": str(output / "validation_predictions.csv")}
 
 
-def run_test(root: Path, configuration: Mapping[str, Any], checkpoint: str | Path, test_rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def run_test(root: Path, configuration: Mapping[str, Any], checkpoint: str | Path,
+             test_rows: Sequence[Mapping[str, Any]], *,
+             overwrite_test_predictions: bool = False) -> dict[str, Any]:
+    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
+    prediction_path, metrics_path = output / "test_predictions.csv", output / "test_metrics.json"
+    if (prediction_path.exists() or metrics_path.exists()) and not overwrite_test_predictions:
+        raise FileExistsError(
+            "test predictions or metrics already exist; pass overwrite_test_predictions=True "
+            "only after explicit final-evaluation approval"
+        )
+    validation_path = output / "validation_metrics.json"
+    if not validation_path.is_file():
+        raise FileNotFoundError(
+            f"validation metrics must be frozen before test inference: {validation_path}"
+        )
+    validation_report = json.loads(validation_path.read_text(encoding="utf-8"))
+    threshold = validation_report.get("threshold")
+    specificity_record = validation_report.get("sensitivity_at_specificity_0_90") or {}
+    specificity_threshold = specificity_record.get("threshold")
+    if threshold is None or specificity_threshold is None:
+        raise ValueError("validation_metrics.json does not contain both frozen thresholds")
     adapter = get_adapter(configuration["architecture"], configuration["policy"], Path(root))
     prediction = adapter.predict_validation(Path(checkpoint), list(test_rows), seed=configuration["seed"])
     rows = [{"patient_id": source.get("patient_id"), "image_id": source.get("image_id"), "label": int(label),
@@ -338,10 +360,12 @@ def run_test(root: Path, configuration: Mapping[str, Any], checkpoint: str | Pat
                  test_rows, prediction["labels"], prediction["probabilities"])]
     probabilities = [row["probability"] for row in rows]
     if any(not math.isfinite(value) or not 0 <= value <= 1 for value in probabilities): raise ValueError("invalid probabilities")
-    report = metrics.full_report([row["label"] for row in rows], probabilities)
-    output = experiment_dir(root, configuration["architecture"], configuration["condition"], configuration["seed"])
-    _write_csv(output / "test_predictions.csv", rows); atomic_json(output / "test_metrics.json", report)
-    return {"rows": rows, "metrics": report, "prediction_path": str(output / "test_predictions.csv")}
+    report = metrics.full_report(
+        [row["label"] for row in rows], probabilities, float(threshold), split="test",
+        specificity_threshold=float(specificity_threshold),
+    )
+    _write_csv(prediction_path, rows); atomic_json(metrics_path, report)
+    return {"rows": rows, "metrics": report, "prediction_path": str(prediction_path)}
 
 
 def load_existing_outputs(root: Path, configuration: Mapping[str, Any]) -> dict[str, Any]:

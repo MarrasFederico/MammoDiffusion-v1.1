@@ -50,7 +50,7 @@ def checkpoint_dir(root: Path, architecture: str, condition: str, seed: int) -> 
 
 
 def discover_experiments(root: Path) -> list[dict[str, Any]]:
-    """Inspect only the canonical classifier_seed_runs tree; legacy paths are never traversed."""
+    """Inspect only the canonical classifier seed-run tree."""
     output = []
     for job in logical_experiments():
         directory = result_dir(root, job["architecture"], job["condition"], job["seed"])
@@ -112,7 +112,8 @@ def aggregate_patient(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
 
 
 def patient_bootstrap_intervals(rows: Sequence[Mapping[str, Any]], *, iterations: int, seed: int,
-                                threshold: float) -> dict[str, dict[str, float]]:
+                                threshold: float, split: str,
+                                specificity_threshold: float) -> dict[str, dict[str, float]]:
     """Stratified resampling of patients, never independent resampling of their images."""
     by_class = {label: [row for row in rows if int(row["label"]) == label] for label in (0, 1)}
     if not all(by_class.values()): raise ValueError("patient bootstrap requires both classes")
@@ -122,15 +123,31 @@ def patient_bootstrap_intervals(rows: Sequence[Mapping[str, Any]], *, iterations
         for label in (0, 1):
             indices = rng.choice(len(by_class[label]), len(by_class[label]), replace=True)
             sample.extend(by_class[label][int(index)] for index in indices)
-        report = metrics.full_report([row["label"] for row in sample], [row["probability"] for row in sample], threshold)
-        for name in ("pr_auc", "roc_auc", "brier_score", "ece", "sensitivity_recall", "specificity", "balanced_accuracy"):
+        report = metrics.full_report(
+            [row["label"] for row in sample], [row["probability"] for row in sample],
+            threshold, split=split, specificity_threshold=specificity_threshold,
+        )
+        for name in (
+            "pr_auc", "roc_auc", "brier_score", "ece", "sensitivity_recall",
+            "specificity", "precision_ppv", "npv", "f1", "accuracy",
+            "balanced_accuracy", "mcc",
+        ):
             values.setdefault(name, []).append(float(report[name]))
+        specificity_point = report["sensitivity_at_specificity_0_90"]
+        values.setdefault("sensitivity_at_specificity_0_90", []).append(
+            float(specificity_point["sensitivity"])
+        )
+        values.setdefault("specificity_at_frozen_0_90_threshold", []).append(
+            float(specificity_point["achieved_specificity"])
+        )
     return {name: {"percentile_2_5": float(np.percentile(metric_values, 2.5)),
                    "percentile_97_5": float(np.percentile(metric_values, 97.5))}
             for name, metric_values in values.items()}
 
 
 def build_validation_ensemble(root: Path, architecture: str, condition: str, split: str = "validation") -> dict[str, Any]:
+    if split not in {"validation", "test"}:
+        raise ValueError("split must be exactly 'validation' or 'test'")
     summaries = [json.loads((result_dir(root, architecture, condition, seed) / "dataset_summary.json").read_text()) for seed in SEEDS]
     validation_descriptors = {(row.get(f"{split}_manifest"), row.get(f"{split}_signature")) for row in summaries}
     if split == "validation" and (len(validation_descriptors) != 1 or next(iter(validation_descriptors))[0] is None):
@@ -139,16 +156,53 @@ def build_validation_ensemble(root: Path, architecture: str, condition: str, spl
     per_seed = {seed: _read_predictions(result_dir(root, architecture, condition, seed) / f"{split}_predictions.csv")
                 for seed in SEEDS}
     image_rows = align_seed_predictions(per_seed); patient_rows = aggregate_patient(image_rows)
-    report = metrics.full_report([row["label"] for row in patient_rows], [row["probability"] for row in patient_rows])
+    validation_ensemble = None
+    if split == "test":
+        validation_ensemble_path = Path(root) / ENSEMBLE_RESULTS / architecture / condition / "ensemble_metrics.json"
+        if not validation_ensemble_path.is_file():
+            raise FileNotFoundError(
+                f"validation ensemble thresholds must be frozen before test aggregation: {validation_ensemble_path}"
+            )
+        validation_ensemble = json.loads(validation_ensemble_path.read_text(encoding="utf-8"))
+        validation_metrics = validation_ensemble["metrics"]
+        report = metrics.full_report(
+            [row["label"] for row in patient_rows], [row["probability"] for row in patient_rows],
+            float(validation_metrics["threshold"]), split="test",
+            specificity_threshold=float(validation_metrics["sensitivity_at_specificity_0_90"]["threshold"]),
+        )
+    else:
+        report = metrics.full_report(
+            [row["label"] for row in patient_rows], [row["probability"] for row in patient_rows],
+            split="validation",
+        )
     protocol = load_protocol(root)
     confidence_intervals = patient_bootstrap_intervals(
         patient_rows, iterations=int(protocol["evaluation"]["confidence_intervals"]["iterations"]),
-        seed=int(protocol["evaluation"]["confidence_intervals"]["seed"]), threshold=float(report["threshold"]))
+        seed=int(protocol["evaluation"]["confidence_intervals"]["seed"]),
+        threshold=float(report["threshold"]), split=split,
+        specificity_threshold=float(report["sensitivity_at_specificity_0_90"]["threshold"]),
+    )
     seed_reports = []
     for seed in SEEDS:
         patient_seed = aggregate_patient(per_seed[seed])
-        seed_reports.append({"seed": seed, **metrics.full_report([row["label"] for row in patient_seed],
-                            [row["probability"] for row in patient_seed])})
+        if split == "test":
+            validation_seed_path = result_dir(root, architecture, condition, seed) / "validation_metrics.json"
+            if not validation_seed_path.is_file():
+                raise FileNotFoundError(
+                    f"seed validation thresholds must be frozen before test aggregation: {validation_seed_path}"
+                )
+            validation_seed = json.loads(validation_seed_path.read_text(encoding="utf-8"))
+            seed_report = metrics.full_report(
+                [row["label"] for row in patient_seed], [row["probability"] for row in patient_seed],
+                float(validation_seed["threshold"]), split="test",
+                specificity_threshold=float(validation_seed["sensitivity_at_specificity_0_90"]["threshold"]),
+            )
+        else:
+            seed_report = metrics.full_report(
+                [row["label"] for row in patient_seed], [row["probability"] for row in patient_seed],
+                split="validation",
+            )
+        seed_reports.append({"seed": seed, **seed_report})
     variability = {name: {"mean": mean(float(row[name]) for row in seed_reports),
                           "standard_deviation": stdev(float(row[name]) for row in seed_reports)}
                    for name in ("pr_auc", "roc_auc", "brier_score", "ece")}

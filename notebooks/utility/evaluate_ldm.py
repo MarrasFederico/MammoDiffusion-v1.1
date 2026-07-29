@@ -7,7 +7,6 @@ import json
 import math
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -15,9 +14,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from ldm_project_paths import (
-    DEFAULT_EXPERIMENT_NAME,
     RESULTS_STAGE_NAME,
-    PROJECT_NAME,
     ExperimentPaths,
     get_experiment_paths,
     get_results_paths,
@@ -458,7 +455,7 @@ def sweep_vae_signature(args: argparse.Namespace, paths: ExperimentPaths) -> dic
 def sweep_generation_manifest(
     args: argparse.Namespace, paths: ExperimentPaths, candidate: dict, cls: int
 ) -> dict:
-    """Provenance contract for one checkpoint/CFG/class sweep directory."""
+    """Operational compatibility record for one checkpoint/CFG/class sweep directory."""
     return {
         "schema_version": 2,
         "seed_strategy": "stateless_seed_per_image_v1",

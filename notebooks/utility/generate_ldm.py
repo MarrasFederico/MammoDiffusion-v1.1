@@ -49,7 +49,7 @@ from parallel_generation_utils import (
 
 
 def parse_args() -> argparse.Namespace:
-    """Definisce e legge gli argomenti CLI condivisi da tutte le modalita' dello script (generate/filter/validate/test/all/reverse/both)."""
+    """Parse generation, filtering, validation and visualization modes."""
     parser = argparse.ArgumentParser(
         description="Generate, filter and evaluate MammoDiffusion LDM final images."
     )
@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument(
         "--mode",
-        choices=["generate", "filter", "validate", "test", "all", "reverse", "both"],
+        choices=["generate", "filter", "validate", "all", "reverse", "both"],
         default="generate",
     )
     parser.add_argument("--target-label", type=int, default=1)
@@ -352,14 +352,22 @@ def ldm_vae_signature(args: argparse.Namespace, paths) -> dict:
 
 
 def raw_generation_manifest_payload(args: argparse.Namespace, paths, raw_dir: Path) -> dict:
-    """Scientific provenance required to resume a RAW LDM output directory."""
+    """Operational parameters required to resume a RAW output directory safely."""
     model_path = resolve_model_path(paths.experiment_dir, args.model_path)
+    stage_name = getattr(args, "results_stage_name", None)
+    generator_id = str(stage_name).split("/")[-1] if stage_name else Path(paths.experiment_dir).name
     return {
         "schema_version": 2,
+        "generator_id": generator_id,
+        "model_family": "ldm",
+        "checkpoint_path": str(model_path),
         "seed_strategy": "stateless_seed_per_image_v1",
         "seed": int(args.seed),
         "target_label": int(args.target_label),
         "n_raw": int(args.n_raw),
+        "expected_count": int(args.n_raw),
+        "image_size": 512,
+        "output_directory": str(raw_dir),
         "sample_steps": int(args.sample_steps),
         "guidance_scale": float(args.guidance_scale),
         "parameterization": args.parameterization,
@@ -379,7 +387,7 @@ def raw_generation_manifest_payload(args: argparse.Namespace, paths, raw_dir: Pa
 def prepare_raw_generation_manifest(
     args: argparse.Namespace, paths, raw_dir: Path, *, parent: bool, dry_run: bool = False
 ) -> dict:
-    """Validate RAW resume provenance before inspecting missing image indices.
+    """Validate RAW resume compatibility before inspecting missing image indices.
 
     Only the parent may create/replace the global manifest.  A worker merely
     validates the already-published manifest, preserving the multi-GPU protocol.
@@ -459,8 +467,8 @@ def append_jsonl(path: Path, payload: dict) -> None:
         os.fsync(file.fileno())
 
 
-def manifest_lineage_fields(args: argparse.Namespace) -> dict:
-    """Campi informativi comuni (parameterization, unet_version, VAE, notebook chiamante) da aggiungere a ogni manifest/JSON prodotto, cosi' 04c e le analisi successive possono distinguere le run senza doverlo assumere."""
+def manifest_operational_fields(args: argparse.Namespace) -> dict:
+    """Sampling/model fields needed to interpret generated outputs."""
     return {
         "notebook": args.notebook_name,
         "unet_version": args.unet_version,
@@ -663,7 +671,7 @@ def write_parallel_generation_parent_artifacts(args: argparse.Namespace, paths, 
         "sampler_randomness": "stateless_seed_per_image_v1",
         "wall_clock_seconds": parallel_info["wall_clock_seconds"],
         "energy_measurement": "not_aggregated_across_parallel_workers",
-        **manifest_lineage_fields(args),
+        **manifest_operational_fields(args),
     }
     if canonical_run:
         write_pipeline_manifest(paths, payload, args.results_stage_name)
@@ -690,7 +698,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
     if not args.dry_run:
         log_dir.mkdir(parents=True, exist_ok=True)
     # This must precede the no-target fast path: a complete directory is safe to
-    # skip only when its model/decoder/sampling provenance is still compatible.
+    # skip only when its model/decoder/sampling parameters are still compatible.
     prepare_raw_generation_manifest(
         args, paths, raw_dir, parent=not args.generation_worker, dry_run=args.dry_run
     )
@@ -937,7 +945,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
                 "seed": args.seed,
                 "sampler_randomness": "stateless_seed_per_image_v1",
                 "elapsed_seconds": elapsed,
-                **manifest_lineage_fields(args),
+                **manifest_operational_fields(args),
             },
         )
         manifest_payload = {
@@ -953,7 +961,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
             "state_json": str(state_path),
             "sampler_randomness": "stateless_seed_per_image_v1",
             "canonical_run": canonical_run,
-            **manifest_lineage_fields(args),
+            **manifest_operational_fields(args),
         }
         if canonical_run and not args.generation_worker:
             write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
@@ -1057,7 +1065,7 @@ def run_filter(args: argparse.Namespace, paths) -> None:
         "report_csv": str(report_path),
         "canonical_run": canonical_run,
         "cached": bool(summary.get("cached", False)),
-        **manifest_lineage_fields(args),
+        **manifest_operational_fields(args),
     }
     if canonical_run:
         mirror_positive_legacy_outputs(output_dir, results_paths.metrics_dir, args.target_label)
@@ -1079,12 +1087,12 @@ def select_metric_paths(paths: list[Path], limit: int | None) -> list[Path]:
 
 
 def file_signature(paths: list[Path]) -> list[dict]:
-    """Costruisce una firma content-aware (sha256) dei file di input, usata per invalidare la cache delle metriche se il contenuto cambia."""
+    """Build a content digest used only to invalidate a stale metrics cache."""
     return [file_content_signature(path) for path in paths]
 
 
 def use_metrics_cache(json_path: Path, csv_path: Path, config: dict, input_signature: dict) -> bool:
-    """Riusa le metriche già calcolate se config e input (file sintetici + test.csv) non sono cambiati, evitando di ripetere un calcolo costoso (FID/IS su GPU) senza motivo."""
+    """Reuse metrics only when configuration, synthetic inputs and validation references match."""
     if not json_path.exists():
         return False
     try:
@@ -1224,7 +1232,7 @@ def run_validate(args: argparse.Namespace, paths) -> None:
         "csv": str(csv_path),
         "json": str(json_path),
         "canonical_run": canonical_run,
-        **manifest_lineage_fields(args),
+        **manifest_operational_fields(args),
     }
     if canonical_run:
         pd.DataFrame(rows).to_csv(canonical_csv_path, index=False)
@@ -1240,69 +1248,6 @@ def run_validate(args: argparse.Namespace, paths) -> None:
         write_json(output_dir / "validation_manifest_trial.json", manifest_payload)
     print("Salvato:", csv_path)
     print("Salvato:", json_path)
-
-
-def evaluate_filtered_command(args: argparse.Namespace, paths, filtered_dir: Path) -> list[str]:
-    """Costruisce la riga di comando per lanciare in sottoprocesso evaluate_filtered_ldm.py (confronto FILTERED vs test set), propagando gli argomenti coerenti con questa run."""
-    command = [
-        sys.executable,
-        str(Path(__file__).resolve().parent / "evaluate_filtered_ldm.py"),
-        "--project-root", str(paths.project_root),
-        "--experiment-dir", str(paths.experiment_dir),
-        "--cuda-root", str(args.cuda_root),
-        "--synthetic-dir", str(filtered_dir),
-        "--expected-synthetic-count", str(args.n_selected),
-        "--target-label", str(args.target_label),
-        "--inception-batch", str(args.inception_batch),
-        "--is-splits", str(args.is_splits),
-        "--knn-k", str(args.knn_k),
-        "--inception-weights", args.inception_weights,
-        "--results-stage-name", args.results_stage_name,
-    ]
-    if args.gpu_visible_devices is not None:
-        command.extend(["--gpu-visible-devices", args.gpu_visible_devices])
-    if args.max_eval_images is not None:
-        command.extend(["--max-synthetic", str(args.max_eval_images)])
-    if args.force_recompute:
-        command.append("--force-recompute")
-    _, canonical_filtered_dir = get_class_image_dirs(paths, args.target_label)
-    if filtered_dir != canonical_filtered_dir:
-        command.extend(["--output-dir", str(filtered_dir.parent / "test_outputs_trial")])
-        command.append("--no-canonical-results")
-    return command
-
-
-def run_test(args: argparse.Namespace, paths) -> None:
-    """Lancia in sottoprocesso la valutazione finale FILTERED vs test set e registra l'esito nel manifest della pipeline, propagando l'eventuale errore del sottoprocesso."""
-    _, filtered_dir = resolve_image_dirs(paths, args)
-    _, canonical_filtered_dir = get_class_image_dirs(paths, args.target_label)
-    canonical_run = filtered_dir == canonical_filtered_dir
-    canonical_evaluation_dir = get_class_evaluation_dir(paths, args.target_label)
-    command = evaluate_filtered_command(args, paths, filtered_dir)
-    print("Comando test finale:")
-    print(" ".join(command))
-    completed = subprocess.run(command, cwd=str(paths.project_root), check=False)
-    if completed.returncode != 0:
-        raise SystemExit(completed.returncode)
-    manifest_payload = {
-        "stage": "test",
-        "filtered_dir": str(filtered_dir),
-        "target_label": int(args.target_label),
-        "csv": str(
-            (canonical_evaluation_dir if canonical_run else filtered_dir.parent / "test_outputs_trial")
-            / "final_filtered_vs_test.csv"
-        ),
-        "json": str(
-            (canonical_evaluation_dir if canonical_run else filtered_dir.parent / "test_outputs_trial")
-            / "final_filtered_vs_test.json"
-        ),
-        "canonical_run": canonical_run,
-        **manifest_lineage_fields(args),
-    }
-    if canonical_run:
-        write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
-    else:
-        write_json(filtered_dir.parent / "test_manifest_trial.json", manifest_payload)
 
 
 def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
@@ -1493,12 +1438,12 @@ def main() -> None:
 
     if args.dry_run:
         if args.mode != "generate":
-            print("--dry-run mostra soltanto il piano della generazione RAW; filter/validate/test/reverse non vengono avviati.")
+            print("--dry-run mostra soltanto il piano della generazione RAW; filter/validate/reverse non vengono avviati.")
         run_generate(args, paths)
         return
 
     if args.mode == "all":
-        orchestrate_modes(args, paths, ["generate", "filter", "validate", "test"])
+        orchestrate_modes(args, paths, ["generate", "filter", "validate"])
         return
     if args.mode == "both":
         orchestrate_modes(args, paths, ["generate", "filter", "reverse"])
@@ -1511,9 +1456,6 @@ def main() -> None:
         return
     if args.mode == "validate":
         run_validate(args, paths)
-        return
-    if args.mode == "test":
-        run_test(args, paths)
         return
     if args.mode == "reverse":
         run_reverse(args, paths)

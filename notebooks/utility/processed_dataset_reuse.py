@@ -38,6 +38,29 @@ REQUIRED_COLUMNS = (
 )
 
 
+def audit_patient_split_disjointness(rows) -> dict[str, list[str]]:
+    """Return patient overlaps between train, validation and test rows.
+
+    ``val`` and ``validation`` are treated as the same split. Missing patient IDs
+    are rejected because they make a patient-level leakage audit impossible.
+    """
+    by_split = {"train": set(), "val": set(), "test": set()}
+    aliases = {"train": "train", "val": "val", "validation": "val", "test": "test"}
+    for row in rows:
+        split = aliases.get(str(row.get("split", "")).strip().lower())
+        if split is None:
+            raise ValueError(f"unsupported split in patient audit: {row.get('split')!r}")
+        patient_id = str(row.get("patient_id", "")).strip()
+        if not patient_id:
+            raise ValueError("patient_id is required for patient-level split validation")
+        by_split[split].add(patient_id)
+    return {
+        "train_val": sorted(by_split["train"] & by_split["val"]),
+        "train_test": sorted(by_split["train"] & by_split["test"]),
+        "val_test": sorted(by_split["val"] & by_split["test"]),
+    }
+
+
 def _resolve_project_path(project_root: Path, value: object) -> Path:
     """Resolve a manifest path without making the project location implicit."""
 
@@ -149,6 +172,9 @@ def audit_processed_dataset(
 
     if checked["patient_id"].duplicated().any():
         reasons.append("patient_id is not unique across the canonical cohort")
+    patient_overlaps = audit_patient_split_disjointness(checked.to_dict("records"))
+    if any(patient_overlaps.values()):
+        reasons.append(f"patient_id overlaps between splits: {patient_overlaps}")
     if checked["processed_path"].astype(str).duplicated().any():
         reasons.append("processed_path is not unique across the canonical cohort")
 
@@ -225,5 +251,6 @@ __all__ = [
     "EXPECTED_LABELS",
     "EXPECTED_SPLITS",
     "REQUIRED_COLUMNS",
+    "audit_patient_split_disjointness",
     "audit_processed_dataset",
 ]

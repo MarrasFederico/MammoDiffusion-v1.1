@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import csv
-import hashlib
 import json
 import sys
 import tempfile
@@ -60,12 +59,12 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertTrue(fid_rows)
         self.assertTrue(all(row.get("role") == "descriptive_tiebreak" for row in fid_rows))
 
-    def test_train_memorization_reference_can_never_return_to_positive_only(self):
+    def test_train_memorization_uses_complete_existing_metadata(self):
         value = self.protocol["reference_sets"]["train_memorization"]
-        self.assertEqual(value, "generator_specific_declared_complete_training_corpus")
+        self.assertEqual(value, "processed_train_and_traditional_augmentation_metadata")
         self.assertNotIn("positive_only", value)
         notebook = (ROOT / "notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb").read_text()
-        self.assertIn("generator-specific complete declared training corpus", notebook)
+        self.assertIn("training_corpus_from_metadata(ROOT)", notebook)
 
     def test_repeated_metrics_use_shared_stability_plan_and_full_estimate(self):
         protocol = copy.deepcopy(self.protocol)
@@ -98,9 +97,7 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         base = {"family": "finetuned", "eligible_for_selection": True, "valid_positive_images": 1361,
                 "synthetic_exact_duplicate_rate": 0, "perceptual_hash_duplicate_rate": 0,
                 "train_memorization_rate": 0, "filter_manifest_valid": True,
-                "filter_provenance_complete": True, "n_corrupt": 0, "metrics_complete": True,
-                "test_access": False, "lineage_complete": True, "provenance_manifest_valid": True,
-                "training_corpus_manifest_valid": True}
+                "n_corrupt": 0, "metrics_complete": True, "test_access": False}
         def row(generator_id, kid, coverage, precision, fid, inception, stability):
             return {**base, "generator_id": generator_id, "raddino_kid": kid,
                     "raddino_coverage": coverage, "raddino_precision": precision,
@@ -231,21 +228,26 @@ class CanonicalEfficiencyTests(unittest.TestCase):
         self.assertEqual(result["efficiency_status"], "checkpoint_size_only")
 
 
-class CorrectedArtifactEfficiencyTests(unittest.TestCase):
-    def test_no_corrected_file_marks_invalid_durations_available(self):
+class CanonicalArtifactEfficiencyTests(unittest.TestCase):
+    def test_unverified_durations_are_unavailable_in_canonical_files(self):
         benchmark = ROOT / "results/2_diffusers/benchmark"
-        corrected = [benchmark / "generator_summary_corrected.csv",
-                     benchmark / "generator_ranking_corrected.csv"]
-        present = [path for path in corrected if path.is_file()]
-        if not present:
-            self.skipTest("corrected canonical files not present (run correct_efficiency_summary.py)")
+        canonical = [benchmark / "generator_summary.csv", benchmark / "generator_ranking.csv"]
         invalid = {"02_sd21_filtered_100steps", "03_sd21_vae_finetuned", "04_sd21_lora"}
-        for path in present:
+
+        self.assertEqual(list(benchmark.glob("*_corrected.csv")), [])
+        self.assertFalse((benchmark / "efficiency_correction.json").exists())
+        for path in canonical:
+            self.assertTrue(path.is_file(), f"missing canonical benchmark file: {path.name}")
             with path.open(newline="") as stream:
-                for row in csv.DictReader(stream):
-                    if row.get("generator_id") in invalid:
-                        self.assertNotEqual(row.get("efficiency_status"), "available",
-                                            f"{path.name}:{row['generator_id']} kept an invalid duration as available")
+                rows = list(csv.DictReader(stream))
+            for generator_id in invalid:
+                matching = [row for row in rows if row.get("generator_id") == generator_id]
+                self.assertTrue(matching, f"{path.name} has no row for {generator_id}")
+                for row in matching:
+                    context = f"{path.name}:{generator_id}:{row.get('condition', '')}"
+                    self.assertIn(row.get("generation_seconds_per_image"), (None, ""), context)
+                    self.assertEqual(row.get("efficiency_status"), gb.INVALID_DURATION_STATUS, context)
+                    self.assertEqual(row.get("generation_efficiency_status"), gb.INVALID_DURATION_STATUS, context)
 
 
 if __name__ == "__main__": unittest.main()

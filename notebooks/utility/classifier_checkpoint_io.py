@@ -1,4 +1,4 @@
-"""Checkpoint/resume provenance for one compact classifier experiment."""
+"""Checkpoint and resume safety for one compact classifier experiment."""
 from __future__ import annotations
 
 import io
@@ -117,7 +117,7 @@ def save_resume_checkpoint(run: Path, payload: dict, *, best: bool = False) -> P
 
 
 def load_resume_checkpoint(run: Path, expected: dict) -> tuple[dict | None, str]:
-    """Load latest, then previous; reject scientific-provenance mismatches."""
+    """Load latest, then previous; reject incompatible training state."""
     errors = []
     for name in ("checkpoint_latest", "checkpoint_previous"):
         path = resume_checkpoint_path(run, name)
@@ -170,7 +170,7 @@ def inspect_completed_run(
 
     Result artifacts (JSON/CSV) live under ``results_run``; the model checkpoints live under
     ``checkpoint_run`` (``experiments/classifiers/...``).  A completion marker is authoritative only
-    while all final artifacts still exist and its scientific identity matches.  Runs finalized before
+    while all final artifacts still exist and its training configuration matches. Runs finalized before
     completion markers were introduced are recovered once from their terminal resume checkpoint; the
     notebook then backfills the marker.
     """

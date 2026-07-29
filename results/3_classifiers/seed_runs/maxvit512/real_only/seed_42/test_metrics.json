@@ -1,17 +1,17 @@
 {
-  "threshold": 0.04474973678588867,
-  "tp": 45,
-  "tn": 266,
-  "fp": 99,
-  "fn": 28,
-  "sensitivity_recall": 0.6164383561643836,
-  "specificity": 0.7287671232876712,
-  "precision_ppv": 0.3125,
-  "npv": 0.9047619047619048,
-  "f1": 0.4147465437788019,
-  "accuracy": 0.7100456621004566,
-  "balanced_accuracy": 0.6726027397260275,
-  "mcc": 0.27386127875258304,
+  "threshold": 0.02928447350859642,
+  "tp": 47,
+  "tn": 246,
+  "fp": 119,
+  "fn": 26,
+  "sensitivity_recall": 0.6438356164383562,
+  "specificity": 0.673972602739726,
+  "precision_ppv": 0.28313253012048195,
+  "npv": 0.9044117647058824,
+  "f1": 0.3933054393305439,
+  "accuracy": 0.6689497716894978,
+  "balanced_accuracy": 0.6589041095890411,
+  "mcc": 0.24413749887261488,
   "roc_auc": 0.6989679114280353,
   "pr_auc": 0.349473807507988,
   "brier_score": 0.16001599603309155,
@@ -19,7 +19,7 @@
   "sensitivity_at_specificity_0_90": {
     "target_specificity": 0.9,
     "sensitivity": 0.3150684931506849,
-    "achieved_specificity": 0.9013698630136986,
-    "threshold": 0.4056047201156616
+    "achieved_specificity": 0.8931506849315068,
+    "threshold": 0.3527100384235382
   }
 }

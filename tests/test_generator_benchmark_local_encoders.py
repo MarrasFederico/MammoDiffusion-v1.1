@@ -51,11 +51,11 @@ class NotebookLocalEncoderTests(unittest.TestCase):
     def test_downloads_stay_disabled_during_the_benchmark(self):
         self.assertNotIn("allow_model_download=True", self.code)
 
-    def test_training_corpus_uses_shared_content_addressed_cache(self):
-        self.assertIn("training_manifest_sha256 = file_sha256(ROOT / training_manifest)", self.code)
-        self.assertIn("embedding_cache_root / 'shared_training_corpora' / training_manifest_sha256 / 'rad_dino.npy'",
+    def test_training_corpus_uses_one_shared_invalidating_cache(self):
+        self.assertIn("train_paths, train_ids, train_labels, train_sources = training_corpus_from_metadata(ROOT)",
                       self.code)
-        # The stale per-generator '_training_corpus' cache directory must be gone.
+        self.assertIn("embedding_cache_root / 'shared_training_corpus/rad_dino.npy'", self.code)
+        self.assertIn("source_manifest=str(train_metadata), metadata_csv=str(train_metadata)", self.code)
         self.assertNotIn("'_training_corpus'", self.code)
         self.assertIn("close_local_encoders()", self.code)
 

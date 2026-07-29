@@ -1,27 +1,20 @@
-"""Transparent final-evaluation guard, simple adapter interface and Markdown report."""
+"""Simple opt-in, frozen-threshold and overwrite guards for final evaluation."""
 from __future__ import annotations
 
-import csv
-import json
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping
 
 try:
-    from .classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, load_selected_generators
+    from .classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, logical_experiments
 except ImportError:
-    from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, atomic_json, load_selected_generators
+    from classifier_protocol import ARCHITECTURES, CONDITIONS, SEEDS, logical_experiments
 
 
-REQUIRED_CHECKLIST = (
-    "Generator benchmark completed", "Generators selected", "24 downstream jobs completed",
-    "8 validation ensembles completed", "Validation analysis finalized",
-    "Checkpoints selected using validation only", "Decision thresholds selected using validation only",
-    "Statistical comparisons declared", "Final evaluation dataset identified", "No further model selection will occur",
-)
+EXPECTED_PATIENT_COUNT = 438
 
 
 class FinalEvaluationDatasetAdapter:
-    """Minimal interface to implement only after an approved final dataset is chosen."""
+    """Minimal interface for the already declared held-out RSNA test split."""
 
     def load_manifest(self, root: Path):
         raise RuntimeError("Final evaluation dataset adapter must implement load_manifest()")
@@ -33,46 +26,99 @@ class FinalEvaluationDatasetAdapter:
         raise RuntimeError("Final evaluation dataset adapter must implement describe()")
 
 
-def final_dataset_status(adapter: FinalEvaluationDatasetAdapter | None = None) -> dict[str, str]:
-    return {"Final evaluation dataset": "held-out test set", "Split policy": "fixed before any test access",
-            "Configured final adapter": type(adapter).__name__ if adapter is not None else "Not yet configured"}
+def expected_experiment_ids() -> list[str]:
+    return [row["experiment_id"] for row in logical_experiments()]
 
 
-def require_final_evaluation_opt_in(run_final_evaluation: bool, checklist: Mapping[str, bool]) -> None:
+def expected_prediction_files() -> list[str]:
+    files = []
+    for architecture in ARCHITECTURES:
+        for condition in CONDITIONS:
+            for seed in SEEDS:
+                files.append(
+                    f"results/3_classifiers/seed_runs/{architecture}/{condition}/seed_{seed}/test_predictions.csv"
+                )
+    return files
+
+
+def _threshold_pair(path: Path, *, nested: bool = False) -> dict[str, float]:
+    import json
+
+    if not path.is_file():
+        raise FileNotFoundError(f"validation thresholds are missing: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    metrics = payload.get("metrics", {}) if nested else payload
+    specificity = metrics.get("sensitivity_at_specificity_0_90") or {}
+    if metrics.get("threshold") is None or specificity.get("threshold") is None:
+        raise ValueError(f"validation artifact lacks frozen operating points: {path}")
+    values = {
+        "decision_threshold": float(metrics["threshold"]),
+        "specificity_0_90_threshold": float(specificity["threshold"]),
+    }
+    if any(not 0.0 <= value <= 1.0 for value in values.values()):
+        raise ValueError(f"validation threshold outside [0, 1]: {path}")
+    return values
+
+
+def frozen_validation_thresholds(root: Path) -> dict[str, dict[str, float]]:
+    """Read the 24 seed and 8 ensemble operating points from canonical validation results."""
+    root = Path(root)
+    frozen: dict[str, dict[str, float]] = {}
+    for architecture in ARCHITECTURES:
+        for condition in CONDITIONS:
+            for seed in SEEDS:
+                path = (root / "results/3_classifiers/seed_runs" / architecture / condition
+                        / f"seed_{seed}/validation_metrics.json")
+                frozen[f"seed:{architecture}:{condition}:{seed}"] = _threshold_pair(path)
+            path = (root / "results/3_classifiers/validation_ensembles" / architecture
+                    / condition / "ensemble_metrics.json")
+            frozen[f"ensemble:{architecture}:{condition}"] = _threshold_pair(path, nested=True)
+    return frozen
+
+
+def require_final_evaluation_opt_in(root: Path, *, run_final_evaluation: bool,
+                                    overwrite_test_predictions: bool = False) -> dict[str, Any]:
+    """Validate the single opt-in and refuse accidental prediction replacement."""
     if run_final_evaluation is not True:
         raise PermissionError("RUN_FINAL_EVALUATION must be exactly True")
-    missing = [item for item in REQUIRED_CHECKLIST if checklist.get(item) is not True]
-    if missing: raise RuntimeError(f"final-evaluation checklist incomplete: {missing}")
+    thresholds = frozen_validation_thresholds(root)
+    existing = [
+        relative for relative in expected_prediction_files()
+        if (Path(root) / relative).exists()
+    ]
+    if existing and overwrite_test_predictions is not True:
+        raise FileExistsError(
+            "test predictions already exist; set OVERWRITE_TEST_PREDICTIONS=True separately "
+            "only after explicit approval"
+        )
+    return {
+        "expected_patient_count": EXPECTED_PATIENT_COUNT,
+        "selected_experiments": expected_experiment_ids(),
+        "validation_thresholds_frozen": thresholds,
+    }
 
 
-def save_protocol_snapshot(root: Path, *, selected_generators: Mapping[str, Any], seed_checkpoints: Mapping[str, Any],
-                           validation_thresholds: Mapping[str, float], planned_comparisons: Sequence[Mapping[str, Any]],
-                           final_evaluation_dataset_identifier: str, notes: str = "") -> Path:
-    if not final_evaluation_dataset_identifier.strip(): raise ValueError("final evaluation dataset identifier is required")
-    payload = {"selected_generators": {key: selected_generators[key] for key in ("finetuned", "from_scratch")},
-               "architectures": list(ARCHITECTURES), "conditions": list(CONDITIONS),
-               "seed_checkpoints": dict(seed_checkpoints),
-               "ensemble_definitions": {f"{a}:{c}": {"seeds": list(SEEDS), "method": "mean_probability"}
-                                        for a in ARCHITECTURES for c in CONDITIONS},
-               "validation_selected_thresholds": dict(validation_thresholds),
-               "planned_statistical_comparisons": list(planned_comparisons),
-               "final_evaluation_dataset_identifier": final_evaluation_dataset_identifier, "notes": notes}
-    return atomic_json(Path(root) / "results/4_final_evaluation_protocol.json", payload)
-
-
-def run_final_evaluation(root: Path, *, run_final_evaluation: bool, checklist: Mapping[str, bool],
+def run_final_evaluation(root: Path, *, run_final_evaluation: bool,
+                         overwrite_test_predictions: bool = False,
                          adapter: FinalEvaluationDatasetAdapter | None = None,
-                         evaluator: Callable[[Path, Mapping[str, Any]], Mapping[str, Any]] | None = None) -> Mapping[str, Any]:
-    """Access final data only after explicit opt-in, a complete checklist and a real adapter."""
-    require_final_evaluation_opt_in(run_final_evaluation, checklist)
+                         evaluator: Callable[[Any, Mapping[str, Any]], Mapping[str, Any]] | None = None) -> Mapping[str, Any]:
+    """Run only after explicit opt-in, frozen thresholds, adapter and evaluator are present."""
+    plan = require_final_evaluation_opt_in(
+        root, run_final_evaluation=run_final_evaluation,
+        overwrite_test_predictions=overwrite_test_predictions,
+    )
     if adapter is None:
-        raise RuntimeError("No final evaluation dataset adapter is configured. Configure the held-out test-set adapter before running the final evaluation.")
-    snapshot_path = Path(root) / "results/4_final_evaluation_protocol.json"
-    if not snapshot_path.is_file(): raise FileNotFoundError("save the final-evaluation protocol snapshot first")
-    manifest = adapter.load_manifest(Path(root)); dataset = adapter.build_dataset(Path(root), manifest)
-    if evaluator is None: raise RuntimeError("No final evaluation function is configured for the selected dataset adapter")
-    return evaluator(dataset, json.loads(snapshot_path.read_text()))
+        raise RuntimeError("No final evaluation dataset adapter is configured")
+    if evaluator is None:
+        raise RuntimeError("No final evaluation function is configured")
+    manifest = adapter.load_manifest(Path(root))
+    dataset = adapter.build_dataset(Path(root), manifest)
+    return evaluator(dataset, plan)
 
 
-__all__ = ["FinalEvaluationDatasetAdapter", "REQUIRED_CHECKLIST", "final_dataset_status",
-           "require_final_evaluation_opt_in", "run_final_evaluation", "save_protocol_snapshot"]
+__all__ = [
+    "EXPECTED_PATIENT_COUNT", "FinalEvaluationDatasetAdapter",
+    "expected_experiment_ids", "expected_prediction_files", "frozen_validation_thresholds",
+    "require_final_evaluation_opt_in",
+    "run_final_evaluation",
+]

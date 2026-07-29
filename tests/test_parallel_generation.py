@@ -7,7 +7,6 @@ import sys
 import tempfile
 import unittest
 import ast
-import argparse
 import importlib
 import importlib.util
 import inspect
@@ -68,7 +67,6 @@ import sd_vae_utils  # noqa: E402
 from run_adaptive_filter import candidate_png_paths  # noqa: E402
 import generate_ldm  # noqa: E402
 import evaluate_ldm  # noqa: E402
-import evaluate_filtered_ldm  # noqa: E402
 
 
 def png(path: Path) -> None:
@@ -103,7 +101,7 @@ class ParallelGenerationTests(unittest.TestCase):
             "04_SD21_LoRA.ipynb",
         ):
             source = (ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8")
-            self.assertIn('n_reused = len(reuse_provenance[\\"files\\"])', source)
+            self.assertIn('n_reused = len(reuse_record[\\"files\\"])', source)
             self.assertIn("n_new = int(target_total) - int(n_reused)", source)
             self.assertIn('\\"count\\": n_new', source)
     def test_dynamic_reservation_defaults_and_last_chunk(self):
@@ -318,23 +316,12 @@ class ParallelGenerationTests(unittest.TestCase):
             self.assertIn("gen_0000.png", plan["corrupt_files"])
             self.assertIn("foreign.png", plan["extra_files"])
 
-    def test_all_to_test_command_is_accepted_by_both_real_parsers(self) -> None:
-        paths = SimpleNamespace(
-            project_root=ROOT, experiment_dir=ROOT / "experiments" / "test",
-            synthetic_raw_dir=ROOT / "raw", synthetic_filtered_dir=ROOT / "filtered",
-        )
-        with patch.object(sys, "argv", ["generate_ldm.py", "--mode", "all"]):
-            parent = generate_ldm.parse_args()
-        test_child = generate_ldm.child_command(parent, paths, "test")
-        with patch.object(sys, "argv", [test_child[1], *test_child[2:]]):
-            child_args = generate_ldm.parse_args()
-        filtered = paths.synthetic_filtered_dir
-        metrics_command = generate_ldm.evaluate_filtered_command(child_args, paths, filtered)
-        with patch.object(sys, "argv", [metrics_command[1], *metrics_command[2:]]):
-            parsed = evaluate_filtered_ldm.parse_args()
-        self.assertEqual(parsed.target_label, parent.target_label)
-        self.assertNotIn("--generation-gpus", metrics_command)
-        self.assertNotIn("--max-generation-workers", metrics_command)
+    def test_generation_cli_has_no_generator_test_evaluation_mode(self) -> None:
+        with patch.object(sys, "argv", ["generate_ldm.py", "--mode", "test"]):
+            with self.assertRaises(SystemExit):
+                generate_ldm.parse_args()
+        source = (ROOT / "notebooks/utility/generate_ldm.py").read_text(encoding="utf-8")
+        self.assertNotIn("evaluate_filtered_command", source)
 
     def test_generate_child_and_worker_preserve_gpu_configuration(self) -> None:
         paths = SimpleNamespace(project_root=ROOT, experiment_dir=ROOT / "experiment")
@@ -392,7 +379,7 @@ class ParallelGenerationTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 prepare_sd_manifest(self._request(evaluation), "checkpoint", False)
 
-    def test_complete_final_without_lineage_manifests_is_rejected(self) -> None:
+    def test_complete_final_without_generation_manifests_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             final = Path(tmp) / "final"
             final.mkdir()
@@ -665,7 +652,7 @@ class ParallelGenerationTests(unittest.TestCase):
             request = self._request(Path(tmp) / "final", "final_new")
             png(Path(request["out_dir"]) / "gen_0000.png")
             prepare_sd_manifest(request, "checkpoint", True)
-            # The audited legacy set remains immutable across resumes.
+            # The pre-v2 file set remains immutable across resumes.
             prepare_sd_manifest(request, "checkpoint", True)
             manifest = json.loads((Path(request["out_dir"]) / ".generation_manifest.json").read_text())
             self.assertEqual(manifest["seed_strategy"], "mixed_legacy_and_per_image_seed_v2")
@@ -969,7 +956,7 @@ class ParallelGenerationTests(unittest.TestCase):
         module_path = ROOT / "notebooks" / "utility" / "adaptive_mammography_filter.py"
         spec = importlib.util.spec_from_file_location("_filter_raw_set_test", module_path)
         module = importlib.util.module_from_spec(spec)
-        import numpy  # Keep its extension module registered across patch.dict cleanup.
+        __import__("numpy")  # Keep its extension module registered across patch.dict cleanup.
         fake_ndi = SimpleNamespace()
         with patch.dict(sys.modules, {"pandas": SimpleNamespace(), "scipy": SimpleNamespace(ndimage=fake_ndi), "scipy.ndimage": fake_ndi}):
             assert spec.loader is not None
@@ -1065,13 +1052,6 @@ class ParallelGenerationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "0001"):
                 exact_filtered_png_paths(directory, 2)
 
-    def test_final_evaluator_command_passes_exact_selected_count(self) -> None:
-        paths = SimpleNamespace(project_root=ROOT, experiment_dir=ROOT / "experiment", synthetic_raw_dir=ROOT / "raw", synthetic_filtered_dir=ROOT / "filtered")
-        with patch.object(sys, "argv", ["generate_ldm.py", "--mode", "all", "--n-selected", "7"]):
-            args = generate_ldm.parse_args()
-        command = generate_ldm.evaluate_filtered_command(args, paths, paths.synthetic_filtered_dir)
-        self.assertEqual(command[command.index("--expected-synthetic-count") + 1], "7")
-
     def test_sweep_out_of_range_index_does_not_fill_hole(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); paths = SimpleNamespace(project_root=root, evaluation_dir=root / "evaluation")
@@ -1100,11 +1080,12 @@ class ParallelGenerationTests(unittest.TestCase):
         for index, source in enumerate(cells):
             compile(source, f"09-cell-{index}", "exec")
 
-    def test_ldm_preview_notebooks_guard_both_sd_layout_globals(self) -> None:
+    def test_ldm_preview_notebooks_keep_validation_only_reporting(self) -> None:
         for name in ("05_LDM_Basic_FromScratch.ipynb", "06_LDM_Extra1361_FromScratch.ipynb"):
             payload = json.loads((ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8"))
             text_value = "\n".join("".join(cell.get("source", [])) for cell in payload["cells"])
-            self.assertIn('"EVAL_DIR" in globals()', text_value)
+            self.assertNotIn("TEST_METADATA_PATH", text_value)
+            self.assertNotIn("final_test_metrics", text_value)
 
     def test_filter_recompute_path_always_clears_canonical_outputs(self) -> None:
         source = (ROOT / "notebooks" / "utility" / "adaptive_mammography_filter.py").read_text(encoding="utf-8")
@@ -1265,7 +1246,7 @@ class ParallelGenerationTests(unittest.TestCase):
         module_path = ROOT / "notebooks" / "utility" / "adaptive_mammography_filter.py"
         spec = importlib.util.spec_from_file_location("_filter_signature_test", module_path)
         module = importlib.util.module_from_spec(spec)
-        import numpy  # Keep its extension module registered across patch.dict cleanup.
+        __import__("numpy")  # Keep its extension module registered across patch.dict cleanup.
         fake_ndi = SimpleNamespace()
         with patch.dict(sys.modules, {"pandas": SimpleNamespace(), "scipy": SimpleNamespace(ndimage=fake_ndi), "scipy.ndimage": fake_ndi}):
             assert spec.loader is not None

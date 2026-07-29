@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "pipeline_namespace": "mammodiffusion.classifier_validation.v2",
+  "protocol_version": 2,
   "research_questions": {
     "RQ2": "Does adding positive synthetic mammograms improve classification over real-only data and traditional augmentation?",
     "RQ3": "Is the effect consistent across MaxViT-512 and Mammo-FM?"
@@ -60,5 +60,5 @@
   },
   "results_root": "results/3_classifiers/seed_runs",
   "experiments_root": "experiments/classifiers",
-  "final_evaluation": {"guard": "RUN_FINAL_EVALUATION", "default": false, "protocol_snapshot": "results/4_final_evaluation_protocol.json"}
+  "final_evaluation": {"guard": "RUN_FINAL_EVALUATION", "default": false, "overwrite_guard": "OVERWRITE_TEST_PREDICTIONS", "overwrite_default": false}
 }

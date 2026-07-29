@@ -11,7 +11,7 @@ class ArtifactPhasePlannerTests(unittest.TestCase):
   ck=root/'model.bin'; ck.write_bytes(b'checkpoint')
   images=root/'images'; images.mkdir()
   for i in range(count): (images/f'gen_{i:04d}.png').write_bytes(b'png'+bytes([i]))
-  manifest={'schema_version':1,'provenance':'runtime_assets_verified','phases':{
+  manifest={'schema_version':1,'phases':{
    'training':{'files':[{'path':'model.bin','size_bytes':ck.stat().st_size,'sha256':hashlib.sha256(ck.read_bytes()).hexdigest()}]},
    'generation':{'image_sets':[{'path':'images','prefix':'gen_','start_index':0,'count':count}]},
    'evaluation':{'files':[{'path':'model.bin','sha256':hashlib.sha256(ck.read_bytes()).hexdigest()}]},
@@ -54,9 +54,9 @@ class ArtifactPhasePlannerTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as t:
    root=Path(t); (root/'runtime_manifest.json').write_text('{}')
    self.assertFalse(load_runtime_manifest(root)['valid'])
- def test_incompatible_provenance_isolated(self):
+ def test_incompatible_schema_is_not_reused(self):
   with tempfile.TemporaryDirectory() as t:
-   root=Path(t); self.fixture(root); x=json.loads((root/'runtime_manifest.json').read_text()); x['provenance']='unverified'; (root/'runtime_manifest.json').write_text(json.dumps(x))
+   root=Path(t); self.fixture(root); x=json.loads((root/'runtime_manifest.json').read_text()); x['schema_version']=999; (root/'runtime_manifest.json').write_text(json.dumps(x))
    self.assertEqual(plan_experiment(root,{'training':'auto'})[0]['action'],'run')
  def test_historical_logs_are_never_touched(self):
   with tempfile.TemporaryDirectory() as t:

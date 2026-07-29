@@ -109,7 +109,12 @@ def expected_calibration_error(labels: Sequence[int], probabilities: Sequence[fl
 
 def sensitivity_at_fixed_specificity(labels: Sequence[int], probabilities: Sequence[float],
                                      target_specificity: float = 0.90) -> dict:
-    """Highest sensitivity among thresholds meeting the preregistered specificity target."""
+    """Select an operating point on validation only.
+
+    Callers evaluating a test split must use :func:`sensitivity_at_threshold`
+    with the threshold returned here; searching this operating point on test is
+    deliberately not part of ``full_report``'s test mode.
+    """
     y, p = _as_array(labels), _as_array(probabilities)
     candidates = np.unique(np.concatenate(([1.0 + np.finfo(float).eps], p)))
     feasible = []
@@ -122,6 +127,20 @@ def sensitivity_at_fixed_specificity(labels: Sequence[int], probabilities: Seque
     sensitivity, specificity, threshold = max(feasible, default=(0.0, 1.0, 1.0), key=lambda row: (row[0], row[1], row[2]))
     return {"target_specificity": target_specificity, "sensitivity": sensitivity,
             "achieved_specificity": specificity, "threshold": threshold}
+
+
+def sensitivity_at_threshold(labels: Sequence[int], probabilities: Sequence[float],
+                             threshold: float, target_specificity: float = 0.90) -> dict:
+    """Apply a validation-selected specificity operating point without optimizing it."""
+    counts = confusion_counts(labels, probabilities, float(threshold))
+    positive = counts["tp"] + counts["fn"]
+    negative = counts["tn"] + counts["fp"]
+    return {
+        "target_specificity": float(target_specificity),
+        "sensitivity": counts["tp"] / positive if positive else 0.0,
+        "achieved_specificity": counts["tn"] / negative if negative else 0.0,
+        "threshold": float(threshold),
+    }
 
 
 def metrics_at_threshold(labels: Sequence[int], probabilities: Sequence[float], threshold: float) -> dict:
@@ -145,16 +164,37 @@ def metrics_at_threshold(labels: Sequence[int], probabilities: Sequence[float], 
     }
 
 
-def full_report(labels: Sequence[int], probabilities: Sequence[float], threshold: float | None = None) -> dict:
-    """Every metric required by spec section 7.1 / 16, at a given (or Youden-derived) threshold."""
+def full_report(labels: Sequence[int], probabilities: Sequence[float], threshold: float | None = None,
+                *, split: str, specificity_threshold: float | None = None,
+                target_specificity: float = 0.90) -> dict:
+    """Build a validation or test report with an explicit operating-point policy.
+
+    Validation may select the Youden and target-specificity thresholds. Test
+    mode requires both frozen thresholds and never calls a threshold optimizer.
+    """
+    normalized_split = str(split).strip().lower()
+    if normalized_split not in {"validation", "test"}:
+        raise ValueError("split must be exactly 'validation' or 'test'")
+    if normalized_split == "test" and threshold is None:
+        raise ValueError("test evaluation requires a threshold frozen on validation")
+    if normalized_split == "test" and specificity_threshold is None:
+        raise ValueError(
+            "test evaluation requires a target-specificity threshold frozen on validation"
+        )
     if threshold is None:
         threshold = youden_threshold(labels, probabilities)["threshold"]
+    if specificity_threshold is None:
+        specificity_threshold = sensitivity_at_fixed_specificity(
+            labels, probabilities, target_specificity
+        )["threshold"]
     report = metrics_at_threshold(labels, probabilities, threshold)
     report["roc_auc"] = roc_auc(labels, probabilities)
     report["pr_auc"] = pr_auc(labels, probabilities)
     report["brier_score"] = brier_score(labels, probabilities)
     report["ece"] = expected_calibration_error(labels, probabilities)
-    report["sensitivity_at_specificity_0_90"] = sensitivity_at_fixed_specificity(labels, probabilities, 0.90)
+    report["sensitivity_at_specificity_0_90"] = sensitivity_at_threshold(
+        labels, probabilities, specificity_threshold, target_specificity
+    )
     return report
 
 

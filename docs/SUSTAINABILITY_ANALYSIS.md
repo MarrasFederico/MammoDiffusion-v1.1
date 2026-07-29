@@ -1,11 +1,8 @@
 # Sustainability analysis (v2)
 
-Modernizes the ideas in the legacy `../Versione vecchia/notebooks/12_Valutazione_Sostenibilità.ipynb`
-(log-scale absolute energy/CO2, performance-vs-consumption trade-off, per-phase cost
-decomposition, augmentation-vs-diffusion comparison) while fixing its known limitations: naive
-summation of every JSON/JSONL on disk, duplicated resume segments, no separation between
-validation and test, only two configurations compared, and no provenance on where a number came
-from.
+The current analysis covers log-scale absolute energy/CO2, performance-versus-consumption
+trade-offs, per-phase cost decomposition, and augmentation-versus-diffusion comparisons. It avoids
+double-counting resumed segments and keeps validation and test accounting separate.
 
 ## Schema
 
@@ -36,8 +33,8 @@ energy**: because CodeCarbon does not model the RTX 5060 Ti correctly, energy is
 longer than 60 s are kept — which discards CodeCarbon's empty restart appends. It plots per-generator
 energy, the per-phase decomposition and the generation cost. The `02_sd21_filtered` generation cost is
 a controlled 100-image, 100-step measurement (its historical log conflated generation into filtering);
-`05_ldm_basic` is an abandoned dead end and is omitted. Efficiency is never a primary
-generator-selection metric.
+`05_ldm_basic` is the positive-only baseline and is omitted from the selected-generator
+comparison. Efficiency is never a primary generator-selection metric.
 
 **CodeCarbon is kept only as a source of wall-clock time.** `notebooks/utility/eco_tracker.py` wraps
 CodeCarbon's `EmissionsTracker` and RAM-peak sampling to produce the raw logs, but its `energy_kwh`

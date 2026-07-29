@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "pipeline_namespace": "mammodiffusion.classifier_validation.v2",
+  "protocol_version": 2,
   "note": "Exactly 24 notebook-run job definitions. Synthetic conditions require configs/selected_generators.json created by 3_generator_benchmark/02_Generator_Selection.ipynb.",
   "architectures": [
     "maxvit512",

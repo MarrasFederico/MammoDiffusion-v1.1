@@ -311,7 +311,7 @@ def exact_filtered_png_paths(directory: Path, count: int) -> list[Path]:
 def filtered_selection_cache_matches(
     summary_path: Path, input_signature: dict, filtered_dir: Path, n_selected: int
 ) -> bool:
-    """Validate filter lineage and every expected readable filtered output."""
+    """Validate filter inputs and every expected readable filtered output."""
     try:
         payload = json.loads(Path(summary_path).read_text(encoding="utf-8"))
     except Exception:
@@ -411,11 +411,11 @@ def final_sd_generation_plan(
             reused_indices.append(index)
         else:
             corrupt_reused.append(path.name)
-    provenance_path = Path(final_dir) / ".evaluation_reuse.json"
+    reuse_record_path = Path(final_dir) / ".evaluation_reuse.json"
     expected_reused_count = 0
-    if provenance_path.is_file():
+    if reuse_record_path.is_file():
         try:
-            expected_reused_count = len(json.loads(provenance_path.read_text(encoding="utf-8")).get("files", []))
+            expected_reused_count = len(json.loads(reuse_record_path.read_text(encoding="utf-8")).get("files", []))
         except Exception:
             expected_reused_count = 0
     if not expected_reused_count and (reused_indices or corrupt_reused):
@@ -686,7 +686,7 @@ def validate_sd_evaluation_source(
     checkpoint_type: str,
     base_model_dir: Path,
 ) -> dict:
-    """Validate the seed lineage of an evaluation directory before reuse."""
+    """Validate the sampling parameters of an evaluation directory before reuse."""
     source_dir = Path(source_dir)
     manifest_path = source_dir / ".generation_manifest.json"
     if not manifest_path.is_file():
@@ -763,8 +763,8 @@ def copy_validated_sd_evaluation_images(
     checkpoint_type: str,
     base_model_dir: Path,
 ) -> dict:
-    """Validate evaluation lineage, then copy an exact readable indexed subset."""
-    provenance = validate_sd_evaluation_source(
+    """Validate evaluation metadata, then copy an exact readable indexed subset."""
+    source_metadata = validate_sd_evaluation_source(
         source_dir, checkpoint_path, class_name, prompt, allow_legacy_seed_mix,
         base_seed=base_seed,
         num_inference_steps=num_inference_steps,
@@ -791,7 +791,7 @@ def copy_validated_sd_evaluation_images(
             shutil.copy2(source, destination)
         copied.append({"source": source.name, "destination": destination.name})
     payload = {
-        **provenance,
+        **source_metadata,
         "class_name": class_name,
         "prompt": prompt,
         "checkpoint": str(checkpoint_path),
@@ -847,14 +847,14 @@ def prepare_sd_manifest(
     png_names = [path.name for path in out_dir.glob("*.png") if not path.name.startswith(".tmp_")]
     has_png = bool(png_names)
     if request["phase"] == "final_new":
-        provenance_path = out_dir / ".evaluation_reuse.json"
-        provenance = None
-        if provenance_path.is_file():
+        reuse_record_path = out_dir / ".evaluation_reuse.json"
+        reuse_record = None
+        if reuse_record_path.is_file():
             try:
-                provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+                reuse_record = json.loads(reuse_record_path.read_text(encoding="utf-8"))
             except Exception as exc:
-                raise RuntimeError(f"Unreadable evaluation reuse provenance: {provenance_path}") from exc
-        reused_files = [item["destination"] for item in (provenance or {}).get("files", [])]
+                raise RuntimeError(f"Unreadable evaluation reuse record: {reuse_record_path}") from exc
+        reused_files = [item["destination"] for item in (reuse_record or {}).get("files", [])]
         for name in reused_files:
             if name not in png_names or not _valid_png(out_dir / name):
                 raise RuntimeError(f"Declared reused evaluation image is missing or corrupt: {out_dir / name}")
@@ -865,14 +865,14 @@ def prepare_sd_manifest(
             legacy_files = sorted(current.get("legacy_files", []))
         elif not manifest_path.exists():
             legacy_files.extend(name for name in png_names if name.startswith("gen_"))
-        if provenance is None and any(name.startswith("eval_") for name in png_names):
+        if reuse_record is None and any(name.startswith("eval_") for name in png_names):
             legacy_files.extend(sorted(name for name in png_names if name.startswith("eval_")))
-        if provenance and provenance.get("legacy_seed_mix"):
+        if reuse_record and reuse_record.get("legacy_seed_mix"):
             legacy_files.extend(reused_files)
         legacy_files = sorted(set(legacy_files))
         if legacy_files and not allow_legacy_seed_mix:
             raise RuntimeError(
-                f"Existing PNGs in {out_dir} have unverified legacy lineage: {legacy_files}"
+                f"Existing PNGs in {out_dir} have unknown legacy sampling parameters: {legacy_files}"
             )
         requested_count = request.get("count")
         if requested_count is None:
@@ -891,7 +891,7 @@ def prepare_sd_manifest(
             "legacy_files": legacy_files,
             "v2_files": sorted(set(v2_final_files + ([] if mixed else reused_files))),
             "groups": {
-                "evaluation_reused": provenance,
+                "evaluation_reused": reuse_record,
                 "final_new": {
                     "files": v2_final_files,
                     "seed_strategy": SD_SEED_STRATEGY,

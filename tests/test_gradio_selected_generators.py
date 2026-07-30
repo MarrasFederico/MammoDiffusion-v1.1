@@ -1,12 +1,51 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
+import types
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = ROOT / "assets/mammodiffusion_gradio/app.py"
+RESULT_CATEGORY_PREFIXES = ("1_", "2_", "3_", "4_", "5_")
+
+
+class _GradioStubValue:
+    """Accepts any attribute access or call, so module-level theme setup runs."""
+
+    def __getattr__(self, name):
+        return _GradioStubValue()
+
+    def __call__(self, *args, **kwargs):
+        return _GradioStubValue()
+
+
+def import_app_configuration():
+    """Import app.py far enough to expose its module-level paths.
+
+    The module level only reads the three tracked JSON records; it never loads
+    weights, CUDA, or the image cohort. Gradio is stubbed because the demo
+    dependency is not part of the light test environment.
+    """
+    stub = types.ModuleType("gradio")
+    stub.__getattr__ = lambda name: _GradioStubValue()
+    spec = importlib.util.spec_from_file_location("mammodiffusion_gradio_app", APP_PATH)
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.modules.get("gradio")
+    sys.modules["gradio"] = stub
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(spec.name, None)
+        if previous is None:
+            sys.modules.pop("gradio", None)
+        else:
+            sys.modules["gradio"] = previous
+    return module
 
 
 class GradioSelectedGeneratorsTests(unittest.TestCase):
@@ -48,6 +87,40 @@ class GradioSelectedGeneratorsTests(unittest.TestCase):
             "LDM_VAE_DECODER_PATH",
         ):
             self.assertNotIn(retired, source)
+
+    def test_app_configuration_imports_and_resolves_the_g07_selection_record(self):
+        module = import_app_configuration()
+        expected = (
+            ROOT
+            / "results"
+            / "2_diffusers"
+            / "07_ldm_sdvae_extra1361"
+            / "metrics"
+            / "best_checkpoint.json"
+        )
+        self.assertEqual(module.LDM_BEST_SELECTION_PATH, expected)
+        self.assertTrue(expected.is_file(), expected)
+        self.assertEqual(module.LDM_BEST_CHECKPOINT_ID, "step_130000")
+        self.assertEqual(module.LDM_GENERATOR_ID, "07_ldm_sdvae_extra1361")
+        self.assertEqual(module.SD_GENERATOR_ID, "02_sd21_filtered_100steps")
+
+    def test_app_result_paths_stay_inside_numbered_result_categories(self):
+        module = import_app_configuration()
+        results_root = ROOT / "results"
+        checked = []
+        for name, value in vars(module).items():
+            if not isinstance(value, Path):
+                continue
+            relative = value.relative_to(results_root) if value.is_relative_to(results_root) else None
+            if relative is None or not relative.parts:
+                continue
+            category = relative.parts[0]
+            checked.append(name)
+            self.assertTrue(
+                category.startswith(RESULT_CATEGORY_PREFIXES),
+                f"{name} resolves to the retired results/{category}/ namespace: {value}",
+            )
+        self.assertTrue(checked, "no module-level results path was inspected")
 
     def test_readme_scan_ignores_results_and_runtime_namespaces(self):
         allowed = {

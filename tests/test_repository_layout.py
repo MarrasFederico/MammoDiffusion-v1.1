@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import unittest
@@ -156,5 +157,37 @@ class PublicationRepositoryTests(unittest.TestCase):
         self.assertNotIn('\\"test\\"', g07)
         self.assertNotIn('\\"test\\"', g08)
         self.assertIn("finally:", g08)
+
+    def test_tracked_result_records_reference_existing_notebooks(self):
+        """Path-shaped `notebook` fields must resolve.
+
+        Records written by the preprocessing and LDM stages store a bare
+        notebook identifier instead of a path; only entries that spell out a
+        repository-relative location are checked here.
+        """
+        if not (ROOT / ".git").exists():
+            self.skipTest("Git metadata unavailable in source archive")
+        tracked = subprocess.run(
+            ["git", "ls-files", "results"], cwd=ROOT, check=True, capture_output=True, text=True
+        ).stdout.splitlines()
+        checked = []
+        for relative in tracked:
+            if not relative.endswith(".json"):
+                continue
+            try:
+                payload = json.loads((ROOT / relative).read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self.fail(f"{relative} is not readable JSON")
+            if not isinstance(payload, dict):
+                continue
+            reference = payload.get("notebook")
+            if not isinstance(reference, str) or "/" not in reference:
+                continue
+            checked.append(relative)
+            self.assertTrue(
+                (ROOT / reference).is_file(),
+                f"{relative} points at a missing notebook: {reference}",
+            )
+        self.assertTrue(checked, "no path-shaped notebook reference was inspected")
 
 if __name__ == "__main__": unittest.main()

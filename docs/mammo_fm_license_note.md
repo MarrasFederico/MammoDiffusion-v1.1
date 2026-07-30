@@ -1,6 +1,6 @@
 # Mammo-FM academic-license compliance
 
-Mammo-FM model weights are governed by the repository's **Custom Academic License for Model Weights**, not by this project's source-code license. Before every use, authorized researchers must read the current full license at <https://huggingface.co/batmanLab/Mammo-FM/blob/main/LICENSE>.
+Mammo-FM model weights are governed by the Mammo-FM **Custom Academic License for Model Weights**. That license does not permit redistribution of its weights or of derived checkpoints through this repository, so authorized researchers must obtain those assets themselves under its terms. Before every use, read the current full license at <https://huggingface.co/batmanLab/Mammo-FM/blob/main/LICENSE>.
 
 For this academic study, the operational rules are:
 

@@ -11,6 +11,11 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 python -m pytest -q
 ```
 
+`requirements-dev.txt` pins the runner plus the light scientific packages the utilities import
+(NumPy, pandas, SciPy, Matplotlib, Pillow, IPython). It deliberately omits TensorFlow, PyTorch,
+Diffusers, Gradio, and scikit-learn, which the suite never reaches; `requirements.txt` covers those
+for real runs.
+
 `pytest.ini` restricts discovery to `tests/` and excludes the vendored Diffusers repository,
 `data/`, `experiments/`, `results/`, Git metadata, and cache directories.
 

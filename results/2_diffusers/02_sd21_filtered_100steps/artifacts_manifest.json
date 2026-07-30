@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "notebook": "notebooks/02_SD21_Filtered_100steps.ipynb",
+  "notebook": "notebooks/2_diffusers/02_SD21_Filtered_100steps.ipynb",
   "experiment": "diffusers/02_sd21_filtered_100steps",
   "experiment_dir": "experiments/diffusers/02_sd21_filtered_100steps",
   "results_dir": "results/2_diffusers/02_sd21_filtered_100steps",

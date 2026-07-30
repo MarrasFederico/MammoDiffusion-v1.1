@@ -68,7 +68,7 @@ LDM_MODEL_PATH = PROJECT_ROOT / str(LDM_GENERATOR["checkpoint"])
 LDM_EXPERIMENT_DIR = LDM_MODEL_PATH.parents[1]
 LDM_LATENT_STATS_PATH = LDM_EXPERIMENT_DIR / "latents" / "latent_stats.npz"
 LDM_BEST_SELECTION_PATH = (
-    RESULTS_DIR / "diffusers" / LDM_GENERATOR_ID / "metrics" / "best_checkpoint.json"
+    RESULTS_DIR / "2_diffusers" / LDM_GENERATOR_ID / "metrics" / "best_checkpoint.json"
 )
 LDM_BEST_SELECTION = load_json_record(LDM_BEST_SELECTION_PATH)
 LDM_BEST_CHECKPOINT_ID = str(LDM_BEST_SELECTION["best_checkpoint_id"])

@@ -13,6 +13,38 @@ The active generator benchmark uses real training data for memorization, validat
 quality and selection, and synthetic pools for synthetic metrics. It never uses the classifier
 test split.
 
+## Evolution from V1
+
+MammoDiffusion V2 is the direct evolution of the original MammoDiffusion study, not a separate
+project. It preserves the same scientific question—whether class-conditioned synthetic
+mammograms can support downstream breast-cancer classification—and the same canonical RSNA
+cohort of 2,916 patients. V1 established the first complete pipeline: patient-level preprocessing,
+fine-tuned Stable Diffusion 2.1 and a latent diffusion model trained from scratch, generative
+evaluation, ResNet-50 classification, comparison with traditional augmentation, and
+sustainability tracking.
+
+The canonical manifests retain the same patient, image, and label keys across both versions, with
+2,041 training, 437 validation, and 438 test cases. This makes V1 and V2 one continuous study, but
+their aggregate scores are not interchangeable because the classifier, seed, threshold,
+preprocessing, and evaluation protocols differ.
+
+V2 strengthens that foundation through a predefined 2-architecture × 4-condition × 3-seed
+classifier design, covering MaxViT-512 and Mammo-FM. It adds mean-probability ensembles,
+validation-selected thresholds frozen before test evaluation, patient-level paired bootstrap,
+Holm correction across the primary comparison family, and a RAD-DINO-first generator benchmark
+with equalized official FILTERED pools and explicit RAW/FILTERED, diversity, duplicate, and
+memorization checks.
+
+These changes support more cautious conclusions, not a claim that synthetic data always help.
+The selected from-scratch generator G07 shows a favorable PR-AUC signal with MaxViT, but it is not
+formally significant at 0.05 after Holm correction and the benefit is not replicated by Mammo-FM.
+V2 also retains the dataset limits inherited from V1: few positive cases, one 512×512 MLO image
+per patient, global binary labels, no lesion localization or multiview evidence, and no external
+or blinded radiological validation.
+
+The full account of the scientific continuity, methodological changes, canonical results, and
+remaining limits is in [docs/FROM_V1_TO_V2.md](docs/FROM_V1_TO_V2.md).
+
 ## Dataset workflows
 
 There are two distinct ways to reproduce the data setup.

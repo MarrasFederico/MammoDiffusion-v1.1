@@ -1,8 +1,12 @@
 # Sustainability analysis (v2)
 
-The current analysis covers log-scale absolute energy/CO2, performance-versus-consumption
-trade-offs, per-phase cost decomposition, and augmentation-versus-diffusion comparisons. It avoids
-double-counting resumed segments and keeps validation and test accounting separate.
+This is a secondary, descriptive analysis of the generator workflows. It covers estimated absolute
+energy per generator, per-phase cost decomposition, and normalization to the canonical 1,361-image
+pool. It avoids double-counting resumed segments. Its scope is deliberately narrow: the canonical
+registry contains generator phases only (`preprocessing`, `generator_training`, `generation`,
+`filtering`, `validation`) and no classifier-training events, so this analysis does not report a
+performance-versus-consumption trade-off and does not compare traditional augmentation with
+diffusion-based augmentation end to end.
 
 ## Schema
 

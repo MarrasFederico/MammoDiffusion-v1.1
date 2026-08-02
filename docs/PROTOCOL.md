@@ -3,16 +3,20 @@
 ## 1. Cohort and preprocessing
 
 The binary task is malignant finding versus no lesion on 512×512 grayscale MLO mammograms.
-Analysis can start from the processed PNG cohort; original DICOMs are needed only for a full rebuild.
+Analysis can start from the processed PNG cohort; the original source archive is needed only for a
+full rebuild.
 See the two workflows in the main README. Splits are patient-level and
 `processed_dataset_reuse.audit_patient_split_disjointness` rejects train/validation/test overlap.
 The final held-out cohort has 438 patients.
 
-The original source is the official
-[RSNA Screening Mammography Breast Cancer Detection dataset](https://www.kaggle.com/competitions/rsna-breast-cancer-detection/data).
-The preprocessing notebook requires a user-supplied archive, keeps MLO views, selects one image per
-patient, normalizes laterality/visual tissue side and intensity, handles corrupt inputs, converts to
-PNG, and resizes to 512×512. No opaque download is part of the default path.
+The source is the derived Kaggle release
+[RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
+which distributes the RSNA Screening Mammography Breast Cancer Detection images already converted to
+PNG, with the competition `train.csv` metadata. The preprocessing notebook requires a user-supplied
+archive, indexes its PNG files, keeps MLO views, selects one image per patient, normalizes
+laterality/visual tissue side and intensity, handles corrupt inputs, converts to single-channel
+grayscale, and normalizes to 512×512 with aspect-preserving padding. No DICOM is read and no opaque
+download is part of the default path.
 
 ## 2. Generator benchmark
 

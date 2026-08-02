@@ -13,6 +13,47 @@ The active generator benchmark uses real training data for memorization, validat
 quality and selection, and synthetic pools for synthetic metrics. It never uses the classifier
 test split.
 
+## Research questions
+
+V2 inherits the three research questions of V1 and answers them under a stricter protocol. It also
+promotes one V1 sub-analysis — the fine-tuned versus from-scratch comparison of notebook `04c` — to a
+preregistered hypothesis (RQ3), and adds one question that only the two-architecture design makes
+answerable (RQ4). The weight is on downstream performance: RQ2 and RQ4 carry the main findings.
+
+**RQ1 — Generation quality.** Can a fine-tuned Stable Diffusion 2.1 and a latent diffusion model
+trained from scratch produce mammograms that are distributionally close to real validation
+positives, sufficiently diverse, and free of training-set memorization? Addressed by
+`notebooks/3_generator_benchmark/` under a RAD-DINO-first ranking with KID, PRDC, diversity,
+duplicate, and memorization diagnostics; the outcome is the G02/G07 selection.
+
+**RQ2 — Downstream impact.** Does adding selected synthetic positives improve binary classification
+over real-only training, and how does it compare with traditional augmentation? Addressed by
+`notebooks/04_classifiers/` over 2 architectures × 4 conditions × 3 seeds, with validation-frozen
+thresholds, patient-level paired bootstrap, and Holm correction over eight preregistered
+comparisons. The answer is architecture-dependent: a favorable G07 signal on MaxViT-512 that does
+not survive Holm correction, and no replication on Mammo-FM.
+
+**RQ3 — Generator family.** Do the two generative families differ in downstream usefulness, once a
+best candidate is selected from each? Two of the eight preregistered comparisons contrast G02 with
+G07 inside each architecture. Neither reaches significance: +0.0538 PR-AUC for G07 over G02 on
+MaxViT-512 (Holm-adjusted p = 0.609) and −0.0083 on Mammo-FM (Holm-adjusted p = 1.000). Fine-tuning
+and from-scratch training are not separable on this cohort.
+
+**RQ4 — Cross-architecture replication.** Does a downstream effect observed with one classifier
+representation transfer to another? This is what the two-architecture design exists to test, and it
+is the sharpest V2 finding: the G07 gain on MaxViT-512 does not reappear on Mammo-FM, whose point
+estimate is slightly negative. A single-classifier conclusion would have been too broad.
+
+**RQ5 — Computational cost.** What do the generative workflows cost to run? A secondary, descriptive
+analysis in `notebooks/5_sustainability/` reports estimated energy per generator and per pipeline
+phase from a frozen event registry, normalized to the canonical 1,361-image pool. Its scope is the
+generator workflows only: the registry holds no classifier-training events, so V2 does not repeat
+the V1 performance-versus-cost trade-off, and efficiency never enters generator selection. Energy is
+a time-based estimate for one GPU, not a wall-socket or carbon measurement.
+
+Answers and their limits are detailed in [docs/FROM_V1_TO_V2.md](docs/FROM_V1_TO_V2.md), sections 5
+and 7.
+
 ## Evolution from V1
 
 MammoDiffusion V2 is the direct evolution of the original MammoDiffusion study, not a separate
@@ -51,7 +92,7 @@ There are two distinct ways to reproduce the data setup.
 
 ### A. Reuse the processed cohort
 
-This is the normal analysis workflow and does not require the original DICOM archive. Provide:
+This is the normal analysis workflow and does not require the original source archive. Provide:
 
 ```text
 data/processed/
@@ -72,16 +113,19 @@ separation before reuse. The canonical test cohort contains 438 patients.
 
 ### B. Rebuild from original RSNA data
 
-Obtain the data under the terms of the official
-[RSNA Screening Mammography Breast Cancer Detection competition](https://www.kaggle.com/competitions/rsna-breast-cancer-detection/data)
-and place the user-supplied archive where the preprocessing notebook requests it. The repository
-does not perform an opaque automatic download.
+The source is the derived Kaggle release
+[RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
+which already distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG
+files together with the competition `train.csv` metadata. Obtain it under the terms of the original
+competition and place the user-supplied archive where the preprocessing notebook requests it. The
+repository does not perform an opaque automatic download and never reads DICOM.
 
-`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` filters to MLO views,
-selects one image per patient, handles laterality and visual-side normalization, rescales the
-tissue intensity, converts DICOM to grayscale PNG, resizes to 512×512, and writes patient-level
-train/validation/test splits. Corrupt inputs are reported rather than silently accepted. A patient
-ID may occur in exactly one split.
+`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` indexes the source PNG files,
+filters to MLO views, selects one image per patient, handles laterality and visual-side
+normalization, rescales the tissue intensity, converts to single-channel grayscale, normalizes each
+image to 512×512 with aspect-preserving padding, and writes patient-level train/validation/test
+splits. Corrupt inputs are reported rather than silently accepted. A patient ID may occur in exactly
+one split.
 
 ## Workflow
 

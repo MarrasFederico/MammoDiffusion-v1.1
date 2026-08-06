@@ -10,7 +10,7 @@ V1 established the initial end-to-end study: data preparation, two diffusion str
 
 ## 2. What V1 established
 
-V1 built the first complete MammoDiffusion prototype around the RSNA Screening Mammography Breast Cancer Detection data. Its preprocessing selected the MLO view, retained one image per patient, converted images to grayscale PNG, resized them to 512×512, normalized their visual orientation, and created patient-level train, validation, and test partitions. This provided a stable cohort on which both generative and discriminative experiments could be developed.
+V1 built the first complete MammoDiffusion prototype around the RSNA Screening Mammography Breast Cancer Detection data, taken from the derived Kaggle release that already distributes those images as 512-pixel PNG files. Its preprocessing selected the MLO view, retained one image per patient, converted images to single-channel grayscale, normalized them to 512×512 with aspect-preserving padding, normalized their visual orientation, and created patient-level train, validation, and test partitions. This provided a stable cohort on which both generative and discriminative experiments could be developed.
 
 For conditional generation, V1 investigated two complementary approaches. The first fine-tuned Stable Diffusion 2.1 on the mammography domain. The second trained a latent diffusion model from scratch, using a VAE and U-Net pipeline. V1 also compared the fine-tuned and from-scratch families, evaluated RAW and filtered generations, and reported established image-generation proxies including FID, Inception Score, precision, recall, density, and coverage.
 

@@ -11,7 +11,13 @@ RESULTS_STAGE_NAME = "2_diffusers/05_ldm_basic_fromscratch"
 
 @dataclass(frozen=True)
 class ExperimentPaths:
-    """Raggruppa tutti i path di un esperimento LDM (checkpoint, modelli, latenti, sintetiche), così gli script non li ricostruiscono ognuno per conto proprio."""
+    """Every path of one LDM experiment, so no script rebuilds them on its own.
+
+    Each synthetic pool is a field here rather than a string assembled at the call
+    site: a pool that only exists as an inline literal is a pool a maintenance step
+    can forget, which is how a VAE reset once cleared the positive images and left
+    the negative ones behind.
+    """
 
     project_root: Path
     experiment_dir: Path
@@ -29,7 +35,8 @@ class ExperimentPaths:
 
 @dataclass(frozen=True)
 class ResultsPaths:
-    """Raggruppa i path di una stage di results (plot, metriche, ecotracker) condivisi tra notebook e script di valutazione."""
+    """Paths of one results stage (plots, metrics, ecotracker), shared by the
+    notebooks and the evaluation scripts."""
 
     stage_dir: Path
     plots_dir: Path
@@ -59,7 +66,7 @@ FILTERED_DIR_NAME_BY_EXPERIMENT = {
 
 
 def class_name_for_label(target_label: int) -> str:
-    """Restituisce il nome stabile della classe usato nei percorsi di output."""
+    """The stable class name used in every output path."""
     try:
         return CLASS_NAME_BY_LABEL[int(target_label)]
     except (KeyError, TypeError, ValueError) as exc:
@@ -67,7 +74,12 @@ def class_name_for_label(target_label: int) -> str:
 
 
 def get_class_image_dirs(paths: ExperimentPaths, target_label: int) -> tuple[Path, Path]:
-    """Restituisce i percorsi raw/filtered registrati per la classe richiesta."""
+    """The registered (raw, filtered) pool pair for one class.
+
+    The positive filtered pool is experiment-local for the generators that predate
+    the shared ``data/synthetic`` layout and shared for the others; the negative one
+    is always shared. Callers must not reconstruct either path themselves.
+    """
     class_name = class_name_for_label(target_label)
     if class_name == "positive":
         return paths.synthetic_raw_positive_dir, paths.synthetic_filtered_positive_dir
@@ -82,12 +94,12 @@ def get_class_image_dirs(paths: ExperimentPaths, target_label: int) -> tuple[Pat
 
 
 def get_class_evaluation_dir(paths: ExperimentPaths, target_label: int) -> Path:
-    """Separa validation e test delle due classi nella cartella dell'esperimento."""
+    """Keep validation and test of the two classes apart inside the experiment."""
     return paths.evaluation_dir / class_name_for_label(target_label)
 
 
 def get_class_metrics_dir(paths: ResultsPaths, target_label: int) -> Path:
-    """Separa le metriche canoniche positive e negative nello stage results."""
+    """Keep the canonical positive and negative metrics apart in the results stage."""
     return paths.metrics_dir / class_name_for_label(target_label)
 
 
@@ -95,7 +107,8 @@ def find_project_root(
     project_name: str = PROJECT_NAME,
     override: Path | None = None,
 ) -> Path:
-    """Risale dalla cwd cercando la cartella del progetto, con fallback per ambienti Colab/Drive."""
+    """Walk up from the working directory to the project root, with Colab/Drive
+    fallbacks, so notebooks never hard-code a workstation-specific path."""
     if override is not None:
         root = Path(override).expanduser().resolve()
         if not root.exists():
@@ -130,15 +143,15 @@ def get_experiment_paths(
     experiment_dir: Path | None = None,
     create: bool = True,
 ) -> ExperimentPaths:
-    """Centralizza i path dell'esperimento LDM (checkpoint, latents, sintetiche) usati da tutti gli script helper."""
+    """Resolve every path of one LDM experiment; ``create`` builds the skeleton."""
     root = find_project_root(override=project_root)
     exp = (
         Path(experiment_dir).expanduser().resolve()
         if experiment_dir is not None
         else root / "experiments" / DEFAULT_EXPERIMENT_NAME
     )
-    # Ogni esperimento scrive le immagini filtrate finali in una sottocartella
-    # esplicitamente legata al suo ID, evitando collisioni e nomi non interpretabili.
+    # Each experiment writes its final filtered images under a subdirectory tied to
+    # its own ID, which avoids collisions and directory names nobody can interpret.
     filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(exp.name, exp.name)
     if exp.name in EXPERIMENT_LOCAL_POSITIVE_FILTERED:
         positive_filtered_dir = exp / "synthetic_filtered_positive"
@@ -160,10 +173,10 @@ def get_experiment_paths(
         synthetic_filtered_positive_dir=positive_filtered_dir,
     )
     if create:
-        # synthetic_raw_negative_dir resta fuori dallo scheletro creato in anticipo:
-        # gli esperimenti a sola classe positiva (G05, "classes": ["positive"] nel
-        # registry) non devono ritrovarsi un pool negativo vuoto che ne suggerisce
-        # uno mai generato. Lo crea la generazione, quando serve davvero.
+        # synthetic_raw_negative_dir stays out of the eagerly created skeleton:
+        # positive-only experiments (G05, "classes": ["positive"] in the registry)
+        # must not end up with an empty negative pool suggesting one that was never
+        # generated. Generation creates it if and when it is actually needed.
         for directory in [
             paths.checkpoints_dir,
             paths.models_dir,
@@ -182,7 +195,7 @@ def get_results_paths(
     stage_name: str = RESULTS_STAGE_NAME,
     create: bool = True,
 ) -> ResultsPaths:
-    """Centralizza i path dei risultati (plot, metriche, ecotracker) usati dagli script di valutazione e dai notebook."""
+    """Resolve the results-stage paths used by the evaluation scripts and notebooks."""
     root = find_project_root(override=project_root)
     stage_dir = root / "results" / stage_name
     paths = ResultsPaths(
@@ -203,7 +216,11 @@ def get_results_paths(
 
 
 def normalize_processed_path(row, dataset_root: Path) -> Path:
-    """Ricalcola il path dell'immagine a partire da split/label/filename, per non dipendere dal path assoluto salvato nel CSV (cambia da macchina a macchina)."""
+    """Rebuild an image path from split/label/filename.
+
+    The absolute path stored in the CSV is machine-specific; recomputing it keeps
+    the metadata portable across the workstations the project has run on.
+    """
     processed_path = Path(str(row["processed_path"]).replace("\\", "/"))
     filename = processed_path.name
     split = str(row["split"])

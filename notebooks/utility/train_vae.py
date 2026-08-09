@@ -319,13 +319,16 @@ def build_vae_decoder() -> tf.keras.Model:
 
 
 def reset_downstream_artifacts(paths) -> None:
-    """Elimina latents, checkpoint e log della LDM e della generazione, perche' diventano incoerenti quando il VAE viene riallenato da zero."""
-    # RAW e filtrati discendono entrambi dal decoder VAE: il filtro non rigenera
-    # nulla, seleziona 1.361 immagini dal pool RAW. Tenere i filtrati mentre si
-    # azzerano i RAW lascerebbe registrati in configs/generator_registry.json pool
-    # prodotti da un decoder che non esiste piu', indistinguibili dai nuovi.
-    # Il reset richiede il doppio opt-in --force-retrain --also-reset-downstream,
-    # quindi azzerare i pool registrati dell'esperimento e' una scelta esplicita.
+    """Drop every artifact a retrained VAE invalidates: latents, LDM checkpoints,
+    evaluation records, both synthetic pools of both classes, and the generation logs.
+
+    RAW and filtered images alike descend from the VAE decoder -- filtering selects
+    1,361 images out of the RAW pool, it does not regenerate them -- so a filtered
+    pool kept across a reset would stay registered in configs/generator_registry.json
+    while being output of a decoder that no longer exists, indistinguishable from new
+    images. Clearing them is deliberate: the caller reaches this function only through
+    the --force-retrain --also-reset-downstream double opt-in.
+    """
     for directory in [
         paths.latents_dir,
         paths.checkpoints_dir,
@@ -335,8 +338,8 @@ def reset_downstream_artifacts(paths) -> None:
             shutil.rmtree(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-    # I pool vengono ricreati vuoti solo se esistevano: un esperimento a sola
-    # classe positiva non deve guadagnare una cartella negativa vuota per via del reset.
+    # Pools are recreated empty only where one existed: a positive-only experiment
+    # (G05, "classes": ["positive"]) must not gain an empty negative directory here.
     cleared_pools = []
     for target_label in (1, 0):
         for pool_dir in get_class_image_dirs(paths, target_label):
@@ -357,19 +360,19 @@ def reset_downstream_artifacts(paths) -> None:
         if log_path.exists():
             log_path.unlink()
 
-    # generation_raw_state.json e' una fotografia del pool RAW, non una cronologia:
-    # sopravvivere al reset significherebbe dichiarare piene cartelle appena svuotate.
-    # generation_summary.jsonl invece resta, come i .log: registra run realmente avvenute.
+    # generation_raw_state.json is a snapshot of the RAW pool, not a history: surviving
+    # the reset would leave it asserting that just-emptied directories are full.
+    # generation_summary.jsonl stays, like the .log files: it records runs that happened.
     class_log_dirs = [paths.logs_dir / class_name_for_label(label) for label in (1, 0)]
     for log_dir in [paths.logs_dir, *class_log_dirs]:
         state_path = log_dir / "generation_raw_state.json"
         if state_path.exists():
             state_path.unlink()
-    print("Artefatti LDM/evaluation/generation precedenti rimossi dopo il nuovo VAE.")
-    # Un reset silenzioso costringe a indovinare cosa e' stato invalidato:
-    # i pool svuotati vanno rigenerati e rifiltrati prima di qualsiasi benchmark.
+    print("Previous LDM/evaluation/generation artifacts removed for the new VAE.")
+    # A silent reset forces the operator to guess what was invalidated. Every pool
+    # named here has to be regenerated and refiltered before any benchmark run.
     for pool_dir in cleared_pools:
-        print("  pool azzerato, da rigenerare:", pool_dir)
+        print("  cleared pool, regenerate before use:", pool_dir)
 
 
 def reset_vae_artifacts(paths) -> None:

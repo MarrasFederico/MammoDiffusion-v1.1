@@ -12,12 +12,36 @@ from typing import Sequence
 import numpy as np
 
 
-def _as_array(values: Sequence[float]) -> np.ndarray:
-    return np.asarray(values, dtype=np.float64)
+def _validated_binary_scores(
+    labels: Sequence[int], probabilities: Sequence[float]
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return finite one-dimensional binary labels and probabilities.
+
+    Metric functions are publication-facing, so malformed arrays must fail
+    explicitly instead of relying on NumPy broadcasting or silently accepting
+    non-binary labels.
+    """
+    y = np.asarray(labels, dtype=np.float64)
+    p = np.asarray(probabilities, dtype=np.float64)
+    if y.ndim != 1 or p.ndim != 1:
+        raise ValueError("labels and probabilities must be one-dimensional")
+    if len(y) == 0 or len(p) == 0:
+        raise ValueError("labels and probabilities must not be empty")
+    if len(y) != len(p):
+        raise ValueError("labels and probabilities must have equal length")
+    if not np.all(np.isfinite(y)) or not np.all(np.isfinite(p)):
+        raise ValueError("labels and probabilities must be finite")
+    if not np.all((y == 0) | (y == 1)):
+        raise ValueError("labels must be binary values 0 or 1")
+    if not np.all((p >= 0) & (p <= 1)):
+        raise ValueError("probabilities must lie in [0, 1]")
+    return y, p
 
 
 def confusion_counts(labels: Sequence[int], probabilities: Sequence[float], threshold: float) -> dict:
-    y = _as_array(labels); p = _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
+    if not math.isfinite(float(threshold)):
+        raise ValueError("threshold must be finite")
     pred = (p >= threshold).astype(np.int64)
     tp = int(np.sum((pred == 1) & (y == 1)))
     tn = int(np.sum((pred == 0) & (y == 0)))
@@ -28,7 +52,7 @@ def confusion_counts(labels: Sequence[int], probabilities: Sequence[float], thre
 
 def roc_auc(labels: Sequence[int], probabilities: Sequence[float]) -> float:
     """Mann-Whitney U formulation: P(score(positive) > score(negative)), ties count as 0.5."""
-    y = _as_array(labels); p = _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
     pos, neg = p[y == 1], p[y == 0]
     if len(pos) == 0 or len(neg) == 0:
         raise ValueError("ROC-AUC undefined: need at least one positive and one negative label")
@@ -52,16 +76,21 @@ def roc_auc(labels: Sequence[int], probabilities: Sequence[float]) -> float:
 
 
 def _pr_points(labels: Sequence[int], probabilities: Sequence[float]) -> tuple[np.ndarray, np.ndarray]:
-    y = _as_array(labels); p = _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
     order = np.argsort(-p, kind="mergesort")
     y_sorted = y[order]
+    p_sorted = p[order]
     n_pos = float(np.sum(y == 1))
     if n_pos == 0:
         raise ValueError("PR-AUC undefined: no positive labels")
     tp_cum = np.cumsum(y_sorted == 1)
     fp_cum = np.cumsum(y_sorted == 0)
-    precision = tp_cum / (tp_cum + fp_cum)
-    recall = tp_cum / n_pos
+    # A threshold includes every sample with the same score. Evaluating inside a
+    # tied group makes average precision depend on input row order, so keep only
+    # the last cumulative point for each distinct threshold.
+    threshold_ends = np.concatenate((np.flatnonzero(np.diff(p_sorted)), [len(p_sorted) - 1]))
+    precision = tp_cum[threshold_ends] / (tp_cum[threshold_ends] + fp_cum[threshold_ends])
+    recall = tp_cum[threshold_ends] / n_pos
     return precision, recall
 
 
@@ -74,7 +103,7 @@ def pr_auc(labels: Sequence[int], probabilities: Sequence[float]) -> float:
 
 def youden_threshold(labels: Sequence[int], probabilities: Sequence[float]) -> dict:
     """Threshold maximizing sensitivity + specificity - 1 over all distinct score cut points."""
-    y = _as_array(labels); p = _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
     candidates = np.unique(p)
     best = {"threshold": 0.5, "youden_j": -1.0}
     for t in candidates:
@@ -88,12 +117,14 @@ def youden_threshold(labels: Sequence[int], probabilities: Sequence[float]) -> d
 
 
 def brier_score(labels: Sequence[int], probabilities: Sequence[float]) -> float:
-    y = _as_array(labels); p = _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
     return float(np.mean((p - y) ** 2))
 
 
 def expected_calibration_error(labels: Sequence[int], probabilities: Sequence[float], n_bins: int = 10) -> float:
-    y = _as_array(labels); p = _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
+    if not isinstance(n_bins, int) or isinstance(n_bins, bool) or n_bins <= 0:
+        raise ValueError("n_bins must be a positive integer")
     edges = np.linspace(0.0, 1.0, n_bins + 1)
     n = len(p)
     ece = 0.0
@@ -115,7 +146,9 @@ def sensitivity_at_fixed_specificity(labels: Sequence[int], probabilities: Seque
     with the threshold returned here; searching this operating point on test is
     deliberately not part of ``full_report``'s test mode.
     """
-    y, p = _as_array(labels), _as_array(probabilities)
+    y, p = _validated_binary_scores(labels, probabilities)
+    if not 0 <= float(target_specificity) <= 1:
+        raise ValueError("target_specificity must lie in [0, 1]")
     candidates = np.unique(np.concatenate(([1.0 + np.finfo(float).eps], p)))
     feasible = []
     for threshold in candidates:

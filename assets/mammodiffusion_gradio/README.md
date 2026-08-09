@@ -12,6 +12,10 @@ The app reads the current selection from `configs/selected_generators.json` and 
 - `100` inference steps and guidance scale `7.5` as the G02 defaults;
 - `100` sampling steps and guidance scale `1.5` as the G07 defaults.
 
+“Positive” and “Negative” are the historical generator-conditioning labels.
+They are not radiological assertions: in particular, a negative RSNA cancer
+label does not prove that an image is normal or lesion-free.
+
 Images are generated sequentially to limit VRAM use and saved under
 `assets/mammodiffusion_gradio/outputs/`. This directory is separate from
 `data/synthetic/02_sd21_filtered_100steps`, so using the demo does not modify the
@@ -21,6 +25,14 @@ Each generation request runs in a dedicated subprocess. When it exits, the
 system releases the VRAM used by the selected model. This allows switching
 between G02 and G07 without restarting Gradio. Worker diagnostics are stored
 in `worker.log` inside the request's output directory.
+
+The demo treats each GPU as a separate device; it never assumes that the RTX
+5060 Ti and RTX 3060 memory can be pooled. To reduce peak use, G02 enables
+Diffusers model CPU offload and G07 decodes its one-image SD-VAE batch on CPU
+while TensorFlow samples the latent on GPU. Set
+`MAMMODIFFUSION_SD_MODEL_CPU_OFFLOAD=0` or
+`MAMMODIFFUSION_LDM_VAE_DEVICE=cuda` only when enough dedicated VRAM is known
+to be free.
 
 ## Prerequisites
 

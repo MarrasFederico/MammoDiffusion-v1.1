@@ -98,7 +98,7 @@ def real_train_paths(
 
 def selected_output_name(class_name: str, rank: int) -> str:
     """Name an accepted image from its class and ranking position."""
-    # Preserve the historical convention established by notebook 03b.
+    # Preserve the historical selected_pos naming convention for artifact compatibility.
     prefix = "selected_pos" if class_name == "positive" else f"selected_{class_name}"
     return f"{prefix}_{rank:04d}.png"
 
@@ -342,7 +342,7 @@ def run_filter(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     """Define and parse the filter script's command-line arguments."""
-    parser = argparse.ArgumentParser(description="Adaptive mammography filter for notebook 03b.")
+    parser = argparse.ArgumentParser(description="Adaptive mammography filter for the diffusion notebooks.")
     parser.add_argument("--class-name", required=True)
     parser.add_argument("--label", required=True, type=int)
     parser.add_argument("--raw-dir", required=True, type=Path)

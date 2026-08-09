@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "protocol_version": 2.1,
-  "gate_note": "Perceptual-hash-only rate and RAD-DINO coverage are descriptive ranking metrics, not binary gates. Eligibility depends only on the technical and scientific checks listed below.",
-  "study_question": "RQ1: Which eligible fine-tuned generator and which eligible from-scratch generator provide the best balance of fidelity, diversity, coverage, efficiency, and absence of train memorization?",
+  "gate_note": "Perceptual-hash-only rate and RAD-DINO coverage are descriptive ranking metrics, not binary gates. Other gates define eligibility for this project ranking only; they do not certify pathology, radiological validity, or clinical realism.",
+  "study_question": "RQ1: Which eligible fine-tuned generator and which eligible from-scratch generator best satisfy the declared fidelity, diversity, coverage, duplication, and detected train-reference memorization criteria?",
   "primary_class": "positive",
   "synthetic_pool_target": 1361,
   "real_reference_count": "all_available_validation_positives",
@@ -101,7 +101,8 @@
     "fid_role": "secondary_descriptive",
     "weighted_composite_score": false,
     "practical_equivalence_margin": 0.001,
-    "practical_equivalence_rule": "paired stability interval includes zero and absolute paired mean difference is no greater than the preregistered margin",
+    "practical_equivalence_rule": "paired stability interval includes zero and absolute paired mean difference is no greater than the protocol-defined margin",
+    "efficiency_role": "reported separately; not an eligibility gate or ranking field",
     "ranking": [
       {"metric": "raddino_kid", "direction": "min"},
       {"metric": "raddino_coverage", "direction": "max"},

@@ -7,7 +7,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
-from classifier_analysis import aggregate_patient, align_seed_predictions  # noqa: E402
+from classifier_analysis import (  # noqa: E402
+    aggregate_patient,
+    align_seed_predictions,
+    discover_experiments,
+    plot_ensemble_overview,
+)
 from classifier_interpretability import save_attribution_figure  # noqa: E402
 from final_evaluation import frozen_validation_thresholds, require_final_evaluation_opt_in  # noqa: E402
 
@@ -21,6 +26,21 @@ class EnsembleAndFinalEvaluationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exactly seeds"):
             align_seed_predictions({17: self.rows(17)})
 
+    def test_validation_reports_can_be_rebuilt_without_checkpoints_or_old_metrics(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            first = discover_experiments(root)[0]
+            result_dir = Path(first["directory"])
+            result_dir.mkdir(parents=True)
+            (result_dir / "dataset_summary.json").write_text("{}\n", encoding="utf-8")
+            (result_dir / "validation_predictions.csv").write_text(
+                "patient_id,image_id,label,probability\n", encoding="utf-8"
+            )
+            refreshed = discover_experiments(root)[0]
+            self.assertTrue(refreshed["report inputs complete"])
+            self.assertFalse(refreshed["validation metrics present"])
+            self.assertFalse(refreshed["checkpoint present"])
+
     def test_ensemble_checks_alignment_and_averages(self):
         per_seed = {seed: self.rows(seed) for seed in (17, 42, 73)}
         result = align_seed_predictions(per_seed)
@@ -33,6 +53,17 @@ class EnsembleAndFinalEvaluationTests(unittest.TestCase):
         result = aggregate_patient([{"patient_id": "p", "image_id": "a", "label": 1, "probability": .2},
                                     {"patient_id": "p", "image_id": "b", "label": 1, "probability": .8}])
         self.assertEqual(result, [{"patient_id": "p", "label": 1, "probability": .5, "n_images": 2}])
+
+    def test_final_overview_explicitly_labels_the_test_split(self):
+        notebook = (
+            ROOT / "notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "plot_ensemble_overview(test_ensembles, split='test')",
+            notebook,
+        )
+        with self.assertRaisesRegex(ValueError, "validation.*test"):
+            plot_ensemble_overview([], split="training")
 
     def test_false_guard_prevents_final_evaluation(self):
         with self.assertRaisesRegex(PermissionError, "RUN_FINAL_EVALUATION"):

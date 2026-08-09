@@ -3,7 +3,8 @@
 
 Adapt SD2.1 ``AutoencoderKL`` to grayscale-as-RGB mammography, normally by
 unfreezing only the decoder. That default preserves the latent distribution
-expected by the U-Net. Notebook ``03_SD21_VAE_FineTuned.ipynb`` launches this
+expected by the U-Net. Notebook
+``notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb`` launches this
 module in a subprocess.
 
 Main outputs under ``--output-dir``:
@@ -99,7 +100,7 @@ def set_seed(seed: int) -> None:
 
 
 def resolve_train_image_path(row, data_processed_dir: Path, data_augmented_dir: Path) -> Path:
-    """Resolve one training sample path, preserving 03b real/augmented compatibility."""
+    """Resolve one training sample path while preserving the legacy real/augmented row layout."""
     import pandas as pd
 
     file_name = Path(str(row["file_name"])).name

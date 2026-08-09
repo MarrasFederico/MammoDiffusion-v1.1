@@ -160,7 +160,7 @@ def compute_pos_weight(labels) -> torch.Tensor:
 
 
 # ---------------------------------------------------------------------------
-# Callback in stile Keras
+# Keras-style callbacks
 # ---------------------------------------------------------------------------
 
 class EarlyStopping:

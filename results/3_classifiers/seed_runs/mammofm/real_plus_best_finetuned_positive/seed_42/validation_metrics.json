@@ -14,7 +14,7 @@
   "mcc": 0.1770255350043233,
   "roc_auc": 0.6357067589944302,
   "pr_auc": 0.36964730946949537,
-  "brier_score": 0.15928047420798006,
+  "brier_score": 0.15928047420798008,
   "ece": 0.1282442971074088,
   "sensitivity_at_specificity_0_90": {
     "target_specificity": 0.9,

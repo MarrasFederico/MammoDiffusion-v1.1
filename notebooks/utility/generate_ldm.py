@@ -109,8 +109,8 @@ def parse_args() -> argparse.Namespace:
         choices=["eps", "v"],
         default="eps",
         help=(
-            "Parameterization of the loaded LDM: eps (default, compatible with 04b/04b1/04b2) "
-            "or v (Salimans & Ho, 2022, used by 04b3). It must match checkpoint training; "
+            "Parameterization of the loaded LDM: eps (default, used by G05-G07) "
+            "or v (Salimans & Ho, 2022, used by G08). It must match checkpoint training; "
             "see training_manifest.json."
         ),
     )
@@ -128,7 +128,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--uses-vae-ft-from-03",
         action="store_true",
-        help="Record in manifests that the VAE is the fine-tuned VAE from notebook 03.",
+        help=(
+            "Record in manifests that the VAE is the fine-tuned VAE from "
+            "notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb."
+        ),
     )
     parser.add_argument(
         "--notebook-name",

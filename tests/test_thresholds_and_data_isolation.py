@@ -18,6 +18,7 @@ import classifier_experiment as experiment  # noqa: E402
 import classifier_metrics as metrics  # noqa: E402
 import final_evaluation  # noqa: E402
 import generator_benchmark as benchmark  # noqa: E402
+import rebuild_classifier_reports as classifier_reports  # noqa: E402
 from processed_dataset_reuse import audit_patient_split_disjointness  # noqa: E402
 from rebuild_generator_ranking import rebuild_ranking  # noqa: E402
 from regenerate_classifier_metrics import regenerate as regenerate_classifier_metrics  # noqa: E402
@@ -118,6 +119,79 @@ class FrozenThresholdTests(unittest.TestCase):
             self.assertTrue(first_files)
             for relative in first_files:
                 self.assertEqual((first_root / relative).read_bytes(), (second_root / relative).read_bytes(), relative)
+
+    def test_seed_validation_report_is_rebuilt_from_csv_not_stale_json(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            output = analysis.result_dir(root, "maxvit512", "real_only", 17)
+            output.mkdir(parents=True)
+            (output / "validation_predictions.csv").write_text(
+                "patient_id,image_id,label,probability\n"
+                "n0,i0,0,0.1\n"
+                "n1,i1,0,0.6\n"
+                "p0,i2,1,0.4\n"
+                "p1,i3,1,0.9\n",
+                encoding="utf-8",
+            )
+            (output / "validation_metrics.json").write_text(
+                '{"threshold": 999}\n', encoding="utf-8"
+            )
+            report = analysis.rebuild_validation_seed_report(
+                root, "maxvit512", "real_only", 17
+            )
+            persisted = json.loads(
+                (output / "validation_metrics.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(persisted, report)
+            self.assertNotEqual(report["threshold"], 999)
+            self.assertEqual(report["pr_auc"], metrics.pr_auc(self.labels, self.probabilities))
+
+    def test_full_report_rebuild_freezes_validation_before_test(self):
+        calls = []
+
+        def rebuild_seeds(root):
+            calls.append(("rebuild_validation_seeds", Path(root)))
+            return 24
+
+        def build(root, split):
+            calls.append(("build_validation", Path(root), split))
+            return [{"architecture": "a", "condition": "c"}]
+
+        def compare(root, ensembles, split):
+            calls.append(("compare_validation", Path(root), split))
+            return {"comparisons": [{"comparison_id": "a:c"}]}
+
+        def regenerate(root):
+            calls.append(("regenerate_test", Path(root)))
+            return {
+                "source": "saved test_predictions.csv with frozen validation reports",
+                "seed_reports_written": 24,
+                "ensemble_reports_written": 8,
+            }
+
+        with tempfile.TemporaryDirectory() as temporary, \
+             mock.patch.object(classifier_reports, "rebuild_all_validation_seed_reports", side_effect=rebuild_seeds), \
+             mock.patch.object(classifier_reports, "build_all_validation_ensembles", side_effect=build), \
+             mock.patch.object(classifier_reports, "compare_validation", side_effect=compare), \
+             mock.patch.object(classifier_reports, "regenerate", side_effect=regenerate):
+            root = Path(temporary).resolve()
+            summary = classifier_reports.rebuild(root)
+
+        self.assertEqual(
+            calls,
+            [
+                ("rebuild_validation_seeds", root),
+                ("build_validation", root, "validation"),
+                ("compare_validation", root, "validation"),
+                ("regenerate_test", root),
+            ],
+        )
+        self.assertEqual(
+            summary["source"],
+            "saved validation_predictions.csv and test_predictions.csv only",
+        )
+        self.assertEqual(summary["validation_seed_reports_written"], 24)
+        self.assertEqual(summary["validation_ensemble_reports_written"], 1)
 
 
 class GeneratorIsolationTests(unittest.TestCase):
@@ -236,6 +310,9 @@ class ProtocolAndRepositoryTests(unittest.TestCase):
         code = "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "code")
         self.assertIn("RUN_FINAL_EVALUATION = False", code)
         self.assertIn("OVERWRITE_TEST_PREDICTIONS = False", code)
+        self.assertIn("regenerate(ROOT)", code)
+        self.assertNotIn("build_all_validation_ensembles(ROOT, split='test')", code)
+        self.assertNotIn("compare_validation(ROOT, test_ensembles, split='test')", code)
         with self.assertRaises(FileExistsError):
             final_evaluation.require_final_evaluation_opt_in(ROOT, run_final_evaluation=True)
         payload = final_evaluation.require_final_evaluation_opt_in(

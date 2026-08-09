@@ -34,8 +34,8 @@
   },
   "confidence_intervals": {
     "pr_auc": {
-      "percentile_2_5": 0.304323089840779,
-      "percentile_97_5": 0.487740152603844
+      "percentile_2_5": 0.30876817210297114,
+      "percentile_97_5": 0.49287328837939043
     },
     "roc_auc": {
       "percentile_2_5": 0.6832944452807467,
@@ -57,9 +57,37 @@
       "percentile_2_5": 0.6456043956043956,
       "percentile_97_5": 0.739010989010989
     },
+    "precision_ppv": {
+      "percentile_2_5": 0.26589412453354794,
+      "percentile_97_5": 0.3619631901840491
+    },
+    "npv": {
+      "percentile_2_5": 0.8925925925925926,
+      "percentile_97_5": 0.946969696969697
+    },
+    "f1": {
+      "percentile_2_5": 0.36922746781115884,
+      "percentile_97_5": 0.4937238493723849
+    },
+    "accuracy": {
+      "percentile_2_5": 0.652116704805492,
+      "percentile_97_5": 0.7345537757437071
+    },
     "balanced_accuracy": {
       "percentile_2_5": 0.635109325605901,
       "percentile_97_5": 0.7543843143158211
+    },
+    "mcc": {
+      "percentile_2_5": 0.2078129442721164,
+      "percentile_97_5": 0.39296613498235744
+    },
+    "sensitivity_at_specificity_0_90": {
+      "percentile_2_5": 0.2465753424657534,
+      "percentile_97_5": 0.4520547945205479
+    },
+    "specificity_at_frozen_0_90_threshold": {
+      "percentile_2_5": 0.8708791208791209,
+      "percentile_97_5": 0.9313186813186813
     }
   },
   "seed_metrics": [

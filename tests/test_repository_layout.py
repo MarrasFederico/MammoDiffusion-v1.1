@@ -27,6 +27,7 @@ class PublicationRepositoryTests(unittest.TestCase):
 
     def test_main_publication_files_exist(self):
         required = (
+            "VERSION",
             "notebooks/04_classifiers/01_MaxViT512.ipynb",
             "notebooks/04_classifiers/02_MammoFM.ipynb",
             "notebooks/04_classifiers/03_Validation_Comparison.ipynb",
@@ -113,6 +114,23 @@ class PublicationRepositoryTests(unittest.TestCase):
             source = (utility_dir / filename).read_text()
             self.assertIn("RESULTS_STAGE_NAME", source, filename)
             self.assertNotIn("keras_v2", source, filename)
+
+    def test_sdvae_latent_preparation_has_no_dead_results_namespace_argument(self):
+        source = (ROOT / "notebooks/utility/prepare_sdvae_latents.py").read_text()
+        self.assertNotIn("results-stage-name", source)
+        for filename in (
+            "07_LDM_SDVAE_Extra1361.ipynb",
+            "08_LDM_v3_SDVAE_FromScratch.ipynb",
+        ):
+            notebook = nbformat.read(
+                ROOT / "notebooks/2_diffusers" / filename, as_version=4
+            )
+            prepare_cell = next(
+                cell.source
+                for cell in notebook.cells
+                if cell.cell_type == "code" and "prepare_sdvae_latents.py" in cell.source
+            )
+            self.assertNotIn("results-stage-name", prepare_cell, filename)
 
     def test_ldm_filtered_pool_paths_preserve_registered_generator_identity(self):
         from notebooks.utility.ldm_project_paths import (

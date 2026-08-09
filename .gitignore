@@ -36,7 +36,10 @@ recovered_legacy_candidates/
 pre_sol_recovery_*/
 archive_before_github/
 MammoDiffusion_local_archive/
-*.lock
+# Runtime ownership markers. Do not ignore dependency lockfiles such as uv.lock.
+.parallel_generation.lock
+.diffusers_assets.lock
+.sd21_vae_variant.lock
 *.claim
 *.reservation
 
@@ -44,23 +47,15 @@ MammoDiffusion_local_archive/
 # ================================
 # DIFFUSION EXPERIMENTS - entire directories (too large for GitHub)
 # ================================
-# Fine-tuning Stable Diffusion (notebook 03a/03b/03c/03d):
-#   03a -> 20260607_sd21_rsna_mlo_512
-#   03b -> 20260611_sd21_rsna_mlo_512_inference_100_steps
-#   03c -> 20260706_sd21_vaeft_extra1361
-#   03d -> 20260707_sd21_lora_finetuning
+# Legacy flat Stable Diffusion experiment names from historical checkouts.
 experiments/*_sd21_*/
-# LDM Keras from scratch (notebook 04a/04b/04b1/04b2/04b3):
-#   04a  -> 20260617_ldm_basic
-#   04b* -> ..._ldm_keras_v2_extra1361, 20260703_ldm_sdvae_extra1361, 20260707_ldm_v3_sdvae_extra1361
+# Legacy flat Keras LDM experiment names from historical checkouts.
 experiments/*_ldm_*/
 # Current layout: diffusion experiment directories contain very large repositories, caches,
 # and checkpoints. Code and metrics remain under notebooks/ and results/.
 experiments/diffusers/
-# 04d outputs (sampling optimization for a source LDM)
+# Legacy flat sampling-optimization outputs.
 experiments/04d_ldm_*/
-# Classifier directories matching experiments/exp_maxvit512_*, experiments/exp_mammofm_*,
-# experiments/exp_raddino_*, and experiments/compare_22c_* remain tracked.
 # Publication-oriented classifiers: local checkpoint/resume state for 24 jobs.
 experiments/classifiers/
 # Local outputs from the archived full matrix remain recoverable but are not active/tracked.
@@ -116,7 +111,7 @@ build/
 # ================================
 .ipynb_checkpoints/
 
-# Publication-v2 runtime data: keep configs, notebooks and selected small report assets tracked.
+# Publication runtime data: keep configs, notebooks and selected small report assets tracked.
 results/2_diffusers/benchmark/embedding_cache/
 results/2_diffusers/benchmark/execution_config.json
 results/2_diffusers/benchmark/runs/

@@ -88,7 +88,7 @@ def load_selected_generators(root: Path, *, required: bool = True) -> dict[str, 
     path = Path(root) / "configs/selected_generators.json"
     if not path.is_file():
         if required: raise FileNotFoundError(
-            "run 3_generator_benchmark/02_Generator_Selection.ipynb and save "
+            "run notebooks/3_generator_benchmark/02_Generator_Selection.ipynb and save "
             "configs/selected_generators.json"
         )
         return None

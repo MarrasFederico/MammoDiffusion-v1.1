@@ -20,7 +20,7 @@ NUM_CLASSES = 2
 NUM_DIFF_STEPS = 1000
 CFG_SCALE = 3.0
 SAMPLE_STEPS = 100
-CLASS_NAMES = {0: "Negative (healthy)", 1: "Positive (cancer)"}
+CLASS_NAMES = {0: "Negative (non-cancer label)", 1: "Positive (cancer label)"}
 
 
 @dataclass(frozen=True)

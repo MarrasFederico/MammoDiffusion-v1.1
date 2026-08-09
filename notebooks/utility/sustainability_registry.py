@@ -1,18 +1,16 @@
-"""Canonical sustainability/energy event schema and deduplicated aggregation (spec section 11).
+"""Canonical sustainability event schema and deduplicated event loading.
 
-Deliberately pandas-free (stdlib csv/json only) so it stays importable in the lightweight
+Deliberately pandas-free (stdlib JSON only) so it stays importable in the lightweight
 `base` conda env alongside the rest of notebooks/utility's widely-reused modules.
 
-Every event is one phase of one run. Two totals are always reported side by side and never
-silently merged: `actual_project_energy` (everything really attempted, including failed and
-resumed segments) and `canonical_pipeline_energy` (the reproducible pipeline cost, deduplicated,
-no failures, no dry-run noise).
+Every event is one phase of one run. This module validates and deduplicates the frozen event
+registry; the supported v1.1 analysis intentionally derives energy only from elapsed time and the
+documented 0.170 kW assumption. Stored CodeCarbon energy/CO2 values are historical fields, not
+supported measurements, so this module does not aggregate them into release results.
 """
 from __future__ import annotations
 
-import csv
 import json
-from collections import defaultdict
 from pathlib import Path
 
 PHASES = ("preprocessing", "augmentation", "generator_training", "generation", "filtering",
@@ -73,101 +71,3 @@ def deduplicate_canonical_events(events: list[dict]) -> list[dict]:
         if existing is None or event.get("end_time", "") >= existing.get("end_time", ""):
             by_run_id[run_id] = event
     return [e for e in by_run_id.values() if e.get("status") == "completed"]
-
-
-def actual_vs_canonical(events: list[dict]) -> dict:
-    actual_ids_seen = set()
-    actual_kwh = actual_co2 = actual_seconds = 0.0
-    for event in events:
-        # actual_project_energy: every real attempt, deduplicated only by exact run_id repeat
-        # (a literal re-logged duplicate of the same event), never by outcome.
-        dedup_key = (event["run_id"], event.get("phase"), event.get("status"), event.get("start_time"))
-        if dedup_key in actual_ids_seen:
-            continue
-        actual_ids_seen.add(dedup_key)
-        actual_kwh += event.get("energy_kwh") or 0.0
-        actual_co2 += event.get("co2_kg") or 0.0
-        actual_seconds += event.get("elapsed_seconds") or 0.0
-
-    canonical = deduplicate_canonical_events(events)
-    canonical_kwh = sum(e.get("energy_kwh") or 0.0 for e in canonical)
-    canonical_co2 = sum(e.get("co2_kg") or 0.0 for e in canonical)
-    canonical_seconds = sum(e.get("elapsed_seconds") or 0.0 for e in canonical)
-
-    return {
-        "actual_project_energy_kwh": actual_kwh, "actual_project_co2_kg": actual_co2, "actual_project_seconds": actual_seconds,
-        "canonical_pipeline_energy_kwh": canonical_kwh, "canonical_pipeline_co2_kg": canonical_co2, "canonical_pipeline_seconds": canonical_seconds,
-        "retry_and_failure_overhead_kwh": max(0.0, actual_kwh - canonical_kwh),
-        "n_events_actual": len(actual_ids_seen), "n_events_canonical": len(canonical),
-    }
-
-
-def sum_resumed_segments(events: list[dict], run_id: str) -> dict:
-    """Sum non-overlapping resume segments belonging to the same canonical training run,
-    ordered by start_time, so a training that was resumed 3 times is counted once, not 3x
-    (spec 11.1: sum non-overlapping segments belonging to the same canonical training run).
-    """
-    segments = sorted((e for e in events if e["run_id"] == run_id and e.get("canonical")), key=lambda e: e.get("start_time") or "")
-    total_seconds = sum(e.get("elapsed_seconds") or 0.0 for e in segments)
-    total_kwh = sum(e.get("energy_kwh") or 0.0 for e in segments)
-    total_co2 = sum(e.get("co2_kg") or 0.0 for e in segments)
-    return {"run_id": run_id, "n_segments": len(segments), "elapsed_seconds": total_seconds,
-            "energy_kwh": total_kwh, "co2_kg": total_co2}
-
-
-def group_by_phase(events: list[dict]) -> dict[str, dict]:
-    canonical = deduplicate_canonical_events(events)
-    by_phase: dict[str, dict] = defaultdict(lambda: {"energy_kwh": 0.0, "co2_kg": 0.0, "elapsed_seconds": 0.0, "n_events": 0})
-    for event in canonical:
-        bucket = by_phase[event["phase"]]
-        bucket["energy_kwh"] += event.get("energy_kwh") or 0.0
-        bucket["co2_kg"] += event.get("co2_kg") or 0.0
-        bucket["elapsed_seconds"] += event.get("elapsed_seconds") or 0.0
-        bucket["n_events"] += 1
-    return dict(by_phase)
-
-
-def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames, lineterminator="\n")
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({k: row.get(k, "") for k in fieldnames})
-
-
-def write_summary_by_run(root: Path, events: list[dict]) -> Path:
-    canonical = deduplicate_canonical_events(events)
-    fieldnames = ["run_id", "experiment_id", "phase", "architecture", "energy_kwh", "co2_kg", "elapsed_seconds", "value_precision"]
-    out = root / "results/5_sustainability/summary_by_run.csv"
-    _write_csv(out, canonical, fieldnames)
-    return out
-
-
-def write_summary_by_experiment(root: Path, events: list[dict]) -> Path:
-    canonical = deduplicate_canonical_events(events)
-    by_experiment: dict[str, dict] = defaultdict(lambda: {"energy_kwh": 0.0, "co2_kg": 0.0, "elapsed_seconds": 0.0, "n_runs": 0})
-    for event in canonical:
-        key = event.get("experiment_id") or "unknown"
-        bucket = by_experiment[key]
-        bucket["energy_kwh"] += event.get("energy_kwh") or 0.0
-        bucket["co2_kg"] += event.get("co2_kg") or 0.0
-        bucket["elapsed_seconds"] += event.get("elapsed_seconds") or 0.0
-        bucket["n_runs"] += 1
-    rows = [{"experiment_id": k, **v} for k, v in by_experiment.items()]
-    out = root / "results/5_sustainability/summary_by_experiment.csv"
-    _write_csv(out, rows, ["experiment_id", "energy_kwh", "co2_kg", "elapsed_seconds", "n_runs"])
-    return out
-
-
-def normalized_metrics(event: dict) -> dict:
-    """kWh/1000 images, seconds/1000 images, kWh/optimizer-update — spec 13.2 normalized set."""
-    n_images = event.get("num_images") or 0
-    updates = event.get("optimizer_updates") or 0
-    energy = event.get("energy_kwh") or 0.0
-    seconds = event.get("elapsed_seconds") or 0.0
-    return {
-        "kwh_per_1000_images": (energy / n_images * 1000) if n_images else None,
-        "seconds_per_1000_images": (seconds / n_images * 1000) if n_images else None,
-        "kwh_per_optimizer_update": (energy / updates) if updates else None,
-    }

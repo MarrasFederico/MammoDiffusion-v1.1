@@ -1,54 +1,64 @@
-# Sustainability analysis (v2)
+# Sustainability analysis in MammoDiffusion v1.1
 
-This is a secondary, descriptive analysis of the generator workflows. It covers estimated absolute
-energy per generator, per-phase cost decomposition, and normalization to the canonical 1,361-image
-pool. It avoids double-counting resumed segments. Its scope is deliberately narrow: the canonical
-registry contains generator phases only (`preprocessing`, `generator_training`, `generation`,
-`filtering`, `validation`) and no classifier-training events, so this analysis does not report a
-performance-versus-consumption trade-off and does not compare traditional augmentation with
-diffusion-based augmentation end to end.
+This is a secondary, descriptive analysis of generator-workflow elapsed time. Its only supported
+energy estimate is:
 
-## Schema
+```text
+estimated_energy_kwh = elapsed_seconds / 3600 × 0.170 kW
+```
 
-`notebooks/utility/sustainability_registry.py` defines the canonical event
-(`results/5_sustainability/canonical_events.jsonl`, one JSON object per line): `run_id, experiment_id,
-dataset_variant_id, architecture, seed, phase, status, parent_run_id, canonical, reused_artifact,
-start_time, end_time, elapsed_seconds, energy_kwh, co2_kg, peak_ram_mb, peak_vram_mb, gpu_uuid,
-gpu_name, num_images, optimizer_updates, epochs, source_log, signature, value_precision`. `phase`
-is restricted to the fixed pipeline-stage vocabulary (`preprocessing` ... `metrics`);
-`value_precision` must be one of `measured, estimated, reconstructed, legacy_unverified,
-missing`. NaN energy/CO2/elapsed values are rejected at write time, not silently coerced.
+The 0.170 kW value is the measured mean draw used for the RTX 5060 Ti under the relevant workload.
+The estimate is not a wall-socket measurement, a carbon estimate, or a lifecycle assessment.
 
-Deduplication (`deduplicate_canonical_events`): only `canonical=true`, non-`reused`,
-`status=completed` events count toward the reproducible pipeline; a duplicate `run_id` keeps only
-its latest entry. `actual_vs_canonical` reports two numbers side by side, always:
-`actual_project_energy` (every real attempt, including failures, deduplicated only by exact
-repeated log lines) and `canonical_pipeline_energy` (the reproducible cost) — the code asserts
-canonical never exceeds actual via test coverage, and the difference is reported as
-`retry_and_failure_overhead_kwh`.
+## Scope
 
-## Publication workflow
+The retained event registry covers generator-related phases such as preprocessing, generator
+training, generation, filtering, and validation. It contains no classifier-training events.
+Consequently, this analysis does not compare end-to-end classifier performance against consumption
+and does not repeat the historical internal-V1 comparison of traditional versus diffusion
+augmentation. Efficiency is not a generator eligibility gate or ranking field.
 
-`notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb` includes the descriptive
-generator efficiency table. `notebooks/5_sustainability/01_Sustainability_Comparison.ipynb` reads the
-canonical registry (never raw EcoTracker logs directly) and compares the generators by **time-based
-energy**: because CodeCarbon does not model the RTX 5060 Ti correctly, energy is estimated as
-`wall-clock hours × 0.170 kW` (the measured mean draw of that GPU under load), and only real runs
-longer than 60 s are kept — which discards CodeCarbon's empty restart appends. It plots per-generator
-energy, the per-phase decomposition and the generation cost. The `02_sd21_filtered` generation cost is
-a controlled 100-image, 100-step measurement (its historical log conflated generation into filtering);
-`05_ldm_basic` is the positive-only baseline and is omitted from the selected-generator
-comparison. Efficiency is never a primary generator-selection metric.
+## Authoritative inputs
 
-**CodeCarbon is kept only as a source of wall-clock time.** `notebooks/utility/eco_tracker.py` wraps
-CodeCarbon's `EmissionsTracker` and RAM-peak sampling to produce the raw logs, but its `energy_kwh`
-and `co2_kg` are unreliable on the RTX 5060 Ti (CodeCarbon has no power model for that GPU) and are
-**discarded**. Only the recorded `elapsed_seconds` is trusted; energy is always recomputed as
-`hours × 0.170 kW`. The `energy_kwh`/`co2_kg` fields still exist in the event schema for
-backward compatibility with the historical logs, but no analysis reads them.
+`results/5_sustainability/canonical_events.jsonl` is a frozen 193-event snapshot retained for
+timing provenance. `notebooks/5_sustainability/01_Sustainability_Comparison.ipynb` loads canonical,
+completed, non-reused events through `deduplicate_canonical_events`, converts
+`elapsed_seconds` to numeric values, retains events longer than 60 seconds, and removes exact
+duplicate-duration entries within generator and phase. The duration filter excludes empty restart
+appends.
 
-## Frozen canonical registry
+The event schema still contains legacy `energy_kwh`, `co2_kg`, and `value_precision` fields because
+the registry also preserves historical records. **The supported v1.1 analysis does not read the
+stored energy or CO2 values.** CodeCarbon did not model the RTX 5060 Ti reliably; it is used only as
+a historical source of elapsed duration.
 
-`results/5_sustainability/canonical_events.jsonl` is the versioned publication snapshot and contains
-193 events. The comparison notebook consumes this file directly and does not rediscover or rewrite
-events from machine-local logs. Reports must continue to distinguish actual and canonical energy.
+`results/5_sustainability/g02_generation_timing.json` provides the controlled 100-image,
+100-step timing for G02. The notebook scales its `seconds_per_image` to the canonical 1,361-image
+pool because the historical event log had conflated that generation segment with filtering. For
+other retained generators, the analysis sums valid real-run durations by phase. G06 reuses G05
+training, so its shared training event is excluded rather than charged twice.
+
+## Supported outputs
+
+The current notebook produces exactly these elapsed-time-based figures:
+
+- `results/5_sustainability/figures/generator_energy_total.png`;
+- `results/5_sustainability/figures/generator_energy_by_phase.png`;
+- `results/5_sustainability/figures/generation_efficiency.png`.
+
+All use duration multiplied by 0.170 kW. The notebook tables shown in its outputs are derived from
+the same in-memory calculation.
+
+Legacy actual-versus-canonical, CodeCarbon-energy, and CO2 summaries are not part of release
+evidence. In particular, the removed files `actual_vs_canonical.json`,
+`sustainability_summary.md`, `summary_by_run.csv`, `summary_by_experiment.csv`,
+`actual_vs_canonical.png`, `energy_by_phase_log.png`, `generator_energy_co2.png`, and
+`phase_decomposition_stacked.png` must not be used or regenerated as current v1.1 results.
+
+## Interpretation boundary
+
+The figures compare estimated generator-workflow energy under one hardware/power assumption. They
+do not include classifier training, idle-system draw, CPU/storage/network energy, embodied impact,
+or location-dependent carbon intensity. Differences also inherit the completeness and historical
+quality of elapsed-time logging. They are descriptive resource-accounting estimates and do not
+alter the scientific generator selection or downstream conclusions.

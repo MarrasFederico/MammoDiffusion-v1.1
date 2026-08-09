@@ -74,78 +74,17 @@ class DeduplicationTests(unittest.TestCase):
         self.assertEqual(len(canonical), 1)
         self.assertEqual(canonical[0]["end_time"], "2026-01-01T00:02:00")
 
-    def test_resumed_segments_of_same_run_id_sum_without_double_counting(self):
-        events = [
-            event("train1", status="completed", canonical=True, energy=1.0, seconds=100, start="t0", end="t1"),
-        ]
-        result = sr.sum_resumed_segments(events, "train1")
-        self.assertEqual(result["n_segments"], 1)
-        self.assertEqual(result["energy_kwh"], 1.0)
-
-
-class ActualVsCanonicalTests(unittest.TestCase):
-    def test_actual_includes_failures_canonical_does_not(self):
-        events = [
-            event("r1", status="completed", energy=1.0),
-            event("r2", status="failed", energy=0.5),
-        ]
-        result = sr.actual_vs_canonical(events)
-        self.assertAlmostEqual(result["actual_project_energy_kwh"], 1.5)
-        self.assertAlmostEqual(result["canonical_pipeline_energy_kwh"], 1.0)
-        self.assertGreater(result["retry_and_failure_overhead_kwh"], 0)
-
-    def test_canonical_never_exceeds_actual(self):
-        events = [event("r1", status="completed", energy=1.0), event("r2", status="failed", energy=5.0)]
-        result = sr.actual_vs_canonical(events)
-        self.assertLessEqual(result["canonical_pipeline_energy_kwh"], result["actual_project_energy_kwh"])
-
-    def test_exact_duplicate_log_lines_not_double_counted_in_actual(self):
-        e = event("r1", status="completed", energy=1.0)
-        events = [e, dict(e)]  # literal duplicate log entry
-        result = sr.actual_vs_canonical(events)
-        self.assertAlmostEqual(result["actual_project_energy_kwh"], 1.0)
-
-
-class PhaseGroupingTests(unittest.TestCase):
-    def test_group_by_phase_separates_training_from_generation(self):
-        events = [event("r1", phase="classifier_training", energy=2.0), event("r2", phase="generation", energy=3.0)]
-        grouped = sr.group_by_phase(events)
-        self.assertAlmostEqual(grouped["classifier_training"]["energy_kwh"], 2.0)
-        self.assertAlmostEqual(grouped["generation"]["energy_kwh"], 3.0)
-
-
-class NormalizedMetricsTests(unittest.TestCase):
-    def test_kwh_per_1000_images(self):
-        result = sr.normalized_metrics(event("r1", energy=2.0, num_images=1000))
-        self.assertAlmostEqual(result["kwh_per_1000_images"], 2.0)
-
-    def test_zero_images_yields_none_not_division_error(self):
-        result = sr.normalized_metrics(event("r1", num_images=0))
-        self.assertIsNone(result["kwh_per_1000_images"])
-
-    def test_kwh_per_optimizer_update(self):
-        result = sr.normalized_metrics(event("r1", energy=1.0, optimizer_updates=100))
-        self.assertAlmostEqual(result["kwh_per_optimizer_update"], 0.01)
-
-
-class CsvOutputTests(unittest.TestCase):
-    def test_write_summary_by_run_creates_csv_with_canonical_rows_only(self):
-        with tempfile.TemporaryDirectory() as t:
-            root = Path(t)
-            events = [event("r1", status="completed"), event("r2", status="failed")]
-            out = sr.write_summary_by_run(root, events)
-            content = out.read_text()
-            self.assertIn("r1", content)
-            self.assertNotIn("r2", content)
-
-    def test_write_summary_by_experiment_aggregates_across_runs(self):
-        with tempfile.TemporaryDirectory() as t:
-            root = Path(t)
-            events = [event("r1", energy=1.0), event("r2", energy=2.0)]
-            out = sr.write_summary_by_experiment(root, events)
-            content = out.read_text()
-            self.assertIn("exp1", content)
-            self.assertIn("2", content)  # n_runs=2 somewhere in the row
+class RetiredAggregateApiTests(unittest.TestCase):
+    def test_untrusted_codecarbon_aggregates_are_not_exposed(self):
+        for name in (
+            "actual_vs_canonical",
+            "group_by_phase",
+            "normalized_metrics",
+            "sum_resumed_segments",
+            "write_summary_by_experiment",
+            "write_summary_by_run",
+        ):
+            self.assertFalse(hasattr(sr, name), name)
 
 
 if __name__ == "__main__":

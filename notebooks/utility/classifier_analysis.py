@@ -27,6 +27,8 @@ TEST_ENSEMBLE_RESULTS = Path("results/4_final_evaluation/test_ensembles")
 
 
 def _ensemble_root(split: str) -> Path:
+    if split not in {"validation", "test"}:
+        raise ValueError("split must be exactly 'validation' or 'test'")
     return ENSEMBLE_RESULTS if split == "validation" else TEST_ENSEMBLE_RESULTS
 
 ARCHITECTURE_DISPLAY_NAMES = {
@@ -59,9 +61,11 @@ def discover_experiments(root: Path) -> list[dict[str, Any]]:
         predictions = directory / "validation_predictions.csv"; validation_metrics = directory / "validation_metrics.json"
         checkpoint = any(path.suffix in {".pt", ".pth", ".keras", ".h5"} for path in checkpoint_directory.glob("checkpoint_best.*"))
         training_complete = configuration.is_file() and dataset.is_file() and checkpoint
+        report_inputs_complete = dataset.is_file() and predictions.is_file()
         output.append({**job, "directory": str(directory), "training complete": training_complete,
                        "validation predictions present": predictions.is_file(),
                        "validation metrics present": validation_metrics.is_file(), "checkpoint present": checkpoint,
+                       "report inputs complete": report_inputs_complete,
                        "complete": training_complete and predictions.is_file() and validation_metrics.is_file(),
                        "missing": [name for name, present in (("configuration.json", configuration.is_file()),
                                    ("dataset_summary.json", dataset.is_file()), ("checkpoint", checkpoint),
@@ -109,6 +113,36 @@ def aggregate_patient(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]
         output.append({"patient_id": patient_id, "label": labels.pop(),
                        "probability": float(mean(float(row["probability"]) for row in group)), "n_images": len(group)})
     return output
+
+
+def rebuild_validation_seed_report(
+    root: Path, architecture: str, condition: str, seed: int
+) -> dict[str, Any]:
+    """Rebuild one validation report from its frozen prediction CSV.
+
+    This mirrors ``classifier_experiment.run_validation`` without loading a
+    model or image. Rebuilding these per-seed operating points before the
+    ensembles is essential because held-out test reports freeze their
+    thresholds from these files.
+    """
+    output = result_dir(root, architecture, condition, seed)
+    rows = _read_predictions(output / "validation_predictions.csv")
+    report = metrics.full_report(
+        [row["label"] for row in rows],
+        [row["probability"] for row in rows],
+        split="validation",
+    )
+    atomic_json(output / "validation_metrics.json", report)
+    return report
+
+
+def rebuild_all_validation_seed_reports(root: Path) -> int:
+    """Rebuild all 24 per-seed validation operating-point reports."""
+    for architecture in ARCHITECTURES:
+        for condition in CONDITIONS:
+            for seed in SEEDS:
+                rebuild_validation_seed_report(root, architecture, condition, seed)
+    return len(ARCHITECTURES) * len(CONDITIONS) * len(SEEDS)
 
 
 def patient_bootstrap_intervals(rows: Sequence[Mapping[str, Any]], *, iterations: int, seed: int,
@@ -269,8 +303,12 @@ def ensemble_metric_table(ensembles: Sequence[Mapping[str, Any]]):
     return pd.DataFrame(rows)
 
 
-def plot_ensemble_overview(ensembles: Sequence[Mapping[str, Any]]):
+def plot_ensemble_overview(
+    ensembles: Sequence[Mapping[str, Any]], *, split: str = "validation"
+):
     import matplotlib.pyplot as plt
+    if split not in {"validation", "test"}:
+        raise ValueError("split must be exactly 'validation' or 'test'")
     table = ensemble_metric_table(ensembles)
     if len(table) != 8: raise ValueError("exactly eight logical ensembles are required")
     figure, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -278,23 +316,39 @@ def plot_ensemble_overview(ensembles: Sequence[Mapping[str, Any]]):
               f"{CONDITION_DISPLAY_NAMES.get(row.condition, row.condition)}"
               for row in table.itertuples()]
     lower = table["pr_auc"] - table["pr_auc_ci_low"]; upper = table["pr_auc_ci_high"] - table["pr_auc"]
-    axes[0].errorbar(range(8), table["pr_auc"], yerr=[lower, upper], fmt="o"); axes[0].set_xticks(range(8), labels, rotation=90); axes[0].set_title("Validation PR-AUC with intervals")
+    split_label = split.capitalize()
+    axes[0].errorbar(range(8), table["pr_auc"], yerr=[lower, upper], fmt="o"); axes[0].set_xticks(range(8), labels, rotation=90); axes[0].set_title(f"{split_label} PR-AUC with intervals")
     heat = table.pivot(index="architecture", columns="condition", values="pr_auc")
     heat_conditions = [CONDITION_DISPLAY_NAMES.get(value, value) for value in heat.columns]
     heat_architectures = [ARCHITECTURE_DISPLAY_NAMES.get(value, value) for value in heat.index]
     image = axes[1].imshow(heat.values, aspect="auto", cmap="viridis"); axes[1].set_xticks(range(len(heat.columns)), heat_conditions, rotation=90); axes[1].set_yticks(range(len(heat.index)), heat_architectures); axes[1].set_title("Architecture × condition PR-AUC"); figure.colorbar(image, ax=axes[1])
-    figure.suptitle("Classifier validation ensembles | Patient-level mean of seeds 17, 42 and 73",
+    figure.suptitle(f"Classifier {split} ensembles | Patient-level mean of seeds 17, 42 and 73",
                     fontsize=14, fontweight="bold")
     figure.tight_layout(rect=(0, 0, 1, 0.93)); return figure
 
 
 def plot_ensemble_curves(root: Path, ensembles: Sequence[Mapping[str, Any]], split: str = "validation"):
     import matplotlib.pyplot as plt
+    _ensemble_root(split)  # validate before opening any report
     figure, axes = plt.subplots(2, 3, figsize=(16, 10))
     for row in ensembles:
         path = Path(root) / _ensemble_root(split) / row["architecture"] / row["condition"] / "patient_level_predictions.csv"
         values = _read_patient_rows(path); labels = np.asarray([item["label"] for item in values]); probabilities = np.asarray([item["probability"] for item in values])
-        order = np.argsort(-probabilities); ordered = labels[order]; tp, fp = np.cumsum(ordered == 1), np.cumsum(ordered == 0)
+        order = np.argsort(-probabilities, kind="mergesort")
+        ordered = labels[order]
+        ordered_probabilities = probabilities[order]
+        tp_cumulative = np.cumsum(ordered == 1)
+        fp_cumulative = np.cumsum(ordered == 0)
+        # A threshold admits the whole tied-score group. Plotting intermediate
+        # rows would make PR/ROC curves depend on CSV row order.
+        threshold_ends = np.concatenate(
+            (
+                np.flatnonzero(np.diff(ordered_probabilities)),
+                [len(ordered_probabilities) - 1],
+            )
+        )
+        tp = tp_cumulative[threshold_ends]
+        fp = fp_cumulative[threshold_ends]
         recall = tp / max(1, int((labels == 1).sum())); precision = tp / np.maximum(tp + fp, 1); fpr = fp / max(1, int((labels == 0).sum()))
         arch_index = 0 if row["architecture"] == ARCHITECTURES[0] else 1
         label = CONDITION_DISPLAY_NAMES.get(row["condition"], row["condition"])
@@ -329,4 +383,5 @@ def _write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> Path:
 
 __all__ = ["ENSEMBLE_RESULTS", "PUBLICATION_RESULTS", "aggregate_patient", "align_seed_predictions", "build_all_validation_ensembles",
            "build_validation_ensemble", "compare_validation", "discover_experiments", "ensemble_metric_table",
-           "plot_ensemble_curves", "plot_ensemble_overview", "result_dir"]
+           "plot_ensemble_curves", "plot_ensemble_overview", "rebuild_all_validation_seed_reports",
+           "rebuild_validation_seed_report", "result_dir"]

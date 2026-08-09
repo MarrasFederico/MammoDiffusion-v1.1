@@ -161,7 +161,7 @@ def parse_args() -> argparse.Namespace:
         choices=["eps", "v"],
         default="eps",
         help=(
-            "eps (default, compatible with 04b/04b1/04b2): the U-Net predicts noise. "
+            "eps (default, used by G05-G07): the U-Net predicts noise. "
             "v (Salimans & Ho, 2022): the U-Net predicts v = sqrt(ab)*noise - sqrt(1-ab)*x0."
         ),
     )
@@ -187,7 +187,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--uses-vae-ft-from-03",
         action="store_true",
-        help="Record in the manifest that latents come from notebook 03's fine-tuned VAE.",
+        help=(
+            "Record in the manifest that latents come from the fine-tuned VAE in "
+            "notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb."
+        ),
     )
     parser.add_argument(
         "--notebook-name",
@@ -239,7 +242,7 @@ LDM_TOTAL_STEPS = ARGS.total_steps
 LOG_EVERY       = ARGS.log_every
 CKPT_EVERY      = ARGS.checkpoint_every
 
-# v3 architecture, parameterization, and Min-SNR (defaults remain compatible with 04b/04b1/04b2)
+# V3 architecture, parameterization, and Min-SNR (defaults match G05-G07).
 UNET_VERSION     = ARGS.unet_version
 PARAMETERIZATION = ARGS.parameterization
 USE_MIN_SNR      = ARGS.use_min_snr
@@ -1179,8 +1182,8 @@ def ldm_train_step(z0, y):
 
     Sample a random timestep and noise, diffuse the latent, drop labels with probability
     `CFG_DROPOUT` to teach unconditional prediction, and update the weights. The simple-loss
-    target depends on `PARAMETERIZATION`: raw noise for `eps` (matching notebooks
-    04b/04b1/04b2) or the Salimans and Ho velocity target for `v`. The learned-variance VLB
+    target depends on `PARAMETERIZATION`: raw noise for `eps` (matching G05-G07)
+    or the Salimans and Ho velocity target for `v` (matching G08). The learned-variance VLB
     term always operates in epsilon space, so a `v` prediction is first converted with the
     same `predict_epsilon_from_model_output` function used by generation and evaluation.
     """

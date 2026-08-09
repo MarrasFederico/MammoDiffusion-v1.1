@@ -1076,6 +1076,11 @@ class ParallelGenerationTests(unittest.TestCase):
         cells = ["".join(cell.get("source", [])) for cell in notebook["cells"] if cell.get("cell_type") == "code"]
         joined = "\n".join(cells)
         self.assertIn("from notebooks.utility.classifier_analysis import", joined)
+        self.assertIn("row['report inputs complete']", joined)
+        self.assertNotIn(
+            "missing_jobs = [row for row in inventory if not row['complete']]",
+            joined,
+        )
         self.assertNotIn("metadata/test.csv", joined)
         for index, source in enumerate(cells):
             compile(source, f"09-cell-{index}", "exec")

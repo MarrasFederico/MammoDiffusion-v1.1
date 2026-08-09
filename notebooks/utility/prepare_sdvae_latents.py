@@ -15,6 +15,8 @@ from PIL import Image
 
 IMG_SIZE = 512
 POSITIVE_AUGMENT_COPIES = 3
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Prepare Stable Diffusion VAE latents for the MammoDiffusion LDM."
@@ -25,11 +27,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu-visible-devices", default=None)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--force-recompute", action="store_true")
-    parser.add_argument(
-        "--results-stage-name",
-        default="04b2_ldm_sdvae_extra1361",
-        help="Results stage used only for metadata consistency.",
-    )
     return parser.parse_args()
 
 
@@ -54,7 +51,7 @@ def load_metadata(csv_path: Path, dataset_root: Path) -> pd.DataFrame:
     required_cols = ["patient_id", "image_id", "label", "split", "processed_path"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        raise ValueError(f"Mancano colonne obbligatorie in {csv_path}: {missing_cols}")
+        raise ValueError(f"Missing required columns in {csv_path}: {missing_cols}")
 
     df["patient_id"] = df["patient_id"].astype(str)
     df["image_id"] = df["image_id"].astype(str)

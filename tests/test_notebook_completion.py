@@ -138,7 +138,7 @@ class GeneratorCompletionTests(unittest.TestCase):
         self.assertEqual(next(row["generator_id"] for row in fs if row["eligible"]), "06_primary")
 
     def test_selection_notebook_records_selection(self):
-        # Notebook 02 ranks each family by the preregistered hierarchy under the technical safety
+        # Notebook 02 ranks each family by the protocol-declared hierarchy under the technical safety
         # gates and records the explicit G02/G07 selection via the simple selection writer.
         text = (ROOT / "notebooks/3_generator_benchmark/02_Generator_Selection.ipynb").read_text()
         for token in ("SELECTED_FINETUNED_GENERATOR", "SELECTED_FROM_SCRATCH_GENERATOR",

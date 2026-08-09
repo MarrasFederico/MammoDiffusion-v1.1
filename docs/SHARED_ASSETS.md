@@ -1,4 +1,4 @@
-# Shared Diffusers and SD2.1 assets
+# Shared Diffusers and SD2.1 assets for MammoDiffusion v1.1
 
 The only canonical clean Diffusers checkout is
 `notebooks/utility/diffusers_repo`, pinned at

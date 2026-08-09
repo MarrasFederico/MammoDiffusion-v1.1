@@ -88,6 +88,15 @@ class GradioSelectedGeneratorsTests(unittest.TestCase):
         ):
             self.assertNotIn(retired, source)
 
+    def test_demo_uses_memory_safe_cross_framework_defaults(self):
+        module = import_app_configuration()
+        source = APP_PATH.read_text(encoding="utf-8")
+        self.assertEqual(module.LDM_VAE_DEVICE, "cpu")
+        self.assertTrue(module.SD_MODEL_CPU_OFFLOAD)
+        self.assertIn("pipeline.enable_model_cpu_offload()", source)
+        self.assertIn("device=LDM_VAE_DEVICE", source)
+        self.assertIn('torch.Generator(device="cpu")', source)
+
     def test_app_configuration_imports_and_resolves_the_g07_selection_record(self):
         module = import_app_configuration()
         expected = (

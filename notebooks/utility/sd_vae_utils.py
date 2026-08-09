@@ -78,7 +78,8 @@ def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None
             return str(candidate.absolute())
         raise FileNotFoundError(
             "Local Stable Diffusion 2.1 model not found: "
-            f"{candidate}. Download or prepare it from Drive as described in notebook 03b."
+            f"{candidate}. Download or prepare it from Drive as described in "
+            "notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb."
         )
 
     env_value = os.environ.get("MAMMODIFFUSION_SD21_BASE")

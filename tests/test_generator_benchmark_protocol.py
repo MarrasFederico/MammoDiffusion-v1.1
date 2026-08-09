@@ -93,7 +93,7 @@ class GeneratorBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["validation_similarity_rate"], 1.0)
         self.assertEqual(result["synthetic_duplicate_rate"], 0.0)
 
-    def test_flat_generator_summary_uses_every_preregistered_tiebreak_in_order(self):
+    def test_flat_generator_summary_uses_every_protocol_declared_tiebreak_in_order(self):
         base = {"family": "finetuned", "eligible_for_selection": True, "valid_positive_images": 1361,
                 "synthetic_exact_duplicate_rate": 0, "perceptual_hash_duplicate_rate": 0,
                 "train_memorization_rate": 0, "filter_manifest_valid": True,

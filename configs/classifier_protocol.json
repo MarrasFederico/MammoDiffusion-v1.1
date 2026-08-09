@@ -2,8 +2,9 @@
   "schema_version": 2,
   "protocol_version": 2,
   "research_questions": {
-    "RQ2": "Does adding positive synthetic mammograms improve classification over real-only data and traditional augmentation?",
-    "RQ3": "Is the effect consistent across MaxViT-512 and Mammo-FM?"
+    "RQ2": "Does adding positive synthetic mammograms change cancer classification relative to real-only data and traditional augmentation?",
+    "RQ3": "Within each architecture, do the selected fine-tuned and from-scratch generator conditions differ in downstream usefulness?",
+    "RQ4": "Is the observed augmentation pattern consistent across MaxViT-512 and Mammo-FM?"
   },
   "architectures": {
     "maxvit512": {
@@ -19,7 +20,7 @@
       "early_stopping": {"monitor": "val_pr_auc", "mode": "max", "patience": 10, "restore_best_weights": true},
       "checkpoint_criterion": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",
       "class_weighting": "binary_focal_alpha_0.75", "loss": "binary_focal_loss", "dataloader_workers": 3, "cpu_threads": 4,
-      "interpretability": ["Grad-CAM++", "SmoothGrad"]
+      "interpretability": ["Grad-CAM", "Integrated Gradients"]
     },
     "mammofm": {
       "display_name": "Mammo-FM", "framework": "pytorch", "backbone": "mammo_fm_efficientnet_b5",
@@ -34,7 +35,7 @@
       "early_stopping": {"monitor": "val_pr_auc", "mode": "max", "patience": 10, "restore_best_weights": true},
       "checkpoint_criterion": "val_pr_auc_max_then_val_loss_min_then_earliest_epoch",
       "class_weighting": "binary_focal_alpha_0.75", "loss": "binary_focal_loss", "dataloader_workers": 3, "cpu_threads": 4,
-      "interpretability": ["architecture-compatible gradient attribution", "feature attribution"]
+      "interpretability": ["Grad-CAM", "Integrated Gradients"]
     }
   },
   "conditions": {
@@ -46,6 +47,8 @@
   "seeds": [17, 42, 73],
   "fairness": {
     "training_budget_policy": "fixed_maximum_optimizer_updates", "maximum_optimizer_updates": 6400, "validation_interval_optimizer_updates": 250,
+    "budget_scope": "common upper bound and early-stopping rule; actual completed updates are not equal across jobs",
+    "augmentation_dose_policy": "not matched between traditional and synthetic conditions",
     "validation_manifest": "data/processed/metadata/val.csv", "primary_checkpoint_metric": "validation_pr_auc",
     "tie_break": ["minimum_validation_loss", "earliest_epoch"], "real_image_augmentation_policy": "identical_within_architecture",
     "source_accounting": ["samples_seen_by_source", "optimizer_steps", "effective_epochs_by_source"]
@@ -56,7 +59,9 @@
     "ensemble": {"seeds": [17, 42, 73], "method": "mean_probability", "expected_count": 8},
     "confidence_intervals": {"method": "patient_level_bootstrap", "iterations": 2000, "seed": 20260714},
     "primary_comparisons_per_architecture": [["real_only", "real_augmented"], ["real_only", "real_plus_best_finetuned_positive"], ["real_only", "real_plus_best_fromscratch_positive"], ["real_plus_best_finetuned_positive", "real_plus_best_fromscratch_positive"]],
-    "multiple_testing": "Holm correction over one family of eight preregistered comparisons"
+    "study_registration": "not_formally_preregistered",
+    "tail_area_definition": "twice the bootstrap fraction at or beyond zero opposite the observed mean-difference direction; not a null-based permutation p-value",
+    "multiple_testing": "Holm adjustment over one repository-defined family of eight empirical bootstrap tail-area summaries"
   },
   "results_root": "results/3_classifiers/seed_runs",
   "experiments_root": "experiments/classifiers",

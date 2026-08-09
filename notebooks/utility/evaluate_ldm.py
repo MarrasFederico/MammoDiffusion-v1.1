@@ -91,7 +91,7 @@ def parse_args() -> argparse.Namespace:
         help=(
             "both orchestrates generate+metrics in separate processes; generate creates "
             "images only; metrics computes metrics only; artifacts rebuilds only "
-            "JSON/CSV/plot/manifest da checkpoint_metrics.json."
+            "JSON/CSV/plot/manifest files from checkpoint_metrics.json."
         ),
     )
     parser.add_argument("--n-gen-per-class", type=int, default=50)
@@ -123,8 +123,8 @@ def parse_args() -> argparse.Namespace:
         choices=["eps", "v"],
         default="eps",
         help=(
-            "Parameterization of evaluated checkpoints: eps (default, compatible with "
-            "04b/04b1/04b2) or v (Salimans & Ho, 2022, used by 04b3). It must "
+            "Parameterization of evaluated checkpoints: eps (default, used by G05-G07) "
+            "or v (Salimans & Ho, 2022, used by G08). It must "
             "match how the checkpoints were trained."
         ),
     )
@@ -142,7 +142,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--uses-vae-ft-from-03",
         action="store_true",
-        help="Record in output JSON that the VAE is the fine-tuned VAE from notebook 03.",
+        help=(
+            "Record in output JSON that the VAE is the fine-tuned VAE from "
+            "notebooks/2_diffusers/03_SD21_VAE_FineTuned.ipynb."
+        ),
     )
     parser.add_argument(
         "--notebook-name",
@@ -306,8 +309,9 @@ def normalize_eval_config(config: dict | None) -> dict:
     """Fill missing cached optional fields with current defaults before comparison.
 
     ``parameterization`` and ``unet_version`` default to ``eps`` and ``v2``.
-    Caches written by 04b2 before these flags omit both fields and are therefore
-    historically equivalent to eps/v2 rather than invalid.
+    Caches written by the legacy 04b2 experiment (now G07) before these flags
+    omit both fields and are therefore historically equivalent to eps/v2 rather
+    than invalid.
     """
     normalized = dict(config or {})
     normalized.setdefault("seed", 42)
@@ -502,7 +506,7 @@ def prepare_sweep_generation_manifest(
             changed = sorted(key for key in set(current or {}) | set(expected) if (current or {}).get(key) != expected.get(key))
             print(f"DRY-RUN: incompatible sweep manifest under {out_dir}: {changed}")
         elif force_generation:
-            print(f"DRY-RUN: verrebbero rigenerati {len(png_paths)} PNG in {out_dir}")
+            print(f"DRY-RUN: would regenerate {len(png_paths)} PNGs in {out_dir}")
         return expected
     if current == expected and force_generation:
         for path in png_paths:
@@ -647,7 +651,7 @@ def use_cached_metrics_if_valid(
 
     print(f"Checkpoint metrics already present: {metrics_json_path}")
     print(
-        "Best model da cache: "
+        "Best model from cache: "
         f"{selection.get('best_checkpoint_id')} -> {best_eval_model_path}"
     )
     return True

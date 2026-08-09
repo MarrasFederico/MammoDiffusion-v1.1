@@ -11,7 +11,7 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 python -m pytest -q
 ```
 
-`requirements-dev.txt` pins the runner plus the light scientific packages the utilities import
+`requirements-dev.txt` constrains the runner plus the light scientific packages the utilities import
 (NumPy, pandas, SciPy, Matplotlib, Pillow, IPython). It deliberately omits TensorFlow, PyTorch,
 Diffusers, Gradio, and scikit-learn, which the suite never reaches; `requirements.txt` covers those
 for real runs.
@@ -24,6 +24,7 @@ The main protected behaviors are:
 - validation-frozen seed and ensemble thresholds on test;
 - a hard error when test thresholds are missing;
 - fixed thresholds in every bootstrap replica;
+- average-precision invariance to input order when prediction scores are tied;
 - invariant ROC-AUC, PR-AUC, Brier, and ECE;
 - deterministic CSV-only report regeneration;
 - final-evaluation opt-in and overwrite protection;
@@ -39,11 +40,16 @@ The main protected behaviors are:
 Tests of a real benchmark or real cohort remain integration checks and must be run manually with
 the required local assets. Unit tests do not silently skip into those paths.
 
-## Source archive
+## Source-release check
 
-Build the delivery ZIP from the existing tracked files plus non-ignored working-tree files. Keep
-the root and nested `.gitignore` files, `assets/`, and the seven canonical lightweight generator
-benchmark outputs. Exclude `data/`, `experiments/`, vendored/base diffusion repositories, Git
-metadata, checkpoints and weights, caches and bytecode, heavy benchmark runtime artifacts, and
-large interpretability figures. Validate the ZIP with `unzip -t`, extract it into a temporary
-directory, and rerun both test commands above from the extracted repository before delivery.
+The Git/source release and the full scientific archive have different boundaries. A source archive
+should be built from the exact `v1.1.0` tracked tree, including versioned attribution figures and
+canonical lightweight generator outputs. It excludes ignored `data/`, `experiments/`, checkpoints,
+weights, runtime caches, and separately archived shared-model assets. Validate a ZIP with
+`unzip -t`, extract it into a temporary directory, and rerun the lightweight tests there.
+
+Full generator/training reproduction additionally requires the assets listed in
+[ARCHIVE_AND_RELEASE.md](ARCHIVE_AND_RELEASE.md) and [SHARED_ASSETS.md](SHARED_ASSETS.md). The
+requirements files use version bounds rather than an exact scientific lock; the current
+release-verification environment is recorded in the archive document and must not be mistaken for
+the exact environment of every historical training run.

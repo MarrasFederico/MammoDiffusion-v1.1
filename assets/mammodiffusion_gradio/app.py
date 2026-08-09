@@ -80,6 +80,10 @@ LDM_SELECTED_STEP_MODEL_PATH = (
     / f"ldm_{LDM_BEST_CHECKPOINT_ID.replace('_', '')}.keras"
 )
 LDM_DEFAULT_CUDA_ROOT = Path(sys.prefix)
+LDM_VAE_DEVICE = os.environ.get("MAMMODIFFUSION_LDM_VAE_DEVICE", "cpu").strip()
+SD_MODEL_CPU_OFFLOAD = os.environ.get(
+    "MAMMODIFFUSION_SD_MODEL_CPU_OFFLOAD", "1"
+).strip().lower() not in {"0", "false", "no"}
 
 OUTPUT_DIR = APP_DIR / "outputs"
 
@@ -416,7 +420,12 @@ def get_sd_pipeline() -> StableDiffusionPipeline:
             requires_safety_checker=False,
             local_files_only=True,
         )
-        pipeline = pipeline.to(device)
+        if device == "cuda" and SD_MODEL_CPU_OFFLOAD:
+            # Keep the demo usable on 12--16 GB cards. The app generates one
+            # image at a time, so lower peak VRAM is preferable to throughput.
+            pipeline.enable_model_cpu_offload()
+        else:
+            pipeline = pipeline.to(device)
         pipeline.enable_attention_slicing()
         pipeline.enable_vae_slicing()
         pipeline.set_progress_bar_config(disable=True)
@@ -477,7 +486,13 @@ def get_ldm_runtime(sample_steps: int, guidance_scale: float, seed: int) -> LdmR
                 load_sd_vae,
             ) = import_ldm_utils(seed=seed)
 
-            sd_vae, sd_device, sd_dtype, _ = load_sd_vae(SD_BASE_MODEL_DIR)
+            # TensorFlow owns the GPU during LDM sampling. Decode the single
+            # latent on CPU by default so the PyTorch VAE cannot contend for
+            # the same VRAM. Advanced users may opt in to a CUDA device.
+            sd_vae, sd_device, sd_dtype, _ = load_sd_vae(
+                SD_BASE_MODEL_DIR,
+                device=LDM_VAE_DEVICE,
+            )
 
             LDM_RUNTIME = LdmRuntime(
                 tf=tf,
@@ -595,8 +610,9 @@ def generate_sd_image(
     import torch
 
     pipeline = get_sd_pipeline()
-    device = pipeline.device.type
-    generator = torch.Generator(device=device).manual_seed(image_seed)
+    # A CPU generator is supported by Diffusers even when the execution device
+    # is CUDA, and remains valid when model CPU offload is enabled.
+    generator = torch.Generator(device="cpu").manual_seed(image_seed)
 
     with MODEL_LOCK, torch.inference_mode():
         result = pipeline(

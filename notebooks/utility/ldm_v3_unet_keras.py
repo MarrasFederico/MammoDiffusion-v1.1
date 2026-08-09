@@ -86,7 +86,7 @@ class LabelEmbeddingV3(layers.Layer):
 
 
 # ---------------------------------------------------------------------------
-# ResBlock stile SD: [GN -> SiLU -> Conv3x3] x 2 + embed FiLM + skip 1x1
+# SD-style ResBlock: [GN -> SiLU -> Conv3x3] x 2 + FiLM embedding + 1x1 skip
 # ---------------------------------------------------------------------------
 
 @tf.keras.utils.register_keras_serializable()
@@ -127,7 +127,7 @@ class ResBlockV3(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class SelfAttentionBlockV3(layers.Layer):
-    """Self-attention SD-style con GroupNorm pre-attention e residuo."""
+    """SD-style self-attention with pre-attention GroupNorm and a residual connection."""
 
     def __init__(self, channels, num_heads=4, **kwargs):
         super().__init__(**kwargs)
@@ -160,7 +160,7 @@ class SelfAttentionBlockV3(layers.Layer):
 
 
 # ---------------------------------------------------------------------------
-# Up/Down sampling con schema Stable Diffusion
+# Stable-Diffusion-style upsampling and downsampling
 # ---------------------------------------------------------------------------
 
 @tf.keras.utils.register_keras_serializable()
@@ -251,7 +251,7 @@ def build_ldm_unet_v3(
     x2 = ResBlockV3(C * 2, embed_dim)(x2, emb)
     p2 = DownsampleConv(C * 2)(x2)
 
-    # Encoder stage 3 (con attention)
+    # Encoder stage 3 (with attention)
     x3 = ResBlockV3(C * 4, embed_dim)(p2, emb)
     x3 = SelfAttentionBlockV3(C * 4, num_heads=num_attention_heads)(x3)
     x3 = ResBlockV3(C * 4, embed_dim)(x3, emb)
@@ -298,7 +298,7 @@ def build_ldm_unet_v3(
 # ---------------------------------------------------------------------------
 
 def make_v_target(x0, noise, t, sqrt_alpha_bars_arr, sqrt_one_minus_alpha_bars_arr):
-    """Target di v-prediction (Salimans & Ho 2022): v = sqrt(ab)*eps - sqrt(1-ab)*x0."""
+    """V-prediction target (Salimans & Ho, 2022): v = sqrt(ab)*eps - sqrt(1-ab)*x0."""
     def _extract(values, t):
         vals = tf.gather(values, t)
         return tf.reshape(vals, [-1, 1, 1, 1])

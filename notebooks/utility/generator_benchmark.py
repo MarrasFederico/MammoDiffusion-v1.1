@@ -98,7 +98,7 @@ def validate_protocol(protocol: Mapping[str, Any]) -> None:
     if int(resampling.get("stability_repetitions", 0)) < 2:
         raise ValueError("stability_repetitions must be at least two")
     if float(protocol.get("selection", {}).get("practical_equivalence_margin", -1)) < 0:
-        raise ValueError("practical_equivalence_margin must be preregistered")
+        raise ValueError("practical_equivalence_margin must be declared before comparison")
     if int(resampling.get("fid_repetitions", 999)) > 10:
         raise ValueError("FID is secondary and must use a small independent repetition count")
     ranking_metrics = [item["metric"] for item in protocol["selection"]["ranking"]]
@@ -1214,7 +1214,7 @@ def _metric_value(row: Mapping[str, Any], *names: str, default: float = math.inf
 
 def rank_generator_family(rows: Sequence[Mapping[str, Any]], family: str,
                           gates: Mapping[str, Any] | None = None) -> list[dict[str, Any]]:
-    """Gate first, then apply the preregistered metric hierarchy without a weighted score."""
+    """Gate first, then apply the protocol-declared metric hierarchy without a weighted score."""
     candidates = []
     for source in rows:
         if str(source.get("family", source.get("scientific_family"))) != family: continue
@@ -1252,7 +1252,7 @@ def rank_generator_family(rows: Sequence[Mapping[str, Any]], family: str,
 
 
 def practical_equivalence(paired: Mapping[str, Any], protocol: Mapping[str, Any]) -> dict[str, Any]:
-    """Apply the preregistered margin to paired stability differences."""
+    """Apply the protocol-declared margin to paired stability differences."""
     low, high = float(paired["stability_interval_low"]), float(paired["stability_interval_high"])
     mean = float(paired["mean_paired_difference"])
     margin = float(protocol["selection"]["practical_equivalence_margin"])

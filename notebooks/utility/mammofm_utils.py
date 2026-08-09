@@ -541,7 +541,8 @@ def load_augmented_positive(base_path, split_label: str = "train") -> pd.DataFra
     rows = []
     if not aug_dir.is_dir():
         raise FileNotFoundError(
-            f"Directory {aug_dir} is missing. Run 02_Data_Augmentation_Trad.ipynb first."
+            f"Directory {aug_dir} is missing. Run "
+            "notebooks/1_preprocessing/02_Data_Augmentation_Trad.ipynb first."
         )
     for path in image_paths(aug_dir):
         match = _LABEL_RE.search(path.name)

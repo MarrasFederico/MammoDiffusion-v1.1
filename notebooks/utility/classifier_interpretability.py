@@ -55,7 +55,7 @@ def integrated_gradients(model, image_batch, *, steps: int = 32, baseline=None):
     Complements the coarse Grad-CAM spatial map (``torch_spatial_attribution``) with a fine
     per-pixel attribution: the input gradient is integrated along a straight path from a black
     baseline to the image (Sundararajan, Taly & Yan, 2017). Same scalar target as Grad-CAM, so the
-    two views are directly comparable on the preregistered TP/TN/FP/FN cases.
+    two views are directly comparable on the deterministically selected TP/TN/FP/FN cases.
     """
     import torch
     image = image_batch
@@ -70,7 +70,9 @@ def integrated_gradients(model, image_batch, *, steps: int = 32, baseline=None):
     return normalize_heatmap(attribution.detach().cpu().numpy())
 
 
-def preregistered_cases(rows: Sequence[Mapping], threshold: float, limit_per_category: int = 1) -> list[dict]:
+def select_deterministic_cases(
+    rows: Sequence[Mapping], threshold: float, limit_per_category: int = 1
+) -> list[dict]:
     """Deterministically select TP/TN/FP/FN by confidence, never by visual appearance."""
     categories = {name: [] for name in ("TP", "TN", "FP", "FN")}
     for source in rows:
@@ -102,7 +104,7 @@ def largest_ft_fs_disagreements(finetuned_rows: Sequence[Mapping], fromscratch_r
 
 def render_attribution_overlays(cases: Sequence[Mapping], attribution_dir: Path, *,
                                 suffix: str = "", method: str = "Grad-CAM"):
-    """Overlay each preregistered case's saved attribution map on its source image.
+    """Overlay each deterministically selected case's attribution map on its source image.
 
     Top row: original mammogram with the attribution over it. Bottom row: the isolated map.
     Reads the ``{category}_{index}{suffix}.npy`` files written next to the run — ``suffix=""`` for
@@ -162,7 +164,7 @@ def write_manifest(path: Path, *, architecture: str, method: str, samples: Seque
     if architecture not in {"maxvit512", "mammofm"}:
         raise ValueError("interpretability is defined only for the two downstream architectures")
     payload = {"schema_version": 1, "architecture": architecture, "method": method,
-               "selection": "preregistered_tp_tn_fp_fn_and_largest_ft_fs_disagreement",
+               "selection": "deterministic_confidence_tp_tn_fp_fn_and_largest_ft_fs_disagreement",
                "samples": list(samples), "test_access": False}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n")
@@ -170,6 +172,6 @@ def write_manifest(path: Path, *, architecture: str, method: str, samples: Seque
 
 
 __all__ = ["ensemble_heatmaps", "integrated_gradients", "largest_ft_fs_disagreements",
-           "mammofm_attribution", "normalize_heatmap", "preregistered_cases",
+           "mammofm_attribution", "normalize_heatmap", "select_deterministic_cases",
            "render_attribution_overlays", "save_attribution_figure", "torch_spatial_attribution",
            "write_manifest"]

@@ -1,8 +1,10 @@
-"""Regenerate held-out-test reports from saved prediction CSV files only.
+"""Regenerate held-out-test reports from saved predictions and validation reports.
 
 No model, image, checkpoint or GPU is opened. Decision thresholds and the
-specificity-target operating points are read from validation artifacts and are
-kept fixed for every test metric and every bootstrap replicate.
+specificity-target operating points are read from validation reports and are
+kept fixed for every test metric and every bootstrap replicate. Use
+``rebuild_classifier_reports.py`` to reconstruct those reports from validation
+CSVs first and rebuild the complete validation-to-test chain.
 """
 from __future__ import annotations
 
@@ -182,7 +184,7 @@ def regenerate(source_root: Path, output_root: Path | None = None, *,
         "holm_correction": holm_correction(p_values),
     })
     return {
-        "source": "saved validation_predictions.csv and test_predictions.csv only",
+        "source": "saved test_predictions.csv with frozen validation reports",
         "bootstrap_iterations": iterations, "bootstrap_seed": bootstrap_seed,
         "seed_reports_written": seed_report_count,
         "ensemble_reports_written": len(ensembles),

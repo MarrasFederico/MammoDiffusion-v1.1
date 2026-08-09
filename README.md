@@ -2,89 +2,105 @@
   <img src="assets/logo_MammoDiffusion.png" alt="MammoDiffusion Logo" width="180"/>
 </p>
 
-# MammoDiffusion v2
+# MammoDiffusion v1.1
 
-MammoDiffusion is a notebook-first study of synthetic 512×512 grayscale MLO mammograms and
-their downstream use for binary classification: malignant finding versus no lesion. The fixed
-classifier design is 2 architectures × 4 training conditions × 3 seeds, for 24 seed runs and
-8 mean-probability ensembles.
+MammoDiffusion v1.1.0 is the final release of the project's **whole-image mammography synthesis**
+study. It provides a reproducible notebook-first pipeline for generating 512×512 grayscale MLO
+mammograms, selecting synthetic pools, and measuring their downstream effect in a fixed
+2-architecture × 4-condition × 3-seed cancer-classification experiment.
 
-The active generator benchmark uses real training data for memorization, validation data for
-quality and selection, and synthetic pools for synthetic metrics. It never uses the classifier
-test split.
+The central result is promising but not conclusive. Adding positives from the selected
+from-scratch generator (G07) produced a favorable PR-AUC signal with MaxViT-512, but the signal did
+not survive adjustment across the eight configured primary comparisons and did not reappear with
+Mammo-FM. The evidence therefore does **not** show that whole-image synthetic mammograms provide
+classifier-independent, generalizable pathological information.
+
+> MammoDiffusion v1.1 demonstrates a reproducible whole-image mammography synthesis and downstream
+> evaluation pipeline and identifies a promising but architecture-dependent augmentation signal.
+> The lack of robust cross-classifier replication motivates a lesion-aware approach designed to
+> preserve real target-domain anatomy while synthesizing only pathological content.
+
+## Release and naming
+
+Historical notebooks, artifacts, and `protocol_version = 2` refer to an internal methodological
+phase called **V2**, which followed the original internal V1 experiments. Those identifiers are
+preserved because they are part of the provenance. The public release that freezes the complete
+whole-image study is **MammoDiffusion v1.1.0**; the historical internal V2 label must not be confused
+with a separate lesion-aware successor project.
+
+The history of the two internal phases is documented in
+[docs/FROM_V1_TO_V2.md](docs/FROM_V1_TO_V2.md). Release and archive boundaries are documented in
+[docs/ARCHIVE_AND_RELEASE.md](docs/ARCHIVE_AND_RELEASE.md).
+
+## Task and cohort
+
+The downstream endpoint is the RSNA competition `cancer` label: **cancer-positive versus
+non-cancer**, not “malignant finding versus no lesion.” A `cancer = 0` image is not guaranteed to be
+free of every benign or suspicious finding.
+
+The analytical cohort contains 2,916 patients and one selected MLO image per patient: 486
+cancer-positive and 2,430 non-cancer cases. This 16.7% positive fraction is **constructed**, not an
+estimate of screening prevalence: preprocessing retains the selected positive patients and caps
+the non-cancer-to-cancer ratio at 5:1. The patient-level splits contain 2,041/437/438 patients for
+train/validation/test, including 340/73/73 positive patients.
+
+The same canonical split was retained across the historical internal V1 and V2 phases. The current
+pipeline prevents generator selection and threshold optimization from using test data, but the test
+cohort is a historically reused project test set, not an independent external confirmation cohort.
+
+## Canonical downstream results
+
+The point estimates below are patient-level mean-probability ensembles of seeds 17, 42, and 73 on
+the 438-patient test cohort. The historical field `pr_auc` is average precision (stepwise precision
+times the increase in recall), not trapezoidal PR-curve area. G02 is the selected fine-tuned
+generator and G07 the selected from-scratch generator.
+
+| architecture | real only | traditional augmentation | real + G02 positives | real + G07 positives |
+|---|---:|---:|---:|---:|
+| MaxViT-512 | 0.4128 | 0.4497 | 0.4682 | **0.5230** |
+| Mammo-FM | 0.3241 | 0.3129 | 0.3232 | 0.3161 |
+
+For MaxViT-512, the G07-minus-real-only point difference is +0.1102. The paired stratified
+bootstrap mean difference is +0.1052, with a 95% percentile interval of [+0.0247, +0.1827], an
+empirical two-sided tail area of 0.011, and a Holm-adjusted value of 0.088. For Mammo-FM, the
+corresponding point difference is −0.0079 and the bootstrap mean difference is −0.0083, with a 95%
+interval of [−0.0529, +0.0342], tail area 0.708, and Holm-adjusted value 1.000. No comparison in the
+eight-comparison family is rejected at 0.05 after Holm adjustment.
+
+These empirical tail areas are computed as twice the fraction of paired, class-stratified bootstrap
+differences on the opposite side of zero from the observed direction. They are useful descriptive
+uncertainty summaries, but they are not permutation p-values or bootstrap-null test p-values. The
+study was not formally preregistered; “primary” denotes the comparison family encoded in the frozen
+repository protocol. See [docs/DISCUSSION.md](docs/DISCUSSION.md) for the full interpretation.
 
 ## Research questions
 
-V2 inherits the three research questions of V1 and answers them under a stricter protocol. It also
-promotes one V1 sub-analysis — the fine-tuned versus from-scratch comparison of notebook `04c` — to a
-preregistered hypothesis (RQ3), and adds one question that only the two-architecture design makes
-answerable (RQ4). The weight is on downstream performance: RQ2 and RQ4 carry the main findings.
+**RQ1 — Generator quality and selection.** Which eligible fine-tuned generator and which eligible
+from-scratch generator best satisfy the declared distribution, diversity, duplicate, and detected
+memorization criteria? `notebooks/3_generator_benchmark/` applies a RAD-DINO-KID-first ranking and
+selects G02 and G07. Eligibility and ranking are project-level technical/descriptive rules; they do
+not certify lesion presence, radiological validity, or clinical realism.
 
-**RQ1 — Generation quality.** Can a fine-tuned Stable Diffusion 2.1 and a latent diffusion model
-trained from scratch produce mammograms that are distributionally close to real validation
-positives, sufficiently diverse, and free of training-set memorization? Addressed by
-`notebooks/3_generator_benchmark/` under a RAD-DINO-first ranking with KID, PRDC, diversity,
-duplicate, and memorization diagnostics; the outcome is the G02/G07 selection.
+**RQ2 — Downstream impact.** Does adding selected synthetic positives change cancer classification
+relative to real-only training and traditional augmentation? The favorable MaxViT-specific G07
+signal is not sufficient to establish a general benefit after multiplicity adjustment and
+cross-architecture comparison.
 
-**RQ2 — Downstream impact.** Does adding selected synthetic positives improve binary classification
-over real-only training, and how does it compare with traditional augmentation? Addressed by
-`notebooks/04_classifiers/` over 2 architectures × 4 conditions × 3 seeds, with validation-frozen
-thresholds, patient-level paired bootstrap, and Holm correction over eight preregistered
-comparisons. The answer is architecture-dependent: a favorable G07 signal on MaxViT-512 that does
-not survive Holm correction, and no replication on Mammo-FM.
+**RQ3 — Generator family.** Within each architecture, do the selected fine-tuned and from-scratch
+conditions differ in downstream usefulness? The G07-minus-G02 bootstrap mean difference is +0.0530
+for MaxViT-512 (95% interval [−0.0067, +0.1149], tail area 0.089, Holm-adjusted 0.623) and −0.0087
+for Mammo-FM (95% interval [−0.0646, +0.0408], tail area 0.755, Holm-adjusted 1.000). Neither
+comparison supports a clear family-level distinction.
 
-**RQ3 — Generator family.** Do the two generative families differ in downstream usefulness, once a
-best candidate is selected from each? Two of the eight preregistered comparisons contrast G02 with
-G07 inside each architecture. Neither reaches significance: +0.0538 PR-AUC for G07 over G02 on
-MaxViT-512 (Holm-adjusted p = 0.609) and −0.0083 on Mammo-FM (Holm-adjusted p = 1.000). Fine-tuning
-and from-scratch training are not separable on this cohort.
+**RQ4 — Cross-architecture consistency.** Does an augmentation signal observed with one classifier
+representation appear with the other? G07 improves the MaxViT point estimate but not the Mammo-FM
+point estimate. This is an architecture-dependent pattern on the same cohort; no formal
+architecture-by-condition interaction test or independent replication study was performed.
 
-**RQ4 — Cross-architecture replication.** Does a downstream effect observed with one classifier
-representation transfer to another? This is what the two-architecture design exists to test, and it
-is the sharpest V2 finding: the G07 gain on MaxViT-512 does not reappear on Mammo-FM, whose point
-estimate is slightly negative. A single-classifier conclusion would have been too broad.
-
-**RQ5 — Computational cost.** What do the generative workflows cost to run? A secondary, descriptive
-analysis in `notebooks/5_sustainability/` reports estimated energy per generator and per pipeline
-phase from a frozen event registry, normalized to the canonical 1,361-image pool. Its scope is the
-generator workflows only: the registry holds no classifier-training events, so V2 does not repeat
-the V1 performance-versus-cost trade-off, and efficiency never enters generator selection. Energy is
-a time-based estimate for one GPU, not a wall-socket or carbon measurement.
-
-Answers and their limits are detailed in [docs/FROM_V1_TO_V2.md](docs/FROM_V1_TO_V2.md), sections 5
-and 7.
-
-## Evolution from V1
-
-MammoDiffusion V2 is the direct evolution of the original MammoDiffusion study, not a separate
-project. It preserves the same scientific question—whether class-conditioned synthetic
-mammograms can support downstream breast-cancer classification—and the same canonical RSNA
-cohort of 2,916 patients. V1 established the first complete pipeline: patient-level preprocessing,
-fine-tuned Stable Diffusion 2.1 and a latent diffusion model trained from scratch, generative
-evaluation, ResNet-50 classification, comparison with traditional augmentation, and
-sustainability tracking.
-
-The canonical manifests retain the same patient, image, and label keys across both versions, with
-2,041 training, 437 validation, and 438 test cases. This makes V1 and V2 one continuous study, but
-their aggregate scores are not interchangeable because the classifier, seed, threshold,
-preprocessing, and evaluation protocols differ.
-
-V2 strengthens that foundation through a predefined 2-architecture × 4-condition × 3-seed
-classifier design, covering MaxViT-512 and Mammo-FM. It adds mean-probability ensembles,
-validation-selected thresholds frozen before test evaluation, patient-level paired bootstrap,
-Holm correction across the primary comparison family, and a RAD-DINO-first generator benchmark
-with equalized official FILTERED pools and explicit RAW/FILTERED, diversity, duplicate, and
-memorization checks.
-
-These changes support more cautious conclusions, not a claim that synthetic data always help.
-The selected from-scratch generator G07 shows a favorable PR-AUC signal with MaxViT, but it is not
-formally significant at 0.05 after Holm correction and the benefit is not replicated by Mammo-FM.
-V2 also retains the dataset limits inherited from V1: few positive cases, one 512×512 MLO image
-per patient, global binary labels, no lesion localization or multiview evidence, and no external
-or blinded radiological validation.
-
-The full account of the scientific continuity, methodological changes, canonical results, and
-remaining limits is in [docs/FROM_V1_TO_V2.md](docs/FROM_V1_TO_V2.md).
+**RQ5 — Computational cost.** What estimated energy did the generator workflows require? The
+secondary analysis in `notebooks/5_sustainability/` uses elapsed time from a frozen event registry
+and a 0.170 kW single-GPU assumption. It contains no classifier-training events, is not a
+wall-socket or carbon measurement, and does not enter generator selection.
 
 ## Dataset workflows
 
@@ -107,89 +123,90 @@ data/processed/
 ```
 
 Each metadata row needs at least `patient_id`, `image_id`, `label`, `split`, and
-`processed_path`. `notebooks/utility/processed_dataset_reuse.py` checks the schema, image
-presence, binary labels, unique output paths, reconciliation of the split CSVs, and patient
-separation before reuse. The canonical test cohort contains 438 patients.
+`processed_path`. `notebooks/utility/processed_dataset_reuse.py` checks the schema, image presence,
+binary labels, unique output paths, reconciliation of split CSVs, and patient separation.
+Historical manifests and result records may contain absolute paths from the original workstation;
+the reuse utilities reroot recognized repository-relative suffixes, but the old strings remain in
+frozen artifacts as provenance.
 
 ### B. Rebuild from original RSNA data
 
 The source is the derived Kaggle release
 [RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
-which already distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG
-files together with the competition `train.csv` metadata. Obtain it under the terms of the original
-competition and place the user-supplied archive where the preprocessing notebook requests it. The
-repository does not perform an opaque automatic download and never reads DICOM.
+which distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG files with
+the competition `train.csv` metadata. Obtain it under the source terms and place the user-supplied
+archive where the preprocessing notebook requests it. The repository does not perform an opaque
+automatic download and does not read DICOM.
 
-`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` indexes the source PNG files,
-filters to MLO views, selects one image per patient, handles laterality and visual-side
-normalization, rescales the tissue intensity, converts to single-channel grayscale, normalizes each
-image to 512×512 with aspect-preserving padding, and writes patient-level train/validation/test
-splits. Corrupt inputs are reported rather than silently accepted. A patient ID may occur in exactly
-one split.
+`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` keeps MLO images, derives
+patient status, excludes nominally negative images from positive patients, selects at most one
+image per patient, applies the 5:1 cap, normalizes visual tissue side and intensity, creates
+single-channel 512×512 images with aspect-preserving padding, and writes patient-level splits.
 
-## Workflow
+## Reproduction workflow
 
 1. Validate or reconstruct the processed cohort.
-2. Run generator notebooks only when their local checkpoints or pools must genuinely be rebuilt.
-3. Review `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb`. Its default is
-   `RUN_REAL_BENCHMARK = False`, which reads only the saved small CSV/JSON reports.
-4. Enable the real benchmark explicitly only when data, pools, local encoders, and GPU are present.
+2. Run generator notebooks only when local checkpoints or pools must genuinely be rebuilt.
+3. Review `notebooks/3_generator_benchmark/01_Unified_Generator_Benchmark.ipynb` with its safe
+   default `RUN_REAL_BENCHMARK = False`.
+4. Enable the real benchmark only when data, pools, local encoders, and a compatible GPU are present.
 5. Review the G02/G07 selection in `02_Generator_Selection.ipynb` and
    `configs/selected_generators.json`.
-6. Run the MaxViT-512 and Mammo-FM notebooks for the four conditions and seeds 17, 42, and 73.
-7. Build validation ensembles and freeze both the decision threshold and the operating point for
-   target specificity 0.90.
-8. Keep `RUN_FINAL_EVALUATION = False` while reviewing saved outputs. A future inference run needs
-   explicit opt-in and a separate `OVERWRITE_TEST_PREDICTIONS=True` confirmation before replacing
-   existing predictions.
+6. Run MaxViT-512 and Mammo-FM for four conditions and seeds 17, 42, and 73 when retraining is
+   intentionally requested.
+7. Build validation ensembles and freeze the Youden threshold and the threshold chosen against a
+   nominal validation specificity target of 0.90.
+8. Keep `RUN_FINAL_EVALUATION = False` while reviewing saved outputs. Replacing test predictions
+   requires both explicit inference opt-in and `OVERWRITE_TEST_PREDICTIONS = True`.
 
-No test-mode function may choose a threshold. Seed test reports read their own validation
-thresholds; test ensembles read the matching validation-ensemble thresholds. The same frozen
-operating points are used in every patient-bootstrap replica.
+No test-mode function may choose a threshold. The nominal 0.90 operating-point threshold is frozen
+from validation; its achieved specificity on test is reported and is not guaranteed to equal or
+exceed 0.90 after transfer to the test cohort.
 
 ## Generator benchmark and selection
 
-The canonical synthetic target is 1,361 images. RAW and FILTERED representations stay separate.
-The benchmark reports KID, descriptive FID, PRDC, diversity, train memorization, validation
-similarity, exact duplication, and perceptual-duplicate diagnostics. RAD-DINO KID is the primary
-ranking metric; coverage and perceptual-hash duplicate rate are descriptive, not eligibility gates.
-All ranking metrics must be available for every eligible candidate, so a missing optional value
-cannot become a hidden worst-value penalty.
+The canonical synthetic target is 1,361 images. RAW and FILTERED representations remain separate.
+The benchmark reports KID, descriptive FID, PRDC, diversity, train-reference memorization,
+validation similarity, exact duplication, and perceptual-duplicate diagnostics. RAD-DINO KID is
+the primary ranking metric. RAD-DINO coverage and perceptual-hash duplicate rate are descriptive
+reference values rather than eligibility gates.
 
-The authoritative selection remains:
+The authoritative selection is:
 
 - G02 (`02_sd21_filtered_100steps`), fine-tuned family;
 - G07 (`07_ldm_sdvae_extra1361`), from-scratch family.
 
-Memorization builds its reference list in memory from `data/processed/metadata/train.csv` and, when
-present, `data/real_augmented/metadata.csv`. It validates train paths, labels, unique samples, and
-patient separation from validation without creating another manifest.
+Generator selection uses training and validation data only. Passing the technical gates means only
+that a candidate can enter this project's ranking under its declared thresholds; it is not evidence
+that a positive image contains a valid localized cancer finding or that a non-cancer image is
+lesion-free. Efficiency is reported separately and is not a ranking field.
 
-Small, versionable benchmark outputs live in `results/2_diffusers/benchmark/`:
-`candidate_audit.csv`, `generator_summary.csv`, `generator_ranking.csv`,
-`resampling_plan.json`, `paired_generator_differences.csv`, `selection_summary.json`, and the
-summary figure. Embeddings, per-image tables, diagnostic panels, and execution records are local
-runtime outputs. `notebooks/utility/rebuild_generator_ranking.py` deterministically regenerates the
-ranking from the required canonical `generator_summary.csv` without modifying the summary or opening
-images or models.
+Small, versionable reports live in `results/2_diffusers/benchmark/`. The deterministic
+`notebooks/utility/rebuild_generator_ranking.py` rebuilds the ranking from the canonical
+`generator_summary.csv` without opening images or models.
 
-In the current pipeline, generator benchmarking and selection use only training and validation
-data. The test split is used for final classifier evaluation.
+## Repository and archive boundary
 
-## Repository layout
-
-- `configs/`: plain protocols, registry, and the G02/G07 selection;
-- `data/`: local datasets and synthetic pools;
-- `experiments/`: checkpoints, resume state, latents, and other heavy execution artifacts;
+- `configs/`: executable study protocols, generator registry, and G02/G07 selection;
 - `notebooks/`: preprocessing, generators, benchmark, classifiers, and reusable utilities;
-- `results/`: canonical scientific reports for preprocessing, generators, classifiers, final
-  evaluation, and sustainability;
-- `tests/`: model-free fixture tests and static notebook checks.
+- `results/`: versioned scientific reports, saved predictions, and final figures;
+- `tests/`: model-free fixtures and static protocol checks;
+- `data/`: local real and synthetic image pools, excluded from Git;
+- `experiments/`: local checkpoints, latents, resume state, and heavy artifacts, excluded from Git.
 
-Checkpoints and data remain outside Git. Mammo-FM weights and derivatives must not be
+A Git clone is sufficient to inspect the protocol, run the lightweight tests, and regenerate
+classifier reports from committed predictions. It is not sufficient for full training or image
+generation: the image data, checkpoints, local encoders, shared SD2.1 assets, and authorized
+Mammo-FM weights must be restored separately. Mammo-FM weights and derivatives must not be
 redistributed; see [docs/mammo_fm_license_note.md](docs/mammo_fm_license_note.md).
 
-## Validation and reproducibility
+Rebuild all derived validation and test classifier reports, in dependency order, without inference:
+
+```bash
+python notebooks/utility/rebuild_classifier_reports.py --root .
+```
+
+## Validation
 
 Run from the repository root:
 
@@ -200,11 +217,11 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 python -m pytest -q
 ```
 
-`pytest.ini` restricts collection to `tests/` and excludes data, experiments, results, caches, and
-the vendored Diffusers repository. Hashes are used only for duplicate detection, cache validation,
-and resume safety. GPU index/UUID selection is an operational
-convenience and is not a scientific compatibility condition.
+The lightweight suite does not train, generate, perform classifier inference, open the scientific
+image cohort, or require a GPU. Full scientific limitations are listed in
+[docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 
-Further details: [consolidated protocol](docs/PROTOCOL.md),
-[generator status](docs/GENERATOR_STATUS.md), [test suite](docs/TESTS.md), and
-[shared Diffusers assets](docs/SHARED_ASSETS.md).
+Further details: [protocol](docs/PROTOCOL.md), [discussion](docs/DISCUSSION.md),
+[generator status](docs/GENERATOR_STATUS.md), [sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md),
+[test suite](docs/TESTS.md), [shared assets](docs/SHARED_ASSETS.md), and
+[archive/release policy](docs/ARCHIVE_AND_RELEASE.md).

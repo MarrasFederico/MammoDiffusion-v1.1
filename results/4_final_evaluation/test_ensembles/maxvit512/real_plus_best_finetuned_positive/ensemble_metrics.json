@@ -34,8 +34,8 @@
   },
   "confidence_intervals": {
     "pr_auc": {
-      "percentile_2_5": 0.3613348374160103,
-      "percentile_97_5": 0.575920438019359
+      "percentile_2_5": 0.3646512351698303,
+      "percentile_97_5": 0.5782466293928259
     },
     "roc_auc": {
       "percentile_2_5": 0.6712666541565021,

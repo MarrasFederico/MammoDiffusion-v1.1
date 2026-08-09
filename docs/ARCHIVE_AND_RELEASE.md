@@ -55,8 +55,13 @@ Only clearly regenerable or misleading artifacts belong in this category:
 - obsolete sustainability summaries and figures that use the untrusted CodeCarbon energy/CO2
   values and are not consumed by the supported notebook: `actual_vs_canonical.json`,
   `sustainability_summary.md`, `summary_by_run.csv`, `summary_by_experiment.csv`,
-  `actual_vs_canonical.png`, `energy_by_phase_log.png`, `generator_energy_co2.png`, and
-  `phase_decomposition_stacked.png`.
+  `actual_vs_canonical.png`, `energy_by_phase_log.png`, `generator_energy_co2.png`,
+  `phase_decomposition_stacked.png`, and
+  `results/2_diffusers/06_ldm_extra1361_fromscratch/plots/ecotracker_summary_per_stage.png`.
+
+The rule covers rendered figures anywhere in `results/`, not only the sustainability tree. The
+`ecotracker_summary_per_stage.png` entry was found by the independent post-release audit; the
+`*/ecotracker/*.jsonl` source records it was drawn from stay in place as frozen provenance.
 
 Removing caches does not remove scientific evidence. The sustainability deletions prevent stale,
 unsupported energy values from competing with the elapsed-time-based analysis.
@@ -170,3 +175,28 @@ artifacts and a compatible local GPU environment.
 After tests, documentation checks, cleanup, repository rename, `v1.1.0` tag, remote push, and full
 archive verification, this tree is frozen. Lesion-aware development belongs in a separate
 `MammoDiffusion-v2` repository and must not mutate the v1.1 release artifacts.
+
+## Post-release independent audit
+
+An independent audit was run against the `v1.1.0` tag after publication. It re-derived every
+released figure from the committed prediction CSV files with scikit-learn as an external reference
+and found **no change to any scientific result**: point metrics, bootstrap intervals, empirical tail
+areas, and Holm-adjusted values all reproduce to within floating-point noise, and
+`rebuild_classifier_reports.py` regenerates the whole tracked report tree byte-identically from a
+clean checkout.
+
+`main` therefore carries release-hygiene corrections only, and no result artifact was edited:
+
+- project-root resolution in the notebook bootstrap, in two notebook-level resolvers, and in
+  `ldm_project_paths` now prefers a repository marker (`.git`, `configs/`, `data/`) over a directory
+  that merely carries the project name. The old order escaped the checkout whenever `data/` was
+  absent — the state a fresh clone starts in — and on the original workstation it resolved to the
+  parent directory that now also holds the separate successor project;
+- `results/2_diffusers/06_ldm_extra1361_fromscratch/plots/ecotracker_summary_per_stage.png` was
+  removed under the REMOVE rule above;
+- the root-marker heuristic in `shared_diffusers_assets` no longer keys on a configuration file
+  this release does not ship;
+- regression tests were added for reference-checked average precision and ROC-AUC, paired-bootstrap
+  semantics, Holm, and the consistency of the published numbers with the frozen predictions.
+
+The `v1.1.0` tag is unchanged and remains a complete, self-consistent scientific snapshot.

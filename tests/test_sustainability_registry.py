@@ -86,6 +86,34 @@ class RetiredAggregateApiTests(unittest.TestCase):
         ):
             self.assertFalse(hasattr(sr, name), name)
 
+    def test_removed_codecarbon_figures_stay_out_of_the_results_tree(self):
+        """The REMOVE policy covers rendered figures anywhere under results/.
+
+        ``ecotracker_summary_per_stage.png`` slipped through the release cleanup
+        because it lived outside ``results/5_sustainability/`` and carried a
+        different name, while still plotting the untrusted ``energy_kwh`` and
+        ``co2_kg`` fields.
+        """
+        forbidden = (
+            "actual_vs_canonical.json", "sustainability_summary.md",
+            "summary_by_run.csv", "summary_by_experiment.csv",
+            "actual_vs_canonical.png", "energy_by_phase_log.png",
+            "generator_energy_co2.png", "phase_decomposition_stacked.png",
+            "ecotracker_summary_per_stage.png",
+        )
+        results = ROOT / "results"
+        present = sorted(path.relative_to(ROOT).as_posix()
+                         for path in results.rglob("*") if path.name in forbidden)
+        self.assertEqual(present, [], "unsupported CodeCarbon artifacts are back in results/")
+
+    def test_supported_sustainability_outputs_are_present(self):
+        base = ROOT / "results/5_sustainability"
+        self.assertTrue((base / "canonical_events.jsonl").is_file())
+        self.assertTrue((base / "g02_generation_timing.json").is_file())
+        for figure in ("generator_energy_total.png", "generator_energy_by_phase.png",
+                       "generation_efficiency.png"):
+            self.assertTrue((base / "figures" / figure).is_file(), figure)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -52,8 +52,16 @@ the same in-memory calculation.
 Legacy actual-versus-canonical, CodeCarbon-energy, and CO2 summaries are not part of release
 evidence. In particular, the removed files `actual_vs_canonical.json`,
 `sustainability_summary.md`, `summary_by_run.csv`, `summary_by_experiment.csv`,
-`actual_vs_canonical.png`, `energy_by_phase_log.png`, `generator_energy_co2.png`, and
-`phase_decomposition_stacked.png` must not be used or regenerated as current v1.1 results.
+`actual_vs_canonical.png`, `energy_by_phase_log.png`, `generator_energy_co2.png`,
+`phase_decomposition_stacked.png`, and
+`results/2_diffusers/06_ldm_extra1361_fromscratch/plots/ecotracker_summary_per_stage.png` must not
+be used or regenerated as current v1.1 results.
+
+The last of those was removed by the independent post-release audit: it rendered the untrusted
+CodeCarbon `energy_kwh` and `co2_kg` fields as per-phase Wh and gram-CO2 panels, it had no producing
+code left in the repository, and it therefore contradicted the boundary stated above. The underlying
+`results/2_diffusers/*/ecotracker/*.jsonl` records are unchanged: they remain frozen execution
+provenance, and their energy and CO2 fields stay unsupported wherever they appear.
 
 ## Interpretation boundary
 

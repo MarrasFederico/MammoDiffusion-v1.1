@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -137,9 +138,22 @@ class SharedDiffusersAssetsTests(unittest.TestCase):
             self.assertEqual(assets.project_root(root), root.resolve())
             configs_root = Path(tmp) / "configs_variant"
             (configs_root / "configs").mkdir(parents=True)
-            (configs_root / "configs" / "final_classifier_registry.json").write_text("{}")
+            # The marker must be a configuration file this release actually ships,
+            # otherwise the branch is dead and only the fixture keeps it green.
+            (configs_root / "configs" / "classifier_protocol.json").write_text("{}")
             (configs_root / "notebooks").mkdir()
             self.assertEqual(assets.project_root(configs_root), configs_root.resolve())
+
+    def test_configuration_marker_names_a_file_the_release_actually_ships(self):
+        """Guard against the marker drifting back to a config that no longer exists."""
+        module_path = Path(assets.__file__).resolve()
+        repository_root = module_path.parents[2]
+        source = module_path.read_text(encoding="utf-8")
+        markers = re.findall(r'"configs"\s*/\s*"([^"]+\.json)"', source)
+        self.assertTrue(markers, "the root heuristic must keep a configuration marker")
+        for marker in markers:
+            self.assertTrue((repository_root / "configs" / marker).is_file(),
+                            f"configs/{marker} is referenced as a root marker but is not shipped")
 
     def test_project_root_env_override(self):
         with tempfile.TemporaryDirectory() as tmp:

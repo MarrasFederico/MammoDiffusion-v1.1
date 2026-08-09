@@ -31,7 +31,7 @@ def _looks_like_mammodiffusion_root(candidate: Path) -> bool:
         return True
     if (candidate / "notebooks" / "utility").is_dir() and (candidate / "notebooks" / "2_diffusers").is_dir():
         return True
-    if (candidate / "configs" / "final_classifier_registry.json").is_file() and (candidate / "notebooks").is_dir():
+    if (candidate / "configs" / "classifier_protocol.json").is_file() and (candidate / "notebooks").is_dir():
         return True
     return False
 

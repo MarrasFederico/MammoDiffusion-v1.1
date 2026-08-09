@@ -117,10 +117,18 @@ def find_project_root(
 
     cwd = Path.cwd().resolve()
     for candidate in [cwd, *cwd.parents]:
-        has_notebook_dir = (candidate / "notebooks").exists()
-        if candidate.name == project_name:
+        has_notebook_dir = (candidate / "notebooks").is_dir()
+        # A repository marker outranks a directory that merely carries the project
+        # name: the release lives inside a parent called "MammoDiffusion" that also
+        # holds a separate successor project, so a checkout without data/ must not
+        # resolve upwards to that parent.
+        if has_notebook_dir and (
+            (candidate / ".git").exists()
+            or (candidate / "configs").is_dir()
+            or (candidate / "data").is_dir()
+        ):
             return candidate
-        if (candidate / "data").exists() and has_notebook_dir:
+        if candidate.name == project_name:
             return candidate
 
     for candidate in [

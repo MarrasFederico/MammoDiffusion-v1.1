@@ -6,7 +6,7 @@ Deliberately pandas-free (stdlib csv/json only) so it stays importable in the li
 Every event is one phase of one run. Two totals are always reported side by side and never
 silently merged: `actual_project_energy` (everything really attempted, including failed and
 resumed segments) and `canonical_pipeline_energy` (the reproducible pipeline cost, deduplicated,
-no failures, no PLAN_ONLY/dry-run noise).
+no failures, no dry-run noise).
 """
 from __future__ import annotations
 
@@ -66,8 +66,7 @@ def load_events(events_path: Path) -> list[dict]:
 
 
 def deduplicate_canonical_events(events: list[dict]) -> list[dict]:
-    """Events that make up the reproducible pipeline: canonical, non-dry-run, non-PLAN_ONLY,
-    completed or a resumed segment that ends in completion, one entry per run_id (last write
+    """Events that make up the reproducible pipeline: canonical, non-dry-run, completed or a resumed segment that ends in completion, one entry per run_id (last write
     wins), and never a duplicate of a "reused" artifact's own originating run.
     """
     by_run_id: dict[str, dict] = {}

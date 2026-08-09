@@ -12,7 +12,6 @@ import nbformat
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "notebooks/utility"))
 
-import artifact_phase_planner as planner  # noqa: E402
 import classifier_analysis as analysis  # noqa: E402
 import classifier_dataset_builder as datasets  # noqa: E402
 import classifier_experiment as experiment  # noqa: E402
@@ -231,16 +230,6 @@ class ProtocolAndRepositoryTests(unittest.TestCase):
         ])
         self.assertEqual(overlaps["train_val"], ["p"])
         self.assertEqual(overlaps["train_test"], [])
-
-    def test_runtime_manifest_requires_only_declared_phase_files(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            (root / "x.bin").write_bytes(b"x")
-            (root / "runtime_manifest.json").write_text(json.dumps({
-                "schema_version": 1,
-                "phases": {"training": {"files": [{"path": "x.bin", "size_bytes": 1}]}}
-            }))
-            self.assertTrue(planner.load_runtime_manifest(root)["valid"])
 
     def test_final_evaluation_default_is_disabled_and_overwrite_is_separate(self):
         notebook = nbformat.read(ROOT / "notebooks/04_classifiers/04_Final_Evaluation_and_Report.ipynb", 4)

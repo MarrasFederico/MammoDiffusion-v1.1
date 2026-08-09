@@ -242,6 +242,29 @@ class PublicationRepositoryTests(unittest.TestCase):
         for path in sorted((ROOT / "notebooks" / "utility").glob("*.py")):
             self.assertNotIn("evaluation_negative", path.read_text(), path.name)
 
+    def test_diffuser_notebooks_declare_explicit_phase_flags_defaulting_to_off(self):
+        """Phases are plain booleans, off until the operator flips one.
+
+        The mode machinery (``artifact_phase_planner``) is retired. A notebook
+        that reintroduces it, or that ships a phase already enabled, would
+        retrain or regenerate on an ordinary Run All.
+        """
+        self.assertFalse((ROOT / "notebooks/utility/artifact_phase_planner.py").exists())
+        retired = ("artifact_phase_planner", "phase_should_run", "PHASE_PLAN", "PLAN_ONLY",
+                   "TRAIN_MODE", "GENERATION_MODE", "EVALUATION_MODE", "FILTER_MODE")
+        for relative in PROJECT_NOTEBOOKS:
+            if "2_diffusers" not in relative:
+                continue
+            notebook = nbformat.read(ROOT / relative, as_version=4)
+            code = "\n".join(c.source for c in notebook.cells if c.cell_type == "code")
+            self.assertIn("EXPLICIT_PHASE_FLAGS_V1", code, relative)
+            for token in retired:
+                self.assertNotIn(token, code, f"{relative}: {token}")
+            for phase in ("TRAINING", "GENERATION", "EVALUATION", "FILTER"):
+                self.assertIn(f"RUN_{phase}_PHASE = False", code, f"{relative}: {phase}")
+            for name, value in re.findall(r"^(RUN_\w+_PHASE) = (\w+)", code, re.M):
+                self.assertEqual(value, "False", f"{relative}: {name}")
+
     def test_ldm_notebooks_recheck_metric_caches_independently(self):
         notebook_dir = ROOT / "notebooks/2_diffusers"
         g05 = (notebook_dir / "05_LDM_Basic_FromScratch.ipynb").read_text()

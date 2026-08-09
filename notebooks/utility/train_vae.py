@@ -11,7 +11,11 @@ import tempfile
 import time
 from pathlib import Path
 
-from ldm_project_paths import RESULTS_STAGE_NAME
+from ldm_project_paths import (
+    RESULTS_STAGE_NAME,
+    class_name_for_label,
+    get_class_image_dirs,
+)
 
 
 IMG_SIZE = 512
@@ -316,18 +320,28 @@ def build_vae_decoder() -> tf.keras.Model:
 
 def reset_downstream_artifacts(paths) -> None:
     """Elimina latents, checkpoint e log della LDM e della generazione, perche' diventano incoerenti quando il VAE viene riallenato da zero."""
-    # synthetic_filtered_positive_dir non viene azzerata: e' la cartella condivisa
-    # data/synthetic/06_ldm_extra1361_fromscratch/positive usata anche dai classificatori sintetici,
-    # non un artefatto locale all'esperimento.
+    # Entrambi i pool RAW sono decodificati dal VAE, quindi vanno azzerati insieme:
+    # azzerare solo il positivo lascerebbe nell'esperimento immagini negative
+    # prodotte dal decoder precedente, indistinguibili da quelle nuove.
+    # I pool filtrati restano: sono gli input registrati in configs/generator_registry.json
+    # che i classificatori sintetici consumano (experiment-local per G05/G06,
+    # data/synthetic/<id>/<classe> per gli altri), non scratch dell'esperimento.
     for directory in [
         paths.latents_dir,
         paths.checkpoints_dir,
         paths.evaluation_dir,
-        paths.synthetic_raw_positive_dir,
     ]:
         if directory.exists():
             shutil.rmtree(directory)
         directory.mkdir(parents=True, exist_ok=True)
+
+    # I pool RAW vengono ricreati vuoti solo se esistevano: un esperimento a sola
+    # classe positiva non deve guadagnare una cartella negativa vuota per via del reset.
+    for target_label in (1, 0):
+        raw_dir, _ = get_class_image_dirs(paths, target_label)
+        if raw_dir.exists():
+            shutil.rmtree(raw_dir)
+            raw_dir.mkdir(parents=True, exist_ok=True)
 
     for pattern in [
         "ldm_unet_best*.keras",
@@ -340,6 +354,15 @@ def reset_downstream_artifacts(paths) -> None:
         log_path = paths.logs_dir / log_name
         if log_path.exists():
             log_path.unlink()
+
+    # generation_raw_state.json e' una fotografia del pool RAW, non una cronologia:
+    # sopravvivere al reset significherebbe dichiarare piene cartelle appena svuotate.
+    # generation_summary.jsonl invece resta, come i .log: registra run realmente avvenute.
+    class_log_dirs = [paths.logs_dir / class_name_for_label(label) for label in (1, 0)]
+    for log_dir in [paths.logs_dir, *class_log_dirs]:
+        state_path = log_dir / "generation_raw_state.json"
+        if state_path.exists():
+            state_path.unlink()
     print("Artefatti LDM/evaluation/generation precedenti rimossi dopo il nuovo VAE.")
 
 

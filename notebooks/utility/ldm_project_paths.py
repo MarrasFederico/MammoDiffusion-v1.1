@@ -23,6 +23,7 @@ class ExperimentPaths:
     logs_dir: Path
     evaluation_dir: Path
     synthetic_raw_positive_dir: Path
+    synthetic_raw_negative_dir: Path
     synthetic_filtered_positive_dir: Path
 
 
@@ -75,7 +76,7 @@ def get_class_image_dirs(paths: ExperimentPaths, target_label: int) -> tuple[Pat
         paths.experiment_dir.name,
     )
     return (
-        paths.experiment_dir / "synthetic_raw_negative",
+        paths.synthetic_raw_negative_dir,
         paths.project_root / "data" / "synthetic" / filtered_dir_name / "negative",
     )
 
@@ -155,9 +156,14 @@ def get_experiment_paths(
         logs_dir=exp / "logs",
         evaluation_dir=exp / "evaluation",
         synthetic_raw_positive_dir=exp / "synthetic_raw_positive",
+        synthetic_raw_negative_dir=exp / "synthetic_raw_negative",
         synthetic_filtered_positive_dir=positive_filtered_dir,
     )
     if create:
+        # synthetic_raw_negative_dir resta fuori dallo scheletro creato in anticipo:
+        # gli esperimenti a sola classe positiva (G05, "classes": ["positive"] nel
+        # registry) non devono ritrovarsi un pool negativo vuoto che ne suggerisce
+        # uno mai generato. Lo crea la generazione, quando serve davvero.
         for directory in [
             paths.checkpoints_dir,
             paths.models_dir,

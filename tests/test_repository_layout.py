@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -140,6 +142,102 @@ class PublicationRepositoryTests(unittest.TestCase):
             g07_positive,
             ROOT / "data/synthetic/07_ldm_sdvae_extra1361/positive",
         )
+
+    def test_both_ldm_raw_pools_are_first_class_experiment_paths(self):
+        """Neither class may be reachable only through an inline literal.
+
+        The negative RAW pool used to be rebuilt as a string inside
+        ``get_class_image_dirs``, which is how ``reset_downstream_artifacts``
+        came to wipe the positive pool and forget the negative one.
+        """
+        from notebooks.utility.ldm_project_paths import (
+            get_class_image_dirs,
+            get_experiment_paths,
+        )
+
+        experiment = ROOT / "experiments/diffusers/07_ldm_sdvae_extra1361"
+        paths = get_experiment_paths(ROOT, experiment, create=False)
+        positive_raw, _ = get_class_image_dirs(paths, 1)
+        negative_raw, _ = get_class_image_dirs(paths, 0)
+        self.assertEqual(positive_raw, paths.synthetic_raw_positive_dir)
+        self.assertEqual(negative_raw, paths.synthetic_raw_negative_dir)
+        self.assertEqual(positive_raw, experiment / "synthetic_raw_positive")
+        self.assertEqual(negative_raw, experiment / "synthetic_raw_negative")
+
+    def test_experiment_skeleton_does_not_fabricate_a_negative_pool(self):
+        """G05 declares only the positive class; it must not gain an empty negative pool."""
+        from notebooks.utility.ldm_project_paths import get_experiment_paths
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "notebooks").mkdir()
+            (root / "data").mkdir()
+            experiment = root / "experiments/diffusers/05_ldm_basic_fromscratch"
+            paths = get_experiment_paths(root, experiment, create=True)
+            self.assertTrue(paths.synthetic_raw_positive_dir.is_dir())
+            self.assertTrue(paths.synthetic_filtered_positive_dir.is_dir())
+            self.assertFalse(paths.synthetic_raw_negative_dir.exists())
+
+    def test_vae_reset_clears_every_raw_pool_and_keeps_registered_filtered_pools(self):
+        """A retrained VAE invalidates both RAW pools; the registered filtered pools survive."""
+        utility_dir = str(ROOT / "notebooks" / "utility")
+        if utility_dir not in sys.path:
+            sys.path.insert(0, utility_dir)
+        import train_vae
+        from ldm_project_paths import get_experiment_paths
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "notebooks").mkdir()
+            (root / "data").mkdir()
+            experiment = root / "experiments/diffusers/06_ldm_extra1361_fromscratch"
+            paths = get_experiment_paths(root, experiment, create=True)
+            paths.synthetic_raw_negative_dir.mkdir(parents=True)
+            negative_filtered = root / "data/synthetic/06_ldm_extra1361_fromscratch/negative"
+            negative_filtered.mkdir(parents=True)
+            for class_name in ("positive", "negative"):
+                (paths.logs_dir / class_name).mkdir()
+                (paths.logs_dir / class_name / "generation_raw_state.json").write_text("{}")
+            (paths.logs_dir / "generation_raw_state.json").write_text("{}")
+            (paths.logs_dir / "generation_summary.jsonl").write_text('{"phase": "x"}\n')
+            stale = {
+                "raw_positive": paths.synthetic_raw_positive_dir / "synth_00000.png",
+                "raw_negative": paths.synthetic_raw_negative_dir / "synth_00000.png",
+                "latents": paths.latents_dir / "latent_stats.npz",
+                "evaluation": paths.evaluation_dir / "best_checkpoint.json",
+            }
+            preserved = {
+                "filtered_positive": paths.synthetic_filtered_positive_dir / "synth_filtered_0000.png",
+                "filtered_negative": negative_filtered / "synth_filtered_0000.png",
+            }
+            for path in {**stale, **preserved}.values():
+                path.write_bytes(b"x")
+
+            train_vae.reset_downstream_artifacts(paths)
+
+            for name, path in stale.items():
+                self.assertFalse(path.exists(), name)
+            for name, path in preserved.items():
+                self.assertTrue(path.exists(), name)
+            self.assertTrue(paths.synthetic_raw_positive_dir.is_dir())
+            self.assertTrue(paths.synthetic_raw_negative_dir.is_dir())
+            for class_name in ("positive", "negative"):
+                self.assertFalse((paths.logs_dir / class_name / "generation_raw_state.json").exists())
+            self.assertFalse((paths.logs_dir / "generation_raw_state.json").exists())
+            self.assertTrue((paths.logs_dir / "generation_summary.jsonl").exists())
+
+    def test_retired_sibling_evaluation_layout_is_not_referenced(self):
+        """Per-class evaluation lives under ``evaluation/<class>/``.
+
+        The pre-unification layout wrote the negative class to a sibling
+        ``evaluation_negative/`` directory; nothing may address it again.
+        """
+        for relative in PROJECT_NOTEBOOKS:
+            notebook = nbformat.read(ROOT / relative, as_version=4)
+            source = "\n".join(cell.source for cell in notebook.cells)
+            self.assertNotIn("evaluation_negative", source, relative)
+        for path in sorted((ROOT / "notebooks" / "utility").glob("*.py")):
+            self.assertNotIn("evaluation_negative", path.read_text(), path.name)
 
     def test_ldm_notebooks_recheck_metric_caches_independently(self):
         notebook_dir = ROOT / "notebooks/2_diffusers"

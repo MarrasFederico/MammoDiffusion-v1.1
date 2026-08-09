@@ -15,11 +15,14 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
+
+if TYPE_CHECKING:
+    from diffusers import StableDiffusionPipeline
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -34,9 +37,9 @@ def load_json_record(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise FileNotFoundError(f"Configurazione richiesta non trovata: {path}") from exc
+        raise FileNotFoundError(f"Required configuration not found: {path}") from exc
     if not isinstance(payload, dict):
-        raise ValueError(f"JSON non valido (atteso oggetto): {path}")
+        raise ValueError(f"Invalid JSON (expected an object): {path}")
     return payload
 
 
@@ -55,13 +58,12 @@ try:
     LDM_GENERATOR = GENERATOR_REGISTRY[LDM_GENERATOR_ID]
 except KeyError as exc:
     raise KeyError(
-        f"Generatore selezionato assente da configs/generator_registry.json: {exc.args[0]}"
+        f"Selected generator is missing from configs/generator_registry.json: {exc.args[0]}"
     ) from exc
 
 SD_BASE_MODEL_DIR = NOTEBOOKS_DIR / "pretrained_model" / "stable-diffusion-2-1-base"
 SD_CHECKPOINT_WEIGHTS_PATH = PROJECT_ROOT / str(SD_GENERATOR["checkpoint"])
 SD_CHECKPOINT_DIR = SD_CHECKPOINT_WEIGHTS_PATH.parents[1]
-SD_EXPERIMENT_DIR = SD_CHECKPOINT_DIR.parents[1]
 SD_BEST_CHECKPOINT_ID = SD_CHECKPOINT_DIR.name
 
 LDM_MODEL_PATH = PROJECT_ROOT / str(LDM_GENERATOR["checkpoint"])
@@ -93,29 +95,29 @@ LDM_MODEL_CHOICE = f"From scratch · {LDM_GENERATOR_ID} · {LDM_BEST_CHECKPOINT_
 DEFAULT_MODEL_CHOICE = SD_MODEL_CHOICE
 
 PROMPTS = {
-    "Positiva": (
+    "Positive": (
         "grayscale MLO mammogram, breast cancer positive, "
         "malignant finding, suspicious lesion, medical imaging"
     ),
-    "Negativa": (
+    "Negative": (
         "grayscale MLO mammogram, breast cancer negative, "
         "no malignant finding, normal screening mammogram, medical imaging"
     ),
 }
 
 LABEL_KEYS = {
-    "Positiva": "positive",
-    "Negativa": "negative",
+    "Positive": "positive",
+    "Negative": "negative",
 }
 
 LDM_CLASS_IDS = {
-    "Negativa": 0,
-    "Positiva": 1,
+    "Negative": 0,
+    "Positive": 1,
 }
 
 LDM_CLASS_PREVIEWS = {
-    "Positiva": "LDM SD-VAE G07, best checkpoint, condizionato sulla classe positiva.",
-    "Negativa": "LDM SD-VAE G07, best checkpoint, condizionato sulla classe negativa.",
+    "Positive": "LDM SD-VAE G07, best checkpoint, conditioned on the positive class.",
+    "Negative": "LDM SD-VAE G07, best checkpoint, conditioned on the negative class.",
 }
 
 MODEL_DEFAULTS = {
@@ -265,8 +267,8 @@ def validate_sd_model_paths() -> None:
     if missing:
         details = "\n".join(f"- {path}" for path in missing)
         raise FileNotFoundError(
-            f"Generatore fine-tuned selezionato {SD_GENERATOR_ID} non trovato. "
-            "File richiesti mancanti:\n"
+            f"Selected fine-tuned generator {SD_GENERATOR_ID} was not found. "
+            "Missing required files:\n"
             + details
         )
 
@@ -288,14 +290,14 @@ def validate_ldm_model_paths() -> None:
     if missing or invalid_keras:
         lines = []
         if missing:
-            lines.append("File mancanti:")
+            lines.append("Missing files:")
             lines.extend(f"- {path}" for path in missing)
         if invalid_keras:
-            lines.append("File Keras non validi:")
+            lines.append("Invalid Keras files:")
             lines.extend(f"- {path}" for path in invalid_keras)
         raise FileNotFoundError(
-            f"Generatore from-scratch selezionato {LDM_GENERATOR_ID} "
-            f"({LDM_BEST_CHECKPOINT_ID}) non trovato o non valido.\n"
+            f"Selected from-scratch generator {LDM_GENERATOR_ID} "
+            f"({LDM_BEST_CHECKPOINT_ID}) was not found or is invalid.\n"
             + "\n".join(lines)
         )
 
@@ -527,7 +529,7 @@ def defaults_for_model(model_choice: str, label: str):
         prompt_for_selection(model_choice, label),
         gr.update(value=defaults["default_steps"]),
         gr.update(value=defaults["default_guidance"]),
-        f"Pronto. Selezionato: {defaults['status_name']}.",
+        f"Ready. Selected: {defaults['status_name']}.",
     )
 
 
@@ -661,7 +663,7 @@ def worker_generate_images(
     emit_worker_event(
         {
             "event": "status",
-            "status": f"Caricamento di {model_defaults['status_name']}...",
+            "status": f"Loading {model_defaults['status_name']}...",
         }
     )
 
@@ -700,7 +702,7 @@ def worker_generate_images(
                     "path": str(destination),
                     "caption": f"{label} - seed {image_seed}",
                     "status": (
-                        f"Generate {index + 1}/{image_count} immagini con "
+                        f"Generated {index + 1}/{image_count} images with "
                         f"{model_defaults['status_name']}..."
                     ),
                 }
@@ -709,7 +711,7 @@ def worker_generate_images(
         emit_worker_event(
             {
                 "event": "complete",
-                "status": f"Completato. File salvati in `{display_path(session_dir)}`",
+                "status": f"Complete. Files saved under `{display_path(session_dir)}`",
             }
         )
     finally:
@@ -773,7 +775,7 @@ def generate_images(
     release_loaded_models()
     yield (
         gallery_items,
-        f"Avvio processo isolato per {model_defaults['status_name']}...",
+        f"Starting an isolated process for {model_defaults['status_name']}...",
         base_seed,
     )
 
@@ -790,7 +792,7 @@ def generate_images(
                 bufsize=1,
             )
             if process.stdout is None:
-                raise RuntimeError("stdout del worker non disponibile")
+                raise RuntimeError("Worker stdout is unavailable")
 
             for raw_line in process.stdout:
                 line = raw_line.strip()
@@ -815,20 +817,20 @@ def generate_images(
                 elif event_type == "complete":
                     yield gallery_items, str(event.get("status", "")), base_seed
                 elif event_type == "error":
-                    worker_error = str(event.get("message", "Errore worker"))
+                    worker_error = str(event.get("message", "Worker error"))
 
             return_code = process.wait()
 
         if return_code != 0 or worker_error is not None:
-            details = worker_error or f"worker terminato con codice {return_code}"
+            details = worker_error or f"worker exited with code {return_code}"
             tail = log_tail(log_path)
             if tail:
                 details = f"{details}\n\nLog: `{display_path(log_path)}`\n```text\n{tail}\n```"
             else:
                 details = f"{details}\n\nLog: `{display_path(log_path)}`"
-            yield gallery_items, f"Errore durante la generazione: {details}", base_seed
+            yield gallery_items, f"Generation error: {details}", base_seed
     except Exception as exc:
-        yield gallery_items, f"Errore durante la generazione: `{exc}`", base_seed
+        yield gallery_items, f"Generation error: `{exc}`", base_seed
     finally:
         if process is not None and process.poll() is None:
             process.terminate()
@@ -841,7 +843,7 @@ def generate_images(
 
 
 def clear_gallery():
-    return [], "Galleria pulita. I file già generati restano salvati."
+    return [], "Gallery cleared. Previously generated files remain saved."
 
 
 def build_demo() -> gr.Blocks:
@@ -850,7 +852,7 @@ def build_demo() -> gr.Blocks:
             f"""
             <div id="md-header">
                 <h1>MammoDiffusion Studio</h1>
-                <p>Best generator correnti: {SD_GENERATOR_ID} fine-tuned e {LDM_GENERATOR_ID} from-scratch</p>
+                <p>Current best generators: {SD_GENERATOR_ID} fine-tuned and {LDM_GENERATOR_ID} from scratch</p>
             </div>
             """
         )
@@ -869,7 +871,7 @@ def build_demo() -> gr.Blocks:
 
         with gr.Row(elem_id="control-panel"):
             prompt_preview = gr.Textbox(
-                value=prompt_for_selection(DEFAULT_MODEL_CHOICE, "Positiva"),
+                value=prompt_for_selection(DEFAULT_MODEL_CHOICE, "Positive"),
                 lines=2,
                 max_lines=3,
                 interactive=False,
@@ -887,34 +889,34 @@ def build_demo() -> gr.Blocks:
             model_choice = gr.Radio(
                 choices=list(MODEL_DEFAULTS),
                 value=DEFAULT_MODEL_CHOICE,
-                label="Modello",
+                label="Model",
             )
             label = gr.Radio(
                 choices=list(PROMPTS),
-                value="Positiva",
-                label="Etichetta",
+                value="Positive",
+                label="Label",
             )
             image_count = gr.Slider(
                 minimum=1,
                 maximum=MAX_IMAGES,
                 value=4,
                 step=1,
-                label="Numero di immagini",
+                label="Number of images",
             )
-            clear_button = gr.Button("Pulisci galleria", variant="secondary")
+            clear_button = gr.Button("Clear gallery", variant="secondary")
 
-        with gr.Accordion("Impostazioni avanzate", open=False):
+        with gr.Accordion("Advanced settings", open=False):
             with gr.Row():
                 seed = gr.Number(
                     value=-1,
                     precision=0,
-                    label="Seed iniziale",
-                    info="-1 sceglie un seed casuale; le immagini successive usano seed + 1.",
+                    label="Initial seed",
+                    info="-1 selects a random seed; subsequent images use seed + 1.",
                 )
                 used_seed = gr.Number(
                     value=None,
                     precision=0,
-                    label="Seed usato",
+                    label="Seed used",
                     interactive=False,
                 )
                 inference_steps = gr.Slider(
@@ -933,14 +935,14 @@ def build_demo() -> gr.Blocks:
                 )
 
         status = gr.Markdown(
-            "Pronto. Il modello verrà caricato alla prima generazione.",
+            "Ready. The model will be loaded on the first generation request.",
             elem_id="status-box",
         )
         gr.HTML(
             """
             <p class="md-warning">
-                Demo sperimentale per ricerca. Le immagini generate non sono destinate
-                alla diagnosi o all'uso clinico.
+                Experimental research demo. Generated images are not intended for diagnosis
+                or clinical use.
             </p>
             """
         )
@@ -1010,7 +1012,7 @@ def run_worker_generate(args: argparse.Namespace) -> int:
         emit_worker_event(
             {
                 "event": "error",
-                "message": "Argomenti worker mancanti: " + ", ".join(missing),
+                "message": "Missing worker arguments: " + ", ".join(missing),
             }
         )
         return 2

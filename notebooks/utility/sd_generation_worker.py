@@ -36,7 +36,7 @@ def save_atomic(image, path: Path) -> None:
     tmp = path.with_name(f".tmp_gen_{path.stem}_{os.getpid()}.png")
     image.save(tmp)
     if not valid_png(tmp):
-        raise RuntimeError(f"PNG temporaneo non leggibile: {tmp}")
+        raise RuntimeError(f"Temporary PNG is unreadable: {tmp}")
     os.replace(tmp, path)
 
 

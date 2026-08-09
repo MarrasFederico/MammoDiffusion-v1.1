@@ -8,30 +8,24 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from ldm_project_paths import ExperimentPaths, find_project_root, get_experiment_paths
-
-# Importato per side-effect: registra i custom layer della U-Net v3
-# (SinusoidalTimeEmbeddingV3, ResBlockV3, ecc.) nel registro Keras, cosi'
-# tf.keras.models.load_model funziona anche su checkpoint v3 senza che chi
-# chiama load_ldm_model debba sapere quale versione di U-Net sta caricando.
+# Imported for its side effect: register v3 U-Net custom layers
+# (SinusoidalTimeEmbeddingV3, ResBlockV3, etc.) with Keras so load_model works
+# on v3 checkpoints without requiring each caller to import them explicitly.
+# Callers of load_ldm_model must know which U-Net version they are loading.
 import ldm_v3_unet_keras  # noqa: F401
 
-IMG_SIZE = 512
-CHANNELS = 1
 LATENT_SIZE = 64
 LATENT_CHANNELS = 4
 NUM_CLASSES = 2
-EMBED_DIM = 128
-MODEL_CHANNELS = 64
 NUM_DIFF_STEPS = 1000
 CFG_SCALE = 3.0
 SAMPLE_STEPS = 100
-CLASS_NAMES = {0: "Negativo (sano)", 1: "Positivo (cancro)"}
+CLASS_NAMES = {0: "Negative (healthy)", 1: "Positive (cancer)"}
 
 
 @dataclass(frozen=True)
 class DiffusionSchedule:
-    """Contenitore immutabile con tutti i coefficienti del noise schedule, precalcolati una volta sola e riusati a ogni step di training/sampling."""
+    """Immutable diffusion-schedule coefficients, precomputed once and reused at every step."""
 
     betas: tf.Tensor
     alphas: tf.Tensor
@@ -44,7 +38,7 @@ class DiffusionSchedule:
 
 
 def configure_tensorflow(seed: int = 42, allow_gpu_memory_growth: bool = False) -> None:
-    """Fissa i seed di TF/numpy per la riproducibilità degli esperimenti e stampa la GPU rilevata."""
+    """Seed TensorFlow and NumPy for reproducibility and report the detected GPU."""
     tf.random.set_seed(seed)
     np.random.seed(seed)
 
@@ -56,18 +50,18 @@ def configure_tensorflow(seed: int = 42, allow_gpu_memory_growth: bool = False) 
                 tf.config.experimental.set_memory_growth(gpu, True)
             except RuntimeError as exc:
                 raise RuntimeError(
-                    "Impossibile abilitare TensorFlow GPU memory growth: la GPU e' gia' inizializzata."
+                    "Cannot enable TensorFlow GPU memory growth because the GPU is already initialized."
                 ) from exc
 
     print("TF version:", tf.__version__)
-    print("GPU disponibili:", gpus)
+    print("Available GPUs:", gpus)
 
 
 _VRAM_LAST_CURRENT: dict[str, int] = {}
 
 
 def vram_gb(label: str = "VRAM", device: str = "GPU:0") -> None:
-    """Stampa memoria GPU corrente/di picco e la variazione rispetto all'ultima chiamata, utile per individuare leak o picchi durante training/sampling."""
+    """Print current/peak GPU memory and change since the previous call."""
     try:
         info = tf.config.experimental.get_memory_info(device)
         current = int(info["current"])
@@ -81,15 +75,15 @@ def vram_gb(label: str = "VRAM", device: str = "GPU:0") -> None:
             f"delta={delta / 1e9:+.2f} GB"
         )
     except Exception as exc:
-        print(f"[{label}] VRAM non disponibile su {device}: {exc}")
+        print(f"[{label}] VRAM unavailable on {device}: {exc}")
 
 
 @tf.keras.utils.register_keras_serializable()
 class SinusoidalTimeEmbedding(layers.Layer):
-    """Trasforma il timestep di diffusione t in un vettore continuo (embedding sinusoidale + MLP) da iniettare nei ResBlock della U-Net."""
+    """Map diffusion timestep t to a sinusoidal-plus-MLP embedding for U-Net ResBlocks."""
 
     def __init__(self, embed_dim, **kwargs):
-        """Salva la dimensione dell'embedding e crea l'MLP a due livelli che proietta le frequenze sinusoidali."""
+        """Store the embedding size and create the two-layer sinusoidal projection MLP."""
         super().__init__(**kwargs)
         self.embed_dim = embed_dim
         half = embed_dim // 2
@@ -101,7 +95,7 @@ class SinusoidalTimeEmbedding(layers.Layer):
         self.dense2 = layers.Dense(embed_dim * 4)
 
     def call(self, t):
-        """Codifica ogni timestep con coppie seno/coseno a frequenze decrescenti (stile Transformer) e le passa attraverso l'MLP."""
+        """Encode each timestep with Transformer-style sine/cosine pairs and apply the MLP."""
         t = tf.cast(t, tf.float32)
         freqs = tf.cast(self._frequencies, tf.float32)
         args = t[:, None] * freqs[None, :]
@@ -109,7 +103,7 @@ class SinusoidalTimeEmbedding(layers.Layer):
         return self.dense2(self.dense1(emb))
 
     def get_config(self):
-        """Aggiunge embed_dim alla config standard del layer, necessario per ricostruire il layer al caricamento del modello salvato."""
+        """Add embed_dim to the layer config so saved models can reconstruct it."""
         config = super().get_config()
         config.update({"embed_dim": self.embed_dim})
         return config
@@ -117,21 +111,21 @@ class SinusoidalTimeEmbedding(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class LabelEmbedding(layers.Layer):
-    """Mappa l'etichetta di classe (incluso lo slot "unconditional" per il classifier-free guidance) in un vettore della stessa dimensione del time embedding."""
+    """Map class labels, including CFG's unconditional slot, to time-embedding-sized vectors."""
 
     def __init__(self, num_classes, embed_dim, **kwargs):
-        """Crea la tabella di embedding con una riga extra rispetto a num_classes, riservata alla classe fittizia usata per il training/sampling unconditional."""
+        """Create an embedding table with one extra row for unconditional training and sampling."""
         super().__init__(**kwargs)
         self.num_classes = num_classes
         self.embed_dim = embed_dim
         self.embedding = layers.Embedding(num_classes + 1, embed_dim * 4)
 
     def call(self, y):
-        """Restituisce l'embedding associato alle etichette y."""
+        """Return embeddings for labels y."""
         return self.embedding(y)
 
     def get_config(self):
-        """Aggiunge num_classes ed embed_dim alla config standard, necessari per ricostruire il layer al caricamento del modello salvato."""
+        """Add num_classes and embed_dim to the config for saved-model reconstruction."""
         config = super().get_config()
         config.update({"num_classes": self.num_classes, "embed_dim": self.embed_dim})
         return config
@@ -139,10 +133,10 @@ class LabelEmbedding(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class ResBlock(layers.Layer):
-    """Blocco residuale della U-Net che combina le feature spaziali con il time/label embedding e proietta sul numero di canali target."""
+    """U-Net residual block that combines spatial features with time/label embeddings."""
 
     def __init__(self, channels, embed_dim, **kwargs):
-        """Crea le due convoluzioni con GroupNorm del ramo principale, la proiezione dell'embedding e la skip connection 1x1 per adattare i canali in ingresso."""
+        """Create GroupNorm convolutions, the embedding projection, and a 1x1 channel skip."""
         super().__init__(**kwargs)
         self.channels = channels
         self.embed_dim = embed_dim
@@ -155,14 +149,14 @@ class ResBlock(layers.Layer):
         self.act = layers.LeakyReLU(alpha=0.2)
 
     def call(self, x, emb):
-        """Applica norm+conv alle feature, inietta l'embedding (broadcast spaziale) tra le due convoluzioni e somma la skip connection."""
+        """Apply norm/convolution, inject the broadcast embedding, and add the skip connection."""
         h = self.conv1(self.act(self.norm1(x)))
         emb_out = tf.reshape(self.emb_proj(self.act(emb)), [-1, 1, 1, self.channels])
         h = self.conv2(self.act(self.norm2(h + emb_out)))
         return h + self.skip(x)
 
     def get_config(self):
-        """Aggiunge channels ed embed_dim alla config standard, necessari per ricostruire il layer al caricamento del modello salvato."""
+        """Add channels and embed_dim to the config for saved-model reconstruction."""
         config = super().get_config()
         config.update({"channels": self.channels, "embed_dim": self.embed_dim})
         return config
@@ -170,10 +164,10 @@ class ResBlock(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class SelfAttentionBlock(layers.Layer):
-    """Blocco di self-attention spaziale usato nei livelli più profondi della U-Net per modellare dipendenze a lungo raggio tra regioni dell'immagine."""
+    """Spatial self-attention block for long-range dependencies at deep U-Net levels."""
 
     def __init__(self, channels, num_heads=4, **kwargs):
-        """Crea la GroupNorm, il layer di multi-head attention (con key/value dim derivati dai canali) e la proiezione finale."""
+        """Create GroupNorm, channel-derived multi-head attention, and the final projection."""
         super().__init__(**kwargs)
         self.channels = channels
         self.num_heads = num_heads
@@ -186,7 +180,7 @@ class SelfAttentionBlock(layers.Layer):
         self.proj = layers.Dense(channels)
 
     def call(self, x):
-        """Appiattisce la mappa spaziale (H*W) in una sequenza di token, applica self-attention e ripristina la forma originale con una skip connection."""
+        """Flatten HxW to tokens, apply self-attention, restore the shape, and add the skip."""
         batch = tf.shape(x)[0]
         height = tf.shape(x)[1]
         width = tf.shape(x)[2]
@@ -199,14 +193,14 @@ class SelfAttentionBlock(layers.Layer):
         return x + h
 
     def get_config(self):
-        """Aggiunge channels e num_heads alla config standard, necessari per ricostruire il layer al caricamento del modello salvato."""
+        """Add channels and num_heads to the config for saved-model reconstruction."""
         config = super().get_config()
         config.update({"channels": self.channels, "num_heads": self.num_heads})
         return config
 
 
 def normal_kl(mean1, logvar1, mean2, logvar2):
-    """Calcola la KL divergence in forma chiusa tra due gaussiane diagonali, usata nel termine di loss variazionale della diffusione (VLB)."""
+    """Compute closed-form KL divergence between diagonal Gaussians for the VLB term."""
     return 0.5 * (
         logvar2
         - logvar1
@@ -217,7 +211,7 @@ def normal_kl(mean1, logvar1, mean2, logvar2):
 
 
 def build_schedule(num_steps: int = NUM_DIFF_STEPS, s: float = 0.008) -> DiffusionSchedule:
-    """Costruisce il cosine beta schedule (Nichol & Dhariwal) e precalcola tutti i coefficienti derivati (alpha_bar, varianze posteriori) in un'unica DiffusionSchedule."""
+    """Build the Nichol-Dhariwal cosine schedule and all derived coefficients."""
     t = np.linspace(0.0, float(num_steps), num_steps + 1, dtype=np.float64)
     f = np.cos((t / float(num_steps) + s) / (1.0 + s) * (math.pi / 2.0)) ** 2
     alpha_bars_np = f / f[0]
@@ -243,24 +237,24 @@ def build_schedule(num_steps: int = NUM_DIFF_STEPS, s: float = 0.008) -> Diffusi
 
 
 def extract(values, t, x_shape):
-    """Estrae per ogni elemento del batch il coefficiente dello schedule corrispondente al proprio timestep t e lo reshapa per il broadcasting sull'immagine/latente."""
+    """Gather each batch element's timestep coefficient and reshape it for broadcasting."""
     batch_size = tf.shape(t)[0]
     out = tf.gather(values, t)
     return tf.reshape(out, [batch_size, 1, 1, 1])
 
 
 def predict_epsilon_from_model_output(model_output, sample, alpha_bar_t, parameterization: str = "eps"):
-    """Converte l'output grezzo della U-Net in una stima di epsilon, indipendentemente
-    dalla parameterization usata in training, cosi' tutto il sampler DDPM/DDIM (scritto
-    per operare su epsilon) resta invariato.
+    """Convert raw U-Net output to epsilon independently of training parameterization.
 
-    * `parameterization="eps"`: la rete predice gia' epsilon, nessuna conversione.
-    * `parameterization="v"` (Salimans & Ho 2022): la rete predice
-      `v = sqrt(ab_t)*eps - sqrt(1-ab_t)*x0`, da cui si ricava
-      `eps = sqrt(ab_t)*v + sqrt(1-ab_t)*sample`.
+    This keeps the epsilon-based DDPM/DDIM sampler unchanged.
 
-    `alpha_bar_t` deve gia' essere broadcastabile su `sample` (es. shape (B,1,1,1),
-    vedi `extract`). `sample` e' il latente rumoroso corrente z_t.
+    * ``parameterization="eps"``: the network already predicts epsilon.
+    * ``parameterization="v"`` (Salimans & Ho, 2022): the network predicts
+      ``v = sqrt(ab_t)*eps - sqrt(1-ab_t)*x0``, giving
+      ``eps = sqrt(ab_t)*v + sqrt(1-ab_t)*sample``.
+
+    ``alpha_bar_t`` must be broadcastable to ``sample`` (for example shape
+    ``(B, 1, 1, 1)``; see ``extract``). ``sample`` is the current noisy latent z_t.
     """
     if parameterization == "eps":
         return model_output
@@ -272,7 +266,7 @@ def predict_epsilon_from_model_output(model_output, sample, alpha_bar_t, paramet
 
 
 def get_learned_log_variance(v, t, schedule: DiffusionSchedule):
-    """Interpola in log-spazio tra il limite inferiore (beta_tilde) e superiore (beta) della varianza posteriore, pesando con il valore v predetto dalla rete (parametrizzazione learned-variance di IDDPM)."""
+    """Interpolate posterior log variance between beta_tilde and beta using learned v."""
     shape = tf.shape(v)
     log_beta_t = tf.math.log(extract(schedule.betas, t, shape))
     log_beta_tilde_t = tf.math.log(
@@ -284,7 +278,7 @@ def get_learned_log_variance(v, t, schedule: DiffusionSchedule):
 
 
 def get_learned_log_variance_eff(v, beta_eff, posterior_variance_eff):
-    """Variante di get_learned_log_variance che usa beta e varianza posteriore "effettivi" già calcolati per il salto multi-step del sampling DDIM-like, evitando di rifare l'extract sullo schedule completo."""
+    """Use precomputed effective beta/posterior variance for a DDIM-like multi-step jump."""
     log_beta_eff = tf.math.log(beta_eff)
     log_beta_tilde_eff = tf.math.log(posterior_variance_eff + 1e-8)
     v_sigmoid = tf.sigmoid(tf.clip_by_value(v, -8.0, 8.0))
@@ -302,7 +296,7 @@ def p_sample_ldm(
     guidance_scale: float = CFG_SCALE,
     parameterization: str = "eps",
 ):
-    """Esegue un singolo step di reverse diffusion da t a t_prev con classifier-free guidance: predice l'output condizionato/non condizionato in un'unica chiamata batchata (eps o v-prediction a seconda di `parameterization`), lo converte in una stima di epsilon, ricava z0 e ne deriva media e varianza del passo precedente (nessun rumore aggiunto se t_prev è 0)."""
+    """Run one CFG reverse-diffusion step from t to t_prev in a single batched call."""
     batch_size = tf.shape(z_t)[0]
     t_batch = tf.fill([batch_size], t_int)
     t_prev = tf.fill([batch_size], t_prev_int)
@@ -343,7 +337,7 @@ def p_sample_ldm(
 
 
 def sampling_timesteps(num_steps: int) -> tuple[int, ...]:
-    """Sottocampiona in modo uniforme i NUM_DIFF_STEPS timestep di training per ottenere una sequenza decrescente di num_steps timestep da usare nel sampling accelerato."""
+    """Uniformly subsample training timesteps into a descending accelerated-sampling sequence."""
     stride = max(1, NUM_DIFF_STEPS // int(num_steps))
     return tuple(range(0, NUM_DIFF_STEPS, stride))[::-1]
 
@@ -359,7 +353,7 @@ def make_compiled_sampler(
     decode_on_cpu: bool = False,
     parameterization: str = "eps",
 ):
-    """Costruisce e compila (tf.function) un sampler end-to-end (loop di denoising + decodifica VAE) per un singolo seed/label, così da generare immagini a velocità da grafo invece che in eager mode."""
+    """Compile an end-to-end denoising and VAE-decoding sampler for one seed and label."""
     timesteps = tf.constant(sampling_timesteps(num_steps), dtype=tf.int32)
     n_timesteps = tf.shape(timesteps)[0]
     guidance_scale_tensor = tf.constant(float(guidance_scale), dtype=tf.float32)
@@ -374,7 +368,7 @@ def make_compiled_sampler(
         reduce_retracing=True,
     )
     def compiled_sampler(label, seed):
-        """Genera un'immagine campionando rumore latente a partire dal seed dato, eseguendo il while_loop di reverse diffusion e infine decodificando con il VAE."""
+        """Generate one image from seeded latent noise, reverse diffusion, and VAE decoding."""
         print(
             "[make_compiled_sampler] tracing sampling graph "
             f"num_steps={num_steps} guidance_scale={guidance_scale:g} "
@@ -387,7 +381,7 @@ def make_compiled_sampler(
         )
 
         def denoise_step(index, z_t):
-            """Corpo del while_loop: esegue un singolo step di reverse diffusion con CFG (stessa logica di p_sample_ldm ma in forma graph-friendly con indici tensoriali) e avanza l'indice del timestep."""
+            """Run one graph-friendly CFG reverse step and advance the timestep index."""
             t_int = tf.gather(timesteps, index)
             t_prev_int = tf.cond(
                 index + 1 < n_timesteps,
@@ -426,11 +420,11 @@ def make_compiled_sampler(
             )
 
             def without_noise():
-                """Ramo usato all'ultimo step (t_prev=0): restituisce la sola media, senza rumore stocastico."""
+                """Return only the mean at the final step, without stochastic noise."""
                 return mean
 
             def with_noise():
-                """Ramo usato per gli step intermedi: aggiunge rumore gaussiano riproducibile (seed derivato da stateless_fold_in) scalato per la deviazione standard appresa."""
+                """Add reproducible Gaussian noise scaled by the learned standard deviation."""
                 log_var = get_learned_log_variance_eff(v_pred, b_eff, post_var_eff)
                 std = tf.exp(0.5 * log_var)
                 noise_seed = tf.random.experimental.stateless_fold_in(seed, index + 1)
@@ -473,7 +467,7 @@ def make_compiled_latent_sampler(
     guidance_scale: float = CFG_SCALE,
     parameterization: str = "eps",
 ):
-    """Costruisce un sampler graph-friendly che restituisce il latente finale denormalizzato."""
+    """Build a graph-friendly sampler that returns the final denormalized latent."""
     timesteps = tf.constant(sampling_timesteps(num_steps), dtype=tf.int32)
     n_timesteps = tf.shape(timesteps)[0]
     guidance_scale_tensor = tf.constant(float(guidance_scale), dtype=tf.float32)
@@ -566,7 +560,7 @@ def make_compiled_latent_sampler(
 
 
 def load_latent_stats(latent_stats_path: Path):
-    """Carica media e deviazione standard dei latenti VAE salvate durante il training, necessarie per normalizzare/denormalizzare lo spazio latente in cui opera la diffusione."""
+    """Load VAE latent mean and standard deviation for diffusion-space normalization."""
     stats = np.load(str(latent_stats_path))
     latent_mean = tf.constant(stats["latent_mean"], dtype=tf.float32)
     latent_std = tf.constant(stats["latent_std"], dtype=tf.float32)
@@ -574,57 +568,14 @@ def load_latent_stats(latent_stats_path: Path):
 
 
 def load_vae_decoder(model_path: Path):
-    """Carica il decoder del VAE già addestrato e lo congela, dato che in fase di generazione serve solo per l'inferenza."""
+    """Load and freeze the trained VAE decoder for generation-only inference."""
     decoder = tf.keras.models.load_model(str(model_path), compile=False)
     decoder.trainable = False
     return decoder
 
 
 def load_ldm_model(model_path: Path):
-    """Carica la U-Net della diffusione da un checkpoint salvato e la congela, dato che in fase di generazione serve solo per l'inferenza."""
+    """Load and freeze the diffusion U-Net checkpoint for generation-only inference."""
     model = tf.keras.models.load_model(str(model_path), compile=False)
     model.trainable = False
     return model
-
-
-def sample_ldm(
-    ldm_model,
-    vae_decoder,
-    schedule: DiffusionSchedule,
-    latent_mean,
-    latent_std,
-    num_images: int = 1,
-    label: int = 1,
-    num_steps: int = SAMPLE_STEPS,
-    guidance_scale: float = CFG_SCALE,
-    verbose: bool = False,
-    parameterization: str = "eps",
-):
-    """Versione eager (non compilata in grafo) del sampling: genera num_images immagini per la label data eseguendo in sequenza tutti gli step di reverse diffusion con p_sample_ldm e poi decodificando col VAE. Utile per generazioni una tantum o debug, dove make_compiled_sampler non è necessario."""
-    z = tf.random.normal((num_images, LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS))
-    y = tf.fill([num_images], int(label))
-    timesteps = sampling_timesteps(num_steps)
-
-    for idx, t in enumerate(timesteps):
-        t_prev = timesteps[idx + 1] if idx + 1 < len(timesteps) else 0
-        z = p_sample_ldm(
-            ldm_model,
-            schedule,
-            z,
-            int(t),
-            int(t_prev),
-            y,
-            guidance_scale=guidance_scale,
-            parameterization=parameterization,
-        )
-        if verbose and ((idx + 1) % 20 == 0 or idx == 0):
-            print(f"  Step {idx + 1}/{len(timesteps)} (t={t}->{t_prev})")
-        if (idx + 1) % 25 == 0:
-            try:
-                tf.test.experimental.sync_devices()
-            except Exception:
-                pass
-
-    z_denorm = z * latent_std + latent_mean
-    images = vae_decoder(z_denorm, training=False)
-    return tf.clip_by_value((images + 1.0) / 2.0, 0.0, 1.0)

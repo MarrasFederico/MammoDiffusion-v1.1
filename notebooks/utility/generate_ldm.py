@@ -59,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--generation-gpus",
         default="auto",
-        help="GPU per la sola generazione RAW: auto, off o lista comma-separata.",
+        help="GPUs for RAW generation only: auto, off, or a comma-separated list.",
     )
     parser.add_argument("--max-generation-workers", type=int, default=None)
     parser.add_argument("--generation-scheduler", choices=["dynamic_reservations", "round_robin"], default=DEFAULT_GENERATION_SCHEDULER)
@@ -67,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--generation-worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--generation-indices-file", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--generation-queue-dir", type=Path, default=None, help=argparse.SUPPRESS)
-    parser.add_argument("--dry-run", action="store_true", help="Mostra GPU, shard e comandi senza caricare modelli.")
+    parser.add_argument("--dry-run", action="store_true", help="Show GPUs, shards, and commands without loading models.")
     parser.add_argument(
         "--cuda-root",
         type=Path,
@@ -86,7 +86,7 @@ def parse_args() -> argparse.Namespace:
         "--batch-size",
         type=int,
         default=1,
-        help="Mantenuto per compatibilita'; la generazione LDM finale forza batch 1.",
+        help="Retained for compatibility; final LDM generation forces batch size 1.",
     )
     parser.add_argument("--sample-steps", type=int, default=100)
     parser.add_argument("--guidance-scale", type=float, default=1.5)
@@ -96,12 +96,12 @@ def parse_args() -> argparse.Namespace:
         "--vae-backend",
         choices=["keras", "sd"],
         default="keras",
-        help="Decoder da usare per trasformare i latenti in immagini.",
+        help="Decoder used to transform latents into images.",
     )
     parser.add_argument(
         "--sd-vae-model",
         default=None,
-        help="Path locale del modello Stable Diffusion da cui caricare il VAE.",
+        help="Local Stable Diffusion model path from which to load the VAE.",
     )
     parser.add_argument("--sd-vae-batch-size", type=int, default=1)
     parser.add_argument(
@@ -109,31 +109,31 @@ def parse_args() -> argparse.Namespace:
         choices=["eps", "v"],
         default="eps",
         help=(
-            "Parameterization del modello LDM caricato: eps (default, retrocompatibile "
-            "con 04b/04b1/04b2) oppure v (Salimans & Ho 2022, usata da 04b3). Deve "
-            "corrispondere a come il checkpoint e' stato addestrato (vedi training_manifest.json)."
+            "Parameterization of the loaded LDM: eps (default, compatible with 04b/04b1/04b2) "
+            "or v (Salimans & Ho, 2022, used by 04b3). It must match checkpoint training; "
+            "see training_manifest.json."
         ),
     )
     parser.add_argument(
         "--unet-version",
         choices=["v2", "v3"],
         default="v2",
-        help="Informativo: architettura del checkpoint caricato, salvato nei manifest di output.",
+        help="Informational checkpoint architecture stored in output manifests.",
     )
     parser.add_argument(
         "--vae-source",
         default="sd_vae_original",
-        help="Informativo: sorgente del VAE usato per i latenti, salvato nei manifest di output.",
+        help="Informational source of the latent VAE stored in output manifests.",
     )
     parser.add_argument(
         "--uses-vae-ft-from-03",
         action="store_true",
-        help="Informativo: marca nei manifest che il VAE e' quello fine-tuned di 03.",
+        help="Record in manifests that the VAE is the fine-tuned VAE from notebook 03.",
     )
     parser.add_argument(
         "--notebook-name",
         default=None,
-        help="Informativo: nome del notebook chiamante, salvato nei manifest di output.",
+        help="Calling notebook name stored in output manifests.",
     )
     parser.add_argument("--vram-log-every", type=int, default=25)
     parser.add_argument("--force-recompute", action="store_true")
@@ -144,7 +144,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--results-stage-name",
         default=RESULTS_STAGE_NAME,
-        help="Sottocartella di results dove salvare metriche, plot e log EcoTracker.",
+        help="Results subdirectory for metrics, plots, and EcoTracker logs.",
     )
     parser.add_argument("--inception-batch", type=int, default=8)
     parser.add_argument("--is-splits", type=int, default=10)
@@ -153,13 +153,13 @@ def parse_args() -> argparse.Namespace:
         "--inception-weights",
         choices=["imagenet", "none"],
         default="imagenet",
-        help="Mantenuto per compatibilita'; generative_evaluator.py usa torchmetrics.",
+        help="Retained for compatibility; generative_evaluator.py uses torchmetrics.",
     )
     parser.add_argument(
         "--max-eval-images",
         type=int,
         default=None,
-        help="Limite leggero sul numero di immagini per le metriche; default usa tutti gli input.",
+        help="Optional light limit on metric images; the default uses every input.",
     )
     parser.add_argument("--reverse-labels", default="1,0")
     parser.add_argument("--reverse-steps-to-show", type=int, default=10)
@@ -168,7 +168,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def configure_environment(args: argparse.Namespace) -> None:
-    """Imposta le variabili d'ambiente necessarie prima di importare TensorFlow (cartella matplotlib, GPU visibili, percorso libdevice per XLA)."""
+    """Set Matplotlib, visible-GPU, and XLA libdevice environment before importing TensorFlow."""
     os.environ.setdefault(
         "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
     )
@@ -180,17 +180,17 @@ def configure_environment(args: argparse.Namespace) -> None:
 
 
 def is_valid_keras_file(path: Path) -> bool:
-    """Verifica che il file checkpoint esista, non sia vuoto e sia un archivio .keras leggibile (evita di caricare pesi troncati)."""
+    """Require an existing, non-empty, readable .keras archive rather than truncated weights."""
     return path.exists() and path.stat().st_size > 0 and zipfile.is_zipfile(path)
 
 
 def resolve_model_path(exp: Path, requested: Path | None = None) -> Path:
-    """Seleziona il checkpoint U-Net da usare per la generazione: usa quello passato esplicitamente se valido, altrimenti cerca tra i candidati noti (best_eval, best, ultimo step) nella cartella dell'esperimento."""
+    """Select the generation U-Net from an explicit path or known best/latest candidates."""
     if requested is not None:
         requested = Path(requested).expanduser().resolve()
         if is_valid_keras_file(requested):
             return requested
-        raise FileNotFoundError(f"Modello LDM non valido: {requested}")
+        raise FileNotFoundError(f"Invalid LDM model: {requested}")
 
     ckpt_dir = exp / "checkpoints_ldm"
     models_dir = exp / "models"
@@ -205,11 +205,11 @@ def resolve_model_path(exp: Path, requested: Path | None = None) -> Path:
     for candidate in candidates:
         if is_valid_keras_file(candidate):
             return candidate
-    raise FileNotFoundError(f"Nessun modello LDM valido trovato in {exp}")
+    raise FileNotFoundError(f"No valid LDM model found in {exp}")
 
 
 def resolve_image_dirs(paths, args: argparse.Namespace) -> tuple[Path, Path]:
-    """Determina raw e filtered, usando percorsi canonici distinti per classe."""
+    """Resolve distinct canonical RAW and FILTERED paths for one class."""
     canonical_raw_dir, canonical_filtered_dir = get_class_image_dirs(paths, args.target_label)
     raw_dir = (
         args.raw_dir.expanduser().resolve()
@@ -228,15 +228,15 @@ def resolve_image_dirs(paths, args: argparse.Namespace) -> tuple[Path, Path]:
 
 
 def is_canonical_image_run(paths, args: argparse.Namespace, raw_dir: Path, filtered_dir: Path) -> bool:
-    """Riconosce come canonici anche gli override che coincidono con la classe richiesta."""
+    """Treat overrides matching the requested class as canonical too."""
     canonical_raw_dir, canonical_filtered_dir = get_class_image_dirs(paths, args.target_label)
     return raw_dir == canonical_raw_dir and filtered_dir == canonical_filtered_dir
 
 
 def mirror_positive_legacy_outputs(source_dir: Path, legacy_dir: Path, target_label: int) -> None:
-    """Mantiene leggibili i percorsi positivi storici mentre i nuovi output sono class-scoped."""
-    # Con un filtro ripreso da cache i report possono esistere senza grafici: in quel
-    # caso source_dir non viene creato e il mirror e' semplicemente non necessario.
+    """Keep historical positive paths readable while new outputs are class-scoped."""
+    # A cached filter can have reports without plots; in that case source_dir is
+    # never created and no mirror is needed.
     if int(target_label) != 1 or source_dir == legacy_dir or not source_dir.is_dir():
         return
     for source in source_dir.iterdir():
@@ -245,12 +245,12 @@ def mirror_positive_legacy_outputs(source_dir: Path, legacy_dir: Path, target_la
 
 
 def expected_raw_path(raw_dir: Path, index: int) -> Path:
-    """Costruisce il path attesso per l'immagine raw di indice dato, con padding a 5 cifre (convenzione synth_NNNNN.png)."""
+    """Return the expected five-digit RAW path using the synth_NNNNN.png convention."""
     return raw_dir / f"synth_{index:05d}.png"
 
 
 def raw_index_from_name(path: Path) -> int | None:
-    """Estrae l'indice numerico dal nome file synth_NNNNN.png, restituendo None se il nome non rispetta la convenzione."""
+    """Parse an index from synth_NNNNN.png, returning None for noncanonical names."""
     stem = path.stem
     if not stem.startswith("synth_"):
         return None
@@ -261,7 +261,7 @@ def raw_index_from_name(path: Path) -> int | None:
 
 
 def is_readable_png(path: Path) -> bool:
-    """Verifica che il PNG esista e sia decodificabile (verify + conversione in scala di grigi), per scartare file troncati da run interrotte."""
+    """Require an existing, decodable grayscale PNG and reject interrupted-run truncation."""
     if not path.exists() or path.stat().st_size == 0:
         return False
     try:
@@ -277,7 +277,7 @@ def is_readable_png(path: Path) -> bool:
 
 
 def scan_raw_generation_state(raw_dir: Path, n_raw: int, force_recompute: bool = False) -> dict:
-    """Classifica gli indici da 0 a n_raw in validi/mancanti/corrotti scandendo la cartella raw, per riprendere la generazione senza ripartire da zero; con force_recompute considera tutto da rigenerare."""
+    """Classify RAW indices as valid, missing, or corrupt for resumable generation."""
     valid_indices: list[int] = []
     missing_indices: list[int] = []
     corrupt_indices: list[int] = []
@@ -325,7 +325,7 @@ def scan_raw_generation_state(raw_dir: Path, n_raw: int, force_recompute: bool =
 
 
 def write_json(path: Path, payload: dict) -> None:
-    """Scrive un dizionario su file JSON indentato, creando le cartelle intermedie se necessario."""
+    """Write an indented JSON object, creating parent directories as needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as file:
         json.dump(payload, file, indent=2, ensure_ascii=False)
@@ -405,7 +405,7 @@ def prepare_raw_generation_manifest(
     if current != expected:
         if dry_run:
             changed = sorted(key for key in set(current or {}) | set(expected) if (current or {}).get(key) != expected.get(key))
-            print(f"DRY-RUN: manifest RAW incompatibile ({changed}); verrebbe sostituito senza riusare i PNG.")
+            print(f"DRY-RUN: incompatible RAW manifest ({changed}); it would be replaced without reusing PNGs.")
             return expected
         if not parent:
             raise RuntimeError(
@@ -431,7 +431,7 @@ def prepare_raw_generation_manifest(
 
 
 def sampler_trace_count(compiled_sampler) -> int | None:
-    """Legge quante volte la funzione tf.function del sampler e' stata ritracciata, utile per verificare che la compilazione sia avvenuta una sola volta."""
+    """Return the sampler tf.function tracing count to verify one-time compilation."""
     getter = getattr(compiled_sampler, "experimental_get_tracing_count", None)
     if getter is None:
         return None
@@ -439,7 +439,7 @@ def sampler_trace_count(compiled_sampler) -> int | None:
 
 
 def save_single_image(image_np, output_path: Path) -> None:
-    """Salva su disco l'immagine decodificata dal VAE come PNG in scala di grigi, scrivendo prima su file temporaneo e poi rinominando per evitare file parziali in caso di interruzione."""
+    """Atomically save a VAE-decoded grayscale PNG through a temporary file."""
     import numpy as np
     from PIL import Image
 
@@ -459,7 +459,7 @@ def save_single_image(image_np, output_path: Path) -> None:
 
 
 def append_jsonl(path: Path, payload: dict) -> None:
-    """Accoda una riga JSON al file di log (jsonl), forzando flush e fsync per non perdere righe se il processo viene interrotto bruscamente."""
+    """Append a JSONL record with flush and fsync to survive abrupt interruption."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as file:
         file.write(json.dumps(payload, ensure_ascii=False) + "\n")
@@ -479,7 +479,7 @@ def manifest_operational_fields(args: argparse.Namespace) -> dict:
 
 
 def write_pipeline_manifest(paths, payload: dict, results_stage_name: str) -> None:
-    """Aggiorna il manifest cumulativo della classe senza sovrascrivere l'altra classe."""
+    """Update one class's cumulative manifest without overwriting the other class."""
     results_paths = get_results_paths(paths.project_root, results_stage_name)
     target_label = int(payload["target_label"])
     class_evaluation_dir = get_class_evaluation_dir(paths, target_label)
@@ -513,7 +513,7 @@ def write_pipeline_manifest(paths, payload: dict, results_stage_name: str) -> No
 
 @contextmanager
 def maybe_measure(args: argparse.Namespace, paths, label: str):
-    """Context manager che avvolge una fase della pipeline con EcoTracker se --eco-track e' attivo, degradando silenziosamente a no-op se il tracker non e' disponibile o non si avvia."""
+    """Wrap a phase with EcoTracker when enabled, falling back to a no-op if unavailable."""
     if not args.eco_track:
         yield None
         return
@@ -526,7 +526,7 @@ def maybe_measure(args: argparse.Namespace, paths, label: str):
     try:
         from eco_tracker import measure_sustainability
     except Exception as exc:
-        print(f"EcoTracker non disponibile, proseguo senza misura: {exc}")
+        print(f"EcoTracker unavailable; continuing without measurement: {exc}")
         yield None
         return
 
@@ -534,7 +534,7 @@ def maybe_measure(args: argparse.Namespace, paths, label: str):
     try:
         tracker = measure_context.__enter__()
     except Exception as exc:
-        print(f"EcoTracker non avviabile, proseguo senza misura: {exc}")
+        print(f"EcoTracker could not start; continuing without measurement: {exc}")
         yield None
         return
 
@@ -548,11 +548,11 @@ def maybe_measure(args: argparse.Namespace, paths, label: str):
         try:
             measure_context.__exit__(*exc_info)
         except Exception as exc:
-            print(f"EcoTracker non chiuso correttamente, proseguo senza misura: {exc}")
+            print(f"EcoTracker did not close cleanly; continuing without measurement: {exc}")
         if tracker is not None and tracker.metrics is not None:
             payload = tracker.metrics.to_dict()
             append_jsonl(jsonl_path, payload)
-            print(f"EcoTracker salvato: {jsonl_path}")
+            print(f"EcoTracker record saved: {jsonl_path}")
             print(tracker.metrics)
 
 
@@ -563,7 +563,7 @@ def _worker_indices(args: argparse.Namespace) -> list[int] | None:
         payload = json.load(file)
     indices = payload.get("indices", payload)
     if not isinstance(indices, list) or any(not isinstance(value, int) for value in indices):
-        raise ValueError(f"Indice worker non valido: {args.generation_indices_file}")
+        raise ValueError(f"Invalid worker-index file: {args.generation_indices_file}")
     return sorted(set(indices))
 
 
@@ -571,7 +571,7 @@ def generation_child_command(args: argparse.Namespace, paths, indices_file: Path
     """Create a non-recursive, CUDA-isolated RAW-generation child command."""
     command = child_command(args, paths, "generate")
     # The generate child already received the parent's settings. A worker must be
-    # non-recursive, so replace that one value while preserving max-workers.
+    # Keep the child non-recursive by replacing this value while preserving max-workers.
     gpu_option = command.index("--generation-gpus")
     command[gpu_option + 1] = "off"
     command.extend(["--generation-worker", "--gpu-visible-devices", str(gpu)])
@@ -680,9 +680,9 @@ def write_parallel_generation_parent_artifacts(args: argparse.Namespace, paths, 
 
 
 def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
-    """Esegue la generazione RAW: carica VAE decoder e U-Net LDM, compila il sampler una sola volta e genera via reverse diffusion solo le immagini mancanti o corrotte rispetto allo stato gia' su disco, salvando log/manifest a fine corsa."""
+    """Generate only missing/corrupt RAW images with one compiled reverse-diffusion sampler."""
     if args.batch_size != 1:
-        print(f"Nota: --batch-size={args.batch_size} ignorato; uso batch fisso 1.")
+        print(f"Note: --batch-size={args.batch_size} is ignored; using a fixed batch size of 1.")
         args.batch_size = 1
 
     raw_dir, filtered_dir = resolve_image_dirs(paths, args)
@@ -724,11 +724,11 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
         f"extra={len(state['extra_files'])}"
     )
     if state["corrupt_files"]:
-        print("File corrotti che verranno rigenerati:")
+        print("Corrupt files to regenerate:")
         for path in state["corrupt_files"][:20]:
             print("  ", path)
     if not targets:
-        print("Skip: immagini raw gia' complete e leggibili. Non carico TensorFlow.")
+        print("Skipping: RAW images are complete and readable; TensorFlow will not be loaded.")
         return
 
     if not args.generation_worker and str(args.generation_gpus).strip().lower() not in {"off", "none", "false", ""}:
@@ -738,7 +738,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
         final_state = scan_raw_generation_state(raw_dir, args.n_raw, force_recompute=False)
         if final_state["missing_indices"] or final_state["corrupt_indices"]:
             raise RuntimeError(
-                "Generazione RAW parallela incompleta: "
+                "Parallel RAW generation incomplete: "
                 f"missing={len(final_state['missing_indices'])}, corrupt={len(final_state['corrupt_indices'])}"
             )
         write_parallel_generation_parent_artifacts(
@@ -751,10 +751,10 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
         target_set = set(targets)
         unexpected = set(assigned_indices) - target_set
         if unexpected:
-            raise RuntimeError(f"Worker ha ricevuto indici non mancanti: {sorted(unexpected)[:20]}")
+            raise RuntimeError(f"Worker received indices that are not missing: {sorted(unexpected)[:20]}")
         targets = assigned_indices
         if not targets:
-            print("Worker senza indici assegnati: esco senza caricare TensorFlow.")
+            print("Worker has no assigned indices; exiting without loading TensorFlow.")
             return
 
     configure_environment(args)
@@ -786,17 +786,17 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
     model_path = resolve_model_path(paths.experiment_dir, args.model_path)
     print("MODEL_PATH:", model_path)
     print("decode_on_cpu:", args.decode_on_cpu)
-    print("batch sampling effettivo: 1")
+    print("effective sampling batch: 1")
     print("target_label:", args.target_label)
     print("sample_steps:", args.sample_steps)
     print("guidance_scale:", args.guidance_scale)
 
     with maybe_measure(args, paths, "ldm_generate_raw"):
-        vram_gb("VRAM prima del modello")
+        vram_gb("VRAM before model load")
         schedule = build_schedule()
         latent_mean, latent_std = load_latent_stats(paths.latents_dir / "latent_stats.npz")
         ldm_model = load_ldm_model(model_path)
-        vram_gb("VRAM dopo load LDM")
+        vram_gb("VRAM after loading LDM")
 
         sd_vae = sd_device = sd_dtype = None
         if args.vae_backend == "sd":
@@ -822,7 +822,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
             )
         else:
             vae_decoder = load_vae_decoder(paths.models_dir / "vae_decoder_best.keras")
-            vram_gb("VRAM dopo load VAE decoder")
+            vram_gb("VRAM after loading VAE decoder")
             compiled_sampler = make_compiled_sampler(
                 ldm_model=ldm_model,
                 vae_decoder=vae_decoder,
@@ -834,7 +834,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
                 decode_on_cpu=args.decode_on_cpu,
                 parameterization=args.parameterization,
             )
-        print(f"sampler compilato una sola volta e riusato per tutte le immagini (parameterization={args.parameterization})")
+        print(f"sampler compiled once and reused for every image (parameterization={args.parameterization})")
 
         start_time = time.perf_counter()
         worker_stats = {"worker_id": os.getpid(), "gpu_physical_id": args.gpu_visible_devices,
@@ -901,7 +901,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
                 or (args.vram_log_every > 0 and generated_count % args.vram_log_every == 0)
             ):
                 gc.collect()
-                vram_gb(f"VRAM dopo {generated_count} nuove RAW")
+                vram_gb(f"VRAM after {generated_count} new RAW images")
 
         elapsed = time.perf_counter() - start_time
         worker_stats["wall_clock_seconds"] = elapsed
@@ -923,7 +923,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
             )
             if final_state["missing_indices"] or final_state["corrupt_indices"]:
                 raise RuntimeError(
-                    "Generazione RAW incompleta: "
+                    "RAW generation incomplete: "
                     f"missing={len(final_state['missing_indices'])}, "
                     f"corrupt={len(final_state['corrupt_indices'])}"
                 )
@@ -979,7 +979,7 @@ def _run_generate_locked_body(args: argparse.Namespace, paths) -> None:
         del latent_std
         gc.collect()
         tf.keras.backend.clear_session()
-        vram_gb("VRAM alla fine della generazione")
+        vram_gb("VRAM at end of generation")
 
 
 def run_generate(args: argparse.Namespace, paths) -> None:
@@ -995,13 +995,13 @@ def run_generate(args: argparse.Namespace, paths) -> None:
 
 
 def train_reference_paths(paths, target_label: int) -> list[Path]:
-    """Recupera dal train.csv i path normalizzati delle immagini reali della classe target, usate come riferimento dal filtro adattivo."""
+    """Resolve normalized real-training paths for the adaptive filter's target class."""
     import pandas as pd
 
     train_df = pd.read_csv(paths.metadata_dir / "train.csv")
     label_df = train_df[train_df["label"].astype(int) == int(target_label)]
     if label_df.empty:
-        raise RuntimeError(f"Nessuna immagine train per label {target_label}")
+        raise RuntimeError(f"No training images for label {target_label}")
     return [
         normalize_processed_path(row, paths.data_processed_dir)
         for _, row in label_df.iterrows()
@@ -1009,14 +1009,14 @@ def train_reference_paths(paths, target_label: int) -> list[Path]:
 
 
 def copy_if_exists(source: Path, destination: Path) -> None:
-    """Copia il file sorgente verso la destinazione solo se esiste, senza generare errore altrimenti (usato per duplicare gli output nei percorsi canonici)."""
+    """Copy an existing source to its destination; silently skip a missing source."""
     if source.exists():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
 
 
 def run_filter(args: argparse.Namespace, paths) -> None:
-    """Applica il filtro adattivo alle immagini RAW per selezionare le n_selected migliori (confrontate con le reali della classe target) e salva il relativo report/manifest. Genera prima le RAW mancanti se la cartella non ne contiene ancora a sufficienza."""
+    """Select the best RAW images against real references and save the filter report/manifest."""
     from adaptive_mammography_filter import filter_generated_directory
 
     generation_args = copy.copy(args)
@@ -1076,13 +1076,13 @@ def run_filter(args: argparse.Namespace, paths) -> None:
 
 
 def readable_png_paths(directory: Path, limit: int | None = None) -> list[Path]:
-    """Elenca in ordine i PNG leggibili in una cartella, scartando quelli corrotti, con limite opzionale."""
+    """List readable PNGs in order, excluding corrupt files and applying an optional limit."""
     paths = [path for path in sorted(directory.glob("*.png")) if not path.name.startswith(".tmp_") and is_readable_png(path)]
     return paths[:limit] if limit is not None else paths
 
 
 def select_metric_paths(paths: list[Path], limit: int | None) -> list[Path]:
-    """Applica il limite (max_eval_images) alla lista di path da passare al calcolo delle metriche."""
+    """Apply max_eval_images to paths passed into metric computation."""
     return paths[:limit] if limit is not None else paths
 
 
@@ -1099,7 +1099,7 @@ def use_metrics_cache(json_path: Path, csv_path: Path, config: dict, input_signa
         with open(json_path, "r", encoding="utf-8") as file:
             payload = json.load(file)
     except Exception as exc:
-        print(f"Cache metriche validation non leggibile: {exc}")
+        print(f"Unreadable validation metric cache: {exc}")
         return False
     if payload.get("schema_version") != 2:
         return False
@@ -1109,12 +1109,12 @@ def use_metrics_cache(json_path: Path, csv_path: Path, config: dict, input_signa
         import pandas as pd
 
         pd.DataFrame(payload["rows"]).to_csv(csv_path, index=False)
-    print(f"Metriche validation gia' presenti: {json_path}")
+    print(f"Validation metrics already present: {json_path}")
     return True
 
 
 def run_validate(args: argparse.Namespace, paths) -> None:
-    """Confronta su tre dataset (RAW completo, RAW bilanciato allo stesso numero di immagini, FILTERED) le metriche generative rispetto al validation set reale, per quantificare il guadagno introdotto dal filtro adattivo; usa la cache se input e config non sono cambiati."""
+    """Compare full RAW, count-matched RAW, and FILTERED metrics against real validation data."""
     import pandas as pd
 
     from ldm_evaluation_utils import evaluate_generated_paths_against_metadata
@@ -1133,7 +1133,7 @@ def run_validate(args: argparse.Namespace, paths) -> None:
     filtered_paths = exact_filtered_png_paths(filtered_dir, args.n_selected)
     expected_raw = [raw_dir / f"synth_{index:05d}.png" for index in range(args.n_raw)]
     if raw_paths != expected_raw:
-        raise RuntimeError(f"RAW complete insufficienti: {len(raw_paths)}/{args.n_raw}")
+        raise RuntimeError(f"Insufficient complete RAW images: {len(raw_paths)}/{args.n_raw}")
 
     raw_complete = raw_paths[:args.n_raw]
     rng = random.Random(args.balanced_seed)
@@ -1193,7 +1193,7 @@ def run_validate(args: argparse.Namespace, paths) -> None:
     rows = []
     with maybe_measure(args, paths, "ldm_validate_raw_filtered"):
         for dataset_name, generated_paths in datasets.items():
-            print(f"[VALIDATE] {dataset_name}: {len(generated_paths)} immagini")
+            print(f"[VALIDATE] {dataset_name}: {len(generated_paths)} images")
             evaluator_metrics = evaluate_generated_paths_against_metadata(
                 generated_paths=generated_paths,
                 metadata_df=val_df,
@@ -1246,12 +1246,12 @@ def run_validate(args: argparse.Namespace, paths) -> None:
         write_pipeline_manifest(paths, manifest_payload, args.results_stage_name)
     else:
         write_json(output_dir / "validation_manifest_trial.json", manifest_payload)
-    print("Salvato:", csv_path)
-    print("Salvato:", json_path)
+    print("Saved:", csv_path)
+    print("Saved:", json_path)
 
 
 def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
-    """Costruisce la riga di comando per rilanciare questo stesso script in un sottoprocesso isolato con una singola modalita', usata dall'orchestrazione 'all'/'both'."""
+    """Build a single-mode isolated child command for all/both orchestration."""
     command = [
         sys.executable,
         str(Path(__file__).resolve()),
@@ -1314,8 +1314,8 @@ def child_command(args: argparse.Namespace, paths, mode: str) -> list[str]:
 
 
 def orchestrate_modes(args: argparse.Namespace, paths, modes: list[str]) -> None:
-    """Esegue in sequenza le modalita' richieste, ognuna in un sottoprocesso separato, cosi' che la memoria GPU venga liberata completamente tra una fase e l'altra; interrompe tutto al primo fallimento."""
-    print("Orchestrazione in subprocess separati:", ", ".join(modes))
+    """Run requested modes in isolated subprocesses, freeing GPU memory between phases."""
+    print("Orchestration in separate subprocesses:", ", ".join(modes))
     for mode in modes:
         command = child_command(args, paths, mode)
         print("\n[orchestrator]", " ".join(command))
@@ -1325,7 +1325,7 @@ def orchestrate_modes(args: argparse.Namespace, paths, modes: list[str]) -> None
 
 
 def run_reverse(args: argparse.Namespace, paths) -> None:
-    """Genera per ciascuna label richiesta una figura con gli step intermedi della reverse diffusion (rumore -> immagine), decodificando con il VAE solo i timestep scelti per il plot e salvando il risultato in plots_dir."""
+    """Plot selected reverse-diffusion intermediates from noise to image for each label."""
     configure_environment(args)
 
     import matplotlib
@@ -1420,11 +1420,11 @@ def run_reverse(args: argparse.Namespace, paths) -> None:
         out_path = results_paths.plots_dir / f"reverse_ldm_{label}.png"
         plt.savefig(out_path, dpi=150, bbox_inches="tight")
         plt.close(fig)
-        print("Salvato:", out_path)
+        print("Saved:", out_path)
 
 
 def main() -> None:
-    """Punto di ingresso CLI: parsa gli argomenti e smista l'esecuzione verso la modalita' richiesta (singola fase o orchestrazione di piu' fasi)."""
+    """Parse CLI arguments and dispatch one phase or a multi-phase orchestration."""
     args = parse_args()
     if (
         not args.generation_worker
@@ -1438,7 +1438,7 @@ def main() -> None:
 
     if args.dry_run:
         if args.mode != "generate":
-            print("--dry-run mostra soltanto il piano della generazione RAW; filter/validate/reverse non vengono avviati.")
+            print("--dry-run only shows the RAW generation plan; filter/validate/reverse are not started.")
         run_generate(args, paths)
         return
 
@@ -1460,7 +1460,7 @@ def main() -> None:
     if args.mode == "reverse":
         run_reverse(args, paths)
         return
-    raise ValueError(f"Mode non gestito: {args.mode}")
+    raise ValueError(f"Unsupported mode: {args.mode}")
 
 
 if __name__ == "__main__":

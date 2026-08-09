@@ -196,17 +196,3 @@ def full_report(labels: Sequence[int], probabilities: Sequence[float], threshold
         labels, probabilities, specificity_threshold, target_specificity
     )
     return report
-
-
-def ensemble_probabilities(per_seed_probabilities: Sequence[Sequence[float]]) -> list[float]:
-    """Mean probability across seeds (spec section 6): deterministic, order of seeds irrelevant."""
-    arr = np.asarray(per_seed_probabilities, dtype=np.float64)
-    if arr.ndim != 2:
-        raise ValueError("expected a (n_seeds, n_samples) array of per-seed probabilities")
-    return arr.mean(axis=0).tolist()
-
-
-def seed_stability(per_seed_metric_values: Sequence[float]) -> dict:
-    arr = _as_array(per_seed_metric_values)
-    return {"mean": float(np.mean(arr)), "std": float(np.std(arr, ddof=0)),
-            "min": float(np.min(arr)), "max": float(np.max(arr)), "range": float(np.max(arr) - np.min(arr))}

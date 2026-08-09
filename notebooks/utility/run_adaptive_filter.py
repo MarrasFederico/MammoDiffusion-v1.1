@@ -17,12 +17,12 @@ _CANDIDATE_NAME = re.compile(GENERATED_PNG_PATTERN, re.IGNORECASE)
 
 
 def count_pngs(directory: Path) -> int:
-    """Conta solo PNG leggibili e non temporanei."""
+    """Count only readable, non-temporary PNG files."""
     return len(candidate_png_paths(directory))
 
 
 def candidate_png_paths(directory: Path) -> list[Path]:
-    """Dataset effettivo del filtro: immagini leggibili, mai file temporanei."""
+    """Return the filter's effective dataset: readable, non-temporary images."""
     directory = Path(directory)
     if not directory.is_dir():
         return []
@@ -45,7 +45,7 @@ def candidate_png_paths(directory: Path) -> list[Path]:
 
 
 def file_sha256(path: Path) -> str:
-    """Calcola l'hash SHA256 di un file per individuare duplicati esatti."""
+    """Hash a file with SHA-256 to detect exact duplicates."""
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
@@ -54,7 +54,7 @@ def file_sha256(path: Path) -> str:
 
 
 def duplicate_png_groups(directory: Path) -> dict[str, list[str]]:
-    """Raggruppa i PNG per hash del contenuto e restituisce solo i gruppi con più di un file."""
+    """Group PNGs by content hash and return only groups with multiple files."""
     by_hash: dict[str, list[str]] = {}
     for path in candidate_png_paths(directory):
         by_hash.setdefault(file_sha256(path), []).append(path.name)
@@ -67,7 +67,7 @@ def real_train_paths(
     label: int,
     seed: int,
 ) -> list[Path]:
-    """Recupera, in ordine casuale riproducibile, i path delle immagini reali di training con la label richiesta, da usare come riferimento per il filtro adattivo."""
+    """Return a reproducibly shuffled real-training reference set for one label."""
     import pandas as pd
 
     from ldm_project_paths import normalize_processed_path
@@ -76,11 +76,11 @@ def real_train_paths(
     required = {"label", "processed_path"}
     missing = required.difference(metadata.columns)
     if missing:
-        raise ValueError(f"Colonne mancanti in {train_metadata}: {sorted(missing)}")
+        raise ValueError(f"Missing columns in {train_metadata}: {sorted(missing)}")
 
     subset = metadata[metadata["label"].astype(int) == int(label)]
     if subset.empty:
-        raise ValueError(f"Nessuna immagine label={label} in {train_metadata}")
+        raise ValueError(f"No images with label={label} in {train_metadata}")
     subset = subset.sample(n=len(subset), random_state=seed)
 
     paths: list[Path] = []
@@ -97,14 +97,14 @@ def real_train_paths(
 
 
 def selected_output_name(class_name: str, rank: int) -> str:
-    """Costruisce il nome file dell'immagine accettata in base alla classe e alla posizione in classifica."""
-    # Mantiene la convenzione storica gia' presente nel 03b.
+    """Name an accepted image from its class and ranking position."""
+    # Preserve the historical convention established by notebook 03b.
     prefix = "selected_pos" if class_name == "positive" else f"selected_{class_name}"
     return f"{prefix}_{rank:04d}.png"
 
 
 def filter_ranking_config(args: argparse.Namespace) -> dict[str, object]:
-    """Raccoglie i parametri che determinano la classifica e la selezione, usati anche per verificare che un summary salvato sia ancora compatibile con la configurazione corrente."""
+    """Collect ranking parameters used to validate a saved summary against the current run."""
     return {
         "schema_version": FILTER_SUMMARY_SCHEMA_VERSION,
         "filter_schema_version": FILTER_SCHEMA_VERSION,
@@ -119,7 +119,7 @@ def filter_ranking_config(args: argparse.Namespace) -> dict[str, object]:
 
 
 def paths_match(left: object, right: Path) -> bool:
-    """Confronta due path risolvendoli a percorso assoluto, per non farsi ingannare da differenze di formattazione (relativo vs assoluto, slash finali, ecc.)."""
+    """Compare resolved paths without relative-path or trailing-slash ambiguity."""
     if left is None:
         return False
     left_path = Path(str(left)).expanduser()
@@ -131,7 +131,7 @@ def paths_match(left: object, right: Path) -> bool:
 
 
 def summary_is_complete_and_compatible(args: argparse.Namespace) -> bool:
-    """Verifica se il summary_json salvato in precedenza è ancora valido per la run corrente (stesso schema, stessi parametri, directory e conteggi coerenti), per evitare di ripetere il filtro se non serve."""
+    """Check whether a saved summary still matches this run's schema, parameters, paths, and counts."""
     summary_path = Path(args.summary_json)
     raw_dir = Path(args.raw_dir)
     filtered_dir = Path(args.filtered_dir)
@@ -195,7 +195,12 @@ def summary_is_complete_and_compatible(args: argparse.Namespace) -> bool:
 
 
 def run_filter(args: argparse.Namespace) -> None:
-    """Esegue l'intera pipeline del filtro adattivo per una classe: valuta ogni immagine RAW contro le statistiche di riferimento, seleziona le n_selected migliori, copia gli accettati in filtered_dir e scrive report CSV e summary JSON. Salta il lavoro se trova già un risultato completo e compatibile."""
+    """Run the complete adaptive filter for one class.
+
+    Score each RAW image against reference statistics, select the best
+    ``n_selected`` candidates, copy accepted files to ``filtered_dir``, and
+    write the CSV report and JSON summary. Reuse a complete compatible result.
+    """
     raw_dir = Path(args.raw_dir)
     filtered_dir = Path(args.filtered_dir)
     report_csv = Path(args.report_csv)
@@ -204,19 +209,19 @@ def run_filter(args: argparse.Namespace) -> None:
 
     if count_pngs(filtered_dir) == n_selected and summary_is_complete_and_compatible(args):
         print(
-            f"{args.class_name}: {n_selected} immagini filtrate già presenti "
-            "con summary compatibile, skip"
+            f"{args.class_name}: {n_selected} filtered images already exist "
+            "with a compatible summary; skipping"
         )
         return
     if count_pngs(filtered_dir) == n_selected:
         print(
-            f"{args.class_name}: directory filtrata completa ma summary assente "
-            "o incompatibile; rieseguo il filtro."
+            f"{args.class_name}: filtered directory is complete but the summary is missing "
+            "or incompatible; rerunning the filter."
         )
 
     raw_paths = candidate_png_paths(raw_dir)
     if not raw_paths:
-        raise RuntimeError(f"Nessuna immagine RAW in {raw_dir}")
+        raise RuntimeError(f"No RAW images in {raw_dir}")
 
     import pandas as pd
 
@@ -260,7 +265,7 @@ def run_filter(args: argparse.Namespace) -> None:
             "selection_score": candidate["score"],
         })
         if index % 250 == 0 or index == len(raw_paths):
-            print(f"  Analisi {args.class_name}: {index}/{len(raw_paths)}")
+            print(f"  Analyzing {args.class_name}: {index}/{len(raw_paths)}")
 
     candidates = pd.DataFrame(candidate_rows)
     accepted = (
@@ -281,8 +286,8 @@ def run_filter(args: argparse.Namespace) -> None:
     if len(accepted) < n_selected:
         candidates.to_csv(report_csv, index=False)
         raise RuntimeError(
-            f"Dopo il filtro {args.class_name} restano {len(accepted)} immagini; "
-            f"ne servono {n_selected}."
+            f"After filtering, {args.class_name} has {len(accepted)} images; "
+            f"{n_selected} are required."
         )
 
     selected = accepted.head(n_selected).copy()
@@ -298,10 +303,10 @@ def run_filter(args: argparse.Namespace) -> None:
         shutil.copy2(source_path, filtered_dir / selected_output_name(args.class_name, rank))
 
     if count_pngs(filtered_dir) != n_selected:
-        raise RuntimeError(f"Numero immagini filtrate non valido per {args.class_name}.")
+        raise RuntimeError(f"Invalid filtered-image count for {args.class_name}.")
     duplicates = duplicate_png_groups(filtered_dir)
     if duplicates:
-        raise RuntimeError(f"Il dataset filtrato {args.class_name} contiene duplicati.")
+        raise RuntimeError(f"The filtered {args.class_name} dataset contains duplicates.")
 
     candidates.to_csv(report_csv, index=False)
     summary = {
@@ -330,14 +335,14 @@ def run_filter(args: argparse.Namespace) -> None:
     with summary_json.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2, ensure_ascii=False)
 
-    print(f"{args.class_name}: selezionate {n_selected} immagini")
+    print(f"{args.class_name}: selected {n_selected} images")
     print("Report:", report_csv)
     print("Summary:", summary_json)
 
 
 def parse_args() -> argparse.Namespace:
-    """Definisce e legge gli argomenti da riga di comando dello script di filtro."""
-    parser = argparse.ArgumentParser(description="Filtro adattivo mammografico per il notebook 03b.")
+    """Define and parse the filter script's command-line arguments."""
+    parser = argparse.ArgumentParser(description="Adaptive mammography filter for notebook 03b.")
     parser.add_argument("--class-name", required=True)
     parser.add_argument("--label", required=True, type=int)
     parser.add_argument("--raw-dir", required=True, type=Path)
@@ -354,11 +359,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Entry point dello script: lancia il filtro e stampa eventuali errori su stderr prima di propagarli."""
+    """Run the filter and print failures to stderr before propagating them."""
     try:
         run_filter(parse_args())
     except Exception as exc:
-        print(f"Errore filtro adattivo: {exc}", file=sys.stderr)
+        print(f"Adaptive filter error: {exc}", file=sys.stderr)
         raise
 
 

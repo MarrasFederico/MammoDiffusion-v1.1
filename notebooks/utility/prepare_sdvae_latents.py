@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import os
-import sys
 import tempfile
 from pathlib import Path
 
@@ -16,9 +15,6 @@ from PIL import Image
 
 IMG_SIZE = 512
 POSITIVE_AUGMENT_COPIES = 3
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Prepare Stable Diffusion VAE latents for the MammoDiffusion LDM."
@@ -73,7 +69,7 @@ def load_metadata(csv_path: Path, dataset_root: Path) -> pd.DataFrame:
     )
     missing = [path for path in df["processed_path"].map(Path) if not path.exists()]
     if missing:
-        raise FileNotFoundError(f"{len(missing)} immagini preprocessate mancanti; esempio: {missing[0]}")
+        raise FileNotFoundError(f"{len(missing)} preprocessed images are missing; example: {missing[0]}")
     return df
 
 
@@ -106,10 +102,10 @@ def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path) -
                 if not path.exists()
             ]
             if not missing_paths:
-                print("Uso metadata augmentation esistente:", metadata_path)
+                print("Using existing augmentation metadata:", metadata_path)
                 print(existing_df["label"].value_counts())
                 return existing_df
-        print("Metadata augmentation esistente non riusabile, lo ricreo.")
+        print("Existing augmentation metadata is not reusable; rebuilding it.")
 
     data_aug.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -143,7 +139,7 @@ def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path) -
 
     augmented_df = pd.DataFrame(rows)
     augmented_df.to_csv(metadata_path, index=False)
-    print("Dataset train SD-VAE pronto:")
+    print("SD-VAE training dataset ready:")
     print(augmented_df["label"].value_counts())
     return augmented_df
 
@@ -224,7 +220,7 @@ def main() -> None:
         except Exception:
             cache_ready = False
     if cache_ready:
-        print("Latenti SD-VAE gia' presenti e coerenti:", paths.latents_dir)
+        print("SD-VAE latents already present and consistent:", paths.latents_dir)
         return
 
     vae, device, dtype, scaling_factor = load_sd_vae(sd_vae_model)
@@ -256,7 +252,7 @@ def main() -> None:
         scaling_factor,
         {"latents_manifest": str(latents_manifest_path)},
     )
-    print("Latenti SD-VAE salvati in:", paths.latents_dir)
+    print("SD-VAE latents saved to:", paths.latents_dir)
     print("z_train:", z_train.shape, "z_val:", z_val.shape)
     print("latent_mean:", latent_mean.reshape(-1).tolist())
     print("latent_std:", latent_std.reshape(-1).tolist())

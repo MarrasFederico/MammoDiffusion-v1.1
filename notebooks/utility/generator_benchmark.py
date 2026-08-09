@@ -31,13 +31,6 @@ CANONICAL_OUTPUTS = (
     "resampling_plan.json", "paired_generator_differences.csv",
     "selection_summary.json", "figures/generator_summary.png",
 )
-RUNTIME_OUTPUTS = (
-    "technical_validity.csv", "embedding_cache/", "distribution_metrics_repetitions.csv",
-    "distribution_metrics_summary.csv", "diversity_metrics.csv", "train_memorization.csv",
-    "validation_similarity.csv", "synthetic_duplication.csv", "diagnostic_panels/",
-)
-
-
 class NonFiniteEmbeddingError(ValueError):
     """A feature extractor produced non-finite values for explicit samples."""
 
@@ -1270,7 +1263,6 @@ def practical_equivalence(paired: Mapping[str, Any], protocol: Mapping[str, Any]
 
 
 INVALID_DURATION_STATUS = "unavailable_invalid_duration_semantics"
-VERIFIED_DURATION_SEMANTICS = {"wall_clock_full_generation", "verified_seconds_per_image"}
 
 
 def efficiency_from_manifest(root: Path, entry: Mapping[str, Any]) -> dict[str, Any]:
@@ -1434,7 +1426,7 @@ def save_selected_generators(root: Path, finetuned: str, from_scratch: str, benc
 
 
 __all__ = ["BENCHMARK_ROOT", "TRAIN_METADATA", "VALIDATION_METADATA", "AUGMENTATION_METADATA",
-           "CANONICAL_OUTPUTS", "RUNTIME_OUTPUTS",
+           "CANONICAL_OUTPUTS",
            "FEATURE_SPACES", "FAMILIES", "REPRESENTATIONS", "atomic_json",
            "NonFiniteEmbeddingError",
            "audit_candidate", "audit_runtime_generator_assets",

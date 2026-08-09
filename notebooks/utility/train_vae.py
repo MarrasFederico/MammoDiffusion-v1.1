@@ -30,14 +30,11 @@ KL_WEIGHT = 1e-3
 SSIM_WEIGHT = 0.3
 VAE_ES_PATIENCE = 6
 VAE_ES_MIN_DELTA = 1e-4
-# Peso basso: l'MSE di validation su una singola epoca puo' essere rumoroso/instabile,
-# quindi resta solo un correttivo secondario rispetto alla SSIM nella scelta del best.
+# Validation MSE from one epoch can be noisy, so this low weight keeps it a
+# secondary correction to SSIM when selecting the best model.
 MSE_SELECTION_WEIGHT = 0.05
-IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-
-
 def parse_args() -> argparse.Namespace:
-    """Definisce e legge gli argomenti da riga di comando con cui il notebook lancia lo script in sottoprocesso."""
+    """Define and parse the command-line arguments used by the notebook subprocess."""
     parser = argparse.ArgumentParser(
         description="Train MammoDiffusion VAE in the selected experiment folder."
     )
@@ -57,13 +54,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--results-stage-name",
         default=RESULTS_STAGE_NAME,
-        help="Sottocartella di results dove salvare il log sostenibilita' VAE.",
+        help="Results subdirectory for the VAE sustainability log.",
     )
     return parser.parse_args()
 
 
 def configure_environment(args: argparse.Namespace) -> None:
-    """Imposta le variabili d'ambiente (GPU visibili, path CUDA per XLA) prima di importare TensorFlow."""
+    """Set visible GPUs and XLA's CUDA path before importing TensorFlow."""
     os.environ.setdefault(
         "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
     )
@@ -79,7 +76,7 @@ def sustainability_log_path(
     project_root: Path,
     stage_name: str = RESULTS_STAGE_NAME,
 ) -> Path:
-    """Restituisce il path del log jsonl dei consumi energetici, creando le cartelle se mancanti."""
+    """Return the JSONL energy-log path, creating parent directories as needed."""
     path = (
         project_root
         / "results"
@@ -92,29 +89,29 @@ def sustainability_log_path(
 
 
 def results_plot_path(project_root: Path, stage_name: str, plot_name: str) -> Path:
-    """Restituisce il path di un plot nella cartella results dello stage, creandola se non esiste."""
+    """Return a plot path in the stage results directory, creating it as needed."""
     path = project_root / "results" / stage_name / "plots" / plot_name
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def sync_existing_vae_plots_to_results(paths, stage_name: str) -> None:
-    """Segnala se i plot del training VAE gia' eseguito sono presenti o assenti nella cartella results, nel caso lo step venga skippato perche' il VAE esiste gia'."""
+    """Report whether saved VAE-training plots exist when an existing VAE skips training."""
     for plot_name in ["vae_metrics.png", "vae_reconstruction.png"]:
         destination_path = results_plot_path(paths.project_root, stage_name, plot_name)
         if destination_path.exists():
-            print(f"Plot training gia' presente nei results: {destination_path}")
+            print(f"Training plot already present in results: {destination_path}")
             continue
-        print(f"Plot training VAE non trovato nei results: {destination_path}")
+        print(f"VAE training plot not found in results: {destination_path}")
 
 
 def load_metadata(csv_path: Path, dataset_root: Path) -> pd.DataFrame:
-    """Carica il CSV di split (train/val), ricostruisce i path assoluti delle immagini preprocessate e verifica che esistano tutte."""
+    """Load a split CSV, resolve preprocessed image paths, and require every image to exist."""
     df = pd.read_csv(csv_path).copy()
     required_cols = ["patient_id", "image_id", "label", "split", "processed_path"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        raise ValueError(f"Mancano colonne obbligatorie in {csv_path}: {missing_cols}")
+        raise ValueError(f"Required columns are missing from {csv_path}: {missing_cols}")
 
     df["patient_id"] = df["patient_id"].astype(str)
     df["image_id"] = df["image_id"].astype(str)
@@ -131,12 +128,12 @@ def load_metadata(csv_path: Path, dataset_root: Path) -> pd.DataFrame:
     missing_files = df[~df["file_exists"]]
     if len(missing_files) > 0:
         print(missing_files[["patient_id", "image_id", "split", "label", "processed_path"]].head(10))
-        raise FileNotFoundError(f"{len(missing_files)} immagini preprocessate non trovate")
+        raise FileNotFoundError(f"{len(missing_files)} preprocessed images not found")
     return df.drop(columns=["file_exists"])
 
 
 def mild_positive_augmentation(img: Image.Image, aug_idx: int) -> Image.Image:
-    """Applica una leggera perturbazione di contrasto, luminosita' e rumore per generare copie aumentate delle mammografie positive, usando un seed deterministico legato all'indice per riproducibilita'."""
+    """Create reproducible positive augmentations with mild contrast, brightness, and noise changes."""
     arr = np.array(img).astype(np.float32)
     rng = np.random.default_rng(42 + aug_idx)
     contrast = rng.uniform(0.90, 1.10)
@@ -150,11 +147,11 @@ def mild_positive_augmentation(img: Image.Image, aug_idx: int) -> Image.Image:
 
 
 def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path, data_aug: Path) -> pd.DataFrame:
-    """Costruisce (o riusa se valido) il dataset di train aumentato: copia i path delle immagini reali e aggiunge le copie aumentate dei soli positivi, scrivendo tutto in data/real_augmented condiviso tra esperimenti."""
+    """Build or reuse the shared augmented training set with positive-only copies."""
     metadata_path = data_aug / "metadata.csv"
 
     def resolve_project_path(path_value: str | Path) -> Path:
-        """Converte un path relativo del metadata in path assoluto rispetto alla project root."""
+        """Resolve a metadata path relative to the project root."""
         path = Path(path_value)
         return path if path.is_absolute() else project_root / path
 
@@ -162,12 +159,12 @@ def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path, d
         try:
             existing_df = pd.read_csv(metadata_path).copy()
         except Exception as exc:
-            print(f"Metadata augmented non leggibile, ricreo senza cancellare DATA_AUG: {exc}")
+            print(f"Augmented metadata is unreadable; rebuilding without deleting DATA_AUG: {exc}")
         else:
             required_cols = ["file_name", "label", "patient_id", "image_id", "source"]
             missing_cols = [col for col in required_cols if col not in existing_df.columns]
             if missing_cols:
-                print(f"Metadata augmented non riusabile, colonne mancanti: {missing_cols}")
+                print(f"Augmented metadata is not reusable; missing columns: {missing_cols}")
             else:
                 missing_paths = [
                     path
@@ -175,11 +172,11 @@ def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path, d
                     if not path.exists()
                 ]
                 if missing_paths:
-                    print("Metadata augmented non riusabile, primi path mancanti:")
+                    print("Augmented metadata is not reusable; first missing paths:")
                     for path in missing_paths[:5]:
                         print(" ", path)
                 else:
-                    print("Uso dataset aumentato condiviso gia' presente:")
+                    print("Using the existing shared augmented dataset:")
                     print("DATA_AUG:", data_aug)
                     print("Metadata:", metadata_path)
                     print(existing_df["label"].value_counts())
@@ -227,7 +224,7 @@ def build_augmented_train_metadata(train_df: pd.DataFrame, project_root: Path, d
 
     augmented_df = pd.DataFrame(metadata_rows)
     augmented_df.to_csv(metadata_path, index=False)
-    print("Dataset train VAE pronto:")
+    print("VAE training dataset ready:")
     print(augmented_df["label"].value_counts())
     return augmented_df
 
@@ -239,7 +236,7 @@ def load_images_from_df(
     img_size: int = IMG_SIZE,
     desc: str = "",
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Carica in RAM tutte le immagini di un dataframe, ridimensionandole se serve e normalizzandole in [-1, 1] per l'input del VAE."""
+    """Load dataframe images into RAM, resize as needed, and normalize to VAE range [-1, 1]."""
     images_list, labels_list = [], []
     for index, (_, row) in enumerate(df.iterrows()):
         path = Path(row[path_col])
@@ -260,7 +257,7 @@ def load_images_from_df(
 
 
 def build_vae_encoder() -> tf.keras.Model:
-    """Costruisce l'encoder convoluzionale che comprime la mammografia 512x512 nei parametri (media, log-varianza) della distribuzione latente 64x64."""
+    """Build the convolutional encoder from 512x512 mammograms to 64x64 latent mean/log-variance."""
     x = inp = layers.Input(shape=(IMG_SIZE, IMG_SIZE, CHANNELS), name="enc_input")
     x = layers.Conv2D(64, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -288,7 +285,7 @@ def build_vae_encoder() -> tf.keras.Model:
 
 
 def build_vae_decoder() -> tf.keras.Model:
-    """Costruisce il decoder convoluzionale che ricostruisce la mammografia 512x512 a partire da un campione latente 64x64."""
+    """Build the convolutional decoder from a 64x64 latent sample to a 512x512 mammogram."""
     x = inp = layers.Input(
         shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS),
         name="dec_input",
@@ -376,7 +373,7 @@ def reset_downstream_artifacts(paths) -> None:
 
 
 def reset_vae_artifacts(paths) -> None:
-    """Rimuove i checkpoint e i log del VAE precedente prima di un nuovo training, per evitare di mischiare risultati di run diverse."""
+    """Remove prior VAE checkpoints and logs before training a fresh run."""
     for pattern in [
         "vae_encoder*.keras",
         "vae_decoder*.keras",
@@ -388,11 +385,11 @@ def reset_vae_artifacts(paths) -> None:
         log_path = paths.logs_dir / log_name
         if log_path.exists():
             log_path.unlink()
-    print("Artefatti VAE precedenti rimossi: training VAE fresco.")
+    print("Removed previous VAE artifacts; starting a fresh VAE training run.")
 
 
 def plot_history(history: dict, output_path: Path) -> None:
-    """Salva un'unica figura con l'andamento per epoca delle componenti della loss (recon, SSIM, KL) e della SSIM di validation."""
+    """Plot per-epoch reconstruction, SSIM, KL, and validation SSIM histories."""
     fig, axes = plt.subplots(1, 4, figsize=(18, 4))
     axes[0].plot(history["loss_recon"], label="train recon", color="blue")
     axes[0].set_title("VAE recon loss")
@@ -417,7 +414,7 @@ def save_reconstruction_preview(
     output_path: Path,
     n_images: int = 6,
 ) -> None:
-    """Salva un confronto visuale tra alcune immagini di validation originali e la loro ricostruzione tramite il VAE (usando la media mu, senza campionamento)."""
+    """Compare validation originals with VAE reconstructions from the latent mean, without sampling."""
     sample = tf.constant(x_val[:n_images], dtype=tf.float32)
     params = vae_encoder(sample, training=False)
     mu, _ = tf.split(params, 2, axis=-1)
@@ -438,7 +435,7 @@ def save_reconstruction_preview(
 
 
 def main() -> None:
-    """Entry point dello script: carica i dati, allena il VAE con early stopping su SSIM/MSE di validation, salva i checkpoint migliori e produce plot e log riassuntivi del training."""
+    """Load data, train with validation SSIM/MSE early stopping, and save VAE artifacts."""
     global np, pd, tf, Image, layers, plt
     global configure_tensorflow, get_experiment_paths, vram_gb
 
@@ -464,15 +461,15 @@ def main() -> None:
     best_encoder_path = paths.models_dir / "vae_encoder_best.keras"
     best_decoder_path = paths.models_dir / "vae_decoder_best.keras"
     if best_encoder_path.exists() and best_decoder_path.exists() and not args.force_retrain:
-        print(f"VAE gia' presente: {best_encoder_path.name} / {best_decoder_path.name}")
-        print("Training VAE skippato. Usa --force-retrain per ripetere.")
+        print(f"VAE already present: {best_encoder_path.name} / {best_decoder_path.name}")
+        print("VAE training skipped. Use --force-retrain to run it again.")
         sync_existing_vae_plots_to_results(paths, args.results_stage_name)
         sys.exit(0)
 
     train_csv_path = paths.metadata_dir / "train.csv"
     val_csv_path = paths.metadata_dir / "val.csv"
     if not train_csv_path.exists() or not val_csv_path.exists():
-        raise FileNotFoundError("Metadata train/val non trovati in data/processed/metadata")
+        raise FileNotFoundError("Train/validation metadata not found in data/processed/metadata")
 
     print("PROJECT_ROOT:", paths.project_root)
     print("EXPERIMENT_DIR:", paths.experiment_dir)
@@ -485,7 +482,7 @@ def main() -> None:
     val_df = load_metadata(val_csv_path, paths.data_processed_dir)
     augmented_df = build_augmented_train_metadata(train_df, paths.project_root, data_aug)
 
-    print("\nCaricamento immagini VAE...")
+    print("\nLoading VAE images...")
     x_train, y_train = load_images_from_df(augmented_df, "file_name", paths.project_root, desc="train")
     x_val, y_val = load_images_from_df(val_df, "processed_path", paths.project_root, desc="val")
     print(f"Train pos={int((y_train == 1).sum())}, neg={int((y_train == 0).sum())}")
@@ -496,16 +493,16 @@ def main() -> None:
     vae_optimizer = tf.keras.optimizers.Adam(args.learning_rate)
     print(f"VAE encoder params: {vae_encoder.count_params():,}")
     print(f"VAE decoder params: {vae_decoder.count_params():,}")
-    vram_gb("dopo build VAE")
+    vram_gb("after building VAE")
 
     def reparameterize(mu, log_var):
-        """Applica il reparameterization trick per campionare dal latente in modo differenziabile rispetto a mu e log_var."""
+        """Apply the reparameterization trick for differentiable sampling from mu and log_var."""
         eps = tf.random.normal(tf.shape(mu))
         return mu + tf.exp(0.5 * log_var) * eps
 
     @tf.function
     def vae_train_step(x):
-        """Esegue un singolo step di training: forward encoder/decoder, calcolo della loss combinata (ricostruzione + SSIM + KL) e aggiornamento dei pesi."""
+        """Run one encoder/decoder step and optimize reconstruction, SSIM, and KL loss."""
         with tf.GradientTape() as tape:
             params = vae_encoder(x, training=True)
             mu, log_var = tf.split(params, 2, axis=-1)
@@ -560,8 +557,8 @@ def main() -> None:
     final_decoder_path = paths.models_dir / "vae_decoder_final.keras"
 
     print("=" * 70)
-    print("FASE 1 -- TRAINING VAE")
-    print(f"Epoche max: {args.epochs} | Patience: {VAE_ES_PATIENCE}")
+    print("PHASE 1 -- VAE TRAINING")
+    print(f"Maximum epochs: {args.epochs} | Patience: {VAE_ES_PATIENCE}")
     print("=" * 70)
     sys.stdout.flush()
 
@@ -609,14 +606,14 @@ def main() -> None:
             history["val_mse"].append(val_mse)
 
             print(
-                f"--- VAE EPOCA {epoch + 1:03d}/{args.epochs} | "
+                f"--- VAE EPOCH {epoch + 1:03d}/{args.epochs} | "
                 f"total={mean_t:.4f} | recon={mean_r:.4f} | ssim_l={mean_s:.4f} | "
                 f"kl={mean_k:.4f} | val_ssim={val_ssim:.4f} | val_mse={val_mse:.4f} | "
-                f"tempo={elapsed:.0f}s | ES={es_counter}/{VAE_ES_PATIENCE} ---"
+                f"time={elapsed:.0f}s | ES={es_counter}/{VAE_ES_PATIENCE} ---"
             )
 
-            # Criterio di selezione: SSIM resta la metrica dominante, l'MSE di
-            # validation entra solo come correttivo a basso peso (vedi MSE_SELECTION_WEIGHT).
+            # SSIM remains the dominant selection metric; validation MSE contributes
+            # only as a low-weight correction (see MSE_SELECTION_WEIGHT).
             val_score = val_ssim - MSE_SELECTION_WEIGHT * val_mse
             if val_score > best_vae_score + VAE_ES_MIN_DELTA:
                 best_vae_score = val_score
@@ -628,7 +625,7 @@ def main() -> None:
                 print(f"  [BEST] val_ssim={val_ssim:.4f} val_mse={val_mse:.4f} score={best_vae_score:.4f}")
             else:
                 es_counter += 1
-                print(f"  [ES] nessun miglioramento ({es_counter}/{VAE_ES_PATIENCE})")
+                print(f"  [ES] no improvement ({es_counter}/{VAE_ES_PATIENCE})")
 
             if (epoch + 1) % 25 == 0:
                 vae_encoder.save(str(paths.models_dir / f"vae_encoder_ep{epoch + 1:03d}.keras"))
@@ -638,7 +635,7 @@ def main() -> None:
             sys.stdout.flush()
             if es_counter >= VAE_ES_PATIENCE:
                 stopped_early = True
-                print(f"Early stopping all'epoca {epoch + 1}.")
+                print(f"Early stopping at epoch {epoch + 1}.")
                 break
 
     vae_encoder.save(str(final_encoder_path))
@@ -656,9 +653,9 @@ def main() -> None:
         reset_downstream_artifacts(paths)
     elif args.force_retrain:
         print(
-            "ATTENZIONE: VAE riallenato senza reset downstream. "
-            "Gli artefatti LDM/evaluation/synthetic/outputs potrebbero non essere "
-            "piu' coerenti col nuovo VAE e vanno rivalutati manualmente."
+            "WARNING: VAE retrained without resetting downstream artifacts. "
+            "LDM, evaluation, synthetic, and output artifacts may no longer match "
+            "the new VAE and require manual reevaluation."
         )
     vae_metrics_path = results_plot_path(
         paths.project_root,
@@ -677,8 +674,8 @@ def main() -> None:
         x_val,
         vae_reconstruction_path,
     )
-    print(f"Plot salvato nei results: {vae_metrics_path}")
-    print(f"Plot salvato nei results: {vae_reconstruction_path}")
+    print(f"Plot saved to results: {vae_metrics_path}")
+    print(f"Plot saved to results: {vae_reconstruction_path}")
 
     summary = {
         "phase": "vae_training",
@@ -708,14 +705,14 @@ def main() -> None:
     ) as file:
         file.write(json.dumps(summary, ensure_ascii=False) + "\n")
 
-    print(f"VAE completato. Best val_ssim={best_vae_ssim:.4f} val_mse={best_vae_mse:.4f}")
+    print(f"VAE completed. Best val_ssim={best_vae_ssim:.4f} val_mse={best_vae_mse:.4f}")
     print("Best encoder:", best_encoder_path)
     print("Best decoder:", best_decoder_path)
     print(eco_vae.metrics)
 
     del x_train, y_train, x_val, y_val, vae_train_ds, vae_val_ds
     gc.collect()
-    vram_gb("fine VAE")
+    vram_gb("end of VAE training")
 
 
 if __name__ == "__main__":

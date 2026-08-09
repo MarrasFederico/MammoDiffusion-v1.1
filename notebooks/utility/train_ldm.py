@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
 # ╔══════════════════════════════════════════════════════════════════════════════╗
 # ║   MammoDiffusion — train_ldm.py                                             ║
-# ║   Script STANDALONE: cella 4 → fine LDM Training (celle 4-23)              ║
+# ║   STANDALONE script: cell 4 through the end of LDM training (cells 4-23)    ║
 # ║                                                                              ║
-# ║   Prerequisiti su disco:                                                    ║
+# ║   On-disk prerequisites:                                                    ║
 # ║     data/processed/{train,val}/{0,1}/*.png                                   ║
 # ║     data/processed/metadata/{train,val}.csv                                  ║
-# ║     experiments/<esperimento>/models/vae_{encoder,decoder}_best.keras        ║
+# ║     experiments/<experiment>/models/vae_{encoder,decoder}_best.keras         ║
 # ║                                                                              ║
-# ║   Avvio dal notebook (processo figlio indipendente):                        ║
+# ║   Launch from the notebook (independent child process):                     ║
 # ║     import subprocess, sys                                                   ║
 # ║     proc = subprocess.Popen(                                                 ║
 # ║         [sys.executable, "notebooks/train_ldm.py"],                      ║
-# ║         start_new_session=True,   # <-- figlio indipendente, sopravvive     ║
+# ║         start_new_session=True,   # independent child survives the kernel   ║
 # ║         stdout=open("experiments/.../logs/ldm_train.log","a"),              ║
 # ║         stderr=subprocess.STDOUT,                                            ║
 # ║     )                                                                        ║
-# ║     print(f"LDM training avviato — PID {proc.pid}")                         ║
-# ║     print("Puoi terminare il kernel: il processo continua.")                 ║
+# ║     print(f"LDM training started — PID {proc.pid}")                         ║
+# ║     print("You may stop the kernel; the process will continue.")             ║
 # ║                                                                              ║
-# ║   Output prodotti da questo script:                                          ║
-# ║     experiments/<esperimento>/checkpoints_ldm/ldm_unet_best.keras           ║
-# ║     experiments/<esperimento>/checkpoints_ldm/ldm_stepXXXXXX.keras          ║
-# ║     experiments/<esperimento>/checkpoints_ldm/ldm_stepXXXXXX.keras          ║
-# ║     experiments/<esperimento>/checkpoints_ldm/ldm_unet_final_stepXXXXXX.keras║
-# ║     experiments/<esperimento>/logs/ldm_history.json                         ║
+# ║   Outputs produced by this script:                                           ║
+# ║     experiments/<experiment>/checkpoints_ldm/ldm_unet_best.keras            ║
+# ║     experiments/<experiment>/checkpoints_ldm/ldm_stepXXXXXX.keras           ║
+# ║     experiments/<experiment>/checkpoints_ldm/ldm_unet_final_stepXXXXXX.keras ║
+# ║     experiments/<experiment>/logs/ldm_history.json                          ║
 # ║     results/<stage>/plots/ldm_metrics.png                                  ║
 # ║     results/<stage>/ecotracker/sustainability_log.jsonl                     ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -52,11 +51,12 @@ import numpy as np
 import pandas as pd
 
 def configure_tensorflow_runtime_environment() -> None:
-    """Imposta i flag TF/XLA prima dell'import di TensorFlow.
+    """Set TensorFlow/XLA flags before importing TensorFlow.
 
-    La RTX 5060 Ti (Blackwell, CC 12.0) non e' coperta dai binari CUDA di TF 2.15:
-    alcuni kernel vengono compilati al volo. Dare a XLA il path di libdevice evita
-    crash su op elementari quando il processo parte fuori dal notebook.
+    TensorFlow 2.15 CUDA binaries do not cover the RTX 5060 Ti (Blackwell,
+    compute capability 12.0), so some kernels compile just in time. Supplying
+    XLA's libdevice path prevents elementary-operation crashes when this process
+    starts outside the notebook.
     """
     os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")
     os.environ.setdefault("TF_XLA_FLAGS", "--tf_xla_auto_jit=0")
@@ -83,7 +83,7 @@ os.environ.setdefault(
     "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
 )
 import matplotlib
-matplotlib.use("Agg")   # non-interactive — nessuna GUI richiesta
+matplotlib.use("Agg")   # Non-interactive; no GUI is required.
 import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -97,7 +97,7 @@ DEFAULT_EXPERIMENT_NAME = "20260617_ldm_basic"
 
 
 def parse_args() -> argparse.Namespace:
-    """Definisce e legge gli argomenti CLI con cui il notebook lancia questo script in sottoprocesso."""
+    """Define and parse arguments used to launch this script as a notebook subprocess."""
     parser = argparse.ArgumentParser(
         description="Train MammoDiffusion LDM v2 using shared project data and experiment-scoped artifacts."
     )
@@ -105,46 +105,46 @@ def parse_args() -> argparse.Namespace:
         "--project-root",
         type=Path,
         default=None,
-        help="Root della repo MammoDiffusion. Se omesso viene rilevata automaticamente.",
+        help="MammoDiffusion repository root; detected automatically when omitted.",
     )
     parser.add_argument(
         "--experiment-dir",
         type=Path,
         default=None,
-        help="Cartella esperimento dove salvare latenti, checkpoint, modelli, log e output.",
+        help="Experiment directory for latents, checkpoints, models, logs, and outputs.",
     )
     parser.add_argument(
         "--total-steps",
         type=int,
         default=80_000,
-        help="Numero totale di step LDM.",
+        help="Total LDM training steps.",
     )
     parser.add_argument(
         "--checkpoint-every",
         type=int,
         default=7_000,
-        help="Frequenza di salvataggio checkpoint.",
+        help="Checkpoint save frequency.",
     )
     parser.add_argument(
         "--log-every",
         type=int,
         default=20,
-        help="Frequenza di log training.",
+        help="Training log frequency.",
     )
     parser.add_argument(
         "--resume-from-latest",
         action="store_true",
         help=(
-            "Se presenti checkpoint ldm_step*.keras, riprende dal checkpoint "
-            "con step piu' alto e continua fino a --total-steps."
+            "Resume from the highest-step ldm_step*.keras checkpoint when present "
+            "and continue to --total-steps."
         ),
     )
     parser.add_argument(
         "--skip-latent-encoding",
         action="store_true",
         help=(
-            "Usa latents_train.npz, latents_val.npz e latent_stats.npz gia' presenti "
-            "nell'esperimento, senza caricare un VAE Keras. Usato dal ramo SD-VAE."
+            "Use existing latents_train.npz, latents_val.npz, and latent_stats.npz "
+            "without loading a Keras VAE. Used by the SD-VAE branch."
         ),
     )
     parser.add_argument(
@@ -153,7 +153,7 @@ def parse_args() -> argparse.Namespace:
         default="v2",
         help=(
             "v2 = build_ldm_unet() (Conv2DTranspose, LeakyReLU). "
-            "v3 = ldm_v3_unet_keras.build_ldm_unet_v3() (Upsample+Conv, ResBlock stile SD)."
+            "v3 = ldm_v3_unet_keras.build_ldm_unet_v3() (Upsample+Conv, SD-style ResBlock)."
         ),
     )
     parser.add_argument(
@@ -161,43 +161,43 @@ def parse_args() -> argparse.Namespace:
         choices=["eps", "v"],
         default="eps",
         help=(
-            "eps (default, retrocompatibile con 04b/04b1/04b2) = la U-Net predice il rumore. "
-            "v (Salimans & Ho 2022) = la U-Net predice v = sqrt(ab)*noise - sqrt(1-ab)*x0."
+            "eps (default, compatible with 04b/04b1/04b2): the U-Net predicts noise. "
+            "v (Salimans & Ho, 2022): the U-Net predicts v = sqrt(ab)*noise - sqrt(1-ab)*x0."
         ),
     )
     parser.add_argument(
         "--use-min-snr",
         action="store_true",
-        help="Applica il weighting Min-SNR-gamma (Hang et al. 2023) alla sola loss_simple.",
+        help="Apply Min-SNR-gamma weighting (Hang et al., 2023) only to loss_simple.",
     )
     parser.add_argument(
         "--min-snr-gamma",
         type=float,
         default=5.0,
-        help="Gamma del weighting Min-SNR, usato solo se --use-min-snr e' attivo.",
+        help="Min-SNR weighting gamma, used only when --use-min-snr is enabled.",
     )
     parser.add_argument(
         "--vae-source",
         default="sd_vae_original",
         help=(
-            "Informativo: identifica il VAE usato per produrre i latenti (es. "
-            "'sd_vae_original' o 'sd_vae_finetuned_03'). Salvato in training_manifest.json."
+            "Informational identifier for the VAE used to produce latents (for example "
+            "'sd_vae_original' or 'sd_vae_finetuned_03'). Stored in training_manifest.json."
         ),
     )
     parser.add_argument(
         "--uses-vae-ft-from-03",
         action="store_true",
-        help="Informativo: marca nel manifest che i latenti vengono dal VAE fine-tuned di 03.",
+        help="Record in the manifest that latents come from notebook 03's fine-tuned VAE.",
     )
     parser.add_argument(
         "--notebook-name",
         default=None,
-        help="Informativo: nome del notebook che ha lanciato il training, salvato nel manifest.",
+        help="Calling notebook name stored in the training manifest.",
     )
     parser.add_argument(
         "--results-stage-name",
         default=RESULTS_STAGE_NAME,
-        help="Sottocartella di results dove salvare il log EcoTracker LDM.",
+        help="Results subdirectory for the LDM EcoTracker log.",
     )
     return parser.parse_args()
 
@@ -207,10 +207,10 @@ ARGS = parse_args()
 tf.random.set_seed(42)
 np.random.seed(42)
 print("TF version:", tf.__version__)
-print("GPU disponibili:", tf.config.list_physical_devices("GPU"))
+print("Available GPUs:", tf.config.list_physical_devices("GPU"))
 
 # ══════════════════════════════════════════════════════════════════════════════
-# IPERPARAMETRI GLOBALI
+# GLOBAL HYPERPARAMETERS
 # ══════════════════════════════════════════════════════════════════════════════
 IMG_SIZE        = 512
 CHANNELS        = 1
@@ -218,9 +218,7 @@ LATENT_SIZE     = 64
 LATENT_CHANNELS = 4
 NUM_CLASSES     = 2
 
-# VAE (solo per caricare il modello — non si riaddestra)
-KL_WEIGHT       = 1e-3
-SSIM_WEIGHT     = 0.3
+# VAE (load the model only; do not retrain it)
 VAE_BATCH_SIZE  = 8
 
 # LDM
@@ -232,20 +230,16 @@ NUM_DIFF_STEPS  = 1000
 LAMBDA_VLB      = 0.001
 CFG_DROPOUT     = 0.15
 CFG_SCALE       = 3.0
-SAMPLE_STEPS    = 100
 
 # Augmentation
 POSITIVE_AUGMENT_COPIES = 3
-
-# Nomi classi
-CLASS_NAMES = {0: "Negativo (sano)", 1: "Positivo (cancro)"}
 
 # Training LDM
 LDM_TOTAL_STEPS = ARGS.total_steps
 LOG_EVERY       = ARGS.log_every
 CKPT_EVERY      = ARGS.checkpoint_every
 
-# v3: architettura / parameterization / min-SNR (default retrocompatibili con 04b/04b1/04b2)
+# v3 architecture, parameterization, and Min-SNR (defaults remain compatible with 04b/04b1/04b2)
 UNET_VERSION     = ARGS.unet_version
 PARAMETERIZATION = ARGS.parameterization
 USE_MIN_SNR      = ARGS.use_min_snr
@@ -295,13 +289,13 @@ for _d in [
 
 
 def sync_existing_training_plots_to_results() -> None:
-    """Segnala se il plot del training LDM e' gia' presente nei results, senza rigenerarlo (usata quando il training viene skippato)."""
+    """Report whether the LDM training plot exists when training is skipped."""
     for plot_name in ["ldm_metrics.png"]:
         destination_path = RESULTS_PLOTS_DIR / plot_name
         if destination_path.exists():
-            print(f"Plot training gia' presente nei results: {destination_path}")
+            print(f"Training plot already present in results: {destination_path}")
             continue
-        print(f"Plot training LDM non trovato nei results: {destination_path}")
+        print(f"LDM training plot not found in results: {destination_path}")
 
 
 LATENTS_TRAIN_PATH    = LATENTS_DIR / "latents_train.npz"
@@ -320,7 +314,7 @@ print("CKPT_DIR:", CKPT_DIR)
 
 
 def write_training_manifest(final_model_path: Optional[Path], total_steps: Optional[int]) -> Path:
-    """Salva/aggiorna training_manifest.json nella cartella dell'esperimento con i campi che generazione/valutazione/04c usano per rilevare automaticamente parameterization, unet_version e sorgente del VAE, invece di doverli assumere."""
+    """Save parameterization, U-Net version, and VAE source in training_manifest.json."""
     manifest = {
         "notebook": ARGS.notebook_name,
         "unet_version": UNET_VERSION,
@@ -335,12 +329,12 @@ def write_training_manifest(final_model_path: Optional[Path], total_steps: Optio
     manifest_path = EXPERIMENT_DIR / "training_manifest.json"
     with open(manifest_path, "w", encoding="utf-8") as file:
         json.dump(manifest, file, indent=2, ensure_ascii=False)
-    print(f"Training manifest salvato: {manifest_path}")
+    print(f"Training manifest saved: {manifest_path}")
     return manifest_path
 
 
 def step_from_model_path(path: Path, prefix: str) -> Optional[int]:
-    """Estrae il numero di step dal nome file di un checkpoint, dato il suo prefisso (es. 'ldm_step000100.keras' -> 100)."""
+    """Extract a step number from a prefixed checkpoint filename."""
     if not path.stem.startswith(prefix):
         return None
     try:
@@ -350,7 +344,7 @@ def step_from_model_path(path: Path, prefix: str) -> Optional[int]:
 
 
 def latest_step_checkpoint_path() -> tuple[Optional[int], Optional[Path]]:
-    """Cerca tra i checkpoint periodici in CKPT_DIR e restituisce quello con lo step piu' alto, per capire se/da dove riprendere."""
+    """Return the highest-step periodic checkpoint in CKPT_DIR for resume."""
     candidates = []
     for path in CKPT_DIR.glob("ldm_step*.keras"):
         step = step_from_model_path(path, "ldm_step")
@@ -368,16 +362,16 @@ latest_existing_step, latest_existing_path = latest_step_checkpoint_path()
 if ARGS.resume_from_latest and latest_existing_path is not None:
     if latest_existing_step is not None and latest_existing_step >= LDM_TOTAL_STEPS:
         print(
-            f"\nCheckpoint gia' al target: {latest_existing_path.name} "
+            f"\nCheckpoint already at target: {latest_existing_path.name} "
             f"(step {latest_existing_step} >= {LDM_TOTAL_STEPS})."
         )
-        print("Training LDM skippato.")
+        print("LDM training skipped.")
         sync_existing_training_plots_to_results()
         write_training_manifest(latest_existing_path, latest_existing_step)
         sys.exit(0)
 elif existing_final_models:
-    print(f"\nFinal model gia' presente: {existing_final_models[-1]}")
-    print("Training LDM skippato. Usa --resume-from-latest con --total-steps maggiore per continuare.")
+    print(f"\nFinal model already present: {existing_final_models[-1]}")
+    print("LDM training skipped. Use --resume-from-latest with a larger --total-steps to continue.")
     sync_existing_training_plots_to_results()
     write_training_manifest(
         existing_final_models[-1],
@@ -387,7 +381,7 @@ elif existing_final_models:
 
 
 def copy_if_missing(source: Path, destination: Path) -> Path:
-    """Copia un file solo se la destinazione non esiste ancora, per non risovrascrivere asset gia' presenti nell'esperimento."""
+    """Copy a file only when its destination does not already exist."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists():
         return destination
@@ -398,7 +392,7 @@ def copy_if_missing(source: Path, destination: Path) -> Path:
 
 
 def ensure_model_asset(filename: str) -> Path:
-    """Garantisce che un asset del VAE (encoder/decoder gia' addestrato) sia disponibile nella cartella models dell'esperimento, copiandolo dalle posizioni note se manca."""
+    """Ensure a trained VAE encoder/decoder asset exists in the experiment models directory."""
     destination = MODELS_DIR / filename
     if destination.exists():
         return destination
@@ -410,26 +404,26 @@ def ensure_model_asset(filename: str) -> Path:
     ]
     for candidate in candidates:
         if candidate.exists():
-            print(f"Copio {filename} in esperimento da: {candidate}")
+            print(f"Copying {filename} into the experiment from: {candidate}")
             return copy_if_missing(candidate, destination)
 
     raise FileNotFoundError(
-        f"Non trovo {filename}. Mettilo in {MODELS_DIR} oppure in alex/ prima di lanciare."
+        f"Cannot find {filename}. Place it in {MODELS_DIR} or alex/ before running."
     )
 
 
 if ARGS.skip_latent_encoding:
     VAE_ENCODER_PATH = None
     VAE_DECODER_PATH = None
-    print("Skip encoding latenti: uso cache latenti gia' preparata nell'esperimento.")
+    print("Skipping latent encoding; using the latent cache already prepared in the experiment.")
 else:
     VAE_ENCODER_PATH = ensure_model_asset("vae_encoder_best.keras")
     VAE_DECODER_PATH = ensure_model_asset("vae_decoder_best.keras")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ECOTRACKER — usa il modulo condiviso eco_tracker.py (stessa logica di
-# evaluate_ldm.py e generate_ldm.py). Fallback minimale solo se
-# psutil/codecarbon non sono disponibili/installabili, per non bloccare il training.
+# ECOTRACKER uses the shared eco_tracker.py module, as evaluate_ldm.py and
+# generate_ldm.py do. A minimal fallback applies only when psutil/CodeCarbon are
+# unavailable, so missing monitoring dependencies do not block training.
 # ══════════════════════════════════════════════════════════════════════════════
 try:
     from eco_tracker import SustainabilityMetrics, measure_sustainability
@@ -440,7 +434,7 @@ except ImportError:
     except Exception:
         @dataclass
         class SustainabilityMetrics:
-            """Fallback minimale delle metriche di sostenibilita', usato quando psutil/codecarbon non sono installabili."""
+            """Minimal sustainability metrics used when psutil/CodeCarbon are unavailable."""
             elapsed_seconds: float = 0.0
             peak_ram_mb: float = 0.0
             energy_kwh: float = 0.0
@@ -448,14 +442,14 @@ except ImportError:
             label: str = "run"
 
             def __str__(self) -> str:
-                """Riassume in una riga il tempo di esecuzione, segnalando che RAM/energia/CO2 non sono disponibili in questo fallback."""
+                """Summarize elapsed time and note unavailable RAM, energy, and CO2 data."""
                 return (
-                    f"[{self.label}] Tempo: {self.elapsed_seconds:.2f}s | "
-                    "RAM/energia/CO2 non disponibili (psutil/codecarbon non installabili)"
+                    f"[{self.label}] Time: {self.elapsed_seconds:.2f}s | "
+                    "RAM/energy/CO2 unavailable (psutil/CodeCarbon not installed)"
                 )
 
             def to_dict(self) -> dict:
-                """Serializza le metriche in un dict, per poterle scrivere nel log JSONL di sostenibilita'."""
+                """Serialize metrics for the sustainability JSONL log."""
                 return {
                     "label": self.label,
                     "elapsed_seconds": self.elapsed_seconds,
@@ -466,7 +460,7 @@ except ImportError:
 
         @contextlib.contextmanager
         def measure_sustainability(label: str = "run", sample_interval: float = 0.5):
-            """Context manager fallback che misura solo il tempo trascorso, senza tracciare RAM/energia/CO2 (nessuna dipendenza esterna richiesta)."""
+            """Fallback context manager measuring elapsed time without external dependencies."""
             t0 = time.perf_counter()
             tracker = type("_NoOpEcoTracker", (), {"metrics": None})()
             try:
@@ -479,22 +473,18 @@ except ImportError:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── HELPER: caricamento metadata ─────────────────────────────────────────────
+# ── HELPER: metadata loading ─────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
-IMAGE_EXTENSIONS  = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-EXPECTED_SPLITS   = ["train", "val"]
-EXPECTED_LABELS   = ["0", "1"]
-REQUIRED_METADATA = ["train.csv", "val.csv"]
 DATASET_ROOT      = DATA_PROCESSED_DIR.resolve()
 
 
 def load_metadata(csv_path, dataset_root):
-    """Carica un CSV di metadata, ricostruisce il path assoluto di ogni immagine sotto dataset_root e verifica che tutti i file esistano davvero su disco."""
+    """Load metadata, resolve image paths under dataset_root, and require every file to exist."""
     df = pd.read_csv(csv_path).copy()
     required_cols = ["patient_id", "image_id", "label", "split", "processed_path"]
     missing_cols  = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        raise ValueError(f"Mancano colonne obbligatorie in {csv_path}: {missing_cols}")
+        raise ValueError(f"Required columns are missing from {csv_path}: {missing_cols}")
     df["patient_id"] = df["patient_id"].astype(str)
     df["image_id"]   = df["image_id"].astype(str)
     df["label"]      = df["label"].astype(int)
@@ -511,44 +501,44 @@ def load_metadata(csv_path, dataset_root):
     df["file_exists"] = df["processed_path"].apply(lambda p: Path(p).exists())
     missing_files = df[~df["file_exists"]]
     if len(missing_files) > 0:
-        print(f"Attenzione: {len(missing_files)} immagini non trovate.")
+        print(f"Warning: {len(missing_files)} images not found.")
         print(missing_files[["patient_id", "image_id", "split", "label",
                               "filename", "processed_path"]].head(10).to_string())
-        raise FileNotFoundError("Alcune immagini preprocessate non sono state trovate.")
+        raise FileNotFoundError("Some preprocessed images were not found.")
     df = df.drop(columns=["file_exists"])
     return df
 
 
-print("\n── Caricamento metadata ──")
+print("\n── Loading metadata ──")
 train_df     = load_metadata(TRAIN_CSV_PATH, DATASET_ROOT)
 val_df       = load_metadata(VAL_CSV_PATH, DATASET_ROOT)
 processed_df = pd.concat([train_df, val_df], ignore_index=True)
-print(f"Totale sviluppo: {len(processed_df)} | Train: {len(train_df)} | Val: {len(val_df)}")
+print(f"Development total: {len(processed_df)} | Train: {len(train_df)} | Val: {len(val_df)}")
 print(pd.crosstab(processed_df["split"], processed_df["label"]))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── CELLA 5 — Augmentation condivisa (solo positivi train) ───────────────────
+# ── CELL 5 — Shared augmentation (training positives only) ───────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 RESET_DATASET = False
 AUGMENTED_METADATA_PATH = DATA_AUG / "metadata.csv"
 
 
 def resolve_project_path(path_value: str | Path) -> Path:
-    """Risolve un path relativo rispetto alla root del progetto, lasciando invariati i path già assoluti."""
+    """Resolve a relative path from the project root and preserve absolute paths."""
     path = Path(path_value)
     return path if path.is_absolute() else PROJECT_ROOT / path
 
 
 def load_existing_augmented_metadata() -> Optional[pd.DataFrame]:
-    """Riusa il dataset augmentato (reali + copie positive) già scritto su disco se ha le colonne giuste e i file referenziati esistono ancora, evitando di rigenerarlo ad ogni run."""
+    """Reuse the on-disk real-plus-positive-augmentation dataset when its files remain valid."""
     if RESET_DATASET or not AUGMENTED_METADATA_PATH.exists():
         return None
     df = pd.read_csv(AUGMENTED_METADATA_PATH).copy()
     required_cols = ["file_name", "label", "patient_id", "image_id", "source"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        print(f"Metadata augmented non riusabile, colonne mancanti: {missing_cols}")
+        print(f"Augmented metadata is not reusable; missing columns: {missing_cols}")
         return None
     missing_paths = [
         path
@@ -556,7 +546,7 @@ def load_existing_augmented_metadata() -> Optional[pd.DataFrame]:
         if not path.exists()
     ]
     if missing_paths:
-        print("Metadata augmented non riusabile, primi path mancanti:")
+        print("Augmented metadata is not reusable; first missing paths:")
         for path in missing_paths[:5]:
             print(" ", path)
         return None
@@ -565,8 +555,8 @@ def load_existing_augmented_metadata() -> Optional[pd.DataFrame]:
 
 augmented_df = load_existing_augmented_metadata()
 if augmented_df is not None:
-    print("\n── Augmentation positivi ──")
-    print("Uso dataset aumentato condiviso gia' presente:")
+    print("\n── Positive augmentation ──")
+    print("Using the existing shared augmented dataset:")
     print("DATA_AUG:", DATA_AUG)
     print("Metadata:", AUGMENTED_METADATA_PATH)
     print(augmented_df["label"].value_counts())
@@ -577,14 +567,14 @@ else:
 
     source_df = train_df.copy().reset_index(drop=True)
 
-    print("\n── Augmentation positivi ──")
-    print("Creo dataset aumentato condiviso in:", DATA_AUG)
-    print("Distribuzione train originale:")
+    print("\n── Positive augmentation ──")
+    print("Creating the shared augmented dataset in:", DATA_AUG)
+    print("Original training distribution:")
     print(source_df["label"].value_counts())
 
 
 def mild_positive_augmentation(img, aug_idx):
-    """Applica una perturbazione leggera (contrasto, luminosità, rumore gaussiano) a un'immagine positiva, per generare copie augmentate riproducibili (seed legato ad aug_idx) e bilanciare le classi nel train set."""
+    """Create reproducible positive augmentations with mild contrast, brightness, and noise changes."""
     arr = np.array(img).astype(np.float32)
     rng = np.random.default_rng(42 + aug_idx)
     contrast   = rng.uniform(0.90, 1.10)
@@ -605,7 +595,7 @@ if augmented_df is None:
         label    = int(row["label"])
         src_path = Path(row["processed_path"]).resolve()
         if not src_path.exists():
-            raise FileNotFoundError(f"Immagine non trovata: {src_path}")
+            raise FileNotFoundError(f"Image not found: {src_path}")
 
         real_rel_path = src_path.relative_to(PROJECT_ROOT).as_posix()
         metadata_rows.append({
@@ -637,15 +627,15 @@ if augmented_df is None:
 
     augmented_df = pd.DataFrame(metadata_rows)
     augmented_df.to_csv(AUGMENTED_METADATA_PATH, index=False)
-    print("Dataset augmentato pronto.")
+    print("Augmented dataset ready.")
     print(augmented_df["label"].value_counts())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── CELLA 6 — Caricamento immagini in-memory ─────────────────────────────────
+# ── CELL 6 — In-memory image loading ─────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def load_images_from_df(df, path_col, img_size=IMG_SIZE, desc="", base_dir=PROJECT_ROOT):
-    """Carica in RAM tutte le immagini elencate nel dataframe, normalizzandole in scala di grigi su [-1, 1] (range atteso dal VAE) e impacchettandole con le rispettive label."""
+    """Load dataframe images into RAM as grayscale VAE inputs in [-1, 1] with labels."""
     images_list, labels_list = [], []
     for i, (_, row) in enumerate(df.iterrows()):
         path = Path(row[path_col])
@@ -667,24 +657,24 @@ def load_images_from_df(df, path_col, img_size=IMG_SIZE, desc="", base_dir=PROJE
 
 
 if ARGS.skip_latent_encoding:
-    print("\n── Caricamento immagini skippato ──")
-    print("I latenti verranno caricati direttamente da", LATENTS_DIR)
+    print("\n── Image loading skipped ──")
+    print("Latents will be loaded directly from", LATENTS_DIR)
     x_train = x_val = None
     y_train = y_val = None
 else:
-    print("\n── Caricamento immagini ──")
-    print("Caricamento train (reali + augmentate positive)...")
+    print("\n── Loading images ──")
+    print("Loading training images (real + positive augmentations)...")
     x_train, y_train = load_images_from_df(augmented_df, "file_name", desc="train")
 
-    print("\nCaricamento val...")
+    print("\nLoading validation images...")
     x_val, y_val = load_images_from_df(val_df, "processed_path", desc="val")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── ARCHITETTURA VAE (per encoding) ──────────────────────────────────────────
+# ── VAE ARCHITECTURE (for encoding) ──────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def build_vae_encoder():
-    """Ricostruisce l'architettura dell'encoder VAE (stessa di train_vae.py) usata solo per definire la struttura prima di caricare i pesi già addestrati."""
+    """Rebuild train_vae.py's encoder architecture before loading trained weights."""
     x = inp = layers.Input(shape=(IMG_SIZE, IMG_SIZE, CHANNELS), name="enc_input")
     x = layers.Conv2D(64, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -712,7 +702,7 @@ def build_vae_encoder():
 
 
 def build_vae_decoder():
-    """Ricostruisce l'architettura del decoder VAE (stessa di train_vae.py), usata in questo script solo per riportare i latenti generati nello spazio immagine durante eventuali controlli visivi."""
+    """Rebuild train_vae.py's decoder for optional latent-to-image visual checks."""
     x = inp = layers.Input(shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS), name="dec_input")
     x = layers.Conv2D(128, 3, padding="same")(x)
     x = layers.GroupNormalization(groups=32)(x)
@@ -740,10 +730,10 @@ def build_vae_decoder():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── CODIFICA/CARICAMENTO LATENTI + CLEANUP VRAM (Fix 1 & 2) ─────────────────
+# ── LATENT ENCODING/LOADING + VRAM CLEANUP (Fixes 1 & 2) ─────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def encode_dataset_to_latents(images, labels, batch_size=32, desc=""):
-    """Passa le immagini nel VAE encoder a batch e tiene solo la media mu della distribuzione latente (niente sampling), così la LDM si addestra su latenti deterministici invece che rumorosi."""
+    """Encode images in batches and retain latent mean mu for deterministic LDM training."""
     all_latents = []
     n = len(images)
     for i in range(0, n, batch_size):
@@ -759,7 +749,7 @@ def encode_dataset_to_latents(images, labels, batch_size=32, desc=""):
 
 
 def file_sha256(path: Path) -> str:
-    """Calcola l'hash SHA-256 di un file leggendolo a blocchi, usato per rilevare se un asset (VAE, metadata) è cambiato rispetto alla cache dei latenti."""
+    """Hash a file in chunks to detect VAE or metadata changes against the latent cache."""
     digest = hashlib.sha256()
     with open(path, "rb") as file:
         for chunk in iter(lambda: file.read(1 << 20), b""):
@@ -768,9 +758,9 @@ def file_sha256(path: Path) -> str:
 
 
 def build_latents_signature() -> dict:
-    """Costruisce la firma di invalidazione della cache dei latenti."""
-    # Tutto cio' che, se cambia, rende i latenti in cache non piu' validi:
-    # pesi del VAE encoder, contenuto del dataset augmentato, dimensione val.
+    """Build the latent-cache invalidation signature."""
+    # Any change here invalidates cached latents: VAE encoder weights,
+    # augmented-dataset contents, or validation-set size.
     return {
         "schema_version": 1,
         "vae_encoder_sha256": file_sha256(VAE_ENCODER_PATH),
@@ -786,7 +776,7 @@ def build_latents_signature() -> dict:
 
 
 def load_latents_manifest() -> Optional[dict]:
-    """Legge la firma salvata insieme ai latenti in cache, restituendo None se il file manca o è corrotto (forza il ricalcolo)."""
+    """Read the cached latent signature, returning None when missing or corrupt."""
     if not LATENTS_MANIFEST_PATH.exists():
         return None
     try:
@@ -796,7 +786,7 @@ def load_latents_manifest() -> Optional[dict]:
         return None
 
 
-print("\n── Latenti LDM ──")
+print("\n── LDM latents ──")
 vae_encoder = None
 vae_decoder = None
 
@@ -807,27 +797,24 @@ if ARGS.skip_latent_encoding:
     ]
     if missing_latent_files:
         raise FileNotFoundError(
-            "Latenti precomputati mancanti. Esegui prima prepare_sdvae_latents.py: "
+            "Precomputed latents are missing. Run prepare_sdvae_latents.py first: "
             + ", ".join(str(path) for path in missing_latent_files)
         )
-    print("Carico latenti precomputati senza VAE Keras.")
+    print("Loading precomputed latents without a Keras VAE.")
     _d = np.load(str(LATENTS_TRAIN_PATH))
     z_train, y_train = _d["latents"], _d["labels"]
-    _d = np.load(str(LATENTS_VAL_PATH))
-    z_val, y_val = _d["latents"], _d["labels"]
     _s = np.load(str(LATENT_STATS_PATH))
     LATENT_MEAN, LATENT_STD = _s["latent_mean"], _s["latent_std"]
     z_train_norm = (z_train - LATENT_MEAN) / LATENT_STD
-    z_val_norm   = (z_val   - LATENT_MEAN) / LATENT_STD
     print(f"z_train_norm: mean={z_train_norm.mean():.4f}, std={z_train_norm.std():.4f}")
 else:
-    print("\n── Caricamento VAE best ──")
+    print("\n── Loading best VAE ──")
     _vae_enc_path = VAE_ENCODER_PATH
     _vae_dec_path = VAE_DECODER_PATH
 
     if not _vae_enc_path.exists() or not _vae_dec_path.exists():
         raise FileNotFoundError(
-            "VAE best non trovato. Copia vae_encoder_best.keras e vae_decoder_best.keras "
+            "Best VAE not found. Copy vae_encoder_best.keras and vae_decoder_best.keras "
             f"in {MODELS_DIR}."
         )
 
@@ -848,20 +835,17 @@ else:
     )
 
     if latents_cache_valid:
-        print("Latenti già presenti su disco e coerenti con VAE/dataset attuali — caricamento...")
+        print("On-disk latents match the current VAE and dataset; loading them...")
         _d = np.load(str(LATENTS_TRAIN_PATH))
         z_train, y_train = _d["latents"], _d["labels"]
-        _d = np.load(str(LATENTS_VAL_PATH))
-        z_val, y_val = _d["latents"], _d["labels"]
         _s = np.load(str(LATENT_STATS_PATH))
         LATENT_MEAN, LATENT_STD = _s["latent_mean"], _s["latent_std"]
         z_train_norm = (z_train - LATENT_MEAN) / LATENT_STD
-        z_val_norm   = (z_val   - LATENT_MEAN) / LATENT_STD
         print(f"z_train_norm: mean={z_train_norm.mean():.4f}, std={z_train_norm.std():.4f}")
     else:
         if LATENTS_TRAIN_PATH.exists() and cached_latents_signature != current_latents_signature:
-            print("Cache latenti presente ma non coerente con VAE/dataset attuali (hash diverso): ricalcolo.")
-        print("Codifica train in latenti...")
+            print("Latent cache does not match the current VAE/dataset hash; recomputing.")
+        print("Encoding training images to latents...")
         z_train = encode_dataset_to_latents(
             x_train,
             y_train,
@@ -869,9 +853,9 @@ else:
             desc="train",
         )
         np.savez_compressed(str(LATENTS_TRAIN_PATH), latents=z_train, labels=y_train)
-        print(f"  Salvati in {LATENTS_TRAIN_PATH}")
+        print(f"  Saved to {LATENTS_TRAIN_PATH}")
 
-        print("\nCodifica val in latenti...")
+        print("\nEncoding validation images to latents...")
         z_val = encode_dataset_to_latents(
             x_val,
             y_val,
@@ -879,20 +863,19 @@ else:
             desc="val",
         )
         np.savez_compressed(str(LATENTS_VAL_PATH), latents=z_val, labels=y_val)
-        print(f"  Salvati in {LATENTS_VAL_PATH}")
+        print(f"  Saved to {LATENTS_VAL_PATH}")
 
         LATENT_MEAN = z_train.mean(axis=(0, 1, 2), keepdims=True)
         LATENT_STD  = z_train.std(axis=(0, 1, 2),  keepdims=True)
         z_train_norm = (z_train - LATENT_MEAN) / LATENT_STD
-        z_val_norm   = (z_val   - LATENT_MEAN) / LATENT_STD
         np.savez(str(LATENT_STATS_PATH), latent_mean=LATENT_MEAN, latent_std=LATENT_STD)
-        print(f"  Stats salvate in {LATENT_STATS_PATH}")
+        print(f"  Statistics saved to {LATENT_STATS_PATH}")
 
         with open(LATENTS_MANIFEST_PATH, "w", encoding="utf-8") as file:
             json.dump(current_latents_signature, file, indent=2)
-        print(f"  Manifest latenti salvato in {LATENTS_MANIFEST_PATH}")
+        print(f"  Latent manifest saved to {LATENTS_MANIFEST_PATH}")
 
-# Libera memoria: x_train/x_val e VAE non servono più
+# Free memory: x_train/x_val and the VAE are no longer needed.
 if x_train is not None:
     del x_train
 if x_val is not None:
@@ -907,14 +890,14 @@ try:
     print(f"VRAM post-encoding cleanup: {info['current']/1e9:.2f} GB")
 except Exception:
     pass
-print("Cleanup post-encoding OK. Da qui: solo latenti numpy.")
+print("Post-encoding cleanup complete. Only NumPy latents remain from this point.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ── COSINE SCHEDULE ───────────────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def normal_kl(mean1, logvar1, mean2, logvar2):
-    """Calcola la divergenza KL in forma chiusa tra due gaussiane diagonali, usata nel termine VLB per confrontare la posterior vera con quella predetta dalla U-Net."""
+    """Compute closed-form KL divergence between true and U-Net-predicted diagonal Gaussians."""
     return 0.5 * (
         logvar2 - logvar1
         + tf.exp(logvar1 - logvar2)
@@ -924,7 +907,7 @@ def normal_kl(mean1, logvar1, mean2, logvar2):
 
 
 def cosine_schedule(num_steps, s=0.008):
-    """Genera i beta con NumPy per evitare kernel TF/XLA inutili all'avvio."""
+    """Generate beta values with NumPy to avoid unnecessary startup TF/XLA kernels."""
     t = np.linspace(0.0, float(num_steps), num_steps + 1, dtype=np.float64)
     f = np.cos((t / float(num_steps) + s) / (1.0 + s) * (math.pi / 2.0)) ** 2
     alpha_bars_np = f / f[0]
@@ -948,14 +931,14 @@ print(f"\nSchedule OK. alpha_bar finale: {alpha_bars[-1].numpy():.6f}")
 
 
 def extract(values, t, x_shape):
-    """Seleziona dal vettore di coefficienti dello schedule (es. beta, alpha_bar) il valore corrispondente al timestep t di ciascun elemento del batch, e lo riporta a shape broadcastabile con i latenti."""
+    """Gather each batch element's timestep coefficient and reshape it for latent broadcasting."""
     batch_size = tf.shape(t)[0]
     out        = tf.gather(values, t)
     return tf.reshape(out, [batch_size, 1, 1, 1])
 
 
 def q_sample(x0, t, noise):
-    """Forward diffusion: applica direttamente la formula chiusa per ottenere il latente rumoroso al timestep t a partire da x0 e dal rumore campionato, senza dover iterare passo-passo."""
+    """Apply closed-form forward diffusion from x0 and sampled noise directly at timestep t."""
     sqrt_ab   = extract(sqrt_alpha_bars,           t, tf.shape(x0))
     sqrt_omab = extract(sqrt_one_minus_alpha_bars, t, tf.shape(x0))
     return sqrt_ab * x0 + sqrt_omab * noise
@@ -966,9 +949,9 @@ def q_sample(x0, t, noise):
 # ══════════════════════════════════════════════════════════════════════════════
 @tf.keras.utils.register_keras_serializable()
 class SinusoidalTimeEmbedding(layers.Layer):
-    """Trasforma lo scalare timestep t in un embedding continuo (encoding sinusoidale + MLP), così la U-Net può condizionare l'output sul livello di rumore corrente."""
+    """Map timestep t to a sinusoidal-plus-MLP embedding for U-Net noise-level conditioning."""
     def __init__(self, embed_dim, **kwargs):
-        """Istanzia le due Dense che proiettano l'encoding sinusoidale nello spazio di embedding finale."""
+        """Create two Dense layers that project the sinusoidal encoding."""
         super().__init__(**kwargs)
         self.embed_dim = embed_dim
         half = embed_dim // 2
@@ -980,7 +963,7 @@ class SinusoidalTimeEmbedding(layers.Layer):
         self.dense2 = layers.Dense(embed_dim * 4)
 
     def call(self, t):
-        """Calcola le frequenze sinusoidali (stile positional encoding dei Transformer) per ogni t del batch e le passa nell'MLP a due livelli."""
+        """Compute Transformer-style sinusoidal frequencies and apply the two-layer MLP."""
         t    = tf.cast(t, tf.float32)
         freqs = tf.cast(self._frequencies, tf.float32)
         args = t[:, None] * freqs[None, :]
@@ -988,7 +971,7 @@ class SinusoidalTimeEmbedding(layers.Layer):
         return self.dense2(self.dense1(emb))
 
     def get_config(self):
-        """Aggiunge embed_dim alla config, necessario per ricostruire il layer al caricamento del checkpoint .keras."""
+        """Add embed_dim to the config for .keras checkpoint reconstruction."""
         cfg = super().get_config()
         cfg.update({"embed_dim": self.embed_dim})
         return cfg
@@ -996,20 +979,20 @@ class SinusoidalTimeEmbedding(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class LabelEmbedding(layers.Layer):
-    """Mappa la classe (0=sano, 1=cancro, più una classe extra per il condizionamento nullo della CFG) in un vettore di embedding da sommare al time embedding."""
+    """Map healthy, cancer, and CFG-null classes to vectors added to the time embedding."""
     def __init__(self, num_classes, embed_dim, **kwargs):
-        """Crea la tabella di embedding con num_classes+1 voci: la voce in più rappresenta la label 'nulla' usata dal classifier-free guidance dropout."""
+        """Create num_classes + 1 embeddings, reserving the last for CFG's null label."""
         super().__init__(**kwargs)
         self.num_classes = num_classes
         self.embed_dim   = embed_dim
         self.embedding   = layers.Embedding(num_classes + 1, embed_dim * 4)
 
     def call(self, y):
-        """Restituisce l'embedding corrispondente alla label y."""
+        """Return the embedding for label y."""
         return self.embedding(y)
 
     def get_config(self):
-        """Aggiunge num_classes ed embed_dim alla config per la serializzazione del layer nel checkpoint .keras."""
+        """Add num_classes and embed_dim for .keras layer serialization."""
         cfg = super().get_config()
         cfg.update({"num_classes": self.num_classes, "embed_dim": self.embed_dim})
         return cfg
@@ -1017,9 +1000,9 @@ class LabelEmbedding(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class ResBlock(layers.Layer):
-    """Blocco residuo della U-Net: due convoluzioni con GroupNorm che iniettano l'embedding (tempo+label) a metà, più uno skip 1x1 per cambiare il numero di canali senza perdere il segnale originale."""
+    """U-Net residual block with GroupNorm convolutions, time/label injection, and 1x1 skip."""
     def __init__(self, channels, embed_dim, **kwargs):
-        """Crea i sotto-layer del blocco (norm/conv per il ramo principale, proiezione dell'embedding, conv 1x1 di skip)."""
+        """Create main norm/convolution layers, embedding projection, and 1x1 skip."""
         super().__init__(**kwargs)
         self.channels  = channels
         self.embed_dim = embed_dim
@@ -1032,14 +1015,14 @@ class ResBlock(layers.Layer):
         self.act      = layers.LeakyReLU(alpha=0.2)
 
     def call(self, x, emb):
-        """Applica le due convoluzioni del ramo principale, somma l'embedding (tempo+label) proiettato sui canali a metà del blocco, poi aggiunge la connessione residua."""
+        """Apply main convolutions, inject projected time/label channels, and add the residual."""
         h       = self.conv1(self.act(self.norm1(x)))
         emb_out = tf.reshape(self.emb_proj(self.act(emb)), [-1, 1, 1, self.channels])
         h       = self.conv2(self.act(self.norm2(h + emb_out)))
         return h + self.skip(x)
 
     def get_config(self):
-        """Aggiunge channels ed embed_dim alla config per la serializzazione del layer nel checkpoint .keras."""
+        """Add channels and embed_dim for .keras layer serialization."""
         cfg = super().get_config()
         cfg.update({"channels": self.channels, "embed_dim": self.embed_dim})
         return cfg
@@ -1047,9 +1030,9 @@ class ResBlock(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class SelfAttentionBlock(layers.Layer):
-    """Blocco di self-attention sulle feature map a bassa risoluzione della U-Net, per catturare dipendenze spaziali a lungo raggio che le convoluzioni locali non vedono."""
+    """Self-attention on low-resolution U-Net maps for long-range spatial dependencies."""
     def __init__(self, channels, num_heads=4, **kwargs):
-        """Crea normalizzazione, multi-head attention e proiezione finale del blocco."""
+        """Create normalization, multi-head attention, and final projection."""
         super().__init__(**kwargs)
         self.channels  = channels
         self.num_heads = num_heads
@@ -1062,7 +1045,7 @@ class SelfAttentionBlock(layers.Layer):
         self.proj = layers.Dense(channels)
 
     def call(self, x):
-        """Appiattisce la feature map spaziale (H×W) in una sequenza di token, applica self-attention tra tutte le posizioni e riporta il risultato alla shape originale con connessione residua."""
+        """Flatten HxW to tokens, apply global self-attention, restore shape, and add the residual."""
         B = tf.shape(x)[0]
         H = tf.shape(x)[1]
         W = tf.shape(x)[2]
@@ -1075,14 +1058,14 @@ class SelfAttentionBlock(layers.Layer):
         return x + h
 
     def get_config(self):
-        """Aggiunge channels e num_heads alla config per la serializzazione del layer nel checkpoint .keras."""
+        """Add channels and num_heads for .keras layer serialization."""
         cfg = super().get_config()
         cfg.update({"channels": self.channels, "num_heads": self.num_heads})
         return cfg
 
 
 def build_ldm_unet():
-    """Costruisce la U-Net di diffusione: encoder-decoder simmetrico con skip connection in stile U-Net, ResBlock condizionati su tempo+label e self-attention nei livelli più profondi (dove le feature map sono piccole e l'attention costa poco)."""
+    """Build a symmetric diffusion U-Net with skips, conditioned ResBlocks, and deep attention."""
     C = MODEL_CHANNELS * 2  # 128
 
     lat_input = layers.Input(shape=(LATENT_SIZE, LATENT_SIZE, LATENT_CHANNELS), name="lat_input")
@@ -1153,7 +1136,7 @@ print(f"LDM U-Net params: {ldm_model.count_params():,} (unet_version={UNET_VERSI
 # ── LOSS + TRAINING STEP ─────────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 def get_learned_log_variance(v, t):
-    """Interpola tra la varianza minima e massima ammesse per il timestep t (log_beta e log_beta_tilde) usando v come peso appreso dalla rete, così la varianza della reverse diffusion non è fissa ma viene predetta dal modello (come in 'Improved DDPM')."""
+    """Interpolate learned reverse variance between timestep log_beta_tilde and log_beta."""
     shape            = tf.shape(v)
     log_beta_t       = tf.math.log(extract(betas, t, shape))
     log_beta_tilde_t = tf.math.log(extract(posterior_variance + 1e-8, t, shape))
@@ -1163,7 +1146,7 @@ def get_learned_log_variance(v, t):
 
 
 def vb_term_ldm(x0, x_t, t, eps_pred, v_pred):
-    """Calcola il termine variational lower bound (KL tra posterior vera e posterior predetta dalla rete) che, pesato da LAMBDA_VLB, affianca la loss semplice sul rumore per far apprendere anche la varianza della reverse diffusion."""
+    """Compute the VLB KL term so the model learns reverse-diffusion variance."""
     shape     = tf.shape(x0)
     ab        = extract(alpha_bars,       t, shape)
     ab_prev   = extract(alpha_bars_prev,  t, shape)
@@ -1192,14 +1175,15 @@ ldm_optimizer = tf.keras.optimizers.Adam(LDM_LR)
 
 @tf.function(jit_compile=False, reduce_retracing=True)
 def ldm_train_step(z0, y):
-    """Singolo step di training: campiona un timestep e un rumore casuali, applica la forward diffusion al latente, droppa la label con probabilità CFG_DROPOUT (per insegnare alla rete anche il caso non condizionato), e aggiorna i pesi sulla loss combinata (target primario + VLB).
+    """Run one training step with forward diffusion, CFG label dropout, and combined loss.
 
-    Il target della loss_simple dipende da PARAMETERIZATION: rumore puro per "eps"
-    (comportamento invariato rispetto a 04b/04b1/04b2), oppure il target v di
-    Salimans & Ho per "v". La loss_vlb (che modella la varianza appresa) lavora
-    sempre in spazio epsilon: se PARAMETERIZATION="v" l'uscita primaria della rete
-    viene prima convertita in una stima di epsilon con predict_epsilon_from_model_output,
-    la stessa funzione usata da generazione e valutazione."""
+    Sample a random timestep and noise, diffuse the latent, drop labels with probability
+    `CFG_DROPOUT` to teach unconditional prediction, and update the weights. The simple-loss
+    target depends on `PARAMETERIZATION`: raw noise for `eps` (matching notebooks
+    04b/04b1/04b2) or the Salimans and Ho velocity target for `v`. The learned-variance VLB
+    term always operates in epsilon space, so a `v` prediction is first converted with the
+    same `predict_epsilon_from_model_output` function used by generation and evaluation.
+    """
     batch_size = tf.shape(z0)[0]
     t         = tf.random.uniform((batch_size,), 0, NUM_DIFF_STEPS, dtype=tf.int32)
     noise     = tf.random.normal(tf.shape(z0))
@@ -1238,10 +1222,10 @@ def ldm_train_step(z0, y):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ── DATASET tf.data (latenti) ────────────────────────────────────────────────
+# ── tf.data LATENT DATASET ───────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════════════
 n_total = len(y_train)
-print(f"\nLatenti train: {n_total} | pos={int((y_train==1).sum())}, neg={int((y_train==0).sum())}")
+print(f"\nTraining latents: {n_total} | pos={int((y_train==1).sum())}, neg={int((y_train==0).sum())}")
 
 ldm_train_ds = (
     tf.data.Dataset.from_tensor_slices(
@@ -1268,59 +1252,26 @@ ldm_history = {
 _history_path = LOGS_DIR / "ldm_history.json"
 
 print("=" * 70)
-print("FASE 2 -- TRAINING LDM")
-print(f"Step totali     : {LDM_TOTAL_STEPS}")
+print("PHASE 2 -- LDM TRAINING")
+print(f"Total steps     : {LDM_TOTAL_STEPS}")
 print(f"Batch size      : {LDM_BATCH_SIZE}")
 print(f"Learning rate   : {LDM_LR}")
-print(f"Checkpoint ogni : {CKPT_EVERY} step")
-print(f"Log ogni        : {LOG_EVERY} step")
-print(f"Latenti         : {LATENT_SIZE}×{LATENT_SIZE}×{LATENT_CHANNELS}")
+print(f"Checkpoint every: {CKPT_EVERY} steps")
+print(f"Log every       : {LOG_EVERY} steps")
+print(f"Latents         : {LATENT_SIZE}×{LATENT_SIZE}×{LATENT_CHANNELS}")
 print(f"Checkpoint dir  : {CKPT_DIR}")
 print("=" * 70)
 sys.stdout.flush()
 
-# Controlla se esiste già un final model o un checkpoint da cui riprendere
-def step_from_final_model(path: Path) -> Optional[int]:
-    """Estrae il numero di step dal nome file di un modello finale (es. 'ldm_unet_final_step080000.keras' -> 80000)."""
-    prefix = "ldm_unet_final_step"
-    if not path.stem.startswith(prefix):
-        return None
-    try:
-        return int(path.stem.replace(prefix, ""))
-    except ValueError:
-        return None
-
-
-def step_from_checkpoint(path: Path) -> Optional[int]:
-    """Estrae il numero di step dal nome file di un checkpoint periodico (es. 'ldm_step007000.keras' -> 7000)."""
-    prefix = "ldm_step"
-    if not path.stem.startswith(prefix):
-        return None
-    try:
-        return int(path.stem.replace(prefix, ""))
-    except ValueError:
-        return None
-
-
-def latest_step_checkpoint() -> tuple[Optional[int], Optional[Path]]:
-    """Cerca tra i checkpoint periodici quello con lo step piu' alto, per decidere da dove riprendere il training (duplica latest_step_checkpoint_path definita sopra, qui usata dopo il backfill del layout)."""
-    candidates = []
-    for path in CKPT_DIR.glob("ldm_step*.keras"):
-        step = step_from_checkpoint(path)
-        if step is not None:
-            candidates.append((step, path))
-    return max(candidates, default=(None, None), key=lambda item: item[0] or -1)
-
-
 def load_existing_history() -> dict:
-    """Ricarica la history delle loss da un training precedente (se presente e leggibile), per continuare i grafici e il calcolo della best loss dopo un resume."""
+    """Reload a readable prior loss history so resumed plots and best loss remain complete."""
     if not _history_path.exists():
         return {"step": [], "loss_total": [], "loss_simple": [], "loss_vlb": []}
     try:
         with open(_history_path, "r", encoding="utf-8") as file:
             loaded = json.load(file)
     except Exception as exc:
-        print(f"History non leggibile, riparto con history vuota: {exc}")
+        print(f"History is unreadable; restarting with an empty history: {exc}")
         return {"step": [], "loss_total": [], "loss_simple": [], "loss_vlb": []}
 
     history = {"step": [], "loss_total": [], "loss_simple": [], "loss_vlb": []}
@@ -1331,67 +1282,67 @@ def load_existing_history() -> dict:
 
 
 def backfill_checkpoint_layout_from_existing_models() -> None:
-    """Migra i modelli LDM salvati nella vecchia struttura (cartella models/) verso checkpoints_ldm/, ricostruendo anche il checkpoint 'latest' a partire dal final model se manca, per restare compatibili con esperimenti lanciati prima di questa riorganizzazione."""
+    """Move legacy LDM models into `checkpoints_ldm` and reconstruct a missing latest file."""
     legacy_best_path = MODELS_DIR / "ldm_unet_best.keras"
     best_ckpt_path = CKPT_DIR / "ldm_unet_best.keras"
     if legacy_best_path.exists() and not best_ckpt_path.exists():
         shutil.move(str(legacy_best_path), str(best_ckpt_path))
-        print(f"Best LDM spostato nei checkpoint: {best_ckpt_path}")
+        print(f"Moved best LDM into checkpoints: {best_ckpt_path}")
     elif legacy_best_path.exists():
         legacy_best_path.unlink()
-        print(f"Duplicato LDM rimosso da models: {legacy_best_path}")
+        print(f"Removed duplicate LDM from models: {legacy_best_path}")
 
     for legacy_final_path in sorted(MODELS_DIR.glob("ldm_unet_final_step*.keras")):
         final_ckpt_path = CKPT_DIR / legacy_final_path.name
         if not final_ckpt_path.exists():
             shutil.move(str(legacy_final_path), str(final_ckpt_path))
-            print(f"Final LDM spostato nei checkpoint: {final_ckpt_path}")
+            print(f"Moved final LDM into checkpoints: {final_ckpt_path}")
         else:
             legacy_final_path.unlink()
-            print(f"Duplicato final LDM rimosso da models: {legacy_final_path}")
+            print(f"Removed duplicate final LDM from models: {legacy_final_path}")
 
     final_models = sorted(CKPT_DIR.glob("ldm_unet_final_step*.keras"))
     if not final_models:
         return
     final_model_path = final_models[-1]
-    final_step = step_from_final_model(final_model_path)
+    final_step = step_from_model_path(final_model_path, "ldm_unet_final_step")
     if final_step is None:
         return
     latest_ckpt_path = CKPT_DIR / f"ldm_step{final_step:06d}.keras"
     if not latest_ckpt_path.exists():
         shutil.copy2(final_model_path, latest_ckpt_path)
-        print(f"Latest checkpoint creato da final model: {latest_ckpt_path}")
+        print(f"Created latest checkpoint from final model: {latest_ckpt_path}")
 
 
 backfill_checkpoint_layout_from_existing_models()
 existing_finals = sorted(CKPT_DIR.glob("ldm_unet_final_step*.keras"))
-latest_ckpt_step, latest_ckpt_path = latest_step_checkpoint()
+latest_ckpt_step, latest_ckpt_path = latest_step_checkpoint_path()
 
 if ARGS.resume_from_latest and latest_ckpt_path is not None:
     if latest_ckpt_step is not None and latest_ckpt_step >= LDM_TOTAL_STEPS:
         print(
-            f"\nCheckpoint gia' al target: {latest_ckpt_path.name} "
+            f"\nCheckpoint already reached the target: {latest_ckpt_path.name} "
             f"(step {latest_ckpt_step} >= {LDM_TOTAL_STEPS})."
         )
-        print("Training LDM skippato.")
+        print("Skipping LDM training.")
         sync_existing_training_plots_to_results()
         write_training_manifest(latest_ckpt_path, latest_ckpt_step)
         sys.exit(0)
 
-    print(f"\nRiprendo training da checkpoint: {latest_ckpt_path}")
+    print(f"\nResuming training from checkpoint: {latest_ckpt_path}")
     ldm_model = tf.keras.models.load_model(str(latest_ckpt_path), compile=False)
     global_step = int(latest_ckpt_step or 0)
     ldm_history = load_existing_history()
     if ldm_history["loss_total"]:
         best_ldm_loss = float(np.nanmin(ldm_history["loss_total"]))
-    print(f"Global step iniziale: {global_step}")
-    print(f"Best loss caricata da history: {best_ldm_loss:.4f}")
+    print(f"Initial global step: {global_step}")
+    print(f"Best loss loaded from history: {best_ldm_loss:.4f}")
 elif ARGS.resume_from_latest:
-    print("\nFlag --resume-from-latest attivo, ma nessun ldm_step*.keras trovato.")
-    print("Training LDM avviato da zero.")
+    print("\n--resume-from-latest is active, but no ldm_step*.keras file was found.")
+    print("Starting LDM training from scratch.")
 elif existing_finals:
-    print(f"\nFinal model già presente: {existing_finals[-1]}")
-    print("Training LDM skippato. Usa --resume-from-latest con --total-steps maggiore per continuare.")
+    print(f"\nFinal model already present: {existing_finals[-1]}")
+    print("Skipping LDM training. Use --resume-from-latest with a larger --total-steps to continue.")
     sync_existing_training_plots_to_results()
     write_training_manifest(
         existing_finals[-1],
@@ -1430,10 +1381,9 @@ with measure_sustainability(label="ldm_training", sample_interval=0.5) as eco_ld
             ldm_history["loss_simple"].append(ls_val)
             ldm_history["loss_vlb"].append(lv_val)
 
-        # best_ldm_loss resta solo una statistica informativa (loss minima vista su un
-        # singolo batch, rumorosa): la selezione del checkpoint migliore si fa dopo, sul
-        # validation set, con lo sweep FID/PRDC di evaluate_ldm.py — non qui salvando
-        # un modello ogni volta che un batch fortunato abbassa la loss.
+        # `best_ldm_loss` is only an informative statistic: the minimum over noisy individual
+        # batches. The best checkpoint is selected later on validation data by evaluate_ldm.py's
+        # FID/PRDC sweep, not by saving a model whenever a lucky batch lowers this loss.
         best_ldm_loss = min(best_ldm_loss, loss_val)
 
         if global_step % CKPT_EVERY == 0:
@@ -1447,7 +1397,7 @@ ldm_model.save(str(final_path))
 latest_ckpt_path = CKPT_DIR / f"ldm_step{global_step:06d}.keras"
 if not latest_ckpt_path.exists():
     shutil.copy2(final_path, latest_ckpt_path)
-print(f"\nTRAINING LDM COMPLETATO — Step: {global_step} | Best loss: {best_ldm_loss:.4f}")
+print(f"\nLDM TRAINING COMPLETE — Step: {global_step} | Best loss: {best_ldm_loss:.4f}")
 print(f"Final model: {final_path.name}")
 print(f"Latest checkpoint: {latest_ckpt_path.name}")
 print(f"\n{eco_ldm.metrics}")
@@ -1455,11 +1405,11 @@ sys.stdout.flush()
 
 write_training_manifest(final_path, global_step)
 
-# ── Salva history JSON ────────────────────────────────────────────────────────
+# ── Save JSON history ─────────────────────────────────────────────────────────
 _history_path = LOGS_DIR / "ldm_history.json"
 with open(_history_path, "w", encoding="utf-8") as _f:
     json.dump(ldm_history, _f, indent=2)
-print(f"History salvata: {_history_path}")
+print(f"History saved: {_history_path}")
 
 # ── Eco log ───────────────────────────────────────────────────────────────────
 _ldm_eco = eco_ldm.metrics.to_dict()
@@ -1471,10 +1421,10 @@ _eco_log = RESULTS_ECOTRACKER_DIR / "sustainability_log.jsonl"
 with open(_eco_log, "a", encoding="utf-8") as _f:
     _f.write(json.dumps(_ldm_eco, ensure_ascii=False) + "\n")
 
-# ── Plot metriche (salva su file, no GUI) ─────────────────────────────────────
+# ── Plot metrics to file (no GUI) ─────────────────────────────────────────────
 steps = ldm_history["step"]
 if steps:
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4))
+    _, axes = plt.subplots(1, 3, figsize=(16, 4))
     axes[0].plot(steps, ldm_history["loss_simple"], label="L_simple", color="blue",  lw=1.2)
     axes[0].plot(steps, ldm_history["loss_total"],  label="L_total",  color="red",   lw=1.2, ls="--")
     axes[0].set_title("LDM — Noise Prediction Loss")
@@ -1496,13 +1446,13 @@ if steps:
     else:
         axes[2].set_visible(False)
 
-    plt.suptitle("Metriche LDM — training step-based", fontsize=13)
+    plt.suptitle("LDM metrics — step-based training", fontsize=13)
     plt.tight_layout()
     _metrics_path = RESULTS_PLOTS_DIR / "ldm_metrics.png"
     plt.savefig(str(_metrics_path), dpi=150, bbox_inches="tight")
     plt.close()
     best_idx = int(np.argmin(ldm_history["loss_total"]))
     print(f"Best loss: {ldm_history['loss_total'][best_idx]:.4f} @ step {steps[best_idx]}")
-    print(f"Plot salvato nei results: {_metrics_path}")
+    print(f"Plot saved under results: {_metrics_path}")
 
-print("\n[train_ldm.py] Script completato con successo.")
+print("\n[train_ldm.py] Script completed successfully.")

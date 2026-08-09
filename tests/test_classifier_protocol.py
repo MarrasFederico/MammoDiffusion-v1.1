@@ -44,7 +44,7 @@ class ClassifierProtocolTests(unittest.TestCase):
 
     def test_pr_auc_controls_checkpoint_early_stopping_and_scheduler(self):
         protocol = dp.load_protocol(ROOT)
-        for architecture, policy in protocol["architectures"].items():
+        for policy in protocol["architectures"].values():
             self.assertEqual(policy["scheduler_params"]["monitor"], "val_pr_auc")
             self.assertEqual(policy["early_stopping"]["monitor"], "val_pr_auc")
             self.assertTrue(policy["checkpoint_criterion"].startswith("val_pr_auc_max"))

@@ -1,54 +1,55 @@
-"""Utility condivise per i classificatori Mammo-FM (EfficientNet-B5, PyTorch) fine-tuned.
+"""Shared utilities for fine-tuned Mammo-FM classifiers (EfficientNet-B5, PyTorch).
 
-Sostituisce `mammodino_utils.py` (ora archiviato in `_deprecated_mammodino/`): i checkpoint
-MammoDINO (GE HealthCare, arXiv:2510.11883) non risultano pubblicamente disponibili, mentre
-**Mammo-FM** (batmanlab, arXiv:2512.00198) e' un foundation model mammografico con checkpoint
-pubblici su Hugging Face (`batmanLab/Mammo-FM`). Segue lo stesso stile dei moduli helper del
-progetto (`maxvit_utils.py`): le callback in stile Keras
-(EarlyStopping, ModelCheckpoint, CSVLogger) sono riusate da `maxvit_utils`.
+This replaces `mammodino_utils.py` (now archived under `_deprecated_mammodino/`): public
+MammoDINO checkpoints (GE HealthCare, arXiv:2510.11883) were not available, whereas
+**Mammo-FM** (batmanlab, arXiv:2512.00198) is a mammography foundation model with public
+checkpoints on Hugging Face (`batmanLab/Mammo-FM`). The module follows the style of the
+project's other helpers (`maxvit_utils.py`) and reuses its Keras-style callbacks
+(EarlyStopping, ModelCheckpoint, and CSVLogger).
 
-Architettura verificata direttamente sul checkpoint reale (`Mammo-FM_BatmanlabTrained_CLIP.tar`,
-scaricato e ispezionato durante lo sviluppo di questo helper):
+The architecture was verified directly against the real checkpoint
+(`Mammo-FM_BatmanlabTrained_CLIP.tar`, downloaded and inspected while developing this helper):
 
-- Il checkpoint e' un dict torch (`torch.load`) con chiavi `config` e `model` (stesso formato
-  di `batmanlab/Mammo-CLIP`, di cui Mammo-FM e' l'evoluzione "piu' grande e forte"); il campo
-  `config["model"]["image_encoder"]` dichiara `{"source": "cnn", "name":
+- The checkpoint is a torch dictionary (`torch.load`) with `config` and `model` keys, using
+  the same format as `batmanlab/Mammo-CLIP`, from which Mammo-FM evolved. The
+  `config["model"]["image_encoder"]` field declares `{"source": "cnn", "name":
   "tf_efficientnet_b5_ns-detect", "model_type": "cnn"}`.
-- L'encoder immagine e' un EfficientNet-B5 **custom** (stessa implementazione, quasi verbatim,
-  del pacchetto pip `efficientnet_pytorch` di lukemelas, con attributi `_conv_stem`, `_blocks`,
-  `_conv_head`, ecc.), con **input a 3 canali** (`_conv_stem.weight` ha shape (48, 3, 3, 3)):
-  le mammografie grayscale vanno quindi replicate su RGB, NON usate a 1 canale.
-- I pesi dell'encoder immagine sono salvati con prefisso `"image_encoder."` nel CLIP state dict
-  completo (che include anche `text_encoder.*`, `image_projection.*`, `text_projection.*`,
-  `logit_scale`, irrilevanti per la classificazione); il layer `_fc` finale non e' incluso nel
-  checkpoint (Mammo-CLIP/Mammo-FM lo lascia non addestrato: si estraggono solo le feature
-  pooled via global average pooling, `out_dim=2048` per B5).
-- Deserializzare il checkpoint richiede il pacchetto `omegaconf` (il campo `config` e' salvato
-  con un oggetto Hydra/OmegaConf); costruire l'encoder richiede il pacchetto `efficientnet_pytorch`.
-  Entrambi vengono importati in modo robusto con un messaggio chiaro se mancanti.
-- Normalizzazione ufficiale (da `configs/pre_train_b5_clip.yaml` del repo Mammo-CLIP):
-  media=0.3089279, std=0.25053555408335154 (scalari, non statistiche ImageNet), applicate dopo
-  una normalizzazione min-max per immagine in [0,1] (`img -= img.min(); img /= img.max()`,
-  come in `ImageClassificationDataset` del repo ufficiale).
-- Risoluzione nativa di pre-training: 1520x912 (non quadrata). Questo progetto usa 512x512
-  quadrati per coerenza con tutti gli altri classificatori (MaxViT-512, RAD-DINO, ecc.):
-  EfficientNet e' interamente convoluzionale (global average pooling finale), quindi funziona
-  correttamente anche a 512x512, sebbene le prestazioni assolute possano differire da quelle
-  riportate nel paper alla risoluzione nativa. Scelta documentata, non un bug silenzioso.
-- Il preprocessing ufficiale di pre-training include anche CLAHE (equalizzazione adattiva del
-  contrasto, vedi `configs/transform/clahe.yaml`): disattivato di default in questo progetto
-  (`USE_CLAHE_PREPROCESSING=False`) per coerenza con gli altri classificatori del progetto, che
-  non la usano. Puo' essere abilitato per un esperimento dedicato futuro.
+- The image encoder is a **custom** EfficientNet-B5, nearly identical to lukemelas's
+  `efficientnet_pytorch` package, with `_conv_stem`, `_blocks`, `_conv_head`, and related
+  attributes. It expects **three-channel input** (`_conv_stem.weight` has shape
+  (48, 3, 3, 3)), so grayscale mammograms must be replicated to RGB rather than supplied
+  as one-channel images.
+- Image-encoder weights use the `"image_encoder."` prefix in the complete CLIP state dict,
+  which also contains `text_encoder.*`, `image_projection.*`, `text_projection.*`, and
+  `logit_scale` entries that are irrelevant to classification. The final `_fc` layer is not
+  stored because Mammo-CLIP/Mammo-FM does not train it; this helper extracts only the globally
+  pooled features (`out_dim=2048` for B5).
+- Deserializing the checkpoint requires `omegaconf`, because `config` is stored as a
+  Hydra/OmegaConf object. Building the encoder requires `efficientnet_pytorch`. Both imports
+  fail with an explicit diagnostic when the package is unavailable.
+- The official normalization from Mammo-CLIP's `configs/pre_train_b5_clip.yaml` uses
+  mean=0.3089279 and std=0.25053555408335154 (scalars, not ImageNet statistics) after per-image
+  min-max normalization to [0, 1] (`img -= img.min(); img /= img.max()`), matching the upstream
+  `ImageClassificationDataset`.
+- Native pre-training resolution is 1520x912. This project uses square 512x512 inputs for
+  consistency with MaxViT-512, RAD-DINO, and the other classifiers. EfficientNet is fully
+  convolutional and ends in global average pooling, so this resolution is valid, although
+  absolute performance may differ from results reported at native resolution. This is an
+  explicit protocol choice.
+- Official pre-training preprocessing also includes CLAHE (see
+  `configs/transform/clahe.yaml`). It is disabled here by default
+  (`USE_CLAHE_PREPROCESSING=False`) to remain consistent with the other project classifiers,
+  but can be enabled in a dedicated experiment.
 
-**Licenza dei pesi Mammo-FM**: rilasciati con una "Custom Academic License for Model Weights"
-(non commerciale, solo ricerca accademica; **nessun uso clinico/diagnostico**; nessuna
-ridistribuzione dei pesi). Questo helper scarica il checkpoint nella cache locale di
-Hugging Face (`~/.cache/huggingface/hub`, fuori dal repository) e non lo copia mai altrove:
-non salvare ne' ridistribuire i pesi nel repository del progetto.
+**Mammo-FM weight license**: the weights use a Custom Academic License for Model Weights
+(non-commercial academic research only, **no clinical or diagnostic use**, and no weight
+redistribution). This helper downloads the checkpoint to the local Hugging Face cache
+(`~/.cache/huggingface/hub`, outside the repository) and never copies it elsewhere. Do not
+store or redistribute the weights in this project repository.
 
-Nessun fallback silenzioso: se il checkpoint Mammo-FM non e' configurato, non e' raggiungibile,
-o non e' compatibile con l'architettura attesa, questo modulo solleva `MammoFMConfigError` e
-NON sostituisce mai Mammo-FM con un backbone generico (DINOv2/RAD-DINO/ImageNet).
+There is no silent fallback. If the Mammo-FM checkpoint is unavailable, unconfigured, or
+incompatible with the expected architecture, this module raises `MammoFMConfigError` and
+never substitutes a generic DINOv2, RAD-DINO, or ImageNet backbone.
 """
 from __future__ import annotations
 
@@ -66,7 +67,7 @@ import torch.nn.functional as F
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 
-from maxvit_utils import (  # noqa: F401  (re-esportati per comodita' dei notebook)
+from maxvit_utils import (  # noqa: F401  (re-exported for notebook convenience)
     BinaryFocalLoss,
     CSVLogger,
     EarlyStopping,
@@ -80,22 +81,21 @@ from maxvit_utils import (  # noqa: F401  (re-esportati per comodita' dei notebo
 )
 
 # ---------------------------------------------------------------------------
-# Configurazione di default
+# Default configuration
 # ---------------------------------------------------------------------------
 
 DEFAULT_HF_REPO = "batmanLab/Mammo-FM"
 DEFAULT_CHECKPOINT_NAME = "Mammo-FM_BatmanlabTrained_CLIP.tar"
-DEFAULT_IMG_SIZE = 512  # progetto: 512x512 (coerente con MaxViT-512/RAD-DINO). Nativo Mammo-FM: 1520x912.
-DEFAULT_MAMMOFM_MEAN = 0.3089279  # statistiche ufficiali di pre-training Mammo-CLIP/Mammo-FM (scalare, non ImageNet)
+DEFAULT_IMG_SIZE = 512  # Project protocol: 512x512. Native Mammo-FM resolution: 1520x912.
+DEFAULT_MAMMOFM_MEAN = 0.3089279  # Official scalar pre-training statistic, not ImageNet.
 DEFAULT_MAMMOFM_STD = 0.25053555408335154
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 _LABEL_RE = re.compile(r"_label([01])")
 
-# Encoder immagine CNN supportati dai checkpoint Mammo-FM/Mammo-CLIP ufficiali: mappa il nome
-# dichiarato in config["model"]["image_encoder"]["name"] sull'architettura equivalente del
-# pacchetto `efficientnet_pytorch` e sulla dimensione delle feature pooled (out_dim), verificate
-# scaricando e ispezionando il checkpoint reale `Mammo-FM_BatmanlabTrained_CLIP.tar`.
+# CNN image encoders supported by official Mammo-FM/Mammo-CLIP checkpoints. Each configured
+# name maps to the equivalent `efficientnet_pytorch` architecture and pooled-feature width;
+# both were verified against the real `Mammo-FM_BatmanlabTrained_CLIP.tar` checkpoint.
 _SUPPORTED_CNN_ENCODERS = {
     "tf_efficientnet_b5_ns-detect": ("efficientnet-b5", 2048),
     "tf_efficientnetv2-detect": ("efficientnet-b2", 1408),
@@ -107,10 +107,9 @@ _SUPPORTED_CNN_ENCODERS = {
 # reopening the separately licensed foundation archive.
 PROJECT_CHECKPOINT_ENCODER_NAME = "tf_efficientnet_b5_ns-detect"
 
-# Prefissi comuni con cui i CLIP checkpoint (Mammo-FM/Mammo-CLIP e varianti) annidano i tensori
-# dell'image encoder nello state dict completo (che include anche text encoder e projection
-# head). Rimossi iterativamente (non in un unico passaggio) perche' possono comparire annidati
-# in qualsiasi ordine/combinazione, es. "module.image_encoder._conv_stem..." -> "_conv_stem...".
+# Common prefixes used to nest image-encoder tensors in complete CLIP state dicts. Remove them
+# iteratively because prefixes may be nested in any order, for example
+# `module.image_encoder._conv_stem...` becomes `_conv_stem...`.
 _CHECKPOINT_PREFIX_CANDIDATES = (
     "module.", "model.", "backbone.", "encoder.", "visual.",
     "image_encoder.", "clip.", "student.", "teacher.", "net.",
@@ -129,26 +128,26 @@ def _strip_known_prefixes(key: str) -> str:
 
 
 class MammoFMConfigError(RuntimeError):
-    """Sollevato quando Mammo-FM non e' configurato o i pesi non sono disponibili/compatibili.
+    """Raised when Mammo-FM is unconfigured or its weights are unavailable or incompatible.
 
-    Deliberatamente NON viene mai gestito con un fallback silenzioso su un backbone generico
-    (DINOv2/RAD-DINO/ImageNet): il notebook deve fermarsi e l'utente deve rendere disponibile
-    il checkpoint Mammo-FM ufficiale nella cache Hugging Face locale.
+    This exception deliberately never triggers a silent fallback to a generic
+    DINOv2, RAD-DINO, or ImageNet backbone. The notebook must stop until the official
+    Mammo-FM checkpoint is available in the local Hugging Face cache.
     """
 
 
 # ---------------------------------------------------------------------------
-# Modello: encoder immagine EfficientNet-B5 (Mammo-FM/Mammo-CLIP) + testa lineare
+# Model: EfficientNet-B5 image encoder (Mammo-FM/Mammo-CLIP) plus linear head
 # ---------------------------------------------------------------------------
 
 class MammoFMImageEncoder(nn.Module):
-    """Wrapper minimale attorno a `efficientnet_pytorch.EfficientNet` per estrarne le feature
-    pooled (global average pooling), coerente con come il checkpoint CLIP ufficiale Mammo-FM
-    usa l'encoder immagine (vedi `breastclip/model/modules/efficientnet_custom.py` del repo
-    batmanlab/Mammo-CLIP: stessa architettura, stessi nomi di parametro `_conv_stem`, `_blocks`,
-    `_conv_head`, ecc.). Il layer `_fc` finale non viene mai usato: il checkpoint ufficiale non
-    lo include (si allena solo per la fase di proiezione CLIP), quindi si estraggono solo le
-    feature pooled prima del classificatore.
+    """Extract globally pooled features from `efficientnet_pytorch.EfficientNet`.
+
+    This matches how the official Mammo-FM CLIP checkpoint uses its image encoder; see
+    `breastclip/model/modules/efficientnet_custom.py` in batmanlab/Mammo-CLIP. The architecture
+    and parameter names (`_conv_stem`, `_blocks`, `_conv_head`, and so on) are the same. The
+    final `_fc` layer is never used or included in the official checkpoint, so this wrapper
+    returns the pooled features immediately before that classifier.
     """
 
     def __init__(self, arch_name: str, out_dim: int):
@@ -157,12 +156,11 @@ class MammoFMImageEncoder(nn.Module):
             from efficientnet_pytorch import EfficientNet
         except ImportError as exc:
             raise MammoFMConfigError(
-                "Il pacchetto 'efficientnet_pytorch' non e' installato: e' necessario per "
-                "costruire l'encoder immagine EfficientNet usato dai checkpoint Mammo-FM "
-                "ufficiali (stessa implementazione custom di batmanlab/Mammo-CLIP). "
-                "Installa con: pip install efficientnet_pytorch"
+                "The 'efficientnet_pytorch' package is required to construct the EfficientNet "
+                "image encoder used by official Mammo-FM checkpoints. Install it with: "
+                "pip install efficientnet_pytorch"
             ) from exc
-        self.model = EfficientNet.from_name(arch_name, num_classes=1)  # num_classes ignorato: _fc non e' usato
+        self.model = EfficientNet.from_name(arch_name, num_classes=1)  # `_fc` is not used.
         self.out_dim = out_dim
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -171,7 +169,7 @@ class MammoFMImageEncoder(nn.Module):
 
 
 class MammoFMClassifier(nn.Module):
-    """Encoder immagine Mammo-FM (EfficientNet-B5) + testa lineare per classificazione binaria."""
+    """Mammo-FM image encoder (EfficientNet-B5) plus a binary-classification head."""
 
     def __init__(self, image_encoder: MammoFMImageEncoder, hidden_size: int,
                  num_classes: int = 1, dropout: float = 0.1):
@@ -191,25 +189,25 @@ def _resolve_checkpoint_path(hf_repo: Optional[str], checkpoint_name: Optional[s
     if use_local_checkpoint:
         if not local_checkpoint_path or not Path(local_checkpoint_path).is_file():
             raise MammoFMConfigError(
-                f"USE_LOCAL_CHECKPOINT=True ma il checkpoint '{local_checkpoint_path}' non "
-                "esiste. Passa un percorso locale valido con i pesi Mammo-FM (es. scaricato "
-                "manualmente da "
+                f"USE_LOCAL_CHECKPOINT=True, but checkpoint '{local_checkpoint_path}' does "
+                "not exist. Provide a valid local path to authorized Mammo-FM weights, for "
+                "example after downloading them manually from "
                 "https://huggingface.co/batmanLab/Mammo-FM)."
             )
         return str(local_checkpoint_path)
 
     if not hf_repo or not checkpoint_name:
         raise MammoFMConfigError(
-            "Mammo-FM non configurato: specifica repository e nome del checkpoint Hugging Face "
-            "ufficiale batmanLab/Mammo-FM, oppure passa direttamente un checkpoint locale. "
-            "Questo notebook non usera' mai un backbone generico come sostituto silenzioso."
+            "Mammo-FM is not configured. Specify the official batmanLab/Mammo-FM Hugging Face "
+            "repository and checkpoint name, or provide a local checkpoint. This notebook "
+            "never silently substitutes a generic backbone."
         )
     try:
         from huggingface_hub import hf_hub_download
     except ImportError as exc:
         raise MammoFMConfigError(
-            "Il pacchetto 'huggingface_hub' non e' installato: e' necessario per scaricare il "
-            "checkpoint Mammo-FM. Installa con: pip install huggingface_hub"
+            "The 'huggingface_hub' package is required to download the Mammo-FM checkpoint. "
+            "Install it with: pip install huggingface_hub"
         ) from exc
     try:
         return hf_hub_download(
@@ -219,15 +217,15 @@ def _resolve_checkpoint_path(hf_repo: Optional[str], checkpoint_name: Optional[s
         )
     except Exception as exc:
         availability = (
-            "Il notebook usa esclusivamente la cache locale: scarica prima il file autorizzato "
-            "nella cache Hugging Face standard."
+            "The notebook uses only the local cache. First download the authorized file to "
+            "the standard Hugging Face cache."
             if local_files_only
-            else "Verifica la connessione di rete e il nome del repository/file."
+            else "Check the network connection and repository/file name."
         )
         raise MammoFMConfigError(
-            f"Impossibile scaricare il checkpoint Mammo-FM '{checkpoint_name}' dal repository "
-            f"Hugging Face '{hf_repo}': {exc}\n"
-            f"{availability} Nessun fallback automatico su un modello generico."
+            f"Could not download Mammo-FM checkpoint '{checkpoint_name}' from Hugging Face "
+            f"repository '{hf_repo}': {exc}\n"
+            f"{availability} There is no automatic fallback to a generic model."
         ) from exc
 
 
@@ -236,16 +234,16 @@ def _load_raw_checkpoint(ckpt_path: str) -> dict:
         raw = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     except ModuleNotFoundError as exc:
         raise MammoFMConfigError(
-            f"Impossibile deserializzare il checkpoint Mammo-FM '{ckpt_path}': modulo mancante "
-            f"({exc}). La configurazione del checkpoint e' salvata con omegaconf/Hydra: "
-            "installa con 'pip install omegaconf' e riprova."
+            f"Could not deserialize Mammo-FM checkpoint '{ckpt_path}': missing module ({exc}). "
+            "The checkpoint configuration uses OmegaConf/Hydra; install it with "
+            "'pip install omegaconf' and retry."
         ) from exc
     if not isinstance(raw, dict) or "model" not in raw or "config" not in raw:
         raise MammoFMConfigError(
-            f"Formato checkpoint non riconosciuto in '{ckpt_path}': attese le chiavi 'model' e "
-            "'config' (formato ufficiale Mammo-CLIP/Mammo-FM: torch.save di un dict con "
-            "{'model': ..., 'config': ..., ...}). Il notebook non tenta un caricamento "
-            "alternativo/generico."
+            f"Unrecognized checkpoint format in '{ckpt_path}': expected 'model' and 'config' "
+            "keys (the official Mammo-CLIP/Mammo-FM format is a torch-saved dictionary with "
+            "{'model': ..., 'config': ..., ...}). The notebook does not attempt a generic "
+            "alternative loader."
         )
     return raw
 
@@ -255,11 +253,11 @@ def _resolve_encoder_arch(enc_config: dict) -> tuple:
     source = str(enc_config.get("source", "")).strip().lower()
     if source != "cnn" or name not in _SUPPORTED_CNN_ENCODERS:
         raise MammoFMConfigError(
-            f"Encoder immagine del checkpoint Mammo-FM non supportato da questo helper "
-            f"(source={enc_config.get('source')!r}, name={name!r}). Questa implementazione "
-            "supporta solo gli encoder CNN EfficientNet usati dai checkpoint Mammo-FM "
-            f"ufficiali: {sorted(_SUPPORTED_CNN_ENCODERS)}. Nessun fallback automatico su "
-            "un'altra architettura (es. DINOv2/RAD-DINO/ViT generico)."
+            f"This helper does not support the Mammo-FM checkpoint image encoder "
+            f"(source={enc_config.get('source')!r}, name={name!r}). It supports only the "
+            f"EfficientNet CNN encoders used by official checkpoints: "
+            f"{sorted(_SUPPORTED_CNN_ENCODERS)}. There is no automatic fallback to a different "
+            "architecture such as DINOv2, RAD-DINO, or a generic ViT."
         )
     return _SUPPORTED_CNN_ENCODERS[name]
 
@@ -296,12 +294,11 @@ def build_mammofm_model(
     dropout: float = 0.1,
     local_files_only: bool = False,
 ):
-    """Costruisce il classificatore Mammo-FM fine-tunabile (EfficientNet-B5 + testa lineare).
+    """Build a trainable Mammo-FM classifier (EfficientNet-B5 plus a linear head).
 
-    Ritorna ``(model, mean, std, img_size, hidden_size, backend, source_desc)``.
-    Solleva ``MammoFMConfigError`` se il checkpoint non e' configurato, non e' raggiungibile,
-    o non e' compatibile con l'architettura attesa: non sostituisce mai silenziosamente
-    Mammo-FM con un backbone generico.
+    Return ``(model, mean, std, img_size, hidden_size, backend, source_desc)``. Raise
+    ``MammoFMConfigError`` if the checkpoint is unconfigured, unreachable, or incompatible
+    with the expected architecture; never silently substitute a generic backbone.
     """
     ckpt_path = _resolve_checkpoint_path(
         hf_repo,
@@ -316,8 +313,8 @@ def build_mammofm_model(
         enc_config = raw["config"]["model"]["image_encoder"]
     except (KeyError, TypeError) as exc:
         raise MammoFMConfigError(
-            f"Checkpoint '{ckpt_path}' privo di config['model']['image_encoder']: impossibile "
-            "determinare l'architettura dell'encoder immagine Mammo-FM."
+            f"Checkpoint '{ckpt_path}' has no config['model']['image_encoder']; the Mammo-FM "
+            "image-encoder architecture cannot be determined."
         ) from exc
 
     arch_name, out_dim = _resolve_encoder_arch(enc_config)
@@ -330,19 +327,18 @@ def build_mammofm_model(
     match_ratio = len(matched_keys) / max(len(backbone_keys), 1)
     if match_ratio < 0.5:
         raise MammoFMConfigError(
-            f"Il checkpoint '{ckpt_path}' non sembra compatibile con l'architettura "
-            f"'{arch_name}' (solo {len(matched_keys)}/{len(backbone_keys)} tensori "
-            "corrispondenti per nome). Verifica il file di checkpoint ufficiale: "
-            "il notebook non procede con un caricamento parziale/errato spacciandolo per "
-            "Mammo-FM."
+            f"Checkpoint '{ckpt_path}' does not appear compatible with architecture "
+            f"'{arch_name}': only {len(matched_keys)}/{len(backbone_keys)} tensors match by "
+            "name. Check the official checkpoint file; the notebook will not present a "
+            "partial or invalid load as Mammo-FM."
         )
-    missing, unexpected = image_encoder.model.load_state_dict(cleaned, strict=False)
+    missing, _ = image_encoder.model.load_state_dict(cleaned, strict=False)
     if missing:
         warnings.warn(
-            f"Checkpoint Mammo-FM: {len(missing)} tensori del backbone non trovati nel "
-            f"checkpoint (rimangono inizializzati casualmente), es. {list(missing)[:3]} "
-            "(atteso: il layer '_fc' finale, non incluso nel checkpoint ufficiale e non usato "
-            "da questo helper, che estrae solo le feature pooled)."
+            f"Mammo-FM checkpoint: {len(missing)} backbone tensors were not found and retain "
+            f"their random initialization, for example {list(missing)[:3]}. The final '_fc' "
+            "layer is expected to be missing because it is absent from the official checkpoint "
+            "and this helper extracts only pooled features."
         )
 
     model = MammoFMClassifier(image_encoder, hidden_size=out_dim, num_classes=num_classes, dropout=dropout)
@@ -355,7 +351,7 @@ def build_mammofm_model(
 
 
 # ---------------------------------------------------------------------------
-# Freeze / unfreeze (fine-tuning reale, nessun adapter/LoRA)
+# Freeze/unfreeze controls for real fine-tuning (no adapter or LoRA)
 # ---------------------------------------------------------------------------
 
 def freeze_backbone_all(model: MammoFMClassifier) -> None:
@@ -371,13 +367,15 @@ def unfreeze_head(model: MammoFMClassifier) -> None:
 
 
 def unfreeze_last_n_blocks(model: MammoFMClassifier, n: int = 2) -> None:
-    """Scongela le ultime n stage MBConv di EfficientNet-B5 + la testa conv finale
-    (`_conv_head`/`_bn1`), analogo allo sblocco degli ultimi block Transformer per i backbone
-    ViT (fine-tuning parziale reale, non adapter)."""
+    """Unfreeze the last ``n`` EfficientNet-B5 MBConv stages and final convolutional head.
+
+    This exposes `_conv_head` and `_bn1` as well, mirroring the partial fine-tuning of the last
+    Transformer blocks in ViT backbones. It is full parameter fine-tuning, not an adapter.
+    """
     backbone = model.image_encoder.model  # efficientnet_pytorch.EfficientNet
     blocks = list(backbone._blocks)
     if not blocks:
-        raise MammoFMConfigError("Impossibile individuare i blocchi MBConv del backbone Mammo-FM.")
+        raise MammoFMConfigError("Could not locate the Mammo-FM backbone's MBConv blocks.")
     for block in blocks[-int(n):]:
         for p in block.parameters():
             p.requires_grad_(True)
@@ -393,29 +391,33 @@ def unfreeze_all(model: MammoFMClassifier) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Preprocessing / Dataset (grayscale->RGB, normalizzazione ufficiale Mammo-FM)
+# Preprocessing/dataset (grayscale to RGB with official Mammo-FM normalization)
 # ---------------------------------------------------------------------------
 
 def _apply_clahe(arr: np.ndarray, clip_limit: float = 2.0, tile_grid_size: tuple = (8, 8)) -> np.ndarray:
-    """CLAHE come nel preprocessing ufficiale di pre-training Mammo-CLIP/Mammo-FM
-    (`configs/transform/clahe.yaml`). Usata solo se `USE_CLAHE_PREPROCESSING=True` nel notebook
-    (disattivata di default per coerenza con gli altri classificatori del progetto)."""
+    """Apply CLAHE as in official Mammo-CLIP/Mammo-FM pre-training preprocessing.
+
+    See `configs/transform/clahe.yaml` upstream. The notebook uses this only when
+    `USE_CLAHE_PREPROCESSING=True`; it is disabled by default for protocol consistency.
+    """
     try:
         import cv2
     except ImportError as exc:
         raise MammoFMConfigError(
-            "USE_CLAHE_PREPROCESSING=True richiede il pacchetto opencv (cv2), non installato. "
-            "Installa con: pip install opencv-python-headless"
+            "USE_CLAHE_PREPROCESSING=True requires the OpenCV (cv2) package. Install it with: "
+            "pip install opencv-python-headless"
         ) from exc
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
     return clahe.apply(np.clip(arr, 0, 255).astype(np.uint8)).astype(np.float32)
 
 
 class MammoFMDataset(Dataset):
-    """Carica mammografie grayscale, le replica su 3 canali (richiesto dall'encoder EfficientNet-B5
-    di Mammo-FM: `_conv_stem` ha 3 canali in ingresso nel checkpoint ufficiale) e applica la
-    normalizzazione ufficiale Mammo-CLIP/Mammo-FM: min-max per immagine in [0,1], poi
-    standardizzazione con `mean`/`std` (scalari, non statistiche ImageNet)."""
+    """Load grayscale mammograms and apply official Mammo-CLIP/Mammo-FM normalization.
+
+    Replicate each image to three channels because the official EfficientNet-B5 checkpoint's
+    `_conv_stem` expects RGB input. Normalize each image to [0, 1], then standardize it with
+    the scalar `mean` and `std` values rather than ImageNet statistics.
+    """
 
     def __init__(self, paths, labels, mean: float, std: float, img_size: int,
                  augment: bool = False, use_clahe: bool = False, metadata=None):
@@ -442,8 +444,8 @@ class MammoFMDataset(Dataset):
             arr = _apply_clahe(arr)
 
         if self.augment:
-            # Il preprocessing orienta gia' il tessuto: evitare flip mantiene la stessa
-            # convenzione anatomica degli altri classificatori del progetto.
+            # Preprocessing already orients the tissue. Avoiding flips preserves the anatomical
+            # convention used by the project's other classifiers.
             arr = np.clip(arr + np.random.uniform(-0.05 * 255, 0.05 * 255), 0.0, 255.0)
 
         arr_min, arr_max = float(arr.min()), float(arr.max())
@@ -453,7 +455,7 @@ class MammoFMDataset(Dataset):
             arr = np.zeros_like(arr)
         arr = (arr - self.mean) / self.std
 
-        tensor = torch.from_numpy(arr).unsqueeze(0).repeat(3, 1, 1).float()  # 1 canale -> 3 canali (RGB)
+        tensor = torch.from_numpy(arr).unsqueeze(0).repeat(3, 1, 1).float()  # One channel to RGB.
         result = (tensor, torch.tensor(label, dtype=torch.float32))
         return (*result, self.metadata[idx]) if self.metadata is not None else result
 
@@ -463,11 +465,11 @@ def make_mammofm_dataloader(df: pd.DataFrame, path_col: str, label_col: str,
                              batch_size: int = 8, shuffle: bool = False, augment: bool = False,
                              use_clahe: bool = False, seed: int = 42, num_workers: int = 2,
                              drop_last: Optional[bool] = None, metadata=None) -> DataLoader:
-    """Costruisce un DataLoader coerente con lo stile di `maxvit_utils.make_dataloader`.
+    """Build a DataLoader consistent with `maxvit_utils.make_dataloader`.
 
-    `drop_last` di default resta `None` (equivalente a `drop_last=shuffle`); i notebook
-    Mammo-FM lo impostano esplicitamente a `False` sul train loader per non perdere immagini
-    nell'ultimo batch parziale (il dataset reale e' piccolo e sbilanciato).
+    The default `drop_last=None` is equivalent to `drop_last=shuffle`. Mammo-FM notebooks set
+    it explicitly to `False` on training loaders so that a partial final batch is retained for
+    the small, imbalanced real dataset.
     """
     dataset = MammoFMDataset(
         paths=df[path_col].values, labels=df[label_col].values,
@@ -484,7 +486,7 @@ def make_mammofm_dataloader(df: pd.DataFrame, path_col: str, label_col: str,
 
 
 # ---------------------------------------------------------------------------
-# Dataset loader con tracciamento della sorgente (real / synthetic / augmented)
+# Dataset loaders with source tracking (real/synthetic/augmented)
 # ---------------------------------------------------------------------------
 
 def image_paths(directory) -> list:
@@ -498,7 +500,7 @@ def image_paths(directory) -> list:
 
 
 def load_real_split(base_path, split: str) -> pd.DataFrame:
-    """Carica le immagini reali gia' preprocessate di uno split (train/val/test)."""
+    """Load preprocessed real images for one train, validation, or test split."""
     rows = []
     split_dir = Path(base_path) / "data" / "processed" / split
     for label in (0, 1):
@@ -509,12 +511,12 @@ def load_real_split(base_path, split: str) -> pd.DataFrame:
             })
     df = pd.DataFrame(rows)
     if df.empty:
-        raise FileNotFoundError(f"Nessuna immagine reale trovata in {split_dir}")
+        raise FileNotFoundError(f"No real images found in {split_dir}")
     return df
 
 
 def load_synthetic_both(root, source_name: str, split_label: str = "train") -> pd.DataFrame:
-    """Carica le sintetiche filtrate (positive/negative) da una cartella `root`."""
+    """Load filtered positive and negative synthetic images from `root`."""
     root = Path(root)
     rows = []
     for folder, label in (("negative", 0), ("positive", 1)):
@@ -522,9 +524,8 @@ def load_synthetic_both(root, source_name: str, split_label: str = "train") -> p
         paths = image_paths(folder_path)
         if not paths:
             raise FileNotFoundError(
-                f"Nessuna immagine sintetica '{folder}' in {folder_path}. "
-                "Esegui prima il notebook generativo/di filtraggio corrispondente, "
-                "oppure verifica il path configurato."
+                f"No '{folder}' synthetic images found in {folder_path}. Run the corresponding "
+                "generation/filtering notebook first or check the configured path."
             )
         for path in paths:
             rows.append({
@@ -535,12 +536,12 @@ def load_synthetic_both(root, source_name: str, split_label: str = "train") -> p
 
 
 def load_augmented_positive(base_path, split_label: str = "train") -> pd.DataFrame:
-    """Carica il dataset di augmentation tradizionale (`data/real_augmented`)."""
+    """Load the traditional-augmentation dataset (`data/real_augmented`)."""
     aug_dir = Path(base_path) / "data" / "real_augmented"
     rows = []
     if not aug_dir.is_dir():
         raise FileNotFoundError(
-            f"Cartella {aug_dir} mancante. Esegui prima 02_Data_Augmentation_Trad.ipynb."
+            f"Directory {aug_dir} is missing. Run 02_Data_Augmentation_Trad.ipynb first."
         )
     for path in image_paths(aug_dir):
         match = _LABEL_RE.search(path.name)
@@ -552,49 +553,49 @@ def load_augmented_positive(base_path, split_label: str = "train") -> pd.DataFra
         })
     df = pd.DataFrame(rows)
     if df.empty:
-        raise FileNotFoundError(f"Nessuna immagine augmentata riconosciuta in {aug_dir}")
+        raise FileNotFoundError(f"No recognized augmented images found in {aug_dir}")
     return df
 
 
 def print_counts(name: str, df: pd.DataFrame) -> None:
     labels = df["cancer"].astype(int)
-    print(f"{name:24s} tot={len(df):5d} | sano(0)={(labels == 0).sum():5d} | malato(1)={(labels == 1).sum():5d}")
+    print(f"{name:24s} total={len(df):5d} | healthy(0)={(labels == 0).sum():5d} | cancer(1)={(labels == 1).sum():5d}")
 
 
 def source_table(df: pd.DataFrame) -> pd.DataFrame:
     table = pd.crosstab(df["source_detail"], df["cancer"])
-    table = table.rename(columns={0: "sano_0", 1: "malato_1"})
-    table["totale"] = table.sum(axis=1)
+    table = table.rename(columns={0: "healthy_0", 1: "cancer_1"})
+    table["total"] = table.sum(axis=1)
     return table
 
 
 def check_duplicate_paths(df: pd.DataFrame, path_col: str = "processed_path") -> int:
-    """Segnala (warning) eventuali path duplicati nel dataframe combinato di training."""
+    """Warn about duplicate paths in the combined training dataframe."""
     dup_mask = df.duplicated(subset=[path_col], keep=False)
     n_dup = int(dup_mask.sum())
     if n_dup > 0:
         examples = df.loc[dup_mask, path_col].unique()[:5].tolist()
-        warnings.warn(f"Trovati {n_dup} path duplicati nel dataset combinato: {examples} ...")
+        warnings.warn(f"Found {n_dup} duplicate paths in the combined dataset: {examples} ...")
     return n_dup
 
 
 def check_no_split_overlap(splits: dict) -> None:
-    """Verifica che nessun path reale compaia in piu' di uno split (anti data-leakage).
+    """Verify that no real path appears in more than one split.
 
-    ``splits`` e' un dict {nome_split: dataframe} con colonna ``processed_path``.
+    ``splits`` maps split names to dataframes containing a ``processed_path`` column.
     """
     seen = {}
     for name, df in splits.items():
         for p in df["processed_path"]:
             if p in seen and seen[p] != name:
                 raise AssertionError(
-                    f"Data leakage rilevato: '{p}' presente sia in '{seen[p]}' che in '{name}'."
+                    f"Data leakage detected: '{p}' appears in both '{seen[p]}' and '{name}'."
                 )
             seen[p] = name
 
 
 # ---------------------------------------------------------------------------
-# Training con mixed precision, gradient clipping, gradient accumulation
+# Training with mixed precision, gradient clipping, and gradient accumulation
 # ---------------------------------------------------------------------------
 
 def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None,
@@ -604,7 +605,7 @@ def train_one_epoch_amp(model, loader, optimizer, criterion, device, scaler=None
     from sklearn.metrics import average_precision_score, roc_auc_score
 
     model.train()
-    refreeze_batchnorm(model)  # le BatchNorm2d di EfficientNet congelate restano in eval()
+    refreeze_batchnorm(model)  # Frozen EfficientNet BatchNorm2d layers remain in eval mode.
     total_loss, n_seen = 0.0, 0
     y_true, y_prob = [], []
     optimizer.zero_grad(set_to_none=True)
@@ -700,15 +701,14 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
                 scaler=None, on_optimizer_step=None, on_before_optimizer_step=None,
                 on_epoch_begin=None, on_epoch_end=None, on_batch_processed=None,
                 resume_history: dict | None = None) -> History:
-    """Training loop stile Keras (fit) con AMP + gradient clipping + gradient accumulation.
+    """Run a Keras-style fit loop with AMP, clipping, and gradient accumulation.
 
-    Non duplica `maxvit_utils.fit`: qui serve gestire esplicitamente le BatchNorm2d
-    dell'encoder EfficientNet (assenti nei backbone ViT usati da MammoDINO/RAD-DINO) oltre
-    ad AMP/accumulo del gradiente.
+    This is distinct from `maxvit_utils.fit` because it explicitly handles the EfficientNet
+    encoder's BatchNorm2d layers, which are absent from the ViT backbones, in addition to AMP
+    and gradient accumulation.
 
-    `resume_history`, se presente, riempie la history con le epoche di un segmento
-    precedente (resume), cosi' un checkpoint periodico o finale non perde mai le metriche
-    gia' registrate prima dell'interruzione.
+    When present, `resume_history` seeds the history with epochs from an earlier segment so a
+    periodic or final checkpoint never loses metrics recorded before interruption.
     """
     history = History()
     if resume_history:
@@ -752,7 +752,7 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
         if on_epoch_end is not None:
             on_epoch_end(epoch, global_step, scaler, history, val_metrics, improved)
         if early_stopping is not None and early_stopping.stop:
-            print(f"Early stopping all'epoca {epoch} (best val_pr_auc={early_stopping.best:.4f})")
+            print(f"Early stopping at epoch {epoch} (best val_pr_auc={early_stopping.best:.4f})")
             break
         if max_optimizer_updates is not None and global_step >= max_optimizer_updates:
             break
@@ -766,7 +766,7 @@ def fit_mammofm(model, train_loader, val_loader, optimizer, criterion, epochs: i
 
 def predict_with_probs(model, df: pd.DataFrame, path_col: str, label_col: str,
                         mean: float, std: float, img_size: int, batch_size: int, device) -> tuple:
-    """Predice su un dataframe con shuffle=False: l'ordine di y_true/y_prob combacia con df."""
+    """Predict with shuffle disabled so `y_true` and `y_prob` preserve dataframe order."""
     loader = make_mammofm_dataloader(
         df, path_col, label_col, mean, std, img_size, batch_size=batch_size, shuffle=False,
     )
@@ -780,12 +780,12 @@ def predict_with_probs(model, df: pd.DataFrame, path_col: str, label_col: str,
     y_prob = np.array(y_prob)
     y_true = df[label_col].values.astype(int)
     if len(y_prob) != len(df):
-        raise RuntimeError("Mismatch tra numero di predizioni e righe del dataframe (shuffle inatteso?).")
+        raise RuntimeError("Prediction count does not match dataframe rows; was shuffling enabled?")
     return y_true, y_prob
 
 
 # ---------------------------------------------------------------------------
-# Metriche estese
+# Extended metrics
 # ---------------------------------------------------------------------------
 
 def compute_full_metrics(y_true, y_prob, threshold: float, split: str,
@@ -808,7 +808,7 @@ def compute_full_metrics(y_true, y_prob, threshold: float, split: str,
     y_pred = (y_prob >= threshold).astype(int)
 
     cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
-    tn, fp, fn, tp = cm.ravel()
+    tn, fp, _, _ = cm.ravel()
     specificity = float(tn / (tn + fp)) if (tn + fp) > 0 else float("nan")
 
     metrics = {
@@ -828,7 +828,7 @@ def compute_full_metrics(y_true, y_prob, threshold: float, split: str,
         "brier_score": round(float(brier_score_loss(y_true, y_prob)), 4),
         "confusion_matrix": cm.tolist(),
         "classification_report": classification_report(
-            y_true, y_pred, target_names=["Sano", "Malato"], zero_division=0
+            y_true, y_pred, target_names=["Healthy", "Cancer"], zero_division=0
         ),
     }
     if extra:
@@ -846,12 +846,12 @@ def plot_training_history(history: History, title_suffix: str, save_path) -> Non
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
     ax1.plot(history.history["loss"], label="Train Loss", linewidth=2)
     ax1.plot(history.history["val_loss"], label="Val Loss", linewidth=2)
-    ax1.set(title=f"Loss {title_suffix}", xlabel="Epoca", ylabel="Loss")
+    ax1.set(title=f"Loss {title_suffix}", xlabel="Epoch", ylabel="Loss")
     ax1.legend(); ax1.grid(True, linestyle="--", alpha=0.6)
 
     ax2.plot(history.history["auc"], label="Train AUC", linewidth=2)
     ax2.plot(history.history["val_auc"], label="Val AUC", linewidth=2)
-    ax2.set(title=f"AUC {title_suffix}", xlabel="Epoca", ylabel="AUC")
+    ax2.set(title=f"AUC {title_suffix}", xlabel="Epoch", ylabel="AUC")
     ax2.legend(); ax2.grid(True, linestyle="--", alpha=0.6)
 
     fig.tight_layout()
@@ -879,8 +879,8 @@ def plot_roc_pr_confusion(y_true, y_prob, y_pred, title: str, save_path) -> None
     fig, axes = plt.subplots(1, 3, figsize=(18, 4.5))
     axes[0].imshow(cm, cmap="Blues")
     axes[0].set_xticks([0, 1]); axes[0].set_yticks([0, 1])
-    axes[0].set_xticklabels(["Sano", "Malato"]); axes[0].set_yticklabels(["Sano", "Malato"])
-    axes[0].set_xlabel("Predetto"); axes[0].set_ylabel("Reale"); axes[0].set_title("Confusion Matrix")
+    axes[0].set_xticklabels(["Healthy", "Cancer"]); axes[0].set_yticklabels(["Healthy", "Cancer"])
+    axes[0].set_xlabel("Predicted"); axes[0].set_ylabel("Actual"); axes[0].set_title("Confusion Matrix")
     for i in range(2):
         for j in range(2):
             color = "white" if cm[i, j] > cm.max() / 2 else "black"
@@ -913,9 +913,9 @@ def plot_calibration_curve(y_true, y_prob, title: str, save_path, n_bins: int = 
 
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.plot(mean_pred, frac_pos, "o-", label=f"Brier={brier:.4f}")
-    ax.plot([0, 1], [0, 1], "--", color="gray", label="Calibrazione ideale")
-    ax.set_xlabel("Probabilita' predetta media")
-    ax.set_ylabel("Frazione di positivi osservata")
+    ax.plot([0, 1], [0, 1], "--", color="gray", label="Ideal calibration")
+    ax.set_xlabel("Mean predicted probability")
+    ax.set_ylabel("Observed positive fraction")
     ax.set_title(title)
     ax.legend(); ax.grid(True, alpha=0.3)
     fig.tight_layout()
@@ -925,7 +925,7 @@ def plot_calibration_curve(y_true, y_prob, title: str, save_path, n_bins: int = 
 
 
 # ---------------------------------------------------------------------------
-# Salvataggio risultati
+# Result persistence
 # ---------------------------------------------------------------------------
 
 def seed_everything(seed: int) -> None:
@@ -953,10 +953,10 @@ def save_training_history_csv(history: History, path) -> None:
 
 
 def save_training_history_combined_csv(history_phase1: History, history_phase2: History, path) -> None:
-    """Salva un unico CSV con lo storico di entrambe le fasi, con colonna `phase`.
+    """Save both training phases in one CSV with an explicit `phase` column.
 
-    Non sostituisce i CSV separati per fase (`training_history_fase1.csv` /
-    `training_history_fase2.csv`), che restano comunque salvati a parte.
+    This does not replace the compatibility files `training_history_fase1.csv` and
+    `training_history_fase2.csv`, which remain separate artifacts.
     """
     df1 = pd.DataFrame(history_phase1.history)
     df1.insert(0, "epoch", np.arange(1, len(df1) + 1))
@@ -989,36 +989,36 @@ def save_test_predictions(df_test: pd.DataFrame, y_true, y_prob, threshold: floa
 
 
 def auto_interpret(test_metrics: dict, val_metrics: dict, config_name: str) -> str:
-    """Genera un breve testo di interpretazione automatica dei risultati del test set."""
+    """Generate a short automatic interpretation of test-set results."""
     auc = test_metrics["roc_auc"]
     if auc >= 0.9:
-        qualita = "eccellente"
+        quality = "excellent"
     elif auc >= 0.8:
-        qualita = "buona"
+        quality = "good"
     elif auc >= 0.7:
-        qualita = "discreta"
+        quality = "fair"
     elif auc >= 0.6:
-        qualita = "debole"
+        quality = "weak"
     else:
-        qualita = "scarsa (vicina al caso)"
+        quality = "poor (close to chance)"
 
     delta_auc = test_metrics["roc_auc"] - val_metrics["roc_auc"]
     overfit_note = ""
     if abs(delta_auc) > 0.05:
         overfit_note = (
-            f"\n- **Attenzione**: scarto ROC-AUC val->test di {delta_auc:+.4f}, "
-            "possibile overfitting sul validation set o shift di distribuzione tra i due split."
+            f"\n- **Warning**: validation-to-test ROC-AUC gap of {delta_auc:+.4f}; this may "
+            "indicate validation overfitting or a distribution shift between splits."
         )
 
     lines = [
-        f"### Interpretazione automatica — {config_name}",
+        f"### Automatic interpretation — {config_name}",
         "",
-        f"- ROC-AUC sul test set: **{test_metrics['roc_auc']:.4f}** -> capacita' discriminativa {qualita}.",
+        f"- Test-set ROC-AUC: **{test_metrics['roc_auc']:.4f}** -> {quality} discrimination.",
         f"- PR-AUC (average precision): **{test_metrics['pr_auc_average_precision']:.4f}**.",
         f"- Balanced Accuracy: **{test_metrics['balanced_accuracy']:.4f}**, F1: **{test_metrics['f1']:.4f}**.",
         f"- Sensitivity/Recall: **{test_metrics['recall_sensitivity']:.4f}**, "
         f"Specificity: **{test_metrics['specificity']:.4f}**.",
-        f"- Brier score: **{test_metrics['brier_score']:.4f}** (piu' basso = probabilita' meglio calibrate)."
+        f"- Brier score: **{test_metrics['brier_score']:.4f}** (lower means better-calibrated probabilities)."
         + overfit_note,
     ]
     return "\n".join(lines)

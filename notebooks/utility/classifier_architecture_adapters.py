@@ -15,28 +15,6 @@ ACCOUNTING_FIELDS = (
 )
 
 
-class _FixedBatchLoader:
-    def __init__(self, loader, batch_count):
-        self.loader = loader
-        self.batch_count = int(batch_count)
-
-    def __len__(self):
-        return self.batch_count
-
-    def __iter__(self):
-        emitted = 0
-        while emitted < self.batch_count:
-            cycle_count = 0
-            for batch in self.loader:
-                yield batch
-                emitted += 1
-                cycle_count += 1
-                if emitted >= self.batch_count:
-                    return
-            if cycle_count == 0:
-                raise RuntimeError("training loader is empty")
-
-
 def _pytorch_resume_position(payload: dict) -> tuple[int, int]:
     if int(payload.get("batch_index", -1)) != -1:
         raise RuntimeError("classifier resume checkpoints must be saved at a validated block boundary")
@@ -91,27 +69,6 @@ def _torch_payload(raw):
     if all(has_module):
         state = {key.removeprefix("module."): value for key, value in state.items()}
     return state
-
-
-def _validate_resume_payload(payload: dict) -> None:
-    required = (
-        "model_state_dict",
-        "optimizer_state_dict",
-        "scheduler_state_dict",
-        "epoch",
-        "global_step",
-        "rng_states",
-        "source_accounting",
-    )
-    missing = [key for key in required if key not in payload]
-    if missing:
-        raise RuntimeError(f"resume checkpoint is incomplete: {missing}")
-    accounting = payload["source_accounting"]
-    if accounting.get("accounting_mode") != "actual":
-        raise RuntimeError("resume checkpoint lacks actual source accounting")
-    missing_accounting = [field for field in ACCOUNTING_FIELDS if field not in accounting]
-    if missing_accounting:
-        raise RuntimeError(f"resume checkpoint source accounting is incomplete: {missing_accounting}")
 
 
 class ArchitectureAdapter:

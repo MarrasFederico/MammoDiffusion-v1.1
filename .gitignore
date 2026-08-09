@@ -1,10 +1,10 @@
 # ================================
-# DATASET E DATI
+# DATASETS AND DATA
 # ================================
 data/
 
 # ================================
-# MODELLI E CHECKPOINTS
+# MODELS AND CHECKPOINTS
 # ================================
 *.keras
 *.pt
@@ -23,12 +23,12 @@ data/
 *.feather
 
 # ================================
-# ESPERIMENTI - solo pesi, non i risultati
+# EXPERIMENTS - weights only, not results
 # ================================
-# I file val_metrics.json vengono tracciati (risultati utili)
-# I pesi (.keras/.pt/.pth/.ckpt) sono già coperti dalle regole sopra
+# val_metrics.json files remain tracked because they are useful results.
+# Weight extensions (.keras/.pt/.pth/.ckpt) are already covered above.
 
-# Cache/modelli locali condivisi dai notebook
+# Local caches and models shared by notebooks
 notebooks/pretrained_model/
 notebooks/utility/diffusers_repo/
 /.cache/
@@ -42,7 +42,7 @@ MammoDiffusion_local_archive/
 
 
 # ================================
-# ESPERIMENTI DIFFUSORI - cartelle intere (troppo grandi per GitHub)
+# DIFFUSION EXPERIMENTS - entire directories (too large for GitHub)
 # ================================
 # Fine-tuning Stable Diffusion (notebook 03a/03b/03c/03d):
 #   03a -> 20260607_sd21_rsna_mlo_512
@@ -54,26 +54,26 @@ experiments/*_sd21_*/
 #   04a  -> 20260617_ldm_basic
 #   04b* -> ..._ldm_keras_v2_extra1361, 20260703_ldm_sdvae_extra1361, 20260707_ldm_v3_sdvae_extra1361
 experiments/*_ldm_*/
-# Nuova struttura: gli esperimenti dei diffusori contengono repository, cache e
-# checkpoint molto grandi. Codice e metriche restano in notebooks/ e results/.
+# Current layout: diffusion experiment directories contain very large repositories, caches,
+# and checkpoints. Code and metrics remain under notebooks/ and results/.
 experiments/diffusers/
-# Output di 04d (ottimizzazione sampling di un LDM sorgente)
+# 04d outputs (sampling optimization for a source LDM)
 experiments/04d_ldm_*/
-# Le cartelle experiments/exp_maxvit512_*, experiments/exp_mammofm_*, experiments/exp_raddino_*
-# e experiments/compare_22c_* (classificatori) restano tracciate.
-# Classificatori publication-oriented: checkpoint/resume locali per 24 job.
+# Classifier directories matching experiments/exp_maxvit512_*, experiments/exp_mammofm_*,
+# experiments/exp_raddino_*, and experiments/compare_22c_* remain tracked.
+# Publication-oriented classifiers: local checkpoint/resume state for 24 jobs.
 experiments/classifiers/
 # Local outputs from the archived full matrix remain recoverable but are not active/tracked.
 experiments/classifiers_matrix/
 results/classifiers_matrix/
 results/runtime_profiles/
 
-# Mammo-FM: la licenza vieta la redistribuzione dei pesi e dei derivati.
+# Mammo-FM: its license prohibits redistribution of weights and derivatives.
 *Mammo-FM*Trained*.tar
 *mammo*fm*checkpoint*
 *mammofm*checkpoint*
 
-# Zip di backup dei notebook creati fuori workflow (non versionare)
+# Notebook backup archives created outside the workflow (do not version)
 notebooks*.zip
 new*.zip
 tests*.zip
@@ -82,17 +82,17 @@ tests*.zip
 *.tar.gz
 *.tgz
 
-# Struttura piatta precedente, conservata solo come archivio locale.
+# Previous flat layout, retained only as a local archive.
 /old/
 
 # ================================
-# FORMATI DATI TABELLARI
+# TABULAR DATA FORMATS
 # ================================
 *.tsv
 *.xml
 
 # ================================
-# AMBIENTE PYTHON
+# PYTHON ENVIRONMENT
 # ================================
 venv/
 .env/
@@ -139,7 +139,7 @@ data/synthetic/
 *maxvit*checkpoint*
 
 # ================================
-# LOGGING E MONITORING
+# LOGGING AND MONITORING
 # ================================
 wandb/
 *.log
@@ -147,14 +147,14 @@ mlruns/
 lightning_logs/
 
 # ================================
-# CONFIGURAZIONI LOCALI
+# LOCAL CONFIGURATION
 # ================================
 .env
 config_local.py
 *.local.py
 
 # ================================
-# SISTEMA OPERATIVO
+# OPERATING SYSTEM
 # ================================
 .DS_Store
 Thumbs.db

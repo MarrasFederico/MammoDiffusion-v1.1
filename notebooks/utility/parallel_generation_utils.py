@@ -143,16 +143,16 @@ def print_gpu_resolution_dry_run(
     This prints physical/requested/resolved GPUs and the worker count so that
     behaviour is visible before a real run starts, instead of changing it.
     """
-    print("GPU fisiche (nvidia-smi):", _devices_from_nvidia_smi() or "nessuna rilevata")
-    print("CUDA_VISIBLE_DEVICES ereditato:", os.environ.get("CUDA_VISIBLE_DEVICES"))
-    print("GPU richieste (--generation-gpus):", requested_devices)
+    print("Physical GPUs (nvidia-smi):", _devices_from_nvidia_smi() or "none detected")
+    print("Inherited CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
+    print("Requested GPUs (--generation-gpus):", requested_devices)
     try:
         devices = resolve_generation_gpu_devices(requested_devices, max_workers)
     except RuntimeError as exc:
-        print("GPU risolte: ERRORE ->", exc)
+        print("Resolved GPUs: ERROR ->", exc)
         return []
-    print("GPU risolte:", devices)
-    print("Numero worker:", len(devices))
+    print("Resolved GPUs:", devices)
+    print("Worker count:", len(devices))
     return devices
 
 
@@ -304,7 +304,7 @@ def exact_filtered_png_paths(directory: Path, count: int) -> list[Path]:
     if readable != expected or canonical != expected_names:
         missing = sorted(expected_names - {path.name for path in readable})
         extra = sorted(canonical - expected_names)
-        raise RuntimeError(f"Sequenza FILTERED non valida: missing={missing}, extra={extra}")
+        raise RuntimeError(f"Invalid FILTERED sequence: missing={missing}, extra={extra}")
     return expected
 
 
@@ -1094,10 +1094,10 @@ def acquire_parallel_generation_lock(out_dir: Path) -> Path:
         holder_pid = _read_lock_pid(lock_path)
         if holder_pid is not None and _pid_is_running(holder_pid):
             raise RuntimeError(
-                f"Un'altra orchestrazione (PID {holder_pid}) detiene gia' {lock_path}; "
-                f"rifiuto una seconda orchestrazione parallela concorrente su {out_dir}."
+                f"Another orchestration (PID {holder_pid}) already holds {lock_path}; "
+                f"refusing a second concurrent parallel orchestration for {out_dir}."
             )
-        print(f"WARNING: rimuovo lock stale ({lock_path}) del PID {holder_pid}, non piu' attivo.")
+        print(f"WARNING: removing stale lock ({lock_path}) from inactive PID {holder_pid}.")
         try:
             lock_path.unlink()
         except OSError:
@@ -1181,9 +1181,8 @@ def run_sd_generation_jobs(
                 prepare_sd_manifest(
                     request,
                     checkpoint_path=job["checkpoint_path"],
-                    # I PNG gia presenti sono output di una precedente esecuzione
-                    # del notebook. Il controllo stretto resta disponibile ai
-                    # chiamanti espliciti, ma il workflow notebook li riusa.
+    # Existing PNGs are outputs from an earlier notebook run. Strict validation
+    # remains available to explicit callers, while the notebook workflow reuses them.
                     allow_legacy_seed_mix=bool(request.get("allow_legacy_seed_mix", True)),
                     dry_run=dry_run,
                 )
@@ -1228,7 +1227,7 @@ def run_sd_final_generation(
             "label": f"final_dynamic_worker_{worker_id}", "worker_id": worker_id,
             "checkpoint_path": str(checkpoint_path), "checkpoint_type": checkpoint_type,
             "base_model_dir": str(base_model_dir), "requests": [dict(request) for request in requests],
-        } for worker_id, _device in enumerate(devices)]
+        } for worker_id in range(len(devices))]
         return run_sd_generation_jobs(
             jobs, ",".join(devices), len(devices), logs_dir, project_root, dry_run=dry_run,
             generation_scheduler=generation_scheduler, reservation_size=reservation_size,

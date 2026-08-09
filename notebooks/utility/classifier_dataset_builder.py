@@ -481,16 +481,3 @@ def build_training_and_validation_rows(root: Path, variant: dict) -> tuple[list[
         "patient_overlap": [],
     }
     return train_rows, val_rows, dataset_metadata
-
-
-def write_dataset_manifest(root: Path, variant: dict, file_list: dict, out_path: Path) -> dict:
-    payload = {
-        "schema_version": 1,
-        "dataset_variant_id": variant["dataset_variant_id"],
-        "counts": {k: len(v) for k, v in file_list.items()},
-        "signature": dataset_manifest_signature(root, file_list),
-        "files": file_list,
-    }
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n")
-    return payload

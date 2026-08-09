@@ -131,13 +131,13 @@ def compute_reference_statistics(
 ) -> dict:
     paths = [Path(path) for path in reference_paths]
     if not paths:
-        raise ValueError("Nessuna immagine reale per calibrare il filtro.")
+        raise ValueError("No real images are available to calibrate the filter.")
 
     rows = []
     for index, path in enumerate(paths, start=1):
         rows.append({"path": str(path), **image_quality_metrics(path, nonblack_threshold)})
         if verbose and (index % 100 == 0 or index == len(paths)):
-            print(f"  Calibrazione filtro: {index}/{len(paths)}")
+            print(f"  Filter calibration: {index}/{len(paths)}")
 
     train_metrics = pd.DataFrame(rows)
     thresholds = {
@@ -216,17 +216,6 @@ def _image_signature(paths: list[Path]) -> list[dict]:
     return [file_content_signature(path) for path in paths]
 
 
-def _existing_filtered_complete(filtered_dir: Path, n_selected: int) -> bool:
-    for index in range(n_selected):
-        path = filtered_dir / f"synth_filtered_{index:04d}.png"
-        try:
-            with Image.open(path) as image:
-                image.verify()
-        except Exception:
-            return False
-    return True
-
-
 def _valid_png(path: Path) -> bool:
     try:
         with Image.open(path) as image:
@@ -270,7 +259,7 @@ def _make_filter_plots(
     for ax in axes.ravel():
         if not ax.has_data():
             ax.axis("off")
-    plt.suptitle("Filtro adattivo | selezionate vs rifiutate", fontsize=11)
+    plt.suptitle("Adaptive filter | selected vs rejected", fontsize=11)
     plt.tight_layout()
     plt.savefig(sample_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -280,16 +269,16 @@ def _make_filter_plots(
     axes[0].hist(accepted_df["score"], bins=40, color="steelblue", edgecolor="white")
     if not selected_df.empty:
         axes[0].axvline(selected_df["score"].min(), color="red", ls="--")
-    axes[0].set_title("Score distribuzione")
+    axes[0].set_title("Score distribution")
     axes[0].grid(True, alpha=0.4)
     for ax, feature, title in zip(
         axes[1:],
         ["nonblack_ratio", "std_nonblack"],
         ["nonblack_ratio", "std_nonblack"],
     ):
-        ax.hist(candidates_df[feature], bins=40, color="orange", alpha=0.7, label="sintetiche")
-        ax.hist(train_metrics_df[feature], bins=40, color="green", alpha=0.7, label="reali train")
-        ax.set_title(f"Confronto {title}")
+        ax.hist(candidates_df[feature], bins=40, color="orange", alpha=0.7, label="synthetic")
+        ax.hist(train_metrics_df[feature], bins=40, color="green", alpha=0.7, label="real train")
+        ax.set_title(f"{title} comparison")
         ax.legend()
         ax.grid(True, alpha=0.4)
     plt.tight_layout()
@@ -334,10 +323,10 @@ def filter_generated_directory(
     if missing_or_corrupt or canonical_out_of_range:
         details = []
         if missing_or_corrupt:
-            details.append(f"indici mancanti o corrotti={missing_or_corrupt}")
+            details.append(f"missing or corrupt indices={missing_or_corrupt}")
         if canonical_out_of_range:
-            details.append(f"indici canonici fuori range={sorted(canonical_out_of_range)}")
-        raise RuntimeError("RAW non valido: " + "; ".join(details))
+            details.append(f"out-of-range canonical indices={sorted(canonical_out_of_range)}")
+        raise RuntimeError("invalid RAW pool: " + "; ".join(details))
     raw_paths = expected_raw_paths
     reference_paths = [Path(path) for path in reference_paths]
     input_signature = {
@@ -363,8 +352,8 @@ def filter_generated_directory(
     ):
         if verbose:
             print(
-                f"Filtro gia' completo: {n_selected} PNG presenti in {filtered_dir} "
-                "(selezione precedente mantenuta, skip)."
+                f"Filter already complete: {n_selected} PNG files present in {filtered_dir} "
+                "(previous selection retained; skipping)."
             )
         return {**cached_summary, "cached": True}
 
@@ -376,13 +365,13 @@ def filter_generated_directory(
         verbose=verbose,
     )
     if verbose:
-        print(f"Immagini reali positive per calibrazione: {reference['n_train']}")
+        print(f"Real positive images for calibration: {reference['n_train']}")
 
     candidate_rows = []
     for index, path in enumerate(raw_paths, start=1):
         candidate_rows.append(evaluate_candidate(path, reference, nonblack_threshold))
         if verbose and (index % 250 == 0 or index == len(raw_paths)):
-            print(f"  Analizzate {index}/{len(raw_paths)}")
+            print(f"  Analyzed {index}/{len(raw_paths)}")
 
     candidates_df = pd.DataFrame(candidate_rows)
     n_rejected = int(candidates_df["rejected"].sum())
@@ -392,12 +381,12 @@ def filter_generated_directory(
     )
     if verbose:
         print(
-            f"Filtro: {len(candidates_df)} totali | {n_accepted} accettate | "
-            f"{n_rejected} rifiutate"
+            f"Filter: {len(candidates_df)} total | {n_accepted} accepted | "
+            f"{n_rejected} rejected"
         )
     if n_accepted < n_selected:
         raise RuntimeError(
-            f"Solo {n_accepted} accettate, servono {n_selected}. Aumenta --n-raw."
+            f"Only {n_accepted} images were accepted; {n_selected} are required. Increase --n-raw."
         )
 
     accepted_df = (
@@ -454,7 +443,7 @@ def filter_generated_directory(
         json.dump(summary, file, indent=2, ensure_ascii=False)
 
     if verbose:
-        print(f"Completato: {n_raw} raw -> {n_selected} filtrate")
+        print(f"Complete: {n_raw} raw -> {n_selected} filtered")
         print("Filtered dir:", filtered_dir)
     return summary
 

@@ -70,7 +70,7 @@ def class_name_for_label(target_label: int) -> str:
     try:
         return CLASS_NAME_BY_LABEL[int(target_label)]
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(f"target_label deve essere 0 o 1, ricevuto: {target_label!r}") from exc
+        raise ValueError(f"target_label must be 0 or 1; received {target_label!r}") from exc
 
 
 def get_class_image_dirs(paths: ExperimentPaths, target_label: int) -> tuple[Path, Path]:
@@ -112,7 +112,7 @@ def find_project_root(
     if override is not None:
         root = Path(override).expanduser().resolve()
         if not root.exists():
-            raise FileNotFoundError(f"PROJECT_ROOT non esiste: {root}")
+            raise FileNotFoundError(f"PROJECT_ROOT does not exist: {root}")
         return root
 
     cwd = Path.cwd().resolve()
@@ -133,8 +133,8 @@ def find_project_root(
             return candidate.resolve()
 
     raise FileNotFoundError(
-        "Non riesco a trovare la root MammoDiffusion. "
-        "Passa --project-root oppure esegui dalla repo."
+        "Could not locate the MammoDiffusion repository root. "
+        "Pass --project-root or run from the repository."
     )
 
 

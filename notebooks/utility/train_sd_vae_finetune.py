@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Fine-tuning del VAE di Stable Diffusion 2.1 sulle mammografie del progetto.
+"""Fine-tune Stable Diffusion 2.1's VAE on project mammograms.
 
-Adatta l'`AutoencoderKL` di SD2.1 al dominio mammografico grayscale-as-RGB,
-tipicamente scongelando solo il decoder (impostazione di default per non spostare
-la distribuzione dei latenti attesa dalla U-Net). Il modulo e' pensato per essere
-lanciato in subprocess dal notebook `03_SD21_VAE_FineTuned.ipynb`.
+Adapt SD2.1 ``AutoencoderKL`` to grayscale-as-RGB mammography, normally by
+unfreezing only the decoder. That default preserves the latent distribution
+expected by the U-Net. Notebook ``03_SD21_VAE_FineTuned.ipynb`` launches this
+module in a subprocess.
 
-Output principali salvati in ``--output-dir``:
+Main outputs under ``--output-dir``:
 
-* ``vae_finetuned/`` — cartella Diffusers con i pesi aggiornati (config + safetensors);
-* ``vae_training_history.csv`` — loss per step;
-* ``vae_best_metrics.json`` — miglior epoca (val loss, val PSNR) e parametri di training;
-* ``vae_reconstruction_before_after.png`` — griglia qualitativa a inizio/fine training.
+* ``vae_finetuned/``: Diffusers directory with updated config and safetensors;
+* ``vae_training_history.csv``: per-step loss;
+* ``vae_best_metrics.json``: best epoch, validation loss/PSNR, and parameters;
+* ``vae_reconstruction_before_after.png``: qualitative before/after grid.
 """
 from __future__ import annotations
 
@@ -20,7 +20,6 @@ import csv
 import gc
 import json
 import math
-import os
 import random
 import sys
 import time
@@ -41,19 +40,19 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
 
 def parse_args() -> argparse.Namespace:
-    """Argomenti CLI: percorsi, iperparametri, quali blocchi scongelare."""
+    """Parse paths, hyperparameters, and the VAE blocks to unfreeze."""
     parser = argparse.ArgumentParser(description="Fine-tune SD2.1 VAE on mammograms")
     parser.add_argument("--project-root", type=Path, required=True)
     parser.add_argument("--pretrained-model-dir", type=Path, required=True,
-                        help="Cartella Diffusers del modello SD2.1 base (contiene subfolder 'vae').")
+                        help="Diffusers directory for the base SD2.1 model (contains the 'vae' subfolder).")
     parser.add_argument("--train-metadata-csv", type=Path, required=True,
-                        help="CSV di training (real+augmented) con colonne file_name,label,source.")
+                        help="Training CSV (real + augmented) with file_name, label, and source columns.")
     parser.add_argument("--val-metadata-csv", type=Path, required=True,
-                        help="CSV di validation reale con colonna processed_path.")
+                        help="Real-validation CSV with a processed_path column.")
     parser.add_argument("--data-processed-dir", type=Path, required=True)
     parser.add_argument("--data-augmented-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True,
-                        help="Cartella in cui salvare pesi, log, plot e metriche del VAE fine-tuned.")
+                        help="Directory for fine-tuned VAE weights, logs, plots, and metrics.")
     parser.add_argument("--resolution", type=int, default=DEFAULT_RESOLUTION)
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS)
@@ -61,29 +60,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--l1-weight", type=float, default=DEFAULT_L1_WEIGHT)
     parser.add_argument("--lpips-weight", type=float, default=DEFAULT_LPIPS_WEIGHT)
     parser.add_argument("--kl-weight", type=float, default=DEFAULT_KL_WEIGHT,
-                        help="Peso della KL sul posterior. 0 -> ignora (utile se solo decoder e' trainable).")
+                        help="Posterior KL weight; zero disables it for decoder-only training.")
     parser.add_argument("--decoder-only", action="store_true", default=True,
-                        help="Se True (default), scongela solo il decoder del VAE.")
+                        help="When set (the default), unfreeze only the VAE decoder.")
     parser.add_argument("--full-vae", dest="decoder_only", action="store_false",
-                        help="Scongela encoder+decoder. Richiede kl-weight > 0 per stabilita'.")
+                        help="Unfreeze encoder and decoder. Requires kl-weight > 0 for stability.")
     parser.add_argument("--checkpoint-every-epochs", type=int, default=1,
-                        help="Salva un checkpoint intermedio ogni N epoche (0=solo il best).")
+                        help="Save an intermediate checkpoint every N epochs; zero saves only the best.")
     parser.add_argument("--gradient-accumulation", type=int, default=1)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--mixed-precision", choices=("no", "fp16", "bf16"), default="fp16")
     parser.add_argument("--max-train-images", type=int, default=None,
-                        help="Se impostato, limita il training set (utile per esecuzioni di prova).")
+                        help="Optionally limit the training set for trial runs.")
     parser.add_argument("--early-stopping-patience", type=int, default=4,
-                        help="Numero di epoche senza miglioramento di val_loss prima dello stop. 0 disattiva.")
+                        help="Epochs without val_loss improvement before stopping; zero disables it.")
     parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4,
-                        help="Miglioramento minimo richiesto su val_loss per resettare la patience.")
+                        help="Minimum val_loss improvement required to reset patience.")
     parser.add_argument("--min-epochs", type=int, default=5,
-                        help="Numero minimo di epoche da completare prima di applicare early stopping.")
+                        help="Minimum number of epochs before early stopping can apply.")
     parser.add_argument("--allow-lpips-fallback", action="store_true",
                         help=(
-                            "Se LPIPS non si carica, continua con sola L1. "
-                            "Default: fallisce esplicitamente, così non rischi di credere di aver usato LPIPS."
+                            "Continue with L1 only if LPIPS cannot load. The default fails explicitly, "
+                            "preventing a run from being mistaken for one that used LPIPS."
                         ))
     return parser.parse_args()
 
@@ -100,7 +99,7 @@ def set_seed(seed: int) -> None:
 
 
 def resolve_train_image_path(row, data_processed_dir: Path, data_augmented_dir: Path) -> Path:
-    """Risolve il path di un campione del training set (03b compat: real vs augmented)."""
+    """Resolve one training sample path, preserving 03b real/augmented compatibility."""
     import pandas as pd
 
     file_name = Path(str(row["file_name"])).name
@@ -118,13 +117,13 @@ def resolve_train_image_path(row, data_processed_dir: Path, data_augmented_dir: 
         if candidate.is_file() and candidate.suffix.lower() in IMAGE_EXTENSIONS:
             return candidate.resolve()
     raise FileNotFoundError(
-        f"Immagine non trovata per file_name={file_name} source={source}. "
-        f"Percorsi controllati: {', '.join(str(p) for p in candidates)}"
+        f"Image not found for file_name={file_name} source={source}. "
+        f"Checked paths: {', '.join(str(p) for p in candidates)}"
     )
 
 
 def resolve_val_image_path(processed_path: str, data_processed_dir: Path, project_root: Path) -> Path:
-    """Risolve il path di una riga di val.csv (colonna processed_path relativa alla repo)."""
+    """Resolve a val.csv row whose processed_path is relative to the repository."""
     raw = Path(str(processed_path).replace("\\", "/"))
     candidates = []
     if raw.is_absolute():
@@ -137,11 +136,11 @@ def resolve_val_image_path(processed_path: str, data_processed_dir: Path, projec
         if candidate.is_file():
             return candidate.resolve()
     checked = ", ".join(str(candidate) for candidate in candidates)
-    raise FileNotFoundError(f"Immagine val non trovata per {processed_path}. Percorsi controllati: {checked}")
+    raise FileNotFoundError(f"Validation image not found for {processed_path}. Checked paths: {checked}")
 
 
 class MammoVAEDataset:
-    """Dataset PyTorch: mammografia grayscale replicata su 3 canali, normalizzata in [-1, 1]."""
+    """PyTorch dataset: grayscale mammograms repeated to three channels and normalized to [-1, 1]."""
 
     def __init__(self, image_paths, resolution: int, augment: bool = False):
         from PIL import Image
@@ -185,12 +184,12 @@ def build_dataloader(paths, resolution, batch_size, num_workers, shuffle, augmen
 
 
 def maybe_load_lpips(device, allow_fallback: bool = False):
-    """Carica LPIPS in fp32.
+    """Load LPIPS in fp32.
 
-    LPIPS viene usato davvero quando ``lpips_weight > 0``. Se non e' caricabile,
-    di default il training si ferma con un errore leggibile: questo evita di
-    eseguire per ore pensando di usare LPIPS mentre in realta' si sta facendo
-    solo L1. Passa ``--allow-lpips-fallback`` solo per debug/prove rapide.
+    LPIPS is genuinely used when ``lpips_weight > 0``. By default, a load
+    failure stops training with a clear error so a long L1-only run cannot be
+    mistaken for an LPIPS run. Use ``--allow-lpips-fallback`` only for debugging
+    or quick trials.
     """
     try:
         import lpips  # type: ignore
@@ -199,14 +198,14 @@ def maybe_load_lpips(device, allow_fallback: bool = False):
         model.eval()
         for param in model.parameters():
             param.requires_grad_(False)
-        print("[03-VAE] LPIPS caricato correttamente (net=alex, fp32).", flush=True)
+        print("[03-VAE] LPIPS loaded successfully (net=alex, fp32).", flush=True)
         return model
     except Exception as exc:  # noqa: BLE001
         message = (
-            "LPIPS_WEIGHT > 0 ma LPIPS non e' caricabile. "
-            "Installa/verifica il pacchetto 'lpips' e torchvision, oppure passa "
-            "--allow-lpips-fallback per continuare con sola L1. "
-            f"Errore originale: {repr(exc)}"
+            "LPIPS_WEIGHT > 0 but LPIPS cannot be loaded. "
+            "Install or verify the 'lpips' package and torchvision, or pass "
+            "--allow-lpips-fallback to continue with L1 only. "
+            f"Original error: {repr(exc)}"
         )
         if allow_fallback:
             print("[WARN] " + message, flush=True)
@@ -215,7 +214,7 @@ def maybe_load_lpips(device, allow_fallback: bool = False):
 
 
 def freeze_encoder(vae) -> int:
-    """Congela encoder+quant_conv del VAE. Restituisce il numero di parametri trainable rimasti."""
+    """Freeze VAE encoder and quant_conv; return the remaining trainable parameter count."""
     for name, param in vae.named_parameters():
         if name.startswith("encoder") or name.startswith("quant_conv"):
             param.requires_grad_(False)
@@ -224,11 +223,11 @@ def freeze_encoder(vae) -> int:
 
 
 def compute_recon_loss(recon, target, lpips_model, l1_weight, lpips_weight):
-    """Loss = L1(recon, target) + lpips_weight * LPIPS(recon, target).
+    """Return L1(reconstruction, target) + lpips_weight * LPIPS.
 
-    La parte LPIPS viene forzata in float32 anche quando il forward VAE usa
-    autocast fp16: e' la correzione piu' importante rispetto alla prima versione
-    dello script, perche' LPIPS in half precision e' spesso instabile.
+    LPIPS is forced to float32 even when the VAE forward pass uses fp16
+    autocast. This is the key correction over the first script version because
+    LPIPS is often unstable in half precision.
     """
     import torch
 
@@ -248,7 +247,7 @@ def gather_val_paths(val_metadata_csv, data_processed_dir, project_root, max_val
     import pandas as pd
     metadata = pd.read_csv(val_metadata_csv)
     if "processed_path" not in metadata.columns:
-        raise ValueError(f"Colonna 'processed_path' mancante in {val_metadata_csv}")
+        raise ValueError(f"Missing 'processed_path' column in {val_metadata_csv}")
     paths = [resolve_val_image_path(row, data_processed_dir, project_root) for row in metadata["processed_path"]]
     if max_val_images is not None:
         paths = paths[: int(max_val_images)]
@@ -271,7 +270,7 @@ def gather_train_paths(train_metadata_csv, data_processed_dir, data_augmented_di
 
 
 def evaluate_vae(vae, dataloader, device, dtype, lpips_model, l1_weight, lpips_weight):
-    """Loss + PSNR medi sul validation set (encoder+decoder in inference mode)."""
+    """Return mean validation loss and PSNR with encoder and decoder in inference mode."""
     import torch
     vae.eval()
     total_loss = 0.0
@@ -296,7 +295,7 @@ def evaluate_vae(vae, dataloader, device, dtype, lpips_model, l1_weight, lpips_w
 
 
 def save_reconstruction_grid(vae, val_paths, resolution, device, dtype, output_path, n_samples=6, seed=42):
-    """Salva una griglia (originale/ricostruzione) su n_samples immagini di validation."""
+    """Save an original/reconstruction grid for ``n_samples`` validation images."""
     import matplotlib.pyplot as plt
     import torch
     from PIL import Image
@@ -317,10 +316,10 @@ def save_reconstruction_grid(vae, val_paths, resolution, device, dtype, output_p
             recon_gray = recon.mean(dim=1).squeeze().detach().float().cpu().numpy()
             recon_gray = np.clip((recon_gray + 1.0) / 2.0, 0.0, 1.0)
             axes[0, column].imshow(np.asarray(gray, dtype=np.float32) / 255.0, cmap="gray")
-            axes[0, column].set_title("originale", fontsize=8)
+            axes[0, column].set_title("original", fontsize=8)
             axes[0, column].axis("off")
             axes[1, column].imshow(recon_gray, cmap="gray")
-            axes[1, column].set_title("ricostruzione VAE", fontsize=8)
+            axes[1, column].set_title("VAE reconstruction", fontsize=8)
             axes[1, column].axis("off")
     fig.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -330,7 +329,7 @@ def save_reconstruction_grid(vae, val_paths, resolution, device, dtype, output_p
 
 
 def save_vae_diffusers(vae, output_dir: Path) -> Path:
-    """Salva il VAE in formato Diffusers (config.json + safetensors) nella cartella indicata."""
+    """Save the VAE in Diffusers format (config.json + safetensors)."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     vae.save_pretrained(str(output_dir), safe_serialization=True)
@@ -364,38 +363,37 @@ def main():
     from diffusers import AutoencoderKL
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dtype = torch.float16 if args.mixed_precision == "fp16" and device.type == "cuda" else torch.float32
     if device.type == "cuda":
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
 
-    # Il VAE resta in fp32 per il training (stabilita' numerica); autocast si fa nel forward.
+    # Keep the VAE in fp32 for training stability; autocast applies only to the forward pass.
     vae = AutoencoderKL.from_pretrained(str(args.pretrained_model_dir), subfolder="vae")
     vae.to(device)
 
-    # Riduzione VRAM: utile soprattutto a 512x512 con LPIPS attivo.
-    # Sono chiamate no-op se la versione di diffusers non le supporta.
+    # VRAM reduction matters most at 512x512 with LPIPS enabled. These calls are
+    # harmless no-ops when the installed Diffusers version does not support them.
     if hasattr(vae, "enable_gradient_checkpointing"):
         try:
             vae.enable_gradient_checkpointing()
-            print("[03-VAE] gradient checkpointing VAE abilitato.", flush=True)
+            print("[03-VAE] VAE gradient checkpointing enabled.", flush=True)
         except Exception as exc:
-            print(f"[03-VAE][WARN] gradient checkpointing VAE non abilitato: {repr(exc)}", flush=True)
+            print(f"[03-VAE][WARN] VAE gradient checkpointing not enabled: {repr(exc)}", flush=True)
     if hasattr(vae, "enable_slicing"):
         try:
             vae.enable_slicing()
-            print("[03-VAE] VAE slicing abilitato.", flush=True)
+            print("[03-VAE] VAE slicing enabled.", flush=True)
         except Exception as exc:
-            print(f"[03-VAE][WARN] VAE slicing non abilitato: {repr(exc)}", flush=True)
+            print(f"[03-VAE][WARN] VAE slicing not enabled: {repr(exc)}", flush=True)
 
     vae.train()
 
     if args.decoder_only:
         trainable_params = freeze_encoder(vae)
-        print(f"[03-VAE] decoder-only mode: parametri trainable = {trainable_params:,}")
+        print(f"[03-VAE] decoder-only mode: trainable parameters = {trainable_params:,}")
     else:
         trainable_params = sum(param.numel() for param in vae.parameters() if param.requires_grad)
-        print(f"[03-VAE] full-VAE mode: parametri trainable = {trainable_params:,}")
+        print(f"[03-VAE] full-VAE mode: trainable parameters = {trainable_params:,}")
 
     train_loader = build_dataloader(
         train_paths, args.resolution, args.batch_size, args.num_workers,
@@ -415,7 +413,7 @@ def main():
     )
     try:
         scaler = torch.amp.GradScaler("cuda", enabled=(args.mixed_precision == "fp16" and device.type == "cuda"))
-    except TypeError:  # compat PyTorch piu' vecchi
+    except TypeError:  # Compatibility with older PyTorch releases.
         scaler = torch.cuda.amp.GradScaler(enabled=(args.mixed_precision == "fp16" and device.type == "cuda"))
     autocast_dtype = torch.float16 if args.mixed_precision == "fp16" else torch.bfloat16 if args.mixed_precision == "bf16" else None
 
@@ -495,8 +493,8 @@ def main():
                     flush=True,
                 )
 
-        # Se il numero di batch non e' divisibile per gradient_accumulation,
-        # applichiamo comunque l'ultimo step accumulato invece di perderlo.
+        # If the batch count is not divisible by gradient_accumulation, apply the
+        # final accumulated step instead of dropping it.
         if accumulation_counter % args.gradient_accumulation != 0:
             if scaler.is_enabled():
                 scaler.unscale_(optimizer)
@@ -560,19 +558,19 @@ def main():
                     "pretrained_model_dir": str(args.pretrained_model_dir),
                     "output_dir": str(output_dir),
                 }, handle, indent=2, ensure_ascii=False)
-            print(f"[03-VAE]   nuovo best -> salvato in {finetuned_vae_dir}", flush=True)
+            print(f"[03-VAE]   new best -> saved to {finetuned_vae_dir}", flush=True)
         else:
             epochs_without_improvement += 1
             print(
-                f"[03-VAE]   nessun miglioramento rilevante "
-                f"(delta minimo={args.early_stopping_min_delta:g}); "
+                f"[03-VAE]   no meaningful improvement "
+                f"(minimum delta={args.early_stopping_min_delta:g}); "
                 f"patience {epochs_without_improvement}/{args.early_stopping_patience}",
                 flush=True,
             )
             if args.checkpoint_every_epochs > 0 and epoch % args.checkpoint_every_epochs == 0:
                 intermediate_dir = output_dir / "checkpoints" / f"epoch_{epoch:03d}"
                 save_vae_diffusers(vae, intermediate_dir)
-                print(f"[03-VAE]   checkpoint intermedio -> {intermediate_dir}", flush=True)
+                print(f"[03-VAE]   intermediate checkpoint -> {intermediate_dir}", flush=True)
 
         if (
             args.early_stopping_patience > 0
@@ -581,8 +579,8 @@ def main():
         ):
             stopped_early = True
             print(
-                f"[03-VAE] Early stopping: val_loss non migliora da "
-                f"{epochs_without_improvement} epoche. "
+                f"[03-VAE] Early stopping: val_loss has not improved for "
+                f"{epochs_without_improvement} epochs. "
                 f"Best epoch={best_epoch}, best_val_loss={best_val:.6f}, "
                 f"best_val_psnr={best_val_psnr:.2f}dB.",
                 flush=True,
@@ -590,18 +588,18 @@ def main():
             break
 
     if not finetuned_vae_dir.exists():
-        # Nessuna epoca ha migliorato il val loss: salviamo l'ultimo stato per non lasciare la cartella vuota.
+        # No epoch improved validation loss; save the final state instead of leaving an empty directory.
         save_vae_diffusers(vae, finetuned_vae_dir)
         with best_metrics_path.open("w", encoding="utf-8") as handle:
             json.dump({
                 "best_epoch": args.epochs,
                 "best_val_loss": None,
                 "best_val_psnr": None,
-                "note": "Nessuna epoca ha migliorato la loss di validation; salvato l'ultimo stato.",
+                "note": "No epoch improved validation loss; saved the final state.",
                 "output_dir": str(output_dir),
             }, handle, indent=2, ensure_ascii=False)
 
-    # Ricarica il best per la ricostruzione finale (evita di usare uno stato intermedio).
+    # Reload the best state for final reconstruction instead of using an intermediate state.
     del vae
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -612,8 +610,8 @@ def main():
     save_reconstruction_grid(final_vae, val_paths, args.resolution, device, torch.float32,
                              reconstruction_plot)
 
-    print(f"[03-VAE] VAE fine-tuned salvato in {finetuned_vae_dir}")
-    # Aggiorna il JSON finale con l'informazione di early stopping, se presente.
+    print(f"[03-VAE] Fine-tuned VAE saved to {finetuned_vae_dir}")
+    # Add early-stopping information to the final JSON when applicable.
     if best_metrics_path.is_file():
         try:
             with best_metrics_path.open(encoding="utf-8") as handle:
@@ -623,11 +621,11 @@ def main():
             with best_metrics_path.open("w", encoding="utf-8") as handle:
                 json.dump(best_payload, handle, indent=2, ensure_ascii=False)
         except Exception as exc:  # noqa: BLE001
-            print(f"[WARN] impossibile aggiornare {best_metrics_path}: {exc}", flush=True)
+            print(f"[WARN] could not update {best_metrics_path}: {exc}", flush=True)
 
     print(f"[03-VAE] Best epoch: {best_epoch} | best val loss: {best_val:.4f} | val PSNR: {best_val_psnr:.2f}dB")
     print(f"[03-VAE] History log: {log_csv}")
-    print(f"[03-VAE] Reconstruction grid finale: {reconstruction_plot}")
+    print(f"[03-VAE] Final reconstruction grid: {reconstruction_plot}")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,0 @@
-{
-  "schema_version": 1,
-  "adapter_type": "LoRA",
-  "rank": 16,
-  "base_model_identifier": "stabilityai/stable-diffusion-2-1-base",
-  "training_script": "diffusers/examples/text_to_image/train_text_to_image_lora.py",
-  "max_train_steps": 8000,
-  "selected_checkpoint_step": 4500
-}

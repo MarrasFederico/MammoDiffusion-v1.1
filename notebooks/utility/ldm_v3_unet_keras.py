@@ -1,20 +1,19 @@
-"""LDM v3 U-Net builder (Keras/TF), design ispirato a Stable Diffusion.
+"""Build the Stable-Diffusion-inspired LDM v3 U-Net in Keras/TensorFlow.
 
-Rispetto alla versione v2 (`train_ldm.build_ldm_unet`) introduce:
+Compared with v2 (``train_ldm.build_ldm_unet``), v3 introduces:
 
-* **Upsample(nearest 2x) + Conv2D 3x3** al posto di `Conv2DTranspose`, per eliminare
-  i noti *checkerboard artifacts* di ConvTranspose (Odena et al. 2016). E' lo stesso
-  schema usato dalla U-Net di Stable Diffusion 1.x/2.x.
-* **ResBlock in stile SD**: `GroupNorm -> SiLU -> Conv3x3` due volte, con iniezione
-  dell'embedding tempo+label via proiezione lineare seguita da broadcast (FiLM-like),
-  invece della somma solo a meta' blocco. Attivazione SiLU al posto di LeakyReLU.
-* **Downsample = Conv2D stride=2** (invariato rispetto a v2, ma mantenuto qui per completezza).
-* Compatibilita' shape: la firma degli input e degli output resta identica a `build_ldm_unet`
-  di v2, cosi' l'intera pipeline di training/inference puo' riutilizzare la stessa
-  loop senza altre modifiche.
+* **Upsample(nearest 2x) + Conv2D 3x3** instead of ``Conv2DTranspose`` to avoid
+  the checkerboard artifacts associated with transposed convolutions (Odena et
+  al., 2016). Stable Diffusion 1.x/2.x uses the same pattern.
+* **Stable-Diffusion-style ResBlocks**: two ``GroupNorm -> SiLU -> Conv3x3``
+  sequences with a linearly projected, broadcast time-and-label embedding
+  (FiLM-like), instead of adding the embedding only halfway through the block.
+* **Downsample = Conv2D stride=2**, unchanged from v2 and repeated here for clarity.
+* **Shape compatibility**: inputs and outputs match v2 ``build_ldm_unet``, so
+  the training and inference loops require no other changes.
 
-Il modulo puo' essere importato da `train_ldm.py` quando l'utente passa
-`--unet-version v3`, oppure caricato da un notebook per una prova rapida dedicata.
+``train_ldm.py`` imports this module for ``--unet-version v3``; a notebook can
+also import it directly for a focused trial.
 """
 from __future__ import annotations
 
@@ -36,12 +35,12 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Embedding tempo + label (identici come firma a v2, solo attivazione SiLU)
+# Time and label embeddings (same signature as v2, with SiLU activation)
 # ---------------------------------------------------------------------------
 
 @tf.keras.utils.register_keras_serializable()
 class SinusoidalTimeEmbeddingV3(layers.Layer):
-    """Time embedding stile DDPM: encoding sinusoidale seguito da MLP (2 dense + SiLU)."""
+    """DDPM-style time embedding: sinusoidal encoding followed by a two-layer SiLU MLP."""
 
     def __init__(self, embed_dim, **kwargs):
         super().__init__(**kwargs)
@@ -69,7 +68,7 @@ class SinusoidalTimeEmbeddingV3(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class LabelEmbeddingV3(layers.Layer):
-    """Label embedding con `num_classes+1` voci (l'ultima e' la classe nulla per CFG)."""
+    """Embed ``num_classes + 1`` labels; the last entry is CFG's null class."""
 
     def __init__(self, num_classes, embed_dim, **kwargs):
         super().__init__(**kwargs)
@@ -92,7 +91,7 @@ class LabelEmbeddingV3(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class ResBlockV3(layers.Layer):
-    """ResBlock SD-style: 2x (GroupNorm + SiLU + Conv3x3) con embedding proiettato via FiLM."""
+    """SD-style ResBlock: two GroupNorm-SiLU-Conv3x3 stages with FiLM-projected embedding."""
 
     def __init__(self, channels, embed_dim, groups=None, **kwargs):
         super().__init__(**kwargs)
@@ -103,16 +102,16 @@ class ResBlockV3(layers.Layer):
         self.conv1 = layers.Conv2D(self.channels, 3, padding="same")
         self.norm2 = layers.GroupNormalization(groups=self.groups)
         self.conv2 = layers.Conv2D(self.channels, 3, padding="same")
-        # FiLM-like: proiezione dell'embedding in shift (bias) per i canali della seconda conv.
+        # FiLM-like projection of the embedding into a channel-wise bias for the second convolution.
         self.emb_proj = layers.Dense(self.channels)
         self.skip = layers.Conv2D(self.channels, 1)
 
     def call(self, x, emb):
-        # Ramo principale
+        # Main branch
         h = self.norm1(x)
         h = tf.nn.silu(h)
         h = self.conv1(h)
-        # Iniezione embedding (bias broadcast su H, W)
+        # Inject the embedding as a bias broadcast over H and W.
         emb_bias = self.emb_proj(tf.nn.silu(emb))
         h = h + tf.reshape(emb_bias, [-1, 1, 1, self.channels])
         h = self.norm2(h)
@@ -166,7 +165,7 @@ class SelfAttentionBlockV3(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class UpsampleConvBlock(layers.Layer):
-    """Upsample nearest x2 seguito da Conv2D 3x3. Sostituisce Conv2DTranspose."""
+    """Upsample 2x with nearest-neighbor interpolation, then apply a 3x3 Conv2D."""
 
     def __init__(self, channels, **kwargs):
         super().__init__(**kwargs)
@@ -185,7 +184,7 @@ class UpsampleConvBlock(layers.Layer):
 
 @tf.keras.utils.register_keras_serializable()
 class DownsampleConv(layers.Layer):
-    """Downsample stile SD: Conv2D stride=2 con padding=same. Identico a v2 (esplicitato)."""
+    """SD-style downsampling: stride-2 Conv2D with same padding, explicitly matching v2."""
 
     def __init__(self, channels, **kwargs):
         super().__init__(**kwargs)
@@ -202,7 +201,7 @@ class DownsampleConv(layers.Layer):
 
 
 # ---------------------------------------------------------------------------
-# Builder principale
+# Main builder
 # ---------------------------------------------------------------------------
 
 def build_ldm_unet_v3(
@@ -214,29 +213,22 @@ def build_ldm_unet_v3(
     num_classes: int,
     num_attention_heads: int = 4,
 ):
-    """Costruisce la U-Net LDM v3 con la stessa firma input/output di v2.
+    """Build the LDM v3 U-Net with the same input/output signature as v2.
 
-    Argomenti
-    ---------
-    latent_size: int
-        Lato spaziale dei latenti (es. 64 per input 512x512 con VAE 8x).
-    latent_channels: int
-        Numero di canali dei latenti (es. 4 per il VAE di SD).
-    model_channels: int
-        `MODEL_CHANNELS` come definito in train_ldm (viene raddoppiato per matchare v2).
-    embed_dim: int
-        Dimensione embedding tempo/label (moltiplicata x4 dagli embedding layer, come v2).
-    num_classes: int
-        Numero di classi condizionanti (senza contare la classe nulla per CFG).
-    num_attention_heads: int
-        Numero di teste dell'attention nelle feature map basse.
+    Args:
+        latent_size: Latent spatial side, e.g. 64 for a 512x512 input and 8x VAE.
+        latent_channels: Number of latent channels, e.g. 4 for the SD VAE.
+        model_channels: ``MODEL_CHANNELS`` from train_ldm; doubled to match v2.
+        embed_dim: Time/label embedding size, expanded 4x by the embedding layers.
+        num_classes: Conditioning classes, excluding CFG's null class.
+        num_attention_heads: Attention heads at low-resolution feature maps.
 
-    Output
-    ------
-    tf.keras.Model con 3 input (`lat_input`, `t_input`, `y_input`) e 1 output della
-    stessa forma di quello di v2 (`latent_channels * 2` per supportare eps+var, come v2).
+    Returns:
+        A ``tf.keras.Model`` with inputs ``lat_input``, ``t_input``, and
+        ``y_input`` and one v2-compatible ``latent_channels * 2`` output for
+        epsilon plus learned variance.
     """
-    C = int(model_channels) * 2  # coerente con v2: C = MODEL_CHANNELS * 2
+    C = int(model_channels) * 2  # Match v2: C = MODEL_CHANNELS * 2.
 
     lat_input = layers.Input(shape=(latent_size, latent_size, latent_channels), name="lat_input")
     t_input = layers.Input(shape=(), dtype=tf.int32, name="t_input")
@@ -271,7 +263,7 @@ def build_ldm_unet_v3(
     b = ResBlockV3(C * 4, embed_dim)(b, emb)
     b = SelfAttentionBlockV3(C * 4, num_heads=num_attention_heads)(b)
 
-    # Decoder stage 3 (Upsample+Conv al posto di Conv2DTranspose)
+    # Decoder stage 3 (Upsample+Conv instead of Conv2DTranspose).
     u3 = UpsampleConvBlock(C * 4)(b)
     u3 = layers.Concatenate()([u3, x3])
     u3 = ResBlockV3(C * 4, embed_dim)(u3, emb)
@@ -290,11 +282,10 @@ def build_ldm_unet_v3(
     u1 = ResBlockV3(C, embed_dim)(u1, emb)
     u1 = ResBlockV3(C, embed_dim)(u1, emb)
 
-    # Head: GroupNorm + SiLU + Conv1x1 (proiezione ai `latent_channels * 2`)
-    # Nota: usare Activation("swish") invece di Lambda(tf.nn.silu, ...) e' necessario
-    # perche' Lambda con una funzione TF raw non e' serializzabile da model.save()
-    # su questa versione di Keras (fallisce con "Cannot serialize object ... Signature").
-    # swish e silu sono la stessa funzione (x * sigmoid(x)).
+    # Head: GroupNorm + SiLU + Conv1x1 projected to ``latent_channels * 2``.
+    # Activation("swish") is required instead of Lambda(tf.nn.silu, ...): this
+    # Keras version cannot serialize a Lambda around a raw TensorFlow function.
+    # Swish and SiLU are the same function: x * sigmoid(x).
     out = layers.GroupNormalization(groups=min(32, C))(u1)
     out = layers.Activation("swish", name="head_silu")(out)
     out = layers.Conv2D(latent_channels * 2, 3, padding="same")(out)
@@ -303,7 +294,7 @@ def build_ldm_unet_v3(
 
 
 # ---------------------------------------------------------------------------
-# Diffusion training helpers (v-prediction target e min-SNR weighting)
+# Diffusion training helpers (v-prediction target and Min-SNR weighting)
 # ---------------------------------------------------------------------------
 
 def make_v_target(x0, noise, t, sqrt_alpha_bars_arr, sqrt_one_minus_alpha_bars_arr):
@@ -317,17 +308,20 @@ def make_v_target(x0, noise, t, sqrt_alpha_bars_arr, sqrt_one_minus_alpha_bars_a
 
 
 def min_snr_weight(t, alpha_bars_arr, gamma: float = 5.0, parameterization: str = "eps"):
-    """Peso per campione secondo Min-SNR-γ (Hang et al. 2023).
+    """Return per-sample Min-SNR-gamma weights (Hang et al., 2023).
 
-    Con SNR(t) = ab_t / (1 - ab_t):
-    * `parameterization="eps"`: w(t) = min(SNR(t), gamma) / SNR(t) (formula originale del paper);
-    * `parameterization="v"`: w(t) = min(SNR(t), gamma) / (SNR(t) + 1), correzione necessaria
-      perche' la loss v-prediction e' gia' implicitamente scalata da (SNR+1) rispetto alla
-      loss epsilon (stessa convenzione usata da HuggingFace diffusers per `snr_gamma`).
+    For SNR(t) = ab_t / (1 - ab_t):
 
-    Riduce l'enfasi sui timestep facili (SNR alto) rispetto alla loss uniforme.
-    Restituisce un tensore di shape (batch, 1, 1, 1) da moltiplicare direttamente
-    alla loss per-elemento.
+    * ``parameterization="eps"`` uses
+      w(t) = min(SNR(t), gamma) / SNR(t), the paper's original formula;
+    * ``parameterization="v"`` uses
+      w(t) = min(SNR(t), gamma) / (SNR(t) + 1), because v-prediction loss is
+      already implicitly scaled by SNR+1 relative to epsilon loss. This matches
+      Hugging Face Diffusers' ``snr_gamma`` convention.
+
+    The weighting de-emphasizes easy, high-SNR timesteps relative to a uniform
+    loss. The returned tensor has shape ``(batch, 1, 1, 1)`` for direct
+    multiplication with the element-wise loss.
     """
     ab = tf.gather(alpha_bars_arr, t)
     ab = tf.reshape(ab, [-1, 1, 1, 1])

@@ -14,12 +14,10 @@ os.environ.setdefault(
     "MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "mammodiffusion-matplotlib")
 )
 
-# Garantisce che la cartella notebooks/ sia in sys.path anche se questo modulo
-# viene importato in un contesto dove lo script invocato direttamente non e'
-# nella stessa cartella (es. mount di rete, simlink, kernel diversi): senza
-# questo, l'import del modulo fratello sotto puo' fallire con
-# "ModuleNotFoundError: No module named 'generative_evaluator'" anche quando
-# il file esiste, perche' sys.path[0] non e' quello che ci si aspetta.
+# Keep notebooks/utility on sys.path even when this module is imported from a
+# different execution context (for example a network mount, symlink, or another
+# kernel). Otherwise the sibling import below can fail even though the file is
+# present because sys.path[0] is not the expected directory.
 _THIS_DIR = str(Path(__file__).resolve().parent)
 if _THIS_DIR not in sys.path:
     sys.path.insert(0, _THIS_DIR)
@@ -30,7 +28,7 @@ from prdc import compute_prdc
 
 
 def _link_or_copy(source: Path, destination: Path) -> None:
-    """Crea un symlink verso l'immagine originale (evita di duplicare i dati); se il filesystem non lo permette, ricade su una copia."""
+    """Symlink the original image, falling back to a copy when unsupported."""
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
         os.symlink(source, destination)
@@ -40,10 +38,10 @@ def _link_or_copy(source: Path, destination: Path) -> None:
 
 @contextmanager
 def temporary_image_dir(image_paths: Iterable[Path], prefix: str):
-    """Raccoglie un set di immagini sparse in un'unica cartella temporanea con nomi numerati, formato richiesto da GenerativeEvaluator; la cartella viene rimossa automaticamente all'uscita dal context manager."""
+    """Collect scattered images in a numbered temporary directory for GenerativeEvaluator."""
     paths = [Path(path) for path in image_paths]
     if not paths:
-        raise ValueError(f"Nessuna immagine per {prefix}")
+        raise ValueError(f"No images found for {prefix}")
 
     with tempfile.TemporaryDirectory(prefix=prefix) as tmp_dir_name:
         tmp_dir = Path(tmp_dir_name)
@@ -56,10 +54,10 @@ def temporary_image_dir(image_paths: Iterable[Path], prefix: str):
 
 
 def real_paths_from_metadata(metadata_df, data_processed_dir: Path, label: int) -> list[Path]:
-    """Filtra il CSV di metadata su una singola classe e ne ricostruisce i path reali, da usare come riferimento per FID/PRDC."""
+    """Resolve real-image paths for one metadata class as the FID/PRDC reference."""
     label_df = metadata_df[metadata_df["label"].astype(int) == int(label)].copy()
     if label_df.empty:
-        raise RuntimeError(f"Nessuna immagine reale per label {label}")
+        raise RuntimeError(f"No real images found for label {label}")
     return [
         normalize_processed_path(row, data_processed_dir)
         for _, row in label_df.iterrows()
@@ -67,7 +65,7 @@ def real_paths_from_metadata(metadata_df, data_processed_dir: Path, label: int) 
 
 
 def compute_prdc_metrics(real_features, fake_features, nearest_k: int = 3) -> dict[str, float]:
-    """Calcola Precision/Recall/Density/Coverage tra due insiemi di feature, riducendo k se il batch è troppo piccolo per supportare quello richiesto."""
+    """Compute PRDC between two feature sets, reducing k for undersized batches."""
     # prdc internally queries k + 1 neighbours, so tiny trial runs need at least
     # k + 2 samples per side.
     k = min(int(nearest_k), len(real_features) - 2, len(fake_features) - 2)
@@ -100,7 +98,7 @@ def evaluate_generated_paths_against_real_paths(
     nearest_k: int = 3,
     is_splits: int = 10,
 ) -> dict[str, float]:
-    """Calcola FID/IS/PRDC tra due liste di immagini già note, materializzandole in cartelle temporanee per GenerativeEvaluator."""
+    """Compute FID/IS/PRDC for two image lists via temporary evaluator directories."""
     real_paths = [Path(path) for path in real_paths]
     generated_paths = [Path(path) for path in generated_paths]
 
@@ -137,7 +135,7 @@ def evaluate_generated_paths_against_metadata(
     nearest_k: int = 3,
     is_splits: int = 10,
 ) -> dict[str, float]:
-    """Stessa valutazione di evaluate_generated_paths_against_real_paths, ma usando come riferimento reale una classe del CSV di metadata invece di un elenco di path già pronto."""
+    """Evaluate against one real metadata class instead of an explicit path list."""
     real_paths = real_paths_from_metadata(metadata_df, data_processed_dir, label)
     return evaluate_generated_paths_against_real_paths(
         real_paths=real_paths,

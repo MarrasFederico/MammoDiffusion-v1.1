@@ -4,7 +4,6 @@ import json
 import importlib
 import os
 import sys
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable
 
@@ -17,7 +16,7 @@ else:
 
 
 def _infer_project_root(path: Path) -> Path | None:
-    """Risale alla root del progetto partendo da un modello SD/VAE locale."""
+    """Find the project root from a local SD/VAE model path."""
     for candidate in [path.resolve(), *path.resolve().parents]:
         if (candidate / "notebooks").is_dir() and (candidate / "experiments").is_dir():
             return candidate
@@ -48,7 +47,7 @@ def _local_diffusers_src_candidates(project_root: Path | None) -> list[Path]:
 
 
 def ensure_diffusers_available(project_root: Path | None = None):
-    """Importa Diffusers, riparando automaticamente un editable install rotto dopo un rename."""
+    """Import Diffusers, repairing an editable install broken by a directory rename."""
     try:
         return importlib.import_module("diffusers")
     except ModuleNotFoundError as original_error:
@@ -63,11 +62,11 @@ def ensure_diffusers_available(project_root: Path | None = None):
                 sys.modules.pop("diffusers", None)
 
         checked = _local_diffusers_src_candidates(project_root)
-        checked_text = "\n".join(f"- {path}" for path in checked) or "- nessun checkout locale trovato"
+        checked_text = "\n".join(f"- {path}" for path in checked) or "- no local checkout found"
         raise ModuleNotFoundError(
-            "Il pacchetto 'diffusers' non e' importabile. "
-            "Installa requirements.txt oppure imposta MAMMODIFFUSION_DIFFUSERS_SRC.\n"
-            f"Checkout locali controllati:\n{checked_text}"
+            "The 'diffusers' package cannot be imported. "
+            "Install requirements.txt or set MAMMODIFFUSION_DIFFUSERS_SRC.\n"
+            f"Checked local checkouts:\n{checked_text}"
         ) from original_error
 
 
@@ -78,8 +77,8 @@ def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None
         if candidate.exists():
             return str(candidate.absolute())
         raise FileNotFoundError(
-            "Modello Stable Diffusion 2.1 locale non trovato: "
-            f"{candidate}. Scaricalo/preparalo da Drive come nel notebook 03b."
+            "Local Stable Diffusion 2.1 model not found: "
+            f"{candidate}. Download or prepare it from Drive as described in notebook 03b."
         )
 
     env_value = os.environ.get("MAMMODIFFUSION_SD21_BASE")
@@ -88,7 +87,7 @@ def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None
         if candidate.exists():
             return str(candidate.absolute())
         raise FileNotFoundError(
-            "MAMMODIFFUSION_SD21_BASE punta a un modello locale non trovato: "
+            "MAMMODIFFUSION_SD21_BASE points to a missing local model: "
             f"{candidate}"
         )
 
@@ -101,9 +100,9 @@ def resolve_sd_vae_model(project_root: Path, requested: str | Path | None = None
     except FileNotFoundError:
         checked = str(candidate)
     raise FileNotFoundError(
-        "Modello Stable Diffusion 2.1 locale non trovato. "
-        "Non uso Hugging Face Hub perché il modello pubblico non è più disponibile.\n"
-        f"Percorso canonico controllato:\n- {checked}"
+        "Local Stable Diffusion 2.1 model not found. "
+        "Hugging Face Hub is not used because the public model is no longer available.\n"
+        f"Checked canonical path:\n- {checked}"
     )
 
 
@@ -153,8 +152,8 @@ def load_sd_vae(
         )
     else:
         raise FileNotFoundError(
-            "Modello Stable Diffusion 2.1 locale non trovato: "
-            f"{resolved}. Passa una cartella locale con la subfolder vae."
+            "Local Stable Diffusion 2.1 model not found: "
+            f"{resolved}. Pass a local directory containing the vae subfolder."
         )
     vae = vae.to(device)
     vae.eval()

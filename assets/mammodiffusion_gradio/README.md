@@ -1,35 +1,31 @@
 # MammoDiffusion Studio
 
-Interfaccia Gradio locale, ispirata al layout essenziale di Fooocus, per
-generare mammografie MLO con due generatori MammoDiffusion selezionabili dalla
-GUI.
+Local Gradio interface, inspired by Fooocus's minimal layout, for generating
+MLO mammograms with two MammoDiffusion generators selectable from the GUI.
 
-L'app legge la selezione corrente da `configs/selected_generators.json` e usa:
+The app reads the current selection from `configs/selected_generators.json` and uses:
 
-- G02, Stable Diffusion 2.1 fine-tuned: `checkpoint-3000`;
-- G07, LDM from scratch con SD-VAE: `ldm_unet_best_eval.keras`, selezionato
-  dallo sweep allo `step_130000`;
-- i prompt positivo e negativo definiti per il fine-tuning SD2.1;
-- per G02, `100` inference step e guidance scale `7.5` come valori
-  predefiniti;
-- per G07, `100` sample step e guidance scale `1.5` come valori
-  predefiniti.
+- G02, fine-tuned Stable Diffusion 2.1: `checkpoint-3000`;
+- G07, an SD-VAE LDM trained from scratch: `ldm_unet_best_eval.keras`, selected
+  by the sweep at `step_130000`;
+- the positive and negative prompts defined for SD2.1 fine-tuning;
+- `100` inference steps and guidance scale `7.5` as the G02 defaults;
+- `100` sampling steps and guidance scale `1.5` as the G07 defaults.
 
-Le immagini vengono generate sequenzialmente per contenere l'uso della VRAM e
-salvate in `assets/mammodiffusion_gradio/outputs/`. Questa cartella è separata
-da `data/synthetic/02_sd21_filtered_100steps`, quindi usare la demo non modifica il dataset
-ufficiale né i risultati finali.
+Images are generated sequentially to limit VRAM use and saved under
+`assets/mammodiffusion_gradio/outputs/`. This directory is separate from
+`data/synthetic/02_sd21_filtered_100steps`, so using the demo does not modify the
+canonical dataset or final results.
 
-Ogni richiesta di generazione viene eseguita in un subprocess dedicato. Quando
-il subprocess termina, la VRAM usata dal modello selezionato viene rilasciata
-dal sistema, permettendo di passare da G02 a G07, e viceversa, senza
-riavviare Gradio. I log tecnici del worker vengono salvati in `worker.log`
-dentro la cartella output della singola generazione.
+Each generation request runs in a dedicated subprocess. When it exits, the
+system releases the VRAM used by the selected model. This allows switching
+between G02 and G07 without restarting Gradio. Worker diagnostics are stored
+in `worker.log` inside the request's output directory.
 
-## Prerequisiti
+## Prerequisites
 
-I pesi non vengono pubblicati su GitHub. Prima dell'avvio devono essere
-presenti localmente:
+Weights are not published on GitHub. The following files must exist locally
+before the app starts:
 
 - `notebooks/pretrained_model/stable-diffusion-2-1-base`;
 - `experiments/diffusers/02_sd21_filtered_100steps/model/checkpoint-3000/unet`;
@@ -38,51 +34,50 @@ presenti localmente:
 - `experiments/diffusers/07_ldm_sdvae_extra1361/latents/latent_stats.npz`;
 - `results/2_diffusers/07_ldm_sdvae_extra1361/metrics/best_checkpoint.json`.
 
-## Avvio
+## Launch
 
-Dalla root del progetto, usando un ambiente con PyTorch/Diffusers e
-TensorFlow/Keras:
+From the project root, using an environment with PyTorch/Diffusers and
+TensorFlow/Keras installed:
 
 ```bash
 python -m pip install -r assets/mammodiffusion_gradio/requirements.txt
 python assets/mammodiffusion_gradio/app.py --open-browser
 ```
 
-L'interfaccia sarà disponibile su <http://127.0.0.1:7860>.
+The interface will be available at <http://127.0.0.1:7860>.
 
-Per renderla raggiungibile nella rete locale:
+To expose it on the local network:
 
 ```bash
 python assets/mammodiffusion_gradio/app.py --host 0.0.0.0
 ```
 
-L'opzione `--share` crea invece un link Gradio pubblico temporaneo. Non usarla
-con dati sensibili.
+The `--share` option creates a temporary public Gradio link. Do not use it with
+sensitive data.
 
-## Controlli
+## Controls
 
-- **Modello** seleziona il best checkpoint di G02 oppure quello di G07.
-- **Etichetta** seleziona il prompt standard positivo o negativo.
-- **Numero di immagini** genera da 1 a 12 immagini.
-- **Seed iniziale** vale `-1` per un seed casuale; impostando un intero, la
-  generazione è riproducibile.
-- Le impostazioni avanzate consentono di modificare step e guidance scale
-  senza cambiare i valori predefiniti usati nell'esperimento.
+- **Model** selects the best G02 or G07 checkpoint.
+- **Label** selects the standard positive or negative prompt.
+- **Number of images** generates between 1 and 12 images.
+- **Initial seed** uses `-1` for a random seed; an explicit integer makes the
+  generation reproducible.
+- Advanced settings change inference steps and guidance scale without altering
+  the experiment defaults.
 
-La demo è destinata esclusivamente a ricerca e presentazione, non all'uso
-clinico.
+The demo is intended only for research and presentation, not for clinical use.
 
-## Esempi
+## Examples
 
-Alcuni output storici riproducibili generati dalla demo con etichetta positiva,
-pesi G02 `checkpoint-3000` e seed consecutivi a partire da `42` sono disponibili
-nella cartella [`examples/`](examples/). Possono provenire dalla precedente
-ablation a 50 step e non rappresentano il nuovo default canonico a 100 step.
+Reproducible historical outputs generated with the positive label, G02
+`checkpoint-3000` weights, and consecutive seeds starting at `42` are available
+under [`examples/`](examples/). They may come from the earlier 50-step ablation
+and do not represent the current canonical 100-step default.
 
 | Seed 42 | Seed 43 |
 |---|---|
-| ![Output positivo seed 42](examples/positive_seed_42.png) | ![Output positivo seed 43](examples/positive_seed_43.png) |
+| ![Positive output, seed 42](examples/positive_seed_42.png) | ![Positive output, seed 43](examples/positive_seed_43.png) |
 
 | Seed 44 | Seed 45 |
 |---|---|
-| ![Output positivo seed 44](examples/positive_seed_44.png) | ![Output positivo seed 45](examples/positive_seed_45.png) |
+| ![Positive output, seed 44](examples/positive_seed_44.png) | ![Positive output, seed 45](examples/positive_seed_45.png) |

@@ -8,7 +8,6 @@ normal and chi-square(df=1) CDFs needed by DeLong/McNemar are both expressible t
 from __future__ import annotations
 
 import math
-import random
 from typing import Callable, Sequence
 
 import numpy as np

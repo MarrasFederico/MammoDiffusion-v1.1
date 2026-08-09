@@ -1,9 +1,8 @@
-"""Utility condivise per i classificatori MaxViT-Tiny-512 (PyTorch/timm).
+"""Shared utilities for the MaxViT-Tiny-512 classifiers (PyTorch/timm).
 
-Replica in PyTorch i building block usati nei notebook Keras/ResNet-50 del progetto:
-dataset/preprocessing, training a due fasi con callback in stile Keras
-(EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, CSVLogger), focal loss binaria
-e Grad-CAM. Le funzioni sono pensate per essere importate dai notebook 13-21.
+Provides the dataset and preprocessing pipeline, two-stage training with
+Keras-style callbacks (EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, and
+CSVLogger), and binary focal loss.
 """
 from __future__ import annotations
 
@@ -11,7 +10,7 @@ import copy
 import csv
 import os
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -25,19 +24,8 @@ MODEL_NAME = "maxvit_tiny_tf_512.in1k"
 
 
 # ---------------------------------------------------------------------------
-# Normalizzazione / configurazione modello
+# Model normalization and configuration
 # ---------------------------------------------------------------------------
-
-def resolve_normalization(model) -> tuple[tuple[float, float, float], tuple[float, float, float], int]:
-    """Legge mean/std/input_size dal pretrained_cfg del modello timm (0.5/0.5/0.5, 512px per maxvit_tf)."""
-    import timm
-
-    cfg = timm.data.resolve_data_config({}, model=model)
-    mean = cfg["mean"]
-    std = cfg["std"]
-    img_size = cfg["input_size"][-1]
-    return mean, std, img_size
-
 
 def build_maxvit_model(num_classes: int = 1, pretrained: bool = True):
     import timm
@@ -51,7 +39,7 @@ def build_maxvit_model(num_classes: int = 1, pretrained: bool = True):
 # ---------------------------------------------------------------------------
 
 class MammoDataset(Dataset):
-    """Carica mammografie grayscale, le converte a 3 canali e le normalizza per MaxViT."""
+    """Load grayscale mammograms, convert them to three channels, and normalize for MaxViT."""
 
     def __init__(self, paths, labels, mean, std, img_size: int, augment: bool = False, metadata=None):
         self.paths = list(paths)
@@ -73,12 +61,12 @@ class MammoDataset(Dataset):
         arr = np.asarray(img, dtype=np.float32) / 255.0  # [0, 1]
 
         if self.augment:
-            # Il preprocessing orienta già il tessuto verso sinistra: evitare flip mantiene
-            # la stessa convenzione anatomica dei notebook ResNet/MaxViT.
+            # Preprocessing already orients tissue to the left; avoiding flips
+            # preserves the anatomical convention used by the classifier notebooks.
             delta = np.random.uniform(-0.05, 0.05)
             arr = np.clip(arr + delta, 0.0, 1.0)
 
-        tensor = torch.from_numpy(arr).unsqueeze(0).repeat(3, 1, 1)  # 1 canale -> 3 canali
+        tensor = torch.from_numpy(arr).unsqueeze(0).repeat(3, 1, 1)  # One channel -> three.
         tensor = (tensor - self.mean) / self.std
         result = (tensor, torch.tensor(label, dtype=torch.float32))
         return (*result, self.metadata[idx]) if self.metadata is not None else result
@@ -97,7 +85,7 @@ def make_dataloader(df: pd.DataFrame, path_col: str, label_col: str, mean, std, 
 
 
 # ---------------------------------------------------------------------------
-# Freeze / unfreeze del backbone (stem + stages) analogo allo sblocco parziale ResNet
+# Freeze and unfreeze the backbone (stem + stages), analogous to partial ResNet unfreezing
 # ---------------------------------------------------------------------------
 
 def freeze_all(model) -> None:
@@ -111,7 +99,7 @@ def unfreeze_head(model) -> None:
 
 
 def unfreeze_stages_from(model, start_stage: int) -> None:
-    """Sblocca gli stage da `start_stage` in poi (0-indexed), analogo a fine_tune_from_layer di ResNet."""
+    """Unfreeze stages from the zero-indexed ``start_stage`` onward."""
     for i, stage in enumerate(model.stages):
         if i >= start_stage:
             for p in stage.parameters():
@@ -124,10 +112,10 @@ def unfreeze_all(model) -> None:
 
 
 def refreeze_batchnorm(model) -> None:
-    """Dopo model.train(), rimette in eval() i BatchNorm2d i cui pesi sono congelati.
+    """Return frozen BatchNorm2d layers to eval mode after ``model.train()``.
 
-    Mantiene le statistiche ImageNet per i layer non sbloccati, come `layer.trainable=False`
-    fa automaticamente con le BatchNorm di Keras.
+    This preserves ImageNet statistics for layers that remain frozen, matching
+    the behavior of ``layer.trainable=False`` for Keras BatchNorm layers.
     """
     for mod in model.modules():
         if isinstance(mod, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
@@ -147,7 +135,7 @@ def count_trainable_params(model) -> tuple[int, int]:
 # ---------------------------------------------------------------------------
 
 class BinaryFocalLoss(nn.Module):
-    """Equivalente PyTorch di keras.losses.BinaryFocalCrossentropy(apply_class_balancing=True)."""
+    """PyTorch equivalent of keras.losses.BinaryFocalCrossentropy with class balancing."""
 
     def __init__(self, alpha: float = 0.75, gamma: float = 2.0):
         super().__init__()
@@ -164,7 +152,7 @@ class BinaryFocalLoss(nn.Module):
 
 
 def compute_pos_weight(labels) -> torch.Tensor:
-    """pos_weight per BCEWithLogitsLoss equivalente al class_weight='balanced' di Keras."""
+    """Return a BCEWithLogitsLoss ``pos_weight`` equivalent to Keras balanced class weights."""
     labels = np.asarray(labels)
     n_pos = max(int((labels == 1).sum()), 1)
     n_neg = max(int((labels == 0).sum()), 1)
@@ -264,7 +252,7 @@ class History:
 
 
 # ---------------------------------------------------------------------------
-# Training / valutazione
+# Training and evaluation
 # ---------------------------------------------------------------------------
 
 def _binary_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> dict:
@@ -273,7 +261,7 @@ def _binary_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> dict:
     try:
         auc = roc_auc_score(y_true, y_prob)
     except ValueError:
-        auc = float("nan")  # una sola classe presente nel batch/epoca
+        auc = float("nan")  # Only one class is present in the batch or epoch.
     try:
         pr_auc = average_precision_score(y_true, y_prob)
     except ValueError:
@@ -356,7 +344,7 @@ def fit(model, train_loader, val_loader, optimizer, criterion, epochs: int, devi
         if early_stopping is not None:
             early_stopping.step(val_metrics["pr_auc"], model, val_metrics["loss"])
             if early_stopping.stop:
-                print(f"Early stopping all'epoca {epoch} (best val_pr_auc={early_stopping.best:.4f})")
+                print(f"Early stopping at epoch {epoch} (best val_pr_auc={early_stopping.best:.4f})")
                 break
 
     if early_stopping is not None:
@@ -385,7 +373,7 @@ def optimal_threshold_youden(y_true: np.ndarray, y_prob: np.ndarray) -> float:
 
 def bootstrap_balanced(y_true: np.ndarray, y_prob: np.ndarray, threshold: float,
                         n_rounds: int = 1000, seed: int = 42) -> dict:
-    """Bootstrap bilanciato: ricampiona positivi e negativi in egual misura."""
+    """Balanced bootstrap: resample positive and negative cases in equal numbers."""
     from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
     rng = np.random.default_rng(seed)
@@ -408,47 +396,3 @@ def bootstrap_balanced(y_true: np.ndarray, y_prob: np.ndarray, threshold: float,
         out["ROC_AUC"].append(roc_auc_score(yt, yp))
 
     return out
-
-
-# ---------------------------------------------------------------------------
-# Grad-CAM (basato su forward_features / forward_head, come nello split backbone/head Keras)
-# ---------------------------------------------------------------------------
-
-def make_gradcam_heatmap(model, img_tensor: torch.Tensor, device) -> np.ndarray:
-    model.eval()
-    img_batch = img_tensor.unsqueeze(0).to(device)
-
-    with torch.no_grad():
-        feats = model.forward_features(img_batch)
-    # feats diventa una foglia che richiede gradiente: funziona sia a backbone congelato
-    # (fase 1) sia sbloccato (fase 2), perché non dipende dal requires_grad dei parametri.
-    feats = feats.clone().requires_grad_(True)
-    logits = model.forward_head(feats)
-
-    model.zero_grad(set_to_none=True)
-    logits.sum().backward()
-
-    grads = feats.grad  # (1, C, H, W)
-    pooled_grads = grads.mean(dim=(0, 2, 3))
-    weighted = (feats[0] * pooled_grads[:, None, None]).sum(dim=0)
-    heatmap = torch.relu(weighted)
-    heatmap = heatmap / (heatmap.max() + 1e-8)
-    return heatmap.detach().cpu().numpy()
-
-
-def show_gradcam(img_tensor: torch.Tensor, heatmap: np.ndarray, ax, mean, std, title: str = "") -> None:
-    import torch.nn.functional as F_
-
-    mean_t = torch.tensor(mean).view(3, 1, 1)
-    std_t = torch.tensor(std).view(3, 1, 1)
-    img_vis = (img_tensor.cpu() * std_t + mean_t).clamp(0, 1)
-    img_gray = img_vis[0].numpy()  # canale singolo (i 3 canali sono identici)
-
-    heatmap_t = torch.from_numpy(heatmap).unsqueeze(0).unsqueeze(0)
-    heatmap_resized = F_.interpolate(heatmap_t, size=img_gray.shape, mode="bilinear", align_corners=False)
-    heatmap_resized = heatmap_resized.squeeze().numpy()
-
-    ax.imshow(img_gray, cmap="gray")
-    ax.imshow(heatmap_resized, cmap="jet", alpha=0.4)
-    ax.set_title(title)
-    ax.axis("off")

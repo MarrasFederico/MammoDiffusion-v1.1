@@ -364,7 +364,7 @@ class ParallelGenerationTests(unittest.TestCase):
 
     def test_complete_evaluation_rejects_incompatible_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            evaluation, request = self._complete_evaluation(Path(tmp))
+            _, request = self._complete_evaluation(Path(tmp))
             changed = {**request, "inference_steps": 100, "guidance_scale": 7.5}
             with self.assertRaisesRegex(RuntimeError, "Incompatible generation manifest"):
                 prepare_sd_manifest(changed, "checkpoint", False)
@@ -525,7 +525,7 @@ class ParallelGenerationTests(unittest.TestCase):
             notebook = json.loads((ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8"))
             final_cell = next(
                 "".join(cell.get("source", [])) for cell in notebook["cells"]
-                if "# Generazione finale con il miglior checkpoint" in "".join(cell.get("source", []))
+                if "# Final generation with the best checkpoint" in "".join(cell.get("source", []))
             )
             compile(final_cell, name, "exec")
             self.assertIn('"seed_strategy": SD_SEED_STRATEGY', final_cell)
@@ -1287,7 +1287,7 @@ class ParallelGenerationTests(unittest.TestCase):
             out_dir = Path(tmp) / "out"
             lock_path = acquire_parallel_generation_lock(out_dir)
             try:
-                with self.assertRaisesRegex(RuntimeError, "orchestrazione"):
+                with self.assertRaisesRegex(RuntimeError, "orchestration"):
                     acquire_parallel_generation_lock(out_dir)
             finally:
                 release_parallel_generation_lock(lock_path)
@@ -1346,10 +1346,10 @@ class ParallelGenerationTests(unittest.TestCase):
     def test_notebooks_document_cuda_visible_devices_inheritance_before_generation(self) -> None:
         for name in ("07_LDM_SDVAE_Extra1361.ipynb", "08_LDM_v3_SDVAE_FromScratch.ipynb"):
             source = (ROOT / "notebooks" / "2_diffusers" / name).read_text(encoding="utf-8")
-            self.assertIn('CUDA_VISIBLE_DEVICES ereditato', source)
-            self.assertIn('GENERATION_GPU_DEVICES richiesto', source)
+            self.assertIn('Inherited CUDA_VISIBLE_DEVICES', source)
+            self.assertIn('Requested GENERATION_GPU_DEVICES', source)
             self.assertIn("print_gpu_resolution_dry_run", source)
-            diagnostic_index = source.index("CUDA_VISIBLE_DEVICES ereditato")
+            diagnostic_index = source.index("Inherited CUDA_VISIBLE_DEVICES")
             first_real_generation_index = source.index("GEN_N_RAW = 4083")
             self.assertLess(diagnostic_index, first_real_generation_index)
 

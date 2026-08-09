@@ -20,13 +20,6 @@ PHASES = ("preprocessing", "augmentation", "generator_training", "generation", "
 STATUSES = ("started", "completed", "failed", "resumed", "reused")
 VALUE_PRECISION = ("measured", "estimated", "reconstructed", "legacy_unverified", "missing")
 
-EVENT_FIELDS = ("run_id", "experiment_id", "dataset_variant_id", "architecture", "seed", "phase",
-                 "status", "parent_run_id", "canonical", "reused_artifact", "start_time", "end_time",
-                 "elapsed_seconds", "energy_kwh", "co2_kg", "peak_ram_mb", "peak_vram_mb", "gpu_uuid",
-                 "gpu_name", "num_images", "optimizer_updates", "epochs", "source_log", "signature",
-                 "value_precision")
-
-
 def validate_event(event: dict) -> list[str]:
     errors = []
     if event.get("phase") not in PHASES:
@@ -112,7 +105,7 @@ def actual_vs_canonical(events: list[dict]) -> dict:
 def sum_resumed_segments(events: list[dict], run_id: str) -> dict:
     """Sum non-overlapping resume segments belonging to the same canonical training run,
     ordered by start_time, so a training that was resumed 3 times is counted once, not 3x
-    (spec 11.1: "somma segmenti non sovrapposti appartenenti allo stesso training canonico").
+    (spec 11.1: sum non-overlapping segments belonging to the same canonical training run).
     """
     segments = sorted((e for e in events if e["run_id"] == run_id and e.get("canonical")), key=lambda e: e.get("start_time") or "")
     total_seconds = sum(e.get("elapsed_seconds") or 0.0 for e in segments)

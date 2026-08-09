@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "input_signature": {
-    "raw_dir": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
+    "raw_dir": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw_positive",
     "filtered_dir": "/home/fede/Documenti/MammoDiffusion/data/synthetic/07_ldm_sdvae_extra1361/positive",
     "n_raw": 4083,
     "n_selected": 1361,
@@ -22162,7 +22162,7 @@
     "lap_var": 811.8924560546875,
     "largest_component_frac": 0.0018010371645313938
   },
-  "raw_dir": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
+  "raw_dir": "/home/fede/Documenti/MammoDiffusion/experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw_positive",
   "filtered_dir": "/home/fede/Documenti/MammoDiffusion/data/synthetic/07_ldm_sdvae_extra1361/positive",
   "report_path": "/home/fede/Documenti/MammoDiffusion/results/04b2_ldm_sdvae_extra1361/metrics/synthetic_filter_report.csv",
   "plots": {

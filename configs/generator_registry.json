@@ -141,8 +141,8 @@
       "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "filtering_applied": true,
       "samples": {
-        "raw_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_raw",
-        "filtered_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_filtered"
+        "raw_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_raw_positive",
+        "filtered_positive": "experiments/diffusers/05_ldm_basic_fromscratch/synthetic_filtered_positive"
       },
       "benchmark": {
         "enabled": true,
@@ -174,8 +174,8 @@
       "checkpoint": "experiments/diffusers/05_ldm_basic_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "filtering_applied": true,
       "samples": {
-        "raw_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw",
-        "filtered_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered"
+        "raw_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_raw_positive",
+        "filtered_positive": "experiments/diffusers/06_ldm_extra1361_fromscratch/synthetic_filtered_positive"
       },
       "benchmark": {
         "enabled": true,
@@ -208,7 +208,7 @@
       "checkpoint": "experiments/diffusers/07_ldm_sdvae_extra1361/checkpoints_ldm/ldm_unet_best_eval.keras",
       "filtering_applied": true,
       "samples": {
-        "raw_positive": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw",
+        "raw_positive": "experiments/diffusers/07_ldm_sdvae_extra1361/synthetic_raw_positive",
         "filtered_positive": "data/synthetic/07_ldm_sdvae_extra1361/positive"
       },
       "benchmark": {
@@ -235,7 +235,7 @@
       "checkpoint": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/checkpoints_ldm/ldm_unet_best_eval.keras",
       "filtering_applied": true,
       "samples": {
-        "raw_positive": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
+        "raw_positive": "experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw_positive",
         "filtered_positive": "data/synthetic/08_ldm_v3_sdvae_fromscratch/positive"
       },
       "benchmark": {

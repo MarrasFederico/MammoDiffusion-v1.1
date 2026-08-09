@@ -122,7 +122,7 @@ class PublicationRepositoryTests(unittest.TestCase):
         g05_paths = get_experiment_paths(ROOT, g05_experiment, create=False)
         _, g05_positive = get_class_image_dirs(g05_paths, 1)
         _, g05_negative = get_class_image_dirs(g05_paths, 0)
-        self.assertEqual(g05_positive, g05_experiment / "synthetic_filtered")
+        self.assertEqual(g05_positive, g05_experiment / "synthetic_filtered_positive")
         self.assertEqual(
             g05_negative,
             ROOT / "data/synthetic/05_ldm_basic_fromscratch/negative",
@@ -131,7 +131,7 @@ class PublicationRepositoryTests(unittest.TestCase):
         g06_experiment = ROOT / "experiments/diffusers/06_ldm_extra1361_fromscratch"
         g06_paths = get_experiment_paths(ROOT, g06_experiment, create=False)
         _, g06_positive = get_class_image_dirs(g06_paths, 1)
-        self.assertEqual(g06_positive, g06_experiment / "synthetic_filtered")
+        self.assertEqual(g06_positive, g06_experiment / "synthetic_filtered_positive")
 
         g07_experiment = ROOT / "experiments/diffusers/07_ldm_sdvae_extra1361"
         g07_paths = get_experiment_paths(ROOT, g07_experiment, create=False)

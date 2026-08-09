@@ -22,8 +22,8 @@ class ExperimentPaths:
     latents_dir: Path
     logs_dir: Path
     evaluation_dir: Path
-    synthetic_raw_dir: Path
-    synthetic_filtered_dir: Path
+    synthetic_raw_positive_dir: Path
+    synthetic_filtered_positive_dir: Path
 
 
 @dataclass(frozen=True)
@@ -69,7 +69,7 @@ def get_class_image_dirs(paths: ExperimentPaths, target_label: int) -> tuple[Pat
     """Restituisce i percorsi raw/filtered registrati per la classe richiesta."""
     class_name = class_name_for_label(target_label)
     if class_name == "positive":
-        return paths.synthetic_raw_dir, paths.synthetic_filtered_dir
+        return paths.synthetic_raw_positive_dir, paths.synthetic_filtered_positive_dir
     filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(
         paths.experiment_dir.name,
         paths.experiment_dir.name,
@@ -140,7 +140,7 @@ def get_experiment_paths(
     # esplicitamente legata al suo ID, evitando collisioni e nomi non interpretabili.
     filtered_dir_name = FILTERED_DIR_NAME_BY_EXPERIMENT.get(exp.name, exp.name)
     if exp.name in EXPERIMENT_LOCAL_POSITIVE_FILTERED:
-        positive_filtered_dir = exp / "synthetic_filtered"
+        positive_filtered_dir = exp / "synthetic_filtered_positive"
     else:
         positive_filtered_dir = root / "data" / "synthetic" / filtered_dir_name / "positive"
 
@@ -154,8 +154,8 @@ def get_experiment_paths(
         latents_dir=exp / "latents",
         logs_dir=exp / "logs",
         evaluation_dir=exp / "evaluation",
-        synthetic_raw_dir=exp / "synthetic_raw",
-        synthetic_filtered_dir=positive_filtered_dir,
+        synthetic_raw_positive_dir=exp / "synthetic_raw_positive",
+        synthetic_filtered_positive_dir=positive_filtered_dir,
     )
     if create:
         for directory in [
@@ -164,8 +164,8 @@ def get_experiment_paths(
             paths.latents_dir,
             paths.logs_dir,
             paths.evaluation_dir,
-            paths.synthetic_raw_dir,
-            paths.synthetic_filtered_dir,
+            paths.synthetic_raw_positive_dir,
+            paths.synthetic_filtered_positive_dir,
         ]:
             directory.mkdir(parents=True, exist_ok=True)
     return paths

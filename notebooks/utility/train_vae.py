@@ -316,14 +316,14 @@ def build_vae_decoder() -> tf.keras.Model:
 
 def reset_downstream_artifacts(paths) -> None:
     """Elimina latents, checkpoint e log della LDM e della generazione, perche' diventano incoerenti quando il VAE viene riallenato da zero."""
-    # synthetic_filtered_dir non viene azzerata: e' la cartella condivisa
+    # synthetic_filtered_positive_dir non viene azzerata: e' la cartella condivisa
     # data/synthetic/06_ldm_extra1361_fromscratch/positive usata anche dai classificatori sintetici,
     # non un artefatto locale all'esperimento.
     for directory in [
         paths.latents_dir,
         paths.checkpoints_dir,
         paths.evaluation_dir,
-        paths.synthetic_raw_dir,
+        paths.synthetic_raw_positive_dir,
     ]:
         if directory.exists():
             shutil.rmtree(directory)

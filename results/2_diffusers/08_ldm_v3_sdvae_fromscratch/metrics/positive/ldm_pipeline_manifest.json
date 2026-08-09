@@ -3,7 +3,7 @@
   "stages": {
     "filter": {
       "stage": "filter",
-      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw",
+      "raw_dir": "/mnt/MammoDiffusion/MammoDiffusion/experiments/diffusers/08_ldm_v3_sdvae_fromscratch/synthetic_raw_positive",
       "filtered_dir": "/mnt/MammoDiffusion/MammoDiffusion/data/synthetic/08_ldm_v3_sdvae_fromscratch/positive",
       "n_raw": 4083,
       "n_selected": 1361,

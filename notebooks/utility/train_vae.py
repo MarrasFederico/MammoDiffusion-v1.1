@@ -320,12 +320,12 @@ def build_vae_decoder() -> tf.keras.Model:
 
 def reset_downstream_artifacts(paths) -> None:
     """Elimina latents, checkpoint e log della LDM e della generazione, perche' diventano incoerenti quando il VAE viene riallenato da zero."""
-    # Entrambi i pool RAW sono decodificati dal VAE, quindi vanno azzerati insieme:
-    # azzerare solo il positivo lascerebbe nell'esperimento immagini negative
-    # prodotte dal decoder precedente, indistinguibili da quelle nuove.
-    # I pool filtrati restano: sono gli input registrati in configs/generator_registry.json
-    # che i classificatori sintetici consumano (experiment-local per G05/G06,
-    # data/synthetic/<id>/<classe> per gli altri), non scratch dell'esperimento.
+    # RAW e filtrati discendono entrambi dal decoder VAE: il filtro non rigenera
+    # nulla, seleziona 1.361 immagini dal pool RAW. Tenere i filtrati mentre si
+    # azzerano i RAW lascerebbe registrati in configs/generator_registry.json pool
+    # prodotti da un decoder che non esiste piu', indistinguibili dai nuovi.
+    # Il reset richiede il doppio opt-in --force-retrain --also-reset-downstream,
+    # quindi azzerare i pool registrati dell'esperimento e' una scelta esplicita.
     for directory in [
         paths.latents_dir,
         paths.checkpoints_dir,
@@ -335,13 +335,15 @@ def reset_downstream_artifacts(paths) -> None:
             shutil.rmtree(directory)
         directory.mkdir(parents=True, exist_ok=True)
 
-    # I pool RAW vengono ricreati vuoti solo se esistevano: un esperimento a sola
+    # I pool vengono ricreati vuoti solo se esistevano: un esperimento a sola
     # classe positiva non deve guadagnare una cartella negativa vuota per via del reset.
+    cleared_pools = []
     for target_label in (1, 0):
-        raw_dir, _ = get_class_image_dirs(paths, target_label)
-        if raw_dir.exists():
-            shutil.rmtree(raw_dir)
-            raw_dir.mkdir(parents=True, exist_ok=True)
+        for pool_dir in get_class_image_dirs(paths, target_label):
+            if pool_dir.exists():
+                shutil.rmtree(pool_dir)
+                pool_dir.mkdir(parents=True, exist_ok=True)
+                cleared_pools.append(pool_dir)
 
     for pattern in [
         "ldm_unet_best*.keras",
@@ -364,6 +366,10 @@ def reset_downstream_artifacts(paths) -> None:
         if state_path.exists():
             state_path.unlink()
     print("Artefatti LDM/evaluation/generation precedenti rimossi dopo il nuovo VAE.")
+    # Un reset silenzioso costringe a indovinare cosa e' stato invalidato:
+    # i pool svuotati vanno rigenerati e rifiltrati prima di qualsiasi benchmark.
+    for pool_dir in cleared_pools:
+        print("  pool azzerato, da rigenerare:", pool_dir)
 
 
 def reset_vae_artifacts(paths) -> None:

@@ -178,8 +178,13 @@ class PublicationRepositoryTests(unittest.TestCase):
             self.assertTrue(paths.synthetic_filtered_positive_dir.is_dir())
             self.assertFalse(paths.synthetic_raw_negative_dir.exists())
 
-    def test_vae_reset_clears_every_raw_pool_and_keeps_registered_filtered_pools(self):
-        """A retrained VAE invalidates both RAW pools; the registered filtered pools survive."""
+    def test_vae_reset_clears_every_pool_derived_from_the_old_decoder(self):
+        """A retrained VAE invalidates both classes, RAW and filtered alike.
+
+        Filtering selects from the RAW pool rather than regenerating, so a
+        filtered pool that outlives its RAW pool is output of a decoder that no
+        longer exists while still being the registered pool for the generator.
+        """
         utility_dir = str(ROOT / "notebooks" / "utility")
         if utility_dir not in sys.path:
             sys.path.insert(0, utility_dir)
@@ -203,24 +208,22 @@ class PublicationRepositoryTests(unittest.TestCase):
             stale = {
                 "raw_positive": paths.synthetic_raw_positive_dir / "synth_00000.png",
                 "raw_negative": paths.synthetic_raw_negative_dir / "synth_00000.png",
+                "filtered_positive": paths.synthetic_filtered_positive_dir / "synth_filtered_0000.png",
+                "filtered_negative": negative_filtered / "synth_filtered_0000.png",
                 "latents": paths.latents_dir / "latent_stats.npz",
                 "evaluation": paths.evaluation_dir / "best_checkpoint.json",
             }
-            preserved = {
-                "filtered_positive": paths.synthetic_filtered_positive_dir / "synth_filtered_0000.png",
-                "filtered_negative": negative_filtered / "synth_filtered_0000.png",
-            }
-            for path in {**stale, **preserved}.values():
+            for path in stale.values():
                 path.write_bytes(b"x")
 
             train_vae.reset_downstream_artifacts(paths)
 
             for name, path in stale.items():
                 self.assertFalse(path.exists(), name)
-            for name, path in preserved.items():
-                self.assertTrue(path.exists(), name)
-            self.assertTrue(paths.synthetic_raw_positive_dir.is_dir())
-            self.assertTrue(paths.synthetic_raw_negative_dir.is_dir())
+            for name in ("synthetic_raw_positive_dir", "synthetic_raw_negative_dir",
+                         "synthetic_filtered_positive_dir"):
+                self.assertTrue(getattr(paths, name).is_dir(), name)
+            self.assertTrue(negative_filtered.is_dir())
             for class_name in ("positive", "negative"):
                 self.assertFalse((paths.logs_dir / class_name / "generation_raw_state.json").exists())
             self.assertFalse((paths.logs_dir / "generation_raw_state.json").exists())

@@ -4,10 +4,10 @@
 
 # MammoDiffusion v1.1
 
-MammoDiffusion v1.1.0 is the final release of the project's **whole-image mammography synthesis**
-study. It provides a reproducible notebook-first pipeline for generating 512×512 grayscale MLO
-mammograms, selecting synthetic pools, and measuring their downstream effect in a fixed
-2-architecture × 4-condition × 3-seed cancer-classification experiment.
+MammoDiffusion v1.1 is a frozen study of **whole-image mammography synthesis**. It provides a
+reproducible notebook-first pipeline for generating 512×512 grayscale MLO mammograms, selecting
+synthetic pools, and measuring their downstream effect in a fixed 2-architecture × 4-condition ×
+3-seed cancer-classification experiment.
 
 The central result is promising but not conclusive. Adding positives from the selected
 from-scratch generator (G07) produced a favorable PR-AUC signal with MaxViT-512, but the signal did
@@ -20,16 +20,8 @@ classifier-independent, generalizable pathological information.
 > The lack of robust cross-classifier replication motivates a lesion-aware approach designed to
 > preserve real target-domain anatomy while synthesizing only pathological content.
 
-## Release and naming
-
-Historical notebooks, artifacts, and `protocol_version = 2` refer to an internal methodological
-phase called **V2**, which followed the original internal V1 experiments. Those identifiers are
-preserved because they are part of the provenance. The public release that freezes the complete
-whole-image study is **MammoDiffusion v1.1.0**; the historical internal V2 label must not be confused
-with a separate lesion-aware successor project.
-
-The history of the two internal phases is documented in
-[docs/FROM_V1_TO_V2.md](docs/FROM_V1_TO_V2.md). Release and archive boundaries are documented in
+Everything below describes the released study. Methodological background is in
+[docs/FROM_V1_TO_V1_1.md](docs/FROM_V1_TO_V1_1.md); release and archive boundaries are in
 [docs/ARCHIVE_AND_RELEASE.md](docs/ARCHIVE_AND_RELEASE.md).
 
 ## Task and cohort
@@ -44,9 +36,9 @@ estimate of screening prevalence: preprocessing retains the selected positive pa
 the non-cancer-to-cancer ratio at 5:1. The patient-level splits contain 2,041/437/438 patients for
 train/validation/test, including 340/73/73 positive patients.
 
-The same canonical split was retained across the historical internal V1 and V2 phases. The current
-pipeline prevents generator selection and threshold optimization from using test data, but the test
-cohort is a historically reused project test set, not an independent external confirmation cohort.
+This canonical split was carried over from the project's earlier prototype. The current pipeline
+prevents generator selection and threshold optimization from using test data, but the test cohort is
+a reused project test set, not an independent external confirmation cohort.
 
 ## Canonical downstream results
 
@@ -130,9 +122,40 @@ the reuse utilities reroot recognized repository-relative suffixes onto the curr
 the old strings remain in frozen artifacts as provenance.
 
 `notebooks/1_preprocessing/02_Data_Augmentation_Trad.ipynb` builds the 1,020 traditional-augmentation
-positives from that cohort. Both of its side-effecting actions are opt-in and off by default:
-`ALLOW_PROCESSED_DOWNLOAD = False` keeps it from fetching the processed cohort, and
-`RESET_DATASET = False` keeps it from deleting an existing `data/real_augmented/`.
+positives from that cohort. Like every notebook here it opens in review mode, so it neither fetches
+the cohort nor deletes an existing `data/real_augmented/` unless told to.
+
+## Execution modes
+
+Every notebook opens in **review mode** and states so in its bootstrap cell. Review mode is the
+default and is enforced, not merely documented: `notebooks/utility/review_mode.py` blocks outbound
+sockets and name resolution, refuses package managers and repository clones, and turns the cohort
+and shared-asset downloads into an explicit error naming the flag to set. Cloning the repository,
+opening any notebook and pressing *Run All* therefore cannot train, generate, download, install,
+clone, or delete anything.
+
+Review mode still lets you read the frozen results, rebuild every derived report and the generator
+ranking from the committed predictions, and inspect configurations.
+
+A **real run** is an explicit opt-in. Set the flags in the notebook's bootstrap cell:
+
+```python
+ALLOW_NETWORK_ACCESS = True        # clone/fetch the pinned Diffusers checkout
+INSTALL_DEPENDENCIES = True        # allow pip to change the environment
+ALLOW_PROCESSED_DOWNLOAD = True    # allow the cohort/asset archives to be fetched
+```
+
+or, to leave the committed notebooks untouched, export the equivalent variables before starting
+Jupyter:
+
+```bash
+MAMMODIFFUSION_ALLOW_NETWORK=1
+MAMMODIFFUSION_ALLOW_DEPENDENCY_INSTALL=1
+MAMMODIFFUSION_ALLOW_PROCESSED_DOWNLOAD=1
+```
+
+The scientific phases stay separately gated by their own `RUN_*_PHASE` flags, which ship as `False`,
+so granting network access does not by itself start training or generation.
 
 ### B. Rebuild from original RSNA data
 
@@ -140,16 +163,8 @@ The source is the derived Kaggle release
 [RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
 which distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG files with
 the competition `train.csv` metadata. Obtain it under the source terms and place the user-supplied
-archive where the preprocessing notebook requests it. The repository never fetches the RSNA source
-archive for you and never reads DICOM.
-
-One qualification, so the previous sentence is not read more broadly than it holds: the generator
-notebooks in `notebooks/2_diffusers/` can fetch the author's *already processed* cohort archive from
-Google Drive when `data/processed/` is absent. Those notebooks are explicit real-run tools that also
-resolve a pinned Diffusers checkout and require separately restored checkpoints, so they are never
-part of a review-only clone. The cheap preprocessing-stage notebooks do not behave this way:
-notebook 01 requires a user-supplied archive, and notebook 02 keeps the same fetch behind
-`ALLOW_PROCESSED_DOWNLOAD = False`.
+archive where the preprocessing notebook requests it. No notebook fetches the RSNA source archive,
+and none reads DICOM.
 
 `notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` keeps MLO images, derives
 patient status, excludes nominally negative images from positive patients, selects at most one

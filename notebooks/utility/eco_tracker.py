@@ -12,6 +12,28 @@ from typing import Optional
 import psutil
 from codecarbon import EmissionsTracker
 
+
+def _offline_tracker_options() -> dict:
+    """Keyword arguments that stop CodeCarbon from contacting anything.
+
+    The option names have moved between CodeCarbon releases, so each one is
+    offered only if the installed version accepts it; an unknown keyword would
+    otherwise turn a measurement helper into an import-time failure.
+    """
+    import inspect
+
+    candidates = {
+        "cloud_provider": "",           # skip the cloud metadata probe
+        "cloud_region": "",
+        "country_iso_code": "ITA",      # skip the geolocation lookup
+        "allow_multiple_runs": True,
+    }
+    try:
+        accepted = set(inspect.signature(EmissionsTracker.__init__).parameters)
+    except (TypeError, ValueError):  # pragma: no cover - exotic packaging
+        return {}
+    return {name: value for name, value in candidates.items() if name in accepted}
+
 @dataclass
 class SustainabilityMetrics:
     """Runtime, peak memory, energy, and emissions measured for one code block."""
@@ -89,30 +111,56 @@ class _EcoTracker:
         self.label = label
         self.metrics: Optional[SustainabilityMetrics] = None
         self._monitor = _RamMonitor(interval=sample_interval)
-        self._carbon_tracker = EmissionsTracker(
-            measure_power_secs=sample_interval,
-            log_level="error",
-            save_to_file=False,
-        )
+        self._sample_interval = sample_interval
+        # Constructed in start(), because building an EmissionsTracker already
+        # probes the cloud metadata endpoint (169.254.169.254) and a geolocation
+        # service. Deferring it keeps that inside the failure-tolerant path.
+        self._carbon_tracker = None
+        self._carbon_started = False
         self._t0: float = 0.0
         self._start_ram: float = 0.0
 
     def start(self) -> None:
-        """Start RAM, CodeCarbon, and elapsed-time measurements."""
+        """Start RAM, CodeCarbon, and elapsed-time measurements.
+
+        CodeCarbon is optional here. It probes the cloud metadata endpoint and a
+        geolocation service on start-up, and the installed version does not
+        expose a keyword to suppress that. Since only ``elapsed_seconds`` is ever
+        used -- it is measured by this module, not by CodeCarbon -- a tracker
+        that cannot start is degraded to zeroed energy fields instead of taking
+        an offline notebook down with it.
+        """
         self._start_ram = psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2)
         self._monitor.start()
-        self._carbon_tracker.start()
+        self._carbon_started = False
+        try:
+            self._carbon_tracker = EmissionsTracker(
+                measure_power_secs=self._sample_interval,
+                log_level="error",
+                save_to_file=False,
+                **_offline_tracker_options(),
+            )
+            self._carbon_tracker.start()
+            self._carbon_started = True
+        except Exception as error:  # noqa: BLE001 - any tracker failure is non-fatal
+            self._carbon_error = error
         self._t0 = time.perf_counter()
 
     def stop(self) -> None:
         """Stop all measurements and populate ``metrics``."""
         elapsed   = time.perf_counter() - self._t0
         peak_ram  = self._monitor.stop()
-        co2_kg    = self._carbon_tracker.stop()
-        energy_kwh = (
-            self._carbon_tracker.final_emissions_data.energy_consumed
-            if self._carbon_tracker.final_emissions_data else 0.0
-        )
+        co2_kg = None
+        energy_kwh = 0.0
+        if getattr(self, "_carbon_started", False):
+            try:
+                co2_kg = self._carbon_tracker.stop()
+                energy_kwh = (
+                    self._carbon_tracker.final_emissions_data.energy_consumed
+                    if self._carbon_tracker.final_emissions_data else 0.0
+                )
+            except Exception:  # noqa: BLE001
+                co2_kg, energy_kwh = None, 0.0
         self.metrics = SustainabilityMetrics(
             elapsed_seconds=elapsed,
             peak_ram_mb=peak_ram,

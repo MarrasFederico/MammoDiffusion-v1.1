@@ -14,7 +14,7 @@ import time
 import hashlib
 from collections import deque
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Mapping
 
 
 OFF_VALUES = {"", "off", "none", "false", "0-off"}
@@ -511,6 +511,57 @@ def file_content_signature(path: Path) -> dict:
     }
 
 
+# The recorded ``path`` is provenance, not identity. Comparing it makes a frozen
+# cache permanently incompatible once the project directory is renamed or moved,
+# and on the original workstation the stored prefix now resolves through a
+# symlink into an unrelated repository. Identity is the content.
+SIGNATURE_IDENTITY_FIELDS = ("size", "sha256", "mtime_ns")
+
+
+def signature_matches(cached: Mapping | None, current: Mapping | None) -> bool:
+    """Compare two file signatures by content, ignoring where each was recorded.
+
+    Returns False when either side is missing, or when the two share no
+    content field at all -- a signature that carries only a path proves nothing.
+    """
+    if not isinstance(cached, Mapping) or not isinstance(current, Mapping):
+        return False
+    shared = [field for field in SIGNATURE_IDENTITY_FIELDS
+              if field in cached and field in current]
+    if not shared:
+        return False
+    return all(cached[field] == current[field] for field in shared)
+
+
+def records_equivalent(cached: object, current: object) -> bool:
+    """Structural equality that ignores where a recorded file happened to live.
+
+    Cache records mix ordinary configuration values with file signatures. The
+    former must match exactly. For the latter, identity is content: whenever both
+    sides carry a ``path`` key, every *other* key is compared and the location is
+    ignored, so a renamed or relocated checkout does not invalidate a still-valid
+    record -- and a stale absolute prefix can never be followed to decide it.
+
+    A record whose only key is ``path`` proves nothing and never matches.
+    """
+    if isinstance(cached, Mapping) and isinstance(current, Mapping):
+        if "path" in cached and "path" in current:
+            keys = (set(cached) | set(current)) - {"path"}
+            if not keys:
+                return False
+            if set(cached) - {"path"} != set(current) - {"path"}:
+                return False
+            return all(records_equivalent(cached[key], current[key]) for key in keys)
+        if set(cached) != set(current):
+            return False
+        return all(records_equivalent(cached[key], current[key]) for key in cached)
+    if isinstance(cached, (list, tuple)) and isinstance(current, (list, tuple)):
+        return len(cached) == len(current) and all(
+            records_equivalent(a, b) for a, b in zip(cached, current)
+        )
+    return cached == current
+
+
 def _bounded_content_signature(path: Path) -> dict:
     """Fingerprint a potentially large model file without hashing its full body.
 
@@ -641,8 +692,9 @@ def sd_metrics_cache_compatible(payload: object, config: dict, validation_csv: P
     return bool(
         isinstance(payload, dict)
         and payload.get("schema_version") == 2
-        and payload.get("config") == config
-        and payload.get("validation_csv_signature") == file_content_signature(validation_csv)
+        and records_equivalent(payload.get("config"), config)
+        and signature_matches(payload.get("validation_csv_signature"),
+                              file_content_signature(validation_csv))
         and isinstance(payload.get("checkpoints"), dict)
     )
 
@@ -655,7 +707,7 @@ def sd_metrics_cache_entry_matches(entry: object, checkpoint: Path, negative_dir
         "negative_image_signature": png_content_signature(negative_dir),
         "positive_image_signature": png_content_signature(positive_dir),
     }
-    return all(entry.get(key) == value for key, value in expected.items())
+    return all(records_equivalent(entry.get(key), value) for key, value in expected.items())
 
 
 def create_parallel_run_dir(logs_dir: Path) -> Path:

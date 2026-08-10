@@ -20,6 +20,44 @@ REQUIRED_SD21_COMPONENTS = (
 )
 
 
+def _require_network(action: str) -> None:
+    """Defer to the review-mode contract when it is loaded, otherwise allow.
+
+    ``review_mode`` is imported lazily so this module keeps working for callers
+    that never set the contract up, such as the CLI utilities.
+    """
+    try:
+        import review_mode
+    except ImportError:  # pragma: no cover - only when used outside notebooks/utility
+        return
+    review_mode.require_network(action)
+
+
+def _require_dependency_install(action: str) -> None:
+    try:
+        import review_mode
+    except ImportError:  # pragma: no cover
+        return
+    review_mode.require_dependency_install(action)
+
+
+def _import_from_checkout(src: Path):
+    """Import Diffusers straight from the checkout, avoiding an editable install."""
+    src_text = str(src)
+    if src_text in sys.path:
+        sys.path.remove(src_text)
+    sys.path.insert(0, src_text)
+    for module_name in [name for name in sys.modules
+                        if name == "diffusers" or name.startswith("diffusers.")]:
+        sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
+    try:
+        imported = Path(importlib.import_module("diffusers").__file__).resolve()
+    except ImportError:
+        return None
+    return imported if src in imported.parents else None
+
+
 def _looks_like_mammodiffusion_root(candidate: Path) -> bool:
     """Any one of several independent signatures is enough to recognise the project root.
 
@@ -153,14 +191,24 @@ def ensure_shared_diffusers_repo(
     path: str | Path | None = None, revision: str = DIFFUSERS_REVISION,
     url: str = "https://github.com/huggingface/diffusers.git",
 ) -> Path:
+    """Resolve the pinned shared Diffusers checkout.
+
+    A checkout that is already present at the pinned revision is returned
+    without touching the network, which is the only branch review mode reaches.
+    Cloning or moving the checkout is a real-run action and must be opted into,
+    because the generator notebooks call this during setup, long before any
+    scientific phase flag is consulted.
+    """
     repo = resolve_shared_diffusers_repo(path)
     with _atomic_lock(repo.parent / ".diffusers_assets.lock"):
         if not repo.exists():
+            _require_network(f"cloning the pinned Diffusers checkout into {repo}")
             subprocess.run(["git", "clone", url, str(repo)], check=True)
         info = verify_diffusers_revision(repo, revision) if _git(repo, "rev-parse", "HEAD") == revision else None
         if info is None:
             if _git(repo, "status", "--porcelain"):
                 raise RuntimeError(f"Refusing checkout of dirty Diffusers working tree: {repo}")
+            _require_network(f"fetching Diffusers revision {revision} into {repo}")
             subprocess.run(["git", "-C", str(repo), "fetch", "origin", revision], check=True)
             subprocess.run(["git", "-C", str(repo), "checkout", "--detach", revision], check=True)
             verify_diffusers_revision(repo, revision)
@@ -168,6 +216,13 @@ def ensure_shared_diffusers_repo(
 
 
 def ensure_diffusers_editable_install(repo: str | Path) -> Path:
+    """Make the shared checkout importable, installing it only on opt-in.
+
+    When the checkout is already importable this is a no-op. Otherwise the
+    editable install is an environment mutation, so review mode first tries the
+    checkout's ``src`` directory on ``sys.path`` -- which is enough to import it
+    -- and only refuses when even that fails.
+    """
     repo = Path(repo).resolve()
     src = (repo / "src").resolve()
     try:
@@ -177,6 +232,11 @@ def ensure_diffusers_editable_install(repo: str | Path) -> Path:
             return imported
     except ImportError:
         pass
+    if src.is_dir():
+        imported = _import_from_checkout(src)
+        if imported is not None:
+            return imported
+    _require_dependency_install(f"editable install of the shared Diffusers checkout at {repo}")
     subprocess.run([sys.executable, "-m", "pip", "install", "-e", str(repo)], check=True)
     # Editable installs expose ``repo/src`` through a newly written ``.pth`` file.  Python only
     # processes those files during interpreter start-up, so the first notebook run in a fresh

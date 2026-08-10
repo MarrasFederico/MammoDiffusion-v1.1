@@ -1,8 +1,8 @@
 # MammoDiffusion v1.1 consolidated protocol
 
-This document describes the final v1.1.0 whole-image study. Schema values named
-`protocol_version = 2` and historical references to “V2” identify the second internal methodological
-phase retained for provenance; they do not change the public release version.
+This document describes the MammoDiffusion v1.1 whole-image study. Schema values such as
+`protocol_version = 2` are historical identifiers retained for provenance; they do not denote the
+release version.
 
 The repository encodes a fixed comparison family and deterministic analysis, but the study was not
 formally preregistered. “Primary” below means primary within the frozen repository protocol, not
@@ -189,9 +189,9 @@ Existing prediction files are protected unless overwrite is separately enabled. 
 only saved reports and does not build adapters, load models, touch CUDA, or open test images.
 
 The current implementation isolates test data from generator selection and threshold choice.
-However, the 438-patient test cohort is the same project split used across the historical internal
-V1 and V2 phases, and the earlier phase had less strict development/test separation. It is not a
-new independent or external confirmation cohort.
+However, the 438-patient test cohort is the same project split used by the earlier V1 prototype,
+which had less strict development/test separation. It is not a new independent or external
+confirmation cohort.
 
 ## 9. Outputs and reproduction boundary
 

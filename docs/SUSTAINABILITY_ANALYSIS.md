@@ -15,7 +15,7 @@ The estimate is not a wall-socket measurement, a carbon estimate, or a lifecycle
 The retained event registry covers generator-related phases such as preprocessing, generator
 training, generation, filtering, and validation. It contains no classifier-training events.
 Consequently, this analysis does not compare end-to-end classifier performance against consumption
-and does not repeat the historical internal-V1 comparison of traditional versus diffusion
+and does not repeat the V1 prototype's comparison of traditional versus diffusion
 augmentation. Efficiency is not a generator eligibility gate or ranking field.
 
 ## Authoritative inputs

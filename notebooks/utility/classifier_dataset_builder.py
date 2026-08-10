@@ -15,6 +15,8 @@ import json
 import os
 from pathlib import Path
 
+import project_paths
+
 CLASS_LABEL = {"negative": 0, "positive": 1}
 EXPECTED_FILTERED_IMAGE_COUNT = 1361
 
@@ -357,23 +359,14 @@ def validation_manifest_signature(root: Path, rows: list[dict]) -> str:
 
 
 def resolve_project_path(root: Path, value: str) -> Path:
-    """Resolve paths stored by older mounts without accepting files outside the project."""
-    path = Path(value)
-    if not path.is_absolute():
-        candidate = root / path
-    else:
-        try:
-            relative = path.relative_to(root)
-        except ValueError:
-            markers = ("data", "experiments", "results")
-            parts = path.parts
-            marker = next((name for name in markers if name in parts), None)
-            if marker is None:
-                raise ValueError(f"path cannot be safely rerooted under project: {value}")
-            candidate = root.joinpath(*parts[parts.index(marker):])
-        else:
-            candidate = root / relative
-    return candidate.resolve()
+    """Resolve a path stored by an older mount, never accepting one outside the project.
+
+    Delegates to ``project_paths`` so every consumer shares one rule.
+    """
+    try:
+        return project_paths.resolve_project_path(root, value, must_stay_inside=True)
+    except ValueError as error:
+        raise ValueError(f"path cannot be safely rerooted under project: {value}") from error
 
 
 def rows_from_file_list(root: Path, file_list: dict) -> list[dict]:

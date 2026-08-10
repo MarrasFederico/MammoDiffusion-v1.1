@@ -5,8 +5,8 @@
 - **Repository name:** `MammoDiffusion-v1.1`
 - **Release version:** `v1.1.0`
 - **Scientific scope:** final whole-image mammography synthesis and downstream-classification study
-- **Historical identifiers:** internal V1 and internal V2 remain in notebooks, schemas, and
-  provenance; they are phases of this frozen study, not release-major versions
+- **Historical identifiers:** earlier phase labels remain in notebooks, schemas, and provenance;
+  they are development phases of this frozen study, not release versions
 
 The release tag identifies the authoritative source snapshot. Frozen result JSON/CSV files remain
 the authoritative numerical record; notebook outputs are presentation and execution records, not a
@@ -172,9 +172,9 @@ artifacts and a compatible local GPU environment.
 
 ## Freeze rule
 
-After tests, documentation checks, cleanup, repository rename, `v1.1.0` tag, remote push, and full
-archive verification, this tree is frozen. Lesion-aware development belongs in a separate
-`MammoDiffusion-v2` repository and must not mutate the v1.1 release artifacts.
+After tests, documentation checks, cleanup, tagging, remote push, and full archive verification,
+this tree is frozen. Any further development belongs in its own repository and must not mutate the
+v1.1 release artifacts.
 
 ## Post-release independent audit
 
@@ -191,7 +191,7 @@ clean checkout.
   `ldm_project_paths` now prefers a repository marker (`.git`, `configs/`, `data/`) over a directory
   that merely carries the project name. The old order escaped the checkout whenever `data/` was
   absent — the state a fresh clone starts in — and on the original workstation it resolved to the
-  parent directory that now also holds the separate successor project;
+  parent directory, which on the original workstation holds unrelated repositories;
 - `results/2_diffusers/06_ldm_extra1361_fromscratch/plots/ecotracker_summary_per_stage.png` was
   removed under the REMOVE rule above;
 - the root-marker heuristic in `shared_diffusers_assets` no longer keys on a configuration file
@@ -202,14 +202,14 @@ clean checkout.
 A closing pass repeated the whole verification and hardened three further items, again without
 touching a result:
 
-- a sibling symlink named `MammoDiffusion` now points at the successor project on the original
-  workstation, so accepting a directory for its *name* could hand back that project. Every
+- on the original workstation a sibling symlink named `MammoDiffusion` points at an unrelated
+  repository, so accepting a directory for its *name* could hand back that repository. Every
   name-based clause in the notebook bootstrap, the notebook resolvers and `ldm_project_paths` now
   also requires a `notebooks/` directory, and resolution from outside any checkout fails loudly
   instead of guessing;
 - `processed_dataset_reuse` rerooted relative manifest paths but followed absolute ones verbatim.
   Historical manifests carry the `/mnt/MammoDiffusion/MammoDiffusion` prefix, which that symlink now
-  redirects into the successor project, so absolute paths with a recognized project marker are
+  redirects to an unrelated repository, so absolute paths with a recognized project marker are
   rerooted onto the current checkout. An absolute path with no marker is still reported as resolving
   outside the project rather than silently accepted;
 - `02_Data_Augmentation_Trad.ipynb` shipped `RESET_DATASET = True`, so an ordinary Run All deleted
@@ -217,6 +217,33 @@ touching a result:
   memorization reference pool. It is now `False`, and the cohort fetch it performs is behind
   `ALLOW_PROCESSED_DOWNLOAD = False`. README and PROTOCOL now state exactly which notebooks can
   retrieve data and under what condition.
+
+A final engineering pass then made the review-mode contract a property of the code rather than a
+promise in the documentation:
+
+- `notebooks/utility/review_mode.py` states the contract once and enforces it at the primitives
+  every escape route passes through -- outbound sockets and name resolution, package managers and
+  repository clones, and the cohort/shared-asset downloads. Every notebook activates it in its
+  bootstrap cell, so opening a notebook and pressing *Run All* cannot train, generate, download,
+  install, clone, or delete anything;
+- the shared Diffusers helpers no longer clone or `pip install -e` during setup: an existing pinned
+  checkout is imported from its own `src/`, and cloning or installing requires an explicit opt-in;
+- CodeCarbon is started defensively, because constructing it probes the cloud metadata endpoint;
+  only `elapsed_seconds` was ever used, so a tracker that cannot start degrades instead of taking an
+  offline notebook down;
+- `notebooks/utility/project_paths.py` is the single authority for interpreting a recorded path.
+  Identity is the repository-relative suffix, resolution always lands inside the current checkout or
+  fails, and symlinked `data/`/`experiments/` directories stay recognisably inside the project;
+- cache and manifest compatibility now compares content, not the location a file happened to occupy
+  when the record was written. The rename had silently invalidated every frozen checkpoint cache;
+- the preprocessing notebooks no longer rewrite the canonical split manifests, the frozen evaluation
+  record, or the traditional-augmentation pool when reusing an existing cohort.
+
+All eight generator notebooks, both preprocessing notebooks, both benchmark notebooks, the
+classifier comparison and final-evaluation notebooks, and the sustainability notebook were executed
+end to end in review mode under a kernel-level filesystem guard: no errors, no network, no
+environment mutation, no write outside the checkout, and no read or write anywhere near an unrelated
+repository.
 
 The `v1.1.0` tag is unchanged and remains a complete, self-consistent scientific snapshot. `main`
 carries the audit corrections; no new version or release was created, and none is planned.

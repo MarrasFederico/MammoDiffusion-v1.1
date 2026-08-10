@@ -105,10 +105,9 @@ class SharedDiffusersAssetsTests(unittest.TestCase):
             try:
                 with mock.patch.object(assets.subprocess, "run") as pip_run:
                     imported = assets.ensure_diffusers_editable_install(repo)
-                pip_run.assert_called_once_with(
-                    [sys.executable, "-m", "pip", "install", "-e", str(repo.resolve())],
-                    check=True,
-                )
+                # The checkout is importable from its own src/, so the environment
+                # is never modified: an editable install is a real-run action.
+                pip_run.assert_not_called()
                 self.assertEqual(imported, init_file.resolve())
                 self.assertTrue(importlib.import_module("diffusers").FIRST_RUN_MARKER)
                 self.assertEqual(sys.path[0], str((repo / "src").resolve()))

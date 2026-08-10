@@ -21,7 +21,7 @@ generalization and clinical transportability are not established.
 
 ## 3. Historically reused test cohort
 
-The same 438-patient test split is retained across the historical internal V1 and V2 phases. The
+The same 438-patient test split is retained from the earlier V1 prototype. The
 current code prevents generator selection and operating-point optimization from using test data,
 but earlier project development had less strict separation and could consult test-derived outputs.
 The final test results are therefore a controlled evaluation on a held-out project split, not a

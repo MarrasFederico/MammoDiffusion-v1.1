@@ -126,8 +126,13 @@ Each metadata row needs at least `patient_id`, `image_id`, `label`, `split`, and
 `processed_path`. `notebooks/utility/processed_dataset_reuse.py` checks the schema, image presence,
 binary labels, unique output paths, reconciliation of split CSVs, and patient separation.
 Historical manifests and result records may contain absolute paths from the original workstation;
-the reuse utilities reroot recognized repository-relative suffixes, but the old strings remain in
-frozen artifacts as provenance.
+the reuse utilities reroot recognized repository-relative suffixes onto the current checkout, but
+the old strings remain in frozen artifacts as provenance.
+
+`notebooks/1_preprocessing/02_Data_Augmentation_Trad.ipynb` builds the 1,020 traditional-augmentation
+positives from that cohort. Both of its side-effecting actions are opt-in and off by default:
+`ALLOW_PROCESSED_DOWNLOAD = False` keeps it from fetching the processed cohort, and
+`RESET_DATASET = False` keeps it from deleting an existing `data/real_augmented/`.
 
 ### B. Rebuild from original RSNA data
 
@@ -135,8 +140,16 @@ The source is the derived Kaggle release
 [RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
 which distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG files with
 the competition `train.csv` metadata. Obtain it under the source terms and place the user-supplied
-archive where the preprocessing notebook requests it. The repository does not perform an opaque
-automatic download and does not read DICOM.
+archive where the preprocessing notebook requests it. The repository never fetches the RSNA source
+archive for you and never reads DICOM.
+
+One qualification, so the previous sentence is not read more broadly than it holds: the generator
+notebooks in `notebooks/2_diffusers/` can fetch the author's *already processed* cohort archive from
+Google Drive when `data/processed/` is absent. Those notebooks are explicit real-run tools that also
+resolve a pinned Diffusers checkout and require separately restored checkpoints, so they are never
+part of a review-only clone. The cheap preprocessing-stage notebooks do not behave this way:
+notebook 01 requires a user-supplied archive, and notebook 02 keeps the same fetch behind
+`ALLOW_PROCESSED_DOWNLOAD = False`.
 
 `notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` keeps MLO images, derives
 patient status, excludes nominally negative images from positive patients, selects at most one

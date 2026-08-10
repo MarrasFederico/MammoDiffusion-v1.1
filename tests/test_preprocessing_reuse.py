@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
@@ -102,6 +103,105 @@ class ProcessedDatasetReuseAuditTests(unittest.TestCase):
 
         self.assertFalse(audit["ready"])
         self.assertTrue(any("does not reconcile" in reason for reason in audit["reasons"]))
+
+    def test_legacy_absolute_manifest_paths_are_rerooted_onto_this_project(self):
+        """A historical absolute prefix must not be followed off the project.
+
+        Manifests written on the original workstation store paths under
+        ``/mnt/MammoDiffusion/MammoDiffusion/...``. That prefix is now a symlink
+        to a separate successor repository, so following it verbatim would audit
+        another project's files. The documented behaviour is to reroot a
+        recognized project-relative suffix onto the current root.
+        """
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            processed_dir, manifest = self._complete_cohort(root)
+            legacy = manifest.copy()
+            legacy["processed_path"] = [
+                "/mnt/MammoDiffusion/MammoDiffusion/" + value
+                for value in manifest["processed_path"]
+            ]
+            metadata_dir = processed_dir / "metadata"
+            legacy.to_csv(metadata_dir / "all_processed.csv", index=False)
+            for split in ("train", "val", "test"):
+                legacy[legacy["split"] == split].to_csv(
+                    metadata_dir / f"{split}.csv", index=False
+                )
+            audit = audit_processed_dataset(root, processed_dir)
+
+        self.assertTrue(audit["ready"], audit["reasons"])
+        self.assertEqual(audit["missing_image_count"], 0)
+        self.assertFalse(any("outside the project root" in reason
+                             for reason in audit["reasons"]))
+
+    def test_absolute_path_without_a_project_marker_is_still_reported(self):
+        """Rerooting must not silently swallow a genuinely foreign path."""
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            processed_dir, manifest = self._complete_cohort(root)
+            foreign = manifest.copy()
+            foreign.loc[0, "processed_path"] = "/elsewhere/opaque/image.png"
+            metadata_dir = processed_dir / "metadata"
+            foreign.to_csv(metadata_dir / "all_processed.csv", index=False)
+            for split in ("train", "val", "test"):
+                foreign[foreign["split"] == split].to_csv(
+                    metadata_dir / f"{split}.csv", index=False
+                )
+            audit = audit_processed_dataset(root, processed_dir)
+
+        self.assertFalse(audit["ready"])
+        self.assertTrue(any("outside the project root" in reason
+                            for reason in audit["reasons"]), audit["reasons"])
+
+
+class PreprocessingNotebookSafeDefaultsTests(unittest.TestCase):
+    """An ordinary Run All must not delete data or pull a dataset off the network.
+
+    The diffuser notebooks already guarantee this through their explicit phase
+    flags; the preprocessing stage needs the same guarantee, because its inputs
+    feed the ``real_augmented`` condition and the memorization reference pool.
+    """
+
+    NOTEBOOKS = (
+        "notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb",
+        "notebooks/1_preprocessing/02_Data_Augmentation_Trad.ipynb",
+    )
+    # Only flags whose *enabled* state deletes data, rewrites a cohort, or reaches
+    # the network. ALLOW_COMPLETE_PROCESSED_REUSE is deliberately excluded: it
+    # permits a read-only fallback and is safe precisely when it is on.
+    SIDE_EFFECTING = re.compile(
+        r"^\s*(RESET_[A-Z0-9_]*|FORCE_[A-Z0-9_]*|OVERWRITE_[A-Z0-9_]*"
+        r"|ALLOW_[A-Z0-9_]*DOWNLOAD[A-Z0-9_]*)"
+        r"\s*=\s*(True|False)\s*$",
+        re.M,
+    )
+
+    def _code(self, relative: str) -> str:
+        notebook = nbformat.read(ROOT / relative, as_version=4)
+        return "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "code")
+
+    def test_no_destructive_or_downloading_flag_ships_enabled(self):
+        for relative in self.NOTEBOOKS:
+            code = self._code(relative)
+            found = self.SIDE_EFFECTING.findall(code)
+            with self.subTest(notebook=relative):
+                self.assertTrue(found, f"{relative}: expected explicit side-effect flags")
+                for name, value in found:
+                    self.assertEqual(value, "False", f"{relative}: {name} ships enabled")
+
+    def test_the_drive_download_is_gated_by_an_explicit_opt_in(self):
+        code = self._code(self.NOTEBOOKS[1])
+        self.assertIn("ALLOW_PROCESSED_DOWNLOAD = False", code)
+        download = code[code.index("def download_processed_zip"):]
+        guard = download.index("if not ALLOW_PROCESSED_DOWNLOAD:")
+        call = download.index("gdown.download")
+        self.assertLess(guard, call,
+                        "the opt-in check must precede every gdown call in the function")
+
+    def test_the_augmented_pool_is_not_deleted_by_default(self):
+        code = self._code(self.NOTEBOOKS[1])
+        self.assertIn("RESET_DATASET = False", code)
+        self.assertIn("if RESET_DATASET and DATA_AUG.exists():", code)
 
 
 class PreprocessingNotebookReuseWiringTests(unittest.TestCase):

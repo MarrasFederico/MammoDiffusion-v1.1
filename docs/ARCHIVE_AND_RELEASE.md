@@ -199,4 +199,24 @@ clean checkout.
 - regression tests were added for reference-checked average precision and ROC-AUC, paired-bootstrap
   semantics, Holm, and the consistency of the published numbers with the frozen predictions.
 
-The `v1.1.0` tag is unchanged and remains a complete, self-consistent scientific snapshot.
+A closing pass repeated the whole verification and hardened three further items, again without
+touching a result:
+
+- a sibling symlink named `MammoDiffusion` now points at the successor project on the original
+  workstation, so accepting a directory for its *name* could hand back that project. Every
+  name-based clause in the notebook bootstrap, the notebook resolvers and `ldm_project_paths` now
+  also requires a `notebooks/` directory, and resolution from outside any checkout fails loudly
+  instead of guessing;
+- `processed_dataset_reuse` rerooted relative manifest paths but followed absolute ones verbatim.
+  Historical manifests carry the `/mnt/MammoDiffusion/MammoDiffusion` prefix, which that symlink now
+  redirects into the successor project, so absolute paths with a recognized project marker are
+  rerooted onto the current checkout. An absolute path with no marker is still reported as resolving
+  outside the project rather than silently accepted;
+- `02_Data_Augmentation_Trad.ipynb` shipped `RESET_DATASET = True`, so an ordinary Run All deleted
+  and rebuilt `data/real_augmented/` — an input of the `real_augmented` condition and of the
+  memorization reference pool. It is now `False`, and the cohort fetch it performs is behind
+  `ALLOW_PROCESSED_DOWNLOAD = False`. README and PROTOCOL now state exactly which notebooks can
+  retrieve data and under what condition.
+
+The `v1.1.0` tag is unchanged and remains a complete, self-consistent scientific snapshot. `main`
+carries the audit corrections; no new version or release was created, and none is planned.

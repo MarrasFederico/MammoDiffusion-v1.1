@@ -128,7 +128,7 @@ def find_project_root(
             or (candidate / "data").is_dir()
         ):
             return candidate
-        if candidate.name == project_name:
+        if candidate.name == project_name and (candidate / "notebooks").is_dir():
             return candidate
 
     for candidate in [
@@ -137,7 +137,7 @@ def find_project_root(
         Path("/content/drive/MyDrive") / project_name,
         Path.home() / project_name,
     ]:
-        if candidate.exists():
+        if candidate.is_dir() and (candidate / "notebooks").is_dir():
             return candidate.resolve()
 
     raise FileNotFoundError(

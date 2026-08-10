@@ -18,7 +18,11 @@ The source is the derived Kaggle release
 [RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
 which distributes the RSNA Screening Mammography Breast Cancer Detection images already converted
 to PNG with the competition metadata. The preprocessing notebook requires a user-supplied archive;
-it does not perform an opaque download or read DICOM.
+it does not perform an opaque download or read DICOM. No notebook fetches the RSNA source archive.
+The generator notebooks can retrieve the already processed cohort from the author's Drive when it is
+absent, which is consistent with their status as explicit real-run tools; the augmentation notebook
+keeps the same retrieval behind `ALLOW_PROCESSED_DOWNLOAD = False` and no longer deletes an existing
+`data/real_augmented/` by default.
 
 Preprocessing keeps MLO views, derives patient status as the maximum image-level cancer label,
 excludes negative images from positive patients, and selects at most one image per patient. It then

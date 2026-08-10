@@ -61,11 +61,36 @@ def audit_patient_split_disjointness(rows) -> dict[str, list[str]]:
     }
 
 
+_PROJECT_PATH_MARKERS = ("data", "experiments", "results")
+
+
 def _resolve_project_path(project_root: Path, value: object) -> Path:
-    """Resolve a manifest path without making the project location implicit."""
+    """Resolve a manifest path without making the project location implicit.
+
+    Historical manifests may store absolute paths from the original workstation.
+    Those are rerooted onto the current project whenever they contain a known
+    project-relative marker, which is the behaviour the reuse documentation
+    promises and which ``classifier_dataset_builder.resolve_project_path``
+    already implements. Following such a string verbatim is unsafe: the old
+    ``/mnt/MammoDiffusion/MammoDiffusion`` prefix now resolves, through a
+    symlink, into a separate successor repository.
+
+    An absolute path with no recognizable marker is returned unchanged so the
+    caller's "resolves outside the project root" diagnostic still reports it
+    instead of silently accepting a foreign file.
+    """
 
     path = Path(str(value)).expanduser()
-    return path.resolve() if path.is_absolute() else (project_root / path).resolve()
+    if not path.is_absolute():
+        return (project_root / path).resolve()
+    try:
+        return (project_root / path.relative_to(project_root)).resolve()
+    except ValueError:
+        parts = path.parts
+        marker = next((name for name in _PROJECT_PATH_MARKERS if name in parts), None)
+        if marker is None:
+            return path.resolve()
+        return project_root.joinpath(*parts[parts.index(marker):]).resolve()
 
 
 def audit_processed_dataset(

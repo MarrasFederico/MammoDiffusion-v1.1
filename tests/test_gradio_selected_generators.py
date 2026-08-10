@@ -48,6 +48,62 @@ def import_app_configuration():
     return module
 
 
+def gradio_is_installed() -> bool:
+    return importlib.util.find_spec("gradio") is not None
+
+
+class GradioProjectRootTests(unittest.TestCase):
+    """The demo must anchor on this checkout, not on a directory name.
+
+    ``app.py`` derives every asset path from ``PROJECT_ROOT``. On the original
+    workstation a sibling symlink called ``MammoDiffusion`` points at a separate
+    successor project, so a name-based root would make the demo read another
+    repository's configuration.
+    """
+
+    def test_project_root_is_this_checkout_and_not_a_successor_project(self):
+        module = import_app_configuration()
+        project_root = Path(module.PROJECT_ROOT).resolve()
+        self.assertEqual(project_root, ROOT.resolve())
+        self.assertNotIn("MammoDiffusion-v2", str(project_root))
+        self.assertTrue((project_root / "configs" / "selected_generators.json").is_file())
+
+    def test_every_absolute_module_path_stays_inside_the_checkout(self):
+        module = import_app_configuration()
+        runtime_prefix = Path(sys.prefix).resolve()
+        escaping = []
+        for name, value in vars(module).items():
+            if not isinstance(value, Path) or not value.is_absolute():
+                continue
+            resolved = value.resolve()
+            if resolved.is_relative_to(ROOT.resolve()):
+                continue
+            # The interpreter prefix is a legitimate runtime location, not an asset.
+            if resolved == runtime_prefix or resolved.is_relative_to(runtime_prefix):
+                continue
+            escaping.append((name, str(resolved)))
+        self.assertEqual(escaping, [], f"app paths escape the checkout: {escaping}")
+
+
+@unittest.skipUnless(gradio_is_installed(), "gradio is not part of the light test environment")
+class GradioInterfaceSmokeTests(unittest.TestCase):
+    """Build the real UI once. No model, no CUDA, no server."""
+
+    def test_interface_builds_and_is_named_for_this_release(self):
+        spec = importlib.util.spec_from_file_location("mammodiffusion_gradio_app_real", APP_PATH)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        try:
+            spec.loader.exec_module(module)
+            demo = module.build_demo()
+        finally:
+            sys.modules.pop(spec.name, None)
+        self.assertIsNotNone(demo)
+        self.assertIn("MammoDiffusion", str(getattr(demo, "title", "")))
+        # Building must not have started anything.
+        self.assertFalse(getattr(demo, "is_running", False))
+
+
 class GradioSelectedGeneratorsTests(unittest.TestCase):
     def test_app_source_compiles_without_loading_gpu_frameworks(self):
         source = APP_PATH.read_text(encoding="utf-8")

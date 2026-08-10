@@ -9,7 +9,7 @@ paired resampling, and deterministic report regeneration. This infrastructure is
 result: the generator choice, test isolation rules, prediction keys, and uncertainty calculations
 can be inspected without rerunning expensive model training.
 
-The release also produces a scientifically useful negative constraint. Whole-image synthetic
+The study also produces a scientifically useful negative constraint. Whole-image synthetic
 augmentation does not have one stable effect across the two tested classifier representations.
 That observation narrows the claim and identifies the next experiment more clearly than a result
 from a single classifier would.
@@ -99,7 +99,7 @@ material component of synthetic-data evaluation.
 ## Scientific motivation for lesion-aware work
 
 Whole-image synthesis jointly generates anatomy, acquisition characteristics, background, and any
-pathological signal. A lesion-aware successor can test a more specific mechanism: retain a real
+pathological signal. A future lesion-aware study can test a more specific mechanism: retain a real
 target-domain mammogram and modify only a known region. Hard compositing can enforce zero pixel
 change outside the mask; sham inpainting can test whether the classifier detects an editing
 signature; known masks can support quantitative attribution overlap and localization; and external

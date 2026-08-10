@@ -2,7 +2,7 @@
 
 This document describes the MammoDiffusion v1.1 whole-image study. Schema values such as
 `protocol_version = 2` are historical identifiers retained for provenance; they do not denote the
-release version.
+project version.
 
 The repository encodes a fixed comparison family and deterministic analysis, but the study was not
 formally preregistered. “Primary” below means primary within the frozen repository protocol, not
@@ -19,10 +19,9 @@ The source is the derived Kaggle release
 which distributes the RSNA Screening Mammography Breast Cancer Detection images already converted
 to PNG with the competition metadata. The preprocessing notebook requires a user-supplied archive;
 it does not perform an opaque download or read DICOM. No notebook fetches the RSNA source archive.
-The generator notebooks can retrieve the already processed cohort from the author's Drive when it is
-absent, which is consistent with their status as explicit real-run tools; the augmentation notebook
-keeps the same retrieval behind `ALLOW_PROCESSED_DOWNLOAD = False` and no longer deletes an existing
-`data/real_augmented/` by default.
+Where a notebook can retrieve an already processed cohort archive, that retrieval sits behind
+`ALLOW_PROCESSED_DOWNLOAD`, which ships as `False`; rebuilding the traditional-augmentation pool is
+likewise an explicit action rather than a default.
 
 Preprocessing keeps MLO views, derives patient status as the maximum image-level cancer label,
 excludes negative images from positive patients, and selects at most one image per patient. It then
@@ -205,7 +204,7 @@ predictions under `results/3_classifiers/seed_runs/`; validation ensembles under
 from saved predictions. Neither loads images or models. A full generator rerun remains a manual
 explicit action requiring external assets.
 
-The Git release intentionally excludes datasets, checkpoints, local encoders, and model weights.
+The Git repository intentionally excludes datasets, checkpoints, local encoders, and model weights.
 The full archive requirements and active artifact consumers are listed in
 [ARCHIVE_AND_RELEASE.md](ARCHIVE_AND_RELEASE.md). Scientific claim limits are listed in
 [LIMITATIONS.md](LIMITATIONS.md).

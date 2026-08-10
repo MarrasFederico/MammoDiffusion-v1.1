@@ -1,28 +1,29 @@
-# MammoDiffusion v1.1 archive and release inventory
+# MammoDiffusion v1.1 archive inventory
 
-## Release identity
+## Project and archive identity
 
 - **Repository name:** `MammoDiffusion-v1.1`
-- **Release version:** `v1.1.0`
-- **Scientific scope:** final whole-image mammography synthesis and downstream-classification study
+- **Project:** MammoDiffusion v1.1
+- **Authoritative branch:** `main`
+- **Scientific scope:** frozen whole-image mammography synthesis and downstream-classification study
 - **Historical identifiers:** earlier phase labels remain in notebooks, schemas, and provenance;
-  they are development phases of this frozen study, not release versions
+  they are development phases of this frozen study, not project versions
 
-The release tag identifies the authoritative source snapshot. Frozen result JSON/CSV files remain
-the authoritative numerical record; notebook outputs are presentation and execution records, not a
-separate source of truth.
+`origin/main` is the authoritative source of the code and of the lightweight scientific artifacts
+tracked by Git. Frozen result JSON/CSV files remain the authoritative numerical record; notebook
+outputs are presentation and execution records, not a separate source of truth.
 
 ## Two different archives
 
 The project has two legitimate archive boundaries:
 
-1. **Git/source release.** Code, configurations, documentation, tests, versionable predictions,
+1. **Git source tree.** Code, configurations, documentation, tests, versionable predictions,
    metrics, and figures. It excludes datasets, checkpoints, model weights, and runtime caches.
-2. **Full local scientific archive.** The source release plus permitted datasets, synthetic image
+2. **Full local scientific archive.** The source tree plus permitted datasets, synthetic image
    pools, checkpoints, latent caches, shared model assets, and execution state needed for expensive
    reruns. This archive is too large and, in some cases, not legally suitable for Git.
 
-A source clone supports protocol audit, lightweight tests, deterministic generator-ranking rebuild,
+A source clone supports protocol review, lightweight tests, deterministic generator-ranking rebuild,
 and classifier-report regeneration from committed predictions. It does not by itself support full
 training, generation, or image-level benchmark reconstruction.
 
@@ -40,9 +41,11 @@ training, generation, or image-level benchmark reconstruction.
 | shared generator assets | `notebooks/utility/diffusers_repo`, `notebooks/pretrained_model/stable-diffusion-2-1-base` in the full archive | pinned code/base assets resolved by generator notebooks; see `SHARED_ASSETS.md` |
 | canonical timing provenance | `results/5_sustainability/canonical_events.jsonl` | frozen event snapshot; supported analysis reads only `elapsed_seconds` |
 
-Mammo-FM weights and derived checkpoints must not be placed in the public Git release or a shared
-archive that violates their license. Authorized users restore them separately under the terms in
-[mammo_fm_license_note.md](mammo_fm_license_note.md).
+Mammo-FM weights and derived checkpoints must never be placed in the public Git repository. In any
+shared archive they must be handled strictly under their own licence and made accessible only to
+parties authorized under the applicable terms. Authorized users restore them separately; the terms
+are summarized in [mammo_fm_license_note.md](mammo_fm_license_note.md), which is a pointer to the
+licence and not a reinterpretation of it.
 
 ## REMOVE
 
@@ -60,8 +63,8 @@ Only clearly regenerable or misleading artifacts belong in this category:
   `results/2_diffusers/06_ldm_extra1361_fromscratch/plots/ecotracker_summary_per_stage.png`.
 
 The rule covers rendered figures anywhere in `results/`, not only the sustainability tree. The
-`ecotracker_summary_per_stage.png` entry was found by the independent post-release audit; the
-`*/ecotracker/*.jsonl` source records it was drawn from stay in place as frozen provenance.
+`*/ecotracker/*.jsonl` source records those figures were drawn from stay in place as frozen
+provenance.
 
 Removing caches does not remove scientific evidence. The sustainability deletions prevent stale,
 unsupported energy values from competing with the elapsed-time-based analysis.
@@ -119,7 +122,7 @@ Audit the pinned shared Diffusers checkout, SD2.1 base signature, and possible d
 python notebooks/utility/audit_shared_diffusers_assets.py --dry-run
 ```
 
-Dry-run auditing is the normal release check. The script also exposes explicit duplicate-removal
+Dry-run auditing is the normal check. The script also exposes explicit duplicate-removal
 flags, but those are destructive maintenance actions and are not part of ordinary reproduction or
 archive verification.
 
@@ -137,9 +140,9 @@ paths, and a full archive must preserve enough metadata to resolve any remaining
 model the RTX 5060 Ti reliably, so its stored `energy_kwh` and `co2_kg` fields are not supported
 measurements. The current analysis uses only valid events longer than 60 seconds and computes an
 estimate as `elapsed_seconds / 3600 × 0.170 kW`. Legacy actual-versus-canonical and CO2 summaries are
-not release evidence.
+not supported v1.1 evidence.
 
-## Remaining release risks
+## Remaining risks
 
 - The repository has no project-wide license file. Public visibility does not itself grant a reuse
   license; the owner should make a deliberate licensing decision without overriding third-party
@@ -151,12 +154,12 @@ not release evidence.
 - Git cannot verify ignored heavy assets. A full archive should be checked independently for
   presence, counts, and checksums before it is treated as a reproduction package.
 
-## Environment declaration versus release verification
+## Environment declaration versus verification
 
 `requirements.txt` and `requirements-dev.txt` contain compatible-version bounds; they are not a
 fully resolved scientific lock and must not be presented as an exact historical training
-environment. The v1.1 source and lightweight suite were verified at release time with
-`/home/fede/miniforge3/envs/tf-gpu/bin/python` and the following current environment:
+environment. The v1.1 source tree and lightweight suite were verified with the following
+environment:
 
 - Python 3.11.15;
 - NumPy 1.26.4;
@@ -164,86 +167,42 @@ environment. The v1.1 source and lightweight suite were verified at release time
 - PyTorch 2.12.0+cu130;
 - Gradio 6.17.3.
 
-This is a release-verification environment, not proof that every historical training run used the
-same package builds. Generator code also relies on the separately archived local Diffusers checkout
+This is a verification environment, not proof that every historical training run used the same
+package builds. Generator code also relies on the separately archived local Diffusers checkout
 at commit `3759fab56d3170a04d747e918a13e55fda6681e2`, documented in
 [SHARED_ASSETS.md](SHARED_ASSETS.md). Full training requires the appropriate separately restored
 artifacts and a compatible local GPU environment.
 
+## Current reproducibility guarantees
+
+These describe the state of the repository, and each is covered by the test suite.
+
+- **Safe review mode.** Every notebook activates the contract in
+  `notebooks/utility/review_mode.py` in its bootstrap cell. Outbound sockets and name resolution are
+  blocked, package managers and repository clones are refused, and cohort or shared-asset downloads
+  raise an explicit error naming the flag to set. Opening a notebook and running every cell cannot
+  train, generate, download, install, clone, or delete anything.
+- **Explicit opt-in for anything heavy.** Network access, dependency installation, and data
+  downloads are separate flags that ship disabled, and the scientific phases stay gated by their own
+  `RUN_*_PHASE` flags. Granting network access does not by itself start training or generation.
+- **Project-root isolation.** Root discovery requires a repository marker rather than a directory
+  name, so a checkout resolves to itself regardless of where it is cloned or what neighbouring
+  directories are called, and resolution from outside any checkout fails rather than guessing.
+- **Legacy path rerooting.** `notebooks/utility/project_paths.py` is the single authority for
+  interpreting a path recorded by an earlier run. Identity is the repository-relative suffix, so a
+  historical absolute prefix is never followed; resolution lands inside the current checkout or
+  fails, and a symlinked `data/` or `experiments/` still counts as inside the project.
+- **Content-based artifact identity.** Cache and manifest compatibility compares content, not the
+  location a file occupied when the record was written, so relocating the checkout does not
+  invalidate a still-valid frozen artifact.
+- **Deterministic report regeneration.** `rebuild_classifier_reports.py` and
+  `rebuild_generator_ranking.py` reproduce the tracked report tree from the committed predictions
+  and the committed generator summary, without inference and without opening an image or a model.
+- **Frozen scientific artifacts.** Reusing an existing cohort never rewrites the canonical split
+  manifests, the frozen preprocessing record, or the traditional-augmentation pool.
+
 ## Freeze rule
 
-After tests, documentation checks, cleanup, tagging, remote push, and full archive verification,
-this tree is frozen. Any further development belongs in its own repository and must not mutate the
-v1.1 release artifacts.
-
-## Post-release independent audit
-
-An independent audit was run against the `v1.1.0` tag after publication. It re-derived every
-released figure from the committed prediction CSV files with scikit-learn as an external reference
-and found **no change to any scientific result**: point metrics, bootstrap intervals, empirical tail
-areas, and Holm-adjusted values all reproduce to within floating-point noise, and
-`rebuild_classifier_reports.py` regenerates the whole tracked report tree byte-identically from a
-clean checkout.
-
-`main` therefore carries release-hygiene corrections only, and no result artifact was edited:
-
-- project-root resolution in the notebook bootstrap, in two notebook-level resolvers, and in
-  `ldm_project_paths` now prefers a repository marker (`.git`, `configs/`, `data/`) over a directory
-  that merely carries the project name. The old order escaped the checkout whenever `data/` was
-  absent — the state a fresh clone starts in — and on the original workstation it resolved to the
-  parent directory, which on the original workstation holds unrelated repositories;
-- `results/2_diffusers/06_ldm_extra1361_fromscratch/plots/ecotracker_summary_per_stage.png` was
-  removed under the REMOVE rule above;
-- the root-marker heuristic in `shared_diffusers_assets` no longer keys on a configuration file
-  this release does not ship;
-- regression tests were added for reference-checked average precision and ROC-AUC, paired-bootstrap
-  semantics, Holm, and the consistency of the published numbers with the frozen predictions.
-
-A closing pass repeated the whole verification and hardened three further items, again without
-touching a result:
-
-- on the original workstation a sibling symlink named `MammoDiffusion` points at an unrelated
-  repository, so accepting a directory for its *name* could hand back that repository. Every
-  name-based clause in the notebook bootstrap, the notebook resolvers and `ldm_project_paths` now
-  also requires a `notebooks/` directory, and resolution from outside any checkout fails loudly
-  instead of guessing;
-- `processed_dataset_reuse` rerooted relative manifest paths but followed absolute ones verbatim.
-  Historical manifests carry the `/mnt/MammoDiffusion/MammoDiffusion` prefix, which that symlink now
-  redirects to an unrelated repository, so absolute paths with a recognized project marker are
-  rerooted onto the current checkout. An absolute path with no marker is still reported as resolving
-  outside the project rather than silently accepted;
-- `02_Data_Augmentation_Trad.ipynb` shipped `RESET_DATASET = True`, so an ordinary Run All deleted
-  and rebuilt `data/real_augmented/` — an input of the `real_augmented` condition and of the
-  memorization reference pool. It is now `False`, and the cohort fetch it performs is behind
-  `ALLOW_PROCESSED_DOWNLOAD = False`. README and PROTOCOL now state exactly which notebooks can
-  retrieve data and under what condition.
-
-A final engineering pass then made the review-mode contract a property of the code rather than a
-promise in the documentation:
-
-- `notebooks/utility/review_mode.py` states the contract once and enforces it at the primitives
-  every escape route passes through -- outbound sockets and name resolution, package managers and
-  repository clones, and the cohort/shared-asset downloads. Every notebook activates it in its
-  bootstrap cell, so opening a notebook and pressing *Run All* cannot train, generate, download,
-  install, clone, or delete anything;
-- the shared Diffusers helpers no longer clone or `pip install -e` during setup: an existing pinned
-  checkout is imported from its own `src/`, and cloning or installing requires an explicit opt-in;
-- CodeCarbon is started defensively, because constructing it probes the cloud metadata endpoint;
-  only `elapsed_seconds` was ever used, so a tracker that cannot start degrades instead of taking an
-  offline notebook down;
-- `notebooks/utility/project_paths.py` is the single authority for interpreting a recorded path.
-  Identity is the repository-relative suffix, resolution always lands inside the current checkout or
-  fails, and symlinked `data/`/`experiments/` directories stay recognisably inside the project;
-- cache and manifest compatibility now compares content, not the location a file happened to occupy
-  when the record was written. The rename had silently invalidated every frozen checkpoint cache;
-- the preprocessing notebooks no longer rewrite the canonical split manifests, the frozen evaluation
-  record, or the traditional-augmentation pool when reusing an existing cohort.
-
-All eight generator notebooks, both preprocessing notebooks, both benchmark notebooks, the
-classifier comparison and final-evaluation notebooks, and the sustainability notebook were executed
-end to end in review mode under a kernel-level filesystem guard: no errors, no network, no
-environment mutation, no write outside the checkout, and no read or write anywhere near an unrelated
-repository.
-
-The `v1.1.0` tag is unchanged and remains a complete, self-consistent scientific snapshot. `main`
-carries the audit corrections; no new version or release was created, and none is planned.
+After validation and synchronization of `main`, the v1.1 scientific study is frozen. Documentation,
+tests, and reproducibility fixes may still be corrected on `main`; the cohort, predictions, metrics,
+generator selection, and reported results are not to be modified.

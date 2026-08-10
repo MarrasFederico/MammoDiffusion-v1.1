@@ -1,8 +1,8 @@
 # Limitations of the MammoDiffusion v1.1 whole-image study
 
-This document defines the boundary of the claims supported by release v1.1.0. It is not a list of
-failed objectives: the release contributes a complete and auditable synthesis-to-classification
-pipeline. The limitations explain why its favorable MaxViT signal remains a hypothesis for future
+This document defines the boundary of the claims supported by the frozen MammoDiffusion v1.1
+study. It is not a list of failed objectives: the study contributes a complete and auditable
+synthesis-to-classification pipeline. The limitations explain why its favorable MaxViT signal remains a hypothesis for future
 work rather than evidence of a general clinical benefit.
 
 ## 1. Constructed, positive-enriched analytical cohort

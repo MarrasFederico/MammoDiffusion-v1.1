@@ -1,8 +1,9 @@
 # Evolution from the V1 prototype to MammoDiffusion v1.1
 
-> **Naming note.** "V1" denotes the project's first internal prototype. Everything the release
-> freezes is **MammoDiffusion v1.1**. Schema fields such as `protocol_version = 2` are historical
-> identifiers of the second methodological phase and are preserved as provenance.
+> **Naming note.** "V1" denotes the original prototype, built collaboratively with colleagues.
+> Everything in the frozen study is **MammoDiffusion v1.1**. Schema fields such as
+> `protocol_version = 2` are historical identifiers of the second methodological phase and are
+> preserved as provenance.
 
 ## 1. Project continuity
 
@@ -149,7 +150,7 @@ See [LIMITATIONS.md](LIMITATIONS.md) for the complete claim boundary.
 
 ## 8. Final interpretation
 
-Release v1.1.0 strengthens the original whole-image prototype into a more controlled and
+MammoDiffusion v1.1 strengthens the original whole-image prototype into a more controlled and
 reproducible study. Its clearest downstream observation is a favorable but non-conclusive MaxViT
 signal that is not reproduced by Mammo-FM and is not significant after the configured Holm
 adjustment. This is neither proof that synthetic data generally help nor evidence that the project

@@ -20,9 +20,12 @@ classifier-independent, generalizable pathological information.
 > The lack of robust cross-classifier replication motivates a lesion-aware approach designed to
 > preserve real target-domain anatomy while synthesizing only pathological content.
 
-Everything below describes the released study. Methodological background is in
-[docs/FROM_V1_TO_V1_1.md](docs/FROM_V1_TO_V1_1.md); release and archive boundaries are in
-[docs/ARCHIVE_AND_RELEASE.md](docs/ARCHIVE_AND_RELEASE.md).
+This work continues **MammoDiffusion V1**, the original prototype built collaboratively with
+colleagues, which established the RSNA-derived cohort, the preprocessing, and a first
+generation-to-classification pipeline. MammoDiffusion v1.1 is the present iteration: it keeps that
+cohort and adds a second classifier architecture, three seeds, seed ensembles, a declared comparison
+family with multiplicity adjustment, and a validation-only generator selection. The methodological
+differences are set out in [docs/FROM_V1_TO_V1_1.md](docs/FROM_V1_TO_V1_1.md).
 
 ## Task and cohort
 
@@ -36,9 +39,9 @@ estimate of screening prevalence: preprocessing retains the selected positive pa
 the non-cancer-to-cancer ratio at 5:1. The patient-level splits contain 2,041/437/438 patients for
 train/validation/test, including 340/73/73 positive patients.
 
-This canonical split was carried over from the project's earlier prototype. The current pipeline
-prevents generator selection and threshold optimization from using test data, but the test cohort is
-a reused project test set, not an independent external confirmation cohort.
+This canonical split is inherited unchanged from V1. The current pipeline prevents generator
+selection and threshold optimization from using test data, but the test cohort is a reused project
+test set, not an independent external confirmation cohort.
 
 ## Canonical downstream results
 
@@ -125,14 +128,27 @@ the old strings remain in frozen artifacts as provenance.
 positives from that cohort. Like every notebook here it opens in review mode, so it neither fetches
 the cohort nor deletes an existing `data/real_augmented/` unless told to.
 
+### B. Rebuild from original RSNA data
+
+The source is the derived Kaggle release
+[RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
+which distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG files with
+the competition `train.csv` metadata. Obtain it under the source terms and place the user-supplied
+archive where the preprocessing notebook requests it. No notebook fetches the RSNA source archive,
+and none reads DICOM.
+
+`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` keeps MLO images, derives
+patient status, excludes nominally negative images from positive patients, selects at most one
+image per patient, applies the 5:1 cap, normalizes visual tissue side and intensity, creates
+single-channel 512×512 images with aspect-preserving padding, and writes patient-level splits.
+
 ## Execution modes
 
-Every notebook opens in **review mode** and states so in its bootstrap cell. Review mode is the
-default and is enforced, not merely documented: `notebooks/utility/review_mode.py` blocks outbound
-sockets and name resolution, refuses package managers and repository clones, and turns the cohort
-and shared-asset downloads into an explicit error naming the flag to set. Cloning the repository,
-opening any notebook and pressing *Run All* therefore cannot train, generate, download, install,
-clone, or delete anything.
+Every notebook opens in **review mode** and states so in its bootstrap cell.
+`notebooks/utility/review_mode.py` enforces it: outbound sockets and name resolution are blocked,
+package managers and repository clones are refused, and the cohort and shared-asset downloads raise
+an explicit error naming the flag to set. Cloning the repository, opening any notebook and pressing
+*Run All* therefore cannot train, generate, download, install, clone, or delete anything.
 
 Review mode still lets you read the frozen results, rebuild every derived report and the generator
 ranking from the committed predictions, and inspect configurations.
@@ -156,20 +172,6 @@ MAMMODIFFUSION_ALLOW_PROCESSED_DOWNLOAD=1
 
 The scientific phases stay separately gated by their own `RUN_*_PHASE` flags, which ship as `False`,
 so granting network access does not by itself start training or generation.
-
-### B. Rebuild from original RSNA data
-
-The source is the derived Kaggle release
-[RSNA Breast Cancer 512 PNGs](https://www.kaggle.com/datasets/theoviel/rsna-breast-cancer-512-pngs),
-which distributes the RSNA Screening Mammography Breast Cancer Detection images as PNG files with
-the competition `train.csv` metadata. Obtain it under the source terms and place the user-supplied
-archive where the preprocessing notebook requests it. No notebook fetches the RSNA source archive,
-and none reads DICOM.
-
-`notebooks/1_preprocessing/01_Preprocessing_RSNA_512_gray_MLO.ipynb` keeps MLO images, derives
-patient status, excludes nominally negative images from positive patients, selects at most one
-image per patient, applies the 5:1 cap, normalizes visual tissue side and intensity, creates
-single-channel 512×512 images with aspect-preserving padding, and writes patient-level splits.
 
 ## Reproduction workflow
 
@@ -252,4 +254,4 @@ image cohort, or require a GPU. Full scientific limitations are listed in
 Further details: [protocol](docs/PROTOCOL.md), [discussion](docs/DISCUSSION.md),
 [generator status](docs/GENERATOR_STATUS.md), [sustainability analysis](docs/SUSTAINABILITY_ANALYSIS.md),
 [test suite](docs/TESTS.md), [shared assets](docs/SHARED_ASSETS.md), and
-[archive/release policy](docs/ARCHIVE_AND_RELEASE.md).
+[archive boundary](docs/ARCHIVE_AND_RELEASE.md).

@@ -19,9 +19,18 @@ The project has two legitimate archive boundaries:
 
 1. **Git source tree.** Code, configurations, documentation, tests, versionable predictions,
    metrics, and figures. It excludes datasets, checkpoints, model weights, and runtime caches.
-2. **Full local scientific archive.** The source tree plus permitted datasets, synthetic image
-   pools, checkpoints, latent caches, shared model assets, and execution state needed for expensive
-   reruns. This archive is too large and, in some cases, not legally suitable for Git.
+2. **Full scientific archive.** The source tree plus permitted datasets, synthetic image pools,
+   checkpoints, latent caches, shared model assets, and execution state needed for expensive reruns.
+   This archive is too large and, in some cases, not legally suitable for Git. It is kept on shared
+   storage for collaboration.
+
+The shared archive is a sanitized copy: it carries no Git metadata (`.git/` anywhere in the tree),
+no agent or editor state directories, and no regenerable runtime junk such as `__pycache__/`,
+`*.pyc`, or tool caches. Tracked files such as `.gitignore`, `.gitattributes`, and `.github/` are
+ordinary repository content and are kept. Where dropping `.git` would lose provenance -- notably the
+pinned Diffusers checkout -- the archive carries a manifest under `archive_manifests/` recording the
+upstream URL, the pinned commit, and a deterministic content hash of the source tree, so the
+checkout remains verifiable from the uploaded files alone.
 
 A source clone supports protocol review, lightweight tests, deterministic generator-ranking rebuild,
 and classifier-report regeneration from committed predictions. It does not by itself support full

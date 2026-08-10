@@ -29,9 +29,16 @@ notebook resolution. Heavy assets are ignored by Git and must be restored locall
 
 For a complete hand-off, upload `notebooks/`, `configs/`, `experiments/`, `results/` and the data
 material allowed by the project. In particular, include the physical directories
-`notebooks/utility/diffusers_repo` (including its nested `.git`, needed to verify the pinned commit)
-and `notebooks/pretrained_model/stable-diffusion-2-1-base`. Git-ignore rules only prevent accidental
-commits of these heavy assets; they do not mean that the assets should be omitted from Drive.
+`notebooks/utility/diffusers_repo` and `notebooks/pretrained_model/stable-diffusion-2-1-base`.
+Git-ignore rules only prevent accidental commits of these heavy assets; they do not mean that the
+assets should be omitted from the shared archive.
+
+The shared archive carries no Git metadata. A local checkout may keep its own `.git`, but the
+`diffusers_repo/.git` directory is **not** uploaded: the pinned revision is instead recorded in
+`archive_manifests/diffusers_source_provenance.json`, which stores the upstream URL, the pinned
+commit, and a deterministic content hash of the source tree with `.git` and `__pycache__` excluded.
+That hash is reproducible from the uploaded files alone, so the checkout can still be verified
+without shipping repository internals.
 
 Uploading `experiments/diffusers/` first is safe, but it is only the experiment-state tranche:
 the notebooks resolve the shared code checkout and SD2.1 base from the two `notebooks/` paths
@@ -40,8 +47,8 @@ before another machine attempts to run or evaluate the project.
 
 Keep scientific restart/evaluation state: canonical checkpoint histories, latent archives,
 checkpoint-validation caches, evaluation outputs and embedding caches. Do not upload disposable
-runtime state: `.cache/huggingface`, `.cache/mammodiffusion`, `__pycache__`, `*.pyc`
-or empty work queues. The VAE-composed SD pipeline under `.cache/mammodiffusion` is rebuilt
+runtime state: `.cache/huggingface`, `.cache/mammodiffusion`, `__pycache__`, `*.pyc`,
+agent/editor state directories, or empty work queues. The VAE-composed SD pipeline under `.cache/mammodiffusion` is rebuilt
 automatically from the shared SD2.1 base and the standalone experiment-03 VAE.
 
 Checkpoint ownership is intentionally unique:
